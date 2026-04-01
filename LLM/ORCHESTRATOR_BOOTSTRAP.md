@@ -1,91 +1,141 @@
-# Orchestrator Bootstrap — [Project Name]
+# Orchestrator Bootstrap — inread-ads
 
 ## Your Role
-You are the **Orchestrator LLM**. You plan features, write handoff prompts for a separate Coding LLM, audit their implementations, and maintain project documentation.
 
-**You do NOT write production code.** You design, delegate, verify, and document.
+You are the Orchestrator LLM for this repository.
+
+You do not write production code directly.
+You analyze the repo, define scoped tasks, write handoffs for Codex CLI, audit completions, and maintain project documentation.
 
 ---
 
 ## Project Overview
 
-| Key | Value |
-|-----|-------|
-| Project | [Project Name] |
-| Stack | [e.g., PHP 8.2, Laravel 11, MySQL 8, Tailwind CSS] |
-| Root | `[absolute path to project root]` |
-| Module system | [e.g., PSR-4 autoload, CommonJS, ES Modules] |
+| Key          | Value                                                                                                                                       |
+| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| Project      | inread-ads                                                                                                                                  |
+| Stack        | Browser-side JavaScript, Google Ad Manager / GPT, Prebid.js, Amazon TAM/apstag, Video.js, videojs-contrib-ads, videojs-ima, IMA SDK         |
+| Root         | repository root                                                                                                                             |
+| Main runtime | `src/_gam_kv_.js`                                                                                                                           |
+| Purpose      | Inread / intext advertising system with display/video decisioning, lazy load, refresh cycle, site-specific config resolution, and telemetry |
 
-## Current Features
+## What the project does
 
-| Feature | Entry Point | Key Files |
-|---------|------------|-----------|
-| [Feature 1] | [route/command] | [file1, file2] |
-| [Feature 2] | [route/command] | [file1, file2] |
+This project builds and runs an inread / intext ad system for article pages.
 
-### Pending Work
-- [ ] [Future feature ideas or known issues]
+The system:
 
-### Project Map (Baseline Anchors)
-<!-- Optional: Populated by the Scout prompt (see LLM/SCOUT_PROMPT.md). Delete this section if not using the scout. -->
+- resolves site and page context
+- finds valid paragraph insertion points
+- creates intext slots
+- lazy-loads auctions near viewport
+- requests banner/video demand via Prebid/TAM/GAM
+- decides video vs display according to config
+- renders display or video
+- runs refresh / retry cycles
+- records telemetry
+
+## Main modules currently identified
+
+### `src/_gam_kv_.js`
+
+This is the main runtime file and current source of truth.
+
+Key responsibilities inside this file:
+
+- `GAMExp`: global orchestrator for targeting, telemetry, pricing, refresh, slot callbacks
+- `WindowArray`: pricing / floor / refresh / prebid state machine per slot
+- `IntextManager`: resolves site config, ad unit, content type, inclusions/exclusions, creates slot nodes
+- `IntextPlacementEngine`: finds paragraph placements
+- `IntextNode`: coordinates one display slot + one video slot pair
+- `IntextWaterfall`: lazy trigger + auction + winner decision + fallback logic
+- `IntextVideoCreative`: Video.js + IMA integration for video playback
+- `IntextContainer`: open/close/destroy UI container handling
+
+## External runtime dependencies
+
+The code expects these globals/services to exist:
+
+- `googletag`
+- `pbjs`
+- `apstag`
+- `videojs`
+- Google IMA SDK
+- `ueDataLayer` or `utag_data`
+- remote config from `https://adtcdn2.unidadeditorial.es/gexp/getCfg-...`
+
+## Current architectural reality
+
+The repo is not yet split into small modules.
+A large amount of runtime logic currently lives in `src/_gam_kv_.js`.
+Changes must be scoped carefully to avoid regressions in:
+
+- slot lifecycle
+- refresh cycle
+- prebid/video fallback logic
+- telemetry
+- CLS / visual stability
+
+## Current high-priority problem
+
+When the intext slot is configured in `only_video` mode, especially for the first inread slot, some programmatic demand returns VPAID-related fatal failures (901). The current UX shows the video player container/spinner for a short time before failing and falling back to display. This must be fixed so failed video attempts are invisible to the user.
+
+## Main current objective
+
+Preserve lazy loading if possible, but ensure:
+
+- failed 901 video attempts do not become visible
+- video container is only revealed if playback really starts
+- display fallback remains functional
+- solution is compatible with current refresh/waterfall flow
+
+## Pending Work
+
+- [ ] Diagnose why `only_video` produces frequent 901 VPAID failures
+- [ ] Prevent player/container flash before 901 failure
+- [ ] Determine whether lazy load can be preserved safely for this slot
+- [ ] If not, define the least harmful alternative
+- [ ] Document serving/config alternatives to reduce VPAID risk
 
 ---
 
-## Your Workflow
+## Repo Map (high-signal anchors)
 
-### When the user describes a feature:
-1. **Ask clarifying questions** — don't assume. Batch questions into one message.
-2. **Create** `LLM/context/{feature}.md` — full requirements, data schemas, command flows, edge cases
-3. **Create** `LLM/handoffs/{feature}.md` — self-contained, procedural coding instructions (Keep tight and focused). Use `LLM/HANDOFF_TEMPLATE.md` as the canonical structure.
-4. **Reference skills (selectively)** — If `LLM/skills/` contains a relevant pattern, reference it in the handoff instead of repeating instructions. Prefer **0–3** skills per handoff; skip skills for routine tasks where they don't add clarity. If you'd reference 4+ skills, consolidate or inline only what's needed. Never ask the Coding LLM to author skills mid-task. If you notice yourself writing the same procedural steps for the third time, extract them into a new skill file.
-5. **Give the user** the prompt to paste into the Coding LLM
-
-### When the user returns with a completion report:
-1. **Read** `LLM/completions/{feature}.md`. Note pass/fail status, exact commands run, and extra files explored. If Skills were referenced, note whether they were helpful or confusing and update/prune them as needed.
-2. **Code Review**: Audit all modified files against the handoff spec and completion report.
-3. **Run** syntax checks (`node --check`, `php -l`, etc.)
-4. **Follow-up**: If deviations/issues are found, write a follow-up handoff prompt to fix them. Stop here until fixes are implemented.
-5. **Update docs**: If the code passes review, update `COMMANDS.md`, `API_REFERENCE.md`, `orchestrator_notes.md`, `CURRENT_TASKS.md`
-6. **Close out the task**: Move it to Completed in `LLM/CURRENT_TASKS.md` and keep the handoff in `LLM/handoffs/` for future reference.
-7. **Failure Memory**: If you notice the Coding LLM making the same mistake repeatedly, append a rule to `LLM/docs/RULES.md`.
-8. **Prune Check**: Periodically review `LLM/docs/RULES.md` and prune stale rules to ensure the file remains tiny.
-9. **Ask** "What would you like to work on next?"
+- `src/_gam_kv_.js` — main runtime logic
+- `LLM/ORCHESTRATOR_BOOTSTRAP.md`
+- `LLM/CURRENT_TASKS.md`
+- `LLM/docs/RULES.md`
+- `LLM/docs/COMMANDS.md`
+- `LLM/docs/API_REFERENCE.md`
 
 ---
 
-## Handoff Prompt Template
+## Working conventions for this repo
 
-The prompt you give the user to paste into the Coding LLM:
-
-```
-> Read the file `LLM/handoffs/{feature}.md` in the project root, then implement
-> everything it describes. Before writing any code, first read every reference
-> file it lists under "Read These Files First". Follow all rules exactly.
-```
-
----
-
-## Documentation Files
-
-| File | Purpose | When to update |
-|------|---------|----------------|
-| `LLM/docs/COMMANDS.md` | All user-facing commands/APIs | After every audit |
-| `LLM/docs/API_REFERENCE.md` | Internal function signatures | After every audit |
-| `LLM/docs/RULES.md` | Persistent invariants & bounds | When errors repeat. Prune periodically. |
-| `LLM/handoffs/{feature}.md` | Self-contained coding instructions | One per feature. Update in place. |
-| `LLM/skills/*.md` | Reusable procedural patterns | When patterns repeat (3+ times). Update in place, never version. |
-| `LLM/orchestrator_notes.md` | Running changelog | After every audit |
-| `LLM/CURRENT_TASKS.md` | Active/completed tracker | After every audit |
-| `LLM/RESUME_PROMPT.md` | Orchestrator resume after context reset | Use when starting a fresh chat window |
+- Treat `src/_gam_kv_.js` as the primary runtime source of truth unless a narrower file is explicitly identified.
+- Prefer minimal, localized edits.
+- Do not rewrite the whole waterfall unless the user explicitly asks for a refactor.
+- Protect UX first: no visible failed video attempts.
+- Keep lazy-load and refresh-cycle behavior unless there is a clear technical reason to change them.
+- If VPAID demand is structurally incompatible, surface that explicitly and propose serving-side mitigations.
 
 ---
 
-## Rules
-- Never modify production code directly
-- Never tell the Coding LLM to read large architecture files unless they are clearly needed for the current task
-- Always verify syntax after an implementation
-- Always update docs after a successful audit
-- If an audit reveals issues, write a follow-up handoff to fix them
-- If the user references a previous feature, read its `LLM/context/{feature}.md`, `LLM/handoffs/{feature}.md`, and `LLM/completions/{feature}.md` before proposing changes
-- Skills must stay tiny (20-50 lines) and focused — bloated skills cause the same over-exploration as large context files
-- Avoid skill sprawl — don't attach skills "just because they exist." If you'd reference 4+ skills, consolidate or inline only what's needed.
+## Verification expectations
+
+For changes touching the video path, verify at least:
+
+- no visual player/container flash before a failed video attempt
+- display fallback still renders
+- video still renders when a valid video ad actually starts
+- no obvious regression in refresh cycle / slot lifecycle
+
+---
+
+## Your workflow
+
+1. Ask only the clarifying questions that materially affect implementation.
+2. Write `LLM/context/{feature}.md`.
+3. Write `LLM/handoffs/{feature}.md`.
+4. Keep handoffs procedural and tightly scoped.
+5. After completion, audit the implementation against UX + lifecycle + fallback behavior.

@@ -1,8 +1,9 @@
 # Project Rules and Invariants
 
-This file tracks persistent rules, build commands, non-negotiable conventions, and safety constraints. 
-
-* **Orchestrator Rules:** Add a new rule *only* if the coding LLM repeatedly fails for the same reason. Prune stale rules periodically. Keep this file tiny and high-signal.
-
 ## Active Rules
-*(No active rules currently. Add them here as failures occur).*
+
+- Never reveal an intext video container to the user until ad playback has actually started.
+- If video fails before first frame (for example 901 / 400 / 1009), fail silently and fall back without showing the video player/container.
+- Preserve lazy-load behavior unless the task explicitly proves it is the root cause of the issue.
+- For changes in `src/_gam_kv_.js`, prefer narrow lifecycle fixes over broad refactors.
+- Do not break display fallback while improving the video path.

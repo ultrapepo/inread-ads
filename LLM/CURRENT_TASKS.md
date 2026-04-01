@@ -1,20 +1,13 @@
 # Current Tasks
 
 ## Active
-_None - awaiting first task from user._
 
-<!--
-Keep Active tasks minimal. Prefer ONE active "current" task at a time.
-Each active task should include pointers so a fresh Orchestrator chat can resume without guessing.
-
-Format (one line per task):
-- [Feature] - Status: [in-progress/blocked/needs-handoff/needs-audit] - Handoff: `LLM/handoffs/{feature}.md` - Context: `LLM/context/{feature}.md` - Last completion: `LLM/completions/{feature}.md` (optional)
--->
+- intext-video-901-fallback
+  - Status: needs-handoff
+  - Handoff: `LLM/handoffs/intext-video-901-fallback.md`
+  - Context: `LLM/context/intext-video-901-fallback.md`
+  - Goal: prevent visible player/container flash before VPAID 901 failure and preserve lazy load if viable
 
 ## Completed
-_No completed tasks yet._
 
-<!--
-Format (one line per task):
-- [Feature] - Completed: YYYY-MM-DD - Completion: `LLM/completions/{feature}.md` - Notes: `LLM/orchestrator_notes.md`
--->
+_No completed tasks yet._
