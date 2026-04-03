@@ -2661,6 +2661,55 @@ class RandomStrategy extends WindowArray {
           this.lockedHeight = 0;
         }
 
+        markDisplayHeightLock(height, sourceEl = null) {
+          const numericHeight = parseInt(height, 10) || 0;
+          if (numericHeight !== 600) return;
+          if (this.lockedHeight !== 600) {
+            logIntext(`[Intext:Display:${this.id}] display_height_lock_set_600`);
+          }
+          this.lockedHeight = 600;
+          const els = [sourceEl, this.container?.getElement?.(), this.videoContainer?.getElement?.()].filter(Boolean);
+          els.forEach((el) => {
+            if (el?.dataset) {
+              el.dataset.lockedHeight = "600";
+            }
+          });
+        }
+
+        getPreservedRefreshHeight(currentEl) {
+          const nodeLockedHeight = parseInt(this.lockedHeight, 10) || 0;
+          const datasetLockedHeight = parseInt(currentEl?.dataset?.lockedHeight, 10) || 0;
+          const currentOffsetHeight = currentEl?.offsetHeight || 0;
+
+          let preservedHeight = 360;
+          let lockSource = "default_360";
+
+          if (nodeLockedHeight > 0) {
+            preservedHeight = nodeLockedHeight;
+            lockSource = "this.node.lockedHeight";
+          } else if (datasetLockedHeight > 0) {
+            preservedHeight = datasetLockedHeight;
+            lockSource = "el.dataset.lockedHeight";
+          } else if (currentOffsetHeight > 0) {
+            preservedHeight = currentOffsetHeight;
+            lockSource = "currentEl.offsetHeight";
+          }
+
+          if (nodeLockedHeight === 600 || datasetLockedHeight === 600) {
+            if (preservedHeight < 600) {
+              logIntext(`[Intext:Display:${this.id}] display_height_lock_restored_600`);
+            }
+            preservedHeight = Math.max(preservedHeight, 600);
+            this.lockedHeight = 600;
+          }
+
+          logIntext(
+            `[Intext:Display:${this.id}] display_refresh_lock_source - source=${lockSource}, height=${preservedHeight}`,
+          );
+
+          return preservedHeight;
+        }
+
         initialize() {
           this.wa = new WindowArray(
             this.id,
@@ -2805,7 +2854,7 @@ class RandomStrategy extends WindowArray {
                         actualHeight = parseInt(this.waterfall._lastDisplayBid.height, 10) || 0;
                     }
                     if (actualHeight === 600) {
-                        this.lockedHeight = 600;
+                        this.markDisplayHeightLock(600, slotDoc);
                     }
 
                     if (gamWidth === 960 && gamHeight === 540) {
@@ -2953,7 +3002,7 @@ class RandomStrategy extends WindowArray {
              actualCreativeHeight = parseInt(this.waterfall._lastDisplayBid.height, 10) || 0;
            }
            if (actualCreativeHeight === 600) {
-               this.lockedHeight = 600;
+               this.markDisplayHeightLock(600, this.container.getElement());
            }
 
            const vContainerEl = this.videoContainer.getElement();
@@ -2967,7 +3016,10 @@ class RandomStrategy extends WindowArray {
 
            const slotDoc = document.getElementById(this.id);
            if (slotDoc) {
-               slotDoc.style.transition = "none";
+              slotDoc.style.transition = "none";
+              if (this.lockedHeight) {
+                  slotDoc.dataset.lockedHeight = String(this.lockedHeight);
+              }
            }
 
            this.container.open(this.lockedHeight);
@@ -2983,6 +3035,7 @@ class RandomStrategy extends WindowArray {
              if (this.lockedHeight) {
                  slotDoc.style.minHeight = this.lockedHeight + "px";
                  slotDoc.style.height = this.lockedHeight + "px"; 
+                 slotDoc.dataset.lockedHeight = String(this.lockedHeight);
              } else {
                  slotDoc.style.minHeight = "360px";
                  if (!slotDoc.style.height) slotDoc.style.height = "360px";
@@ -3138,7 +3191,10 @@ class RandomStrategy extends WindowArray {
                  this._visibilityTimer = null;
              }
              const currentEl = this.container.getElement();
-             const preservedHeight = this.lockedHeight || (currentEl ? currentEl.offsetHeight : 360) || 360;
+             const preservedHeight = this.getPreservedRefreshHeight(currentEl);
+             logIntext(
+               `[Intext:Display:${this.id}] display_refresh_preserved_height - height=${preservedHeight}`,
+             );
 
              if (this.slot) {
                 googletag.cmd.push(() => googletag.destroySlots([this.slot]));
@@ -3148,6 +3204,7 @@ class RandomStrategy extends WindowArray {
              const newWrapper = this.manager.createWrapperNode(this.id, "display");
              newWrapper.style.height = preservedHeight + "px";
              newWrapper.style.minHeight = preservedHeight + "px";
+             newWrapper.dataset.lockedHeight = String(preservedHeight);
              newWrapper.classList.add("is-open");
              newWrapper.style.opacity = "1";
              newWrapper.style.display = "block";
@@ -3554,9 +3611,13 @@ class RandomStrategy extends WindowArray {
                   loaderVideo = videoEl.querySelector(".gexp-intext-loader");
                 }
                 if (loaderVideo) loaderVideo.style.display = "flex";
-                const preservedHeight = this.node.lockedHeight || videoEl.offsetHeight || 360;
+                const preservedHeight = this.node.getPreservedRefreshHeight(videoEl);
+                logIntext(
+                  `[Intext:Display:${this.node.id}] display_refresh_preserved_height - height=${preservedHeight}`,
+                );
                 videoEl.style.height = preservedHeight + "px";
                 videoEl.style.minHeight = preservedHeight + "px";
+                videoEl.dataset.lockedHeight = String(preservedHeight);
                 videoEl.classList.add("is-open");
                 videoEl.style.display = "block";
                 videoEl.style.opacity = "1";
@@ -3583,9 +3644,13 @@ class RandomStrategy extends WindowArray {
               if (loaderDisplay) loaderDisplay.style.display = "flex";
               const activeEl = this.container.getElement();
               if (activeEl) {
-                  const preservedHeight = this.node.lockedHeight || activeEl.offsetHeight || 360;
+                  const preservedHeight = this.node.getPreservedRefreshHeight(activeEl);
+                  logIntext(
+                    `[Intext:Display:${this.node.id}] display_refresh_preserved_height - height=${preservedHeight}`,
+                  );
                   activeEl.style.height = preservedHeight + "px";
                   activeEl.style.minHeight = preservedHeight + "px";
+                  activeEl.dataset.lockedHeight = String(preservedHeight);
                   activeEl.classList.add("is-open");
                   activeEl.style.display = "block";
                   activeEl.style.opacity = "1";
@@ -4684,7 +4749,7 @@ class RandomStrategy extends WindowArray {
             );
             if (!this._playerRevealed) {
               logIntext(
-                `[Intext:VideoPlayer:${this.playerId}] adend before reveal - requestAds will handle terminal fallback`,
+                `[Intext:VideoPlayer:${this.playerId}] adend_before_reveal - requestAds will handle terminal fallback`,
               );
               return;
             }
@@ -4741,6 +4806,7 @@ class RandomStrategy extends WindowArray {
             let terminalEvent = null;
             let terminalHandled = false;
             let adTimeout = null;
+            let adstartGraceTimer = null;
             let nativeAdError = null;
 
             const clearAdTimeout = () => {
@@ -4748,10 +4814,16 @@ class RandomStrategy extends WindowArray {
               clearTimeout(adTimeout);
               adTimeout = null;
             };
+            const clearAdstartGraceTimer = () => {
+              if (!adstartGraceTimer) return;
+              clearTimeout(adstartGraceTimer);
+              adstartGraceTimer = null;
+            };
             const settle = (type, value) => {
               if (settled) return;
               settled = true;
               clearAdTimeout();
+              clearAdstartGraceTimer();
               if (type === "resolve") resolve(value);
               else reject(value);
             };
@@ -4760,6 +4832,12 @@ class RandomStrategy extends WindowArray {
               terminalHandled = true;
               terminalEvent = source;
               clearAdTimeout();
+              if (adstartGraceTimer) {
+                logIntext(
+                  `[Intext:Video:IMA] adstart_grace_cancelled_by_terminal - terminal=${source}`,
+                );
+              }
+              clearAdstartGraceTimer();
               return true;
             };
             this._settle = settle;
@@ -4830,6 +4908,22 @@ class RandomStrategy extends WindowArray {
             this.player.on("adstart", () => {
               logIntext(`[Intext:Video:IMA] ✅ adstart — Arrancando...`);
               adStarted = true;
+              clearAdstartGraceTimer();
+              logIntext(`[Intext:Video:IMA] adstart_grace_started - waiting 400ms before pragmatic reveal`);
+              adstartGraceTimer = setTimeout(() => {
+                adstartGraceTimer = null;
+                if (terminalEvent || terminalHandled) {
+                  logIntext(
+                    `[Intext:Video:IMA] adstart_grace_cancelled_by_terminal - terminal=${terminalEvent || "unknown"}`,
+                  );
+                  return;
+                }
+                if (firstFramePlayed || this._playerRevealed || this._aborted || !this.player) {
+                  return;
+                }
+                logIntext(`[Intext:Video:IMA] adstart_grace_reveal - no early terminal after grace window`);
+                revealPlayer("adstart_grace");
+              }, 400);
 
               setTimeout(() => {
                 if (
