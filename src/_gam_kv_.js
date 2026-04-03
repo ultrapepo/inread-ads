@@ -4548,6 +4548,7 @@ class RandomStrategy extends WindowArray {
           this._aborted = false;
           this._settle = null;
           this._playerRevealed = false;
+          this._videoEndHandled = false;
         }
 
         async render() {
@@ -4687,6 +4688,10 @@ class RandomStrategy extends WindowArray {
               );
               return;
             }
+            if (this._videoEndHandled) {
+              return;
+            }
+            this._videoEndHandled = true;
             this.node.recordTelemetry("video_end");
             if (this.onVideoEnded) {
               this.onVideoEnded();
@@ -4734,6 +4739,7 @@ class RandomStrategy extends WindowArray {
             let adStarted = false;
             let firstFramePlayed = false;
             let terminalEvent = null;
+            let terminalHandled = false;
             let adTimeout = null;
             let nativeAdError = null;
 
@@ -4750,14 +4756,19 @@ class RandomStrategy extends WindowArray {
               else reject(value);
             };
             const markTerminal = (source) => {
+              if (terminalHandled) return false;
+              terminalHandled = true;
               terminalEvent = source;
               clearAdTimeout();
+              return true;
             };
             this._settle = settle;
 
             adTimeout = setTimeout(() => {
+              terminalHandled = true;
+              terminalEvent = "video_ad_timeout";
               logIntext(
-                `[Intext:Video:IMA] timeout sin eventos terminales - rejecting as video_ad_timeout`,
+                `[Intext:Video:IMA] timeout_without_terminal_event - rejecting as video_ad_timeout`,
               );
               settle("reject", new Error("video_ad_timeout"));
             }, 25000);
@@ -4767,9 +4778,9 @@ class RandomStrategy extends WindowArray {
               firstFramePlayed = true;
               this._playerRevealed = true;
               if (source === "ima_started") {
-                logIntext(`[Intext:Video:IMA] native started - revealing player on native STARTED`);
+                logIntext(`[Intext:Video:IMA] ima_started - revealing player on native STARTED`);
               } else if (source === "timeupdate") {
-                logIntext(`[Intext:Video:IMA] started por timeupdate - revealing player after currentTime > 0`);
+                logIntext(`[Intext:Video:IMA] timeupdate_started - revealing player after currentTime > 0`);
               } else {
                 logIntext(`[Intext:Video:IMA] 🎬 Playback confirmado por ${source}. Mostrando player.`);
               }
@@ -4784,7 +4795,7 @@ class RandomStrategy extends WindowArray {
             };
 
             const rejectBeforePlayback = (error, terminalSource) => {
-              if (terminalSource) markTerminal(terminalSource);
+              if (terminalSource && !markTerminal(terminalSource)) return;
               if (firstFramePlayed) return;
               settle("reject", error);
               setTimeout(() => {
@@ -4793,6 +4804,7 @@ class RandomStrategy extends WindowArray {
             };
 
             const handleTerminalBeforeReveal = (source, error) => {
+              if (terminalHandled) return;
               if (firstFramePlayed) {
                 markTerminal(source);
                 return;
@@ -4804,7 +4816,7 @@ class RandomStrategy extends WindowArray {
                 source === "native_skipped"
               ) {
                 logIntext(
-                  `[Intext:Video:IMA] adend before reveal - terminal event ${source} arrived before playback confirmation`,
+                  `[Intext:Video:IMA] adend_before_reveal - terminal event ${source} arrived before playback confirmation`,
                 );
               }
               rejectBeforePlayback(error, source);
@@ -4846,7 +4858,7 @@ class RandomStrategy extends WindowArray {
               const errCode = imaErr?.getErrorCode?.() || nativeAdError?.code || "unknown";
               const errMsg = imaErr?.getMessage?.() || nativeAdError?.message || "unknown";
 
-              logIntext(`[Intext:Video:IMA] adserror real con codigo - code: ${errCode}, msg: ${errMsg}`);
+              logIntext(`[Intext:Video:IMA] player_adserror - code: ${errCode}, msg: ${errMsg}`);
 
               if (!firstFramePlayed) {
                  rejectBeforePlayback(new Error(`video_ad_error: [${errCode}] ${errMsg}`), "adserror");
@@ -4943,15 +4955,15 @@ class RandomStrategy extends WindowArray {
                           vastCode: err?.getVastErrorCode?.(),
                         };
                         logIntext(
-                          `[Intext:Video:IMA:Native] adserror real con codigo - code=${err?.getErrorCode?.()}, msg=${err?.getMessage?.()}, vast=${err?.getVastErrorCode?.()}`,
+                          `[Intext:Video:IMA:Native] native_ad_error - code=${err?.getErrorCode?.()}, msg=${err?.getMessage?.()}, vast=${err?.getVastErrorCode?.()}`,
                         );
                         if (!firstFramePlayed) {
                           rejectBeforePlayback(
                             new Error(`video_ad_error: [${err?.getErrorCode?.() || "unknown"}] ${err?.getMessage?.() || "unknown"}`),
-                            "adserror",
+                            "native_ad_error",
                           );
                         } else {
-                          markTerminal("adserror");
+                          markTerminal("native_ad_error");
                         }
                       },
                     );
