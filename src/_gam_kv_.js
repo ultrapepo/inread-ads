@@ -4743,41 +4743,52 @@ class RandomStrategy extends WindowArray {
             let adStarted = false;
             let firstFramePlayed = false;
 
-            const revealPlayer = () => {
+            const revealPlayer = (source = "unknown") => {
               if (firstFramePlayed) return;
               firstFramePlayed = true;
-              logIntext(`[Intext:Video:IMA] 🎬 Anuncio REAL reproduciéndose. Mostrando player.`);
+              logIntext(`[Intext:Video:IMA] 🎬 Playback confirmado por ${source}. Mostrando player.`);
               this.hideSpinner();
               const el = this.node.videoContainer.getElement();
-              if (el) el.classList.add("video-started"); // Quita el opacity: 0
+              this.node.videoContainer.open(this.node.lockedHeight || 360);
+              if (el) {
+                el.classList.add("video-started"); // Quita el opacity: 0
+                el.style.opacity = "1";
+              }
               settle("resolve");
             };
 
             this.player.on("readyforpreroll", () => {
-              logIntext(`[Intext:Video:IMA] 🎯 readyforpreroll — Anuncio descargado. Abriendo contenedor.`);
-              this.node.videoContainer.open(this.node.lockedHeight || 360);
-              const el = this.node.videoContainer.getElement();
-              if(el) el.style.opacity = "1";
+              logIntext(`[Intext:Video:IMA] 🎯 readyforpreroll — anuncio preparado.`);
+              logIntext(`[Intext:Video:IMA] readyforpreroll: anuncio preparado, contenedor oculto hasta playback real.`);
             });
 
             this.player.on("adstart", () => {
               logIntext(`[Intext:Video:IMA] ✅ adstart — Arrancando...`);
               adStarted = true;
               
-              // Fallback de seguridad para MP4 puros que bloquean el timeupdate
+              // Fallback de seguridad para casos donde STARTED/timeupdate no lleguen,
+              // pero solo revelamos si ya hay progreso real de reproduccion.
               setTimeout(() => {
-                if (adStarted && !firstFramePlayed && !this._aborted) {
-                  logIntext(`[Intext:Video:IMA] ⏱ Forzando visualización (fallback de seguridad)`);
-                  revealPlayer();
+                if (adStarted && !firstFramePlayed && !this._aborted && this.player && typeof this.player.currentTime === "function" && this.player.currentTime() > 0) {
+                  logIntext(`[Intext:Video:IMA] ⏱ Confirmación diferida tras adstart con currentTime > 0`);
+                  revealPlayer("adstart+currentTime");
                 }
               }, 800);
             });
 
             this.player.on("timeupdate", () => {
               if (adStarted && !firstFramePlayed && !this.spinnerHidden) {
-                if (this.player.currentTime() > 0) revealPlayer();
+                if (this.player.currentTime() > 0) revealPlayer("timeupdate");
               }
             });
+
+            const rejectBeforePlayback = (error) => {
+              if (firstFramePlayed) return;
+              settle("reject", error);
+              setTimeout(() => {
+                try { this.destroy(); } catch (e) { /* ignore */ }
+              }, 50);
+            };
 
             this.player.on("adserror", (evt) => {
               const imaErr = evt?.data?.AdError;
@@ -4787,13 +4798,11 @@ class RandomStrategy extends WindowArray {
               logIntext(`[Intext:Video:IMA] ❌ adserror — code: ${errCode}, msg: ${errMsg}`);
               
               if (!firstFramePlayed) {
-                 settle("reject", new Error(`video_ad_error: [${errCode}] ${errMsg}`));
+                 rejectBeforePlayback(new Error(`video_ad_error: [${errCode}] ${errMsg}`));
               }
 
               if (errCode === 901 || errCode === 400 || errCode === 1009) {
-                setTimeout(() => {
-                  try { this.destroy(); } catch (e) { /* ignore */ }
-                }, 50);
+                logIntext(`[Intext:Video:IMA] Error previo al primer frame, manteniendo fallo silencioso.`);
               }
             });
 
@@ -4816,7 +4825,7 @@ class RandomStrategy extends WindowArray {
               logIntext(
                 `[Intext:Video:IMA] ⏱ adtimeout — contrib-ads internal timeout`,
               );
-              settle("reject", new Error("contrib_ads_timeout"));
+              rejectBeforePlayback(new Error("contrib_ads_timeout"));
             });
             this.player.on("readyforpreroll", () =>
               logIntext(
@@ -4882,7 +4891,7 @@ class RandomStrategy extends WindowArray {
                         logIntext(
                           `[Intext:Video:IMA:Native] ▶ STARTED event fired`,
                         );
-                        revealPlayer();
+                        revealPlayer("ima_started");
                       },
                     );
                   }
