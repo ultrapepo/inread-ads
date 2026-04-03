@@ -4547,6 +4547,7 @@ class RandomStrategy extends WindowArray {
           this.spinnerHidden = false;
           this._aborted = false;
           this._settle = null;
+          this._playerRevealed = false;
         }
 
         async render() {
@@ -4680,6 +4681,12 @@ class RandomStrategy extends WindowArray {
             logIntext(
               `[Intext:VideoPlayer:${this.playerId}] Ad playback ended`,
             );
+            if (!this._playerRevealed) {
+              logIntext(
+                `[Intext:VideoPlayer:${this.playerId}] adend before reveal - requestAds will handle terminal fallback`,
+              );
+              return;
+            }
             this.node.recordTelemetry("video_end");
             if (this.onVideoEnded) {
               this.onVideoEnded();
@@ -4697,7 +4704,7 @@ class RandomStrategy extends WindowArray {
               reject(new Error("no_player"));
               return;
             }
-            
+
             const useAdsResponse = !!this.vastXml;
             const adTag = useAdsResponse ? null : this.getVideoTagUrl();
 
@@ -4723,38 +4730,84 @@ class RandomStrategy extends WindowArray {
               return;
             }
 
-            const adTimeout = setTimeout(() => {
+            let settled = false;
+            let adStarted = false;
+            let firstFramePlayed = false;
+            let terminalEvent = null;
+            let adTimeout = null;
+            let nativeAdError = null;
+
+            const clearAdTimeout = () => {
+              if (!adTimeout) return;
+              clearTimeout(adTimeout);
+              adTimeout = null;
+            };
+            const settle = (type, value) => {
+              if (settled) return;
+              settled = true;
+              clearAdTimeout();
+              if (type === "resolve") resolve(value);
+              else reject(value);
+            };
+            const markTerminal = (source) => {
+              terminalEvent = source;
+              clearAdTimeout();
+            };
+            this._settle = settle;
+
+            adTimeout = setTimeout(() => {
               logIntext(
-                `[Intext:Video:IMA] ⏱ TIMEOUT (25s) — no adstart/adserror/adtimeout received`,
+                `[Intext:Video:IMA] timeout sin eventos terminales - rejecting as video_ad_timeout`,
               );
               settle("reject", new Error("video_ad_timeout"));
             }, 25000);
 
-            let settled = false;
-            const settle = (type, value) => {
-              if (settled) return;
-              settled = true;
-              clearTimeout(adTimeout);
-              if (type === "resolve") resolve(value);
-              else reject(value);
-            };
-            this._settle = settle;
-
-            let adStarted = false;
-            let firstFramePlayed = false;
-
             const revealPlayer = (source = "unknown") => {
-              if (firstFramePlayed) return;
+              if (firstFramePlayed || terminalEvent) return;
               firstFramePlayed = true;
-              logIntext(`[Intext:Video:IMA] 🎬 Playback confirmado por ${source}. Mostrando player.`);
+              this._playerRevealed = true;
+              if (source === "ima_started") {
+                logIntext(`[Intext:Video:IMA] native started - revealing player on native STARTED`);
+              } else if (source === "timeupdate") {
+                logIntext(`[Intext:Video:IMA] started por timeupdate - revealing player after currentTime > 0`);
+              } else {
+                logIntext(`[Intext:Video:IMA] 🎬 Playback confirmado por ${source}. Mostrando player.`);
+              }
               this.hideSpinner();
               const el = this.node.videoContainer.getElement();
               this.node.videoContainer.open(this.node.lockedHeight || 360);
               if (el) {
-                el.classList.add("video-started"); // Quita el opacity: 0
+                el.classList.add("video-started");
                 el.style.opacity = "1";
               }
               settle("resolve");
+            };
+
+            const rejectBeforePlayback = (error, terminalSource) => {
+              if (terminalSource) markTerminal(terminalSource);
+              if (firstFramePlayed) return;
+              settle("reject", error);
+              setTimeout(() => {
+                try { this.destroy(); } catch (e) { /* ignore */ }
+              }, 50);
+            };
+
+            const handleTerminalBeforeReveal = (source, error) => {
+              if (firstFramePlayed) {
+                markTerminal(source);
+                return;
+              }
+              if (
+                source === "adend" ||
+                source === "alladscompleted" ||
+                source === "native_complete" ||
+                source === "native_skipped"
+              ) {
+                logIntext(
+                  `[Intext:Video:IMA] adend before reveal - terminal event ${source} arrived before playback confirmation`,
+                );
+              }
+              rejectBeforePlayback(error, source);
             };
 
             this.player.on("readyforpreroll", () => {
@@ -4765,11 +4818,17 @@ class RandomStrategy extends WindowArray {
             this.player.on("adstart", () => {
               logIntext(`[Intext:Video:IMA] ✅ adstart — Arrancando...`);
               adStarted = true;
-              
-              // Fallback de seguridad para casos donde STARTED/timeupdate no lleguen,
-              // pero solo revelamos si ya hay progreso real de reproduccion.
+
               setTimeout(() => {
-                if (adStarted && !firstFramePlayed && !this._aborted && this.player && typeof this.player.currentTime === "function" && this.player.currentTime() > 0) {
+                if (
+                  adStarted &&
+                  !firstFramePlayed &&
+                  !terminalEvent &&
+                  !this._aborted &&
+                  this.player &&
+                  typeof this.player.currentTime === "function" &&
+                  this.player.currentTime() > 0
+                ) {
                   logIntext(`[Intext:Video:IMA] ⏱ Confirmación diferida tras adstart con currentTime > 0`);
                   revealPlayer("adstart+currentTime");
                 }
@@ -4777,28 +4836,22 @@ class RandomStrategy extends WindowArray {
             });
 
             this.player.on("timeupdate", () => {
-              if (adStarted && !firstFramePlayed && !this.spinnerHidden) {
+              if (adStarted && !firstFramePlayed && !terminalEvent && !this.spinnerHidden) {
                 if (this.player.currentTime() > 0) revealPlayer("timeupdate");
               }
             });
 
-            const rejectBeforePlayback = (error) => {
-              if (firstFramePlayed) return;
-              settle("reject", error);
-              setTimeout(() => {
-                try { this.destroy(); } catch (e) { /* ignore */ }
-              }, 50);
-            };
-
             this.player.on("adserror", (evt) => {
               const imaErr = evt?.data?.AdError;
-              const errCode = imaErr?.getErrorCode?.() || "unknown";
-              const errMsg = imaErr?.getMessage?.() || "unknown";
-              
-              logIntext(`[Intext:Video:IMA] ❌ adserror — code: ${errCode}, msg: ${errMsg}`);
-              
+              const errCode = imaErr?.getErrorCode?.() || nativeAdError?.code || "unknown";
+              const errMsg = imaErr?.getMessage?.() || nativeAdError?.message || "unknown";
+
+              logIntext(`[Intext:Video:IMA] adserror real con codigo - code: ${errCode}, msg: ${errMsg}`);
+
               if (!firstFramePlayed) {
-                 rejectBeforePlayback(new Error(`video_ad_error: [${errCode}] ${errMsg}`));
+                 rejectBeforePlayback(new Error(`video_ad_error: [${errCode}] ${errMsg}`), "adserror");
+              } else {
+                markTerminal("adserror");
               }
 
               if (errCode === 901 || errCode === 400 || errCode === 1009) {
@@ -4825,7 +4878,19 @@ class RandomStrategy extends WindowArray {
               logIntext(
                 `[Intext:Video:IMA] ⏱ adtimeout — contrib-ads internal timeout`,
               );
-              rejectBeforePlayback(new Error("contrib_ads_timeout"));
+              rejectBeforePlayback(new Error("contrib_ads_timeout"), "adtimeout");
+            });
+            this.player.on("adend", () => {
+              handleTerminalBeforeReveal(
+                "adend",
+                new Error("video_ad_ended_before_reveal"),
+              );
+            });
+            this.player.on("alladscompleted", () => {
+              handleTerminalBeforeReveal(
+                "alladscompleted",
+                new Error("video_ad_ended_before_reveal"),
+              );
             });
             this.player.on("readyforpreroll", () =>
               logIntext(
@@ -4846,8 +4911,8 @@ class RandomStrategy extends WindowArray {
                 const options = {
                   id: this.playerId,
                   showCountdown: true,
-                  vpaidMode: (window.google && window.google.ima && window.google.ima.ImaSdkSettings) 
-                             ? window.google.ima.ImaSdkSettings.VpaidMode.INSECURE 
+                  vpaidMode: (window.google && window.google.ima && window.google.ima.ImaSdkSettings)
+                             ? window.google.ima.ImaSdkSettings.VpaidMode.INSECURE
                              : "insecure",
                   autoPlayAdBreaks: true,
                   debug: true,
@@ -4855,7 +4920,7 @@ class RandomStrategy extends WindowArray {
                   prerollTimeout: 30000,
                   postrollTimeout: 30000,
                   adTagUrl: adTag
-                };                
+                };
 
                 this.player.ima(options);
                 logIntext(`[Intext:Video:IMA] ✔ IMA plugin initialized`);
@@ -4872,9 +4937,22 @@ class RandomStrategy extends WindowArray {
                       ima.AdErrorEvent.Type.AD_ERROR,
                       (event) => {
                         const err = event.getError();
+                        nativeAdError = {
+                          code: err?.getErrorCode?.(),
+                          message: err?.getMessage?.(),
+                          vastCode: err?.getVastErrorCode?.(),
+                        };
                         logIntext(
-                          `[Intext:Video:IMA:Native] 🚨 AD_ERROR: code=${err?.getErrorCode?.()}, msg=${err?.getMessage?.()}, vast=${err?.getVastErrorCode?.()}`,
+                          `[Intext:Video:IMA:Native] adserror real con codigo - code=${err?.getErrorCode?.()}, msg=${err?.getMessage?.()}, vast=${err?.getVastErrorCode?.()}`,
                         );
+                        if (!firstFramePlayed) {
+                          rejectBeforePlayback(
+                            new Error(`video_ad_error: [${err?.getErrorCode?.() || "unknown"}] ${err?.getMessage?.() || "unknown"}`),
+                            "adserror",
+                          );
+                        } else {
+                          markTerminal("adserror");
+                        }
                       },
                     );
                     this.player.ima.addEventListener(
@@ -4889,9 +4967,27 @@ class RandomStrategy extends WindowArray {
                       ima.AdEvent.Type.STARTED,
                       () => {
                         logIntext(
-                          `[Intext:Video:IMA:Native] ▶ STARTED event fired`,
+                          `[Intext:Video:IMA:Native] native started - STARTED event fired`,
                         );
                         revealPlayer("ima_started");
+                      },
+                    );
+                    this.player.ima.addEventListener(
+                      ima.AdEvent.Type.COMPLETE,
+                      () => {
+                        handleTerminalBeforeReveal(
+                          "native_complete",
+                          new Error("video_ad_ended_before_reveal"),
+                        );
+                      },
+                    );
+                    this.player.ima.addEventListener(
+                      ima.AdEvent.Type.SKIPPED,
+                      () => {
+                        handleTerminalBeforeReveal(
+                          "native_skipped",
+                          new Error("video_ad_ended_before_reveal"),
+                        );
                       },
                     );
                   }
@@ -6489,4 +6585,5 @@ const _gam_kv_ = function(s) {
 }
 
 window._gam_kv_ = _gam_kv_;
+
 
