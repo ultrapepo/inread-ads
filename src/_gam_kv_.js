@@ -2659,6 +2659,7 @@ class RandomStrategy extends WindowArray {
           this.slot = null;
           this._coordinator = null;
           this.lockedHeight = 0;
+          this._videoTiming = null;
         }
 
         markDisplayHeightLock(height, sourceEl = null) {
@@ -3241,6 +3242,11 @@ class RandomStrategy extends WindowArray {
           await this.waitForViewport();
           
           this.state = "video";
+          if (this._videoTiming?.auctionStartAt && this._videoTiming?.requestWinnerVideoAt) {
+            logIntext(
+              `[Intext:Video:${this.videoId}] timing trigger=${this._videoTiming.trigger || "unknown"} auction_to_request_winner_video=${this._videoTiming.requestWinnerVideoAt - this._videoTiming.auctionStartAt}ms`,
+            );
+          }
           logIntext(
             `[Intext:Video:${this.videoId}] 🎬 VIDEO WON — building player`,
           );
@@ -3254,6 +3260,7 @@ class RandomStrategy extends WindowArray {
             config: this.config,
             onVideoEnded: () => this.onVideoEnded(),
             adTagUrl: gamVideoTagUrl,
+            videoTiming: this._videoTiming,
           };
 
           this.activeCreative = new IntextVideoCreative(creativeOpts);
@@ -3580,6 +3587,7 @@ class RandomStrategy extends WindowArray {
           if (this.prebidStarted) return;
           this.prebidStarted = true;
           this.lastTrigger = trigger;
+          this._auctionStartAt = Date.now();
           clearTimeout(this.timer);
           this.node.recordTelemetry("auction_start", { trigger });
 
@@ -4104,6 +4112,18 @@ class RandomStrategy extends WindowArray {
             `[Intext:Slot:${this.node.id}] ├─ Fallback: ${allowFallback ? loser : "NONE (forced mode)"}`,
           );
 
+          if (winner === "video") {
+            const now = Date.now();
+            this.node._videoTiming = {
+              trigger: this.lastTrigger || "unknown",
+              auctionStartAt: this._auctionStartAt || now,
+              requestWinnerVideoAt: now,
+            };
+            logIntext(
+              `[Intext:Video:${this.node.videoId}] timing auction_to_request_winner_video=${now - (this._auctionStartAt || now)}ms trigger=${this.lastTrigger || "unknown"}`,
+            );
+          }
+
           const success = await this._requestFormat(winner);
 
           if (success) {
@@ -4600,7 +4620,7 @@ class RandomStrategy extends WindowArray {
       }
 
       class IntextVideoCreative {
-        constructor({ container, adTagUrl, bid, node, config, onVideoEnded }) {
+        constructor({ container, adTagUrl, bid, node, config, onVideoEnded, videoTiming }) {
           this.container = container;
           this.adTagUrl = adTagUrl || null;
           this.bid = bid || null;
@@ -4614,6 +4634,7 @@ class RandomStrategy extends WindowArray {
           this._settle = null;
           this._playerRevealed = false;
           this._videoEndHandled = false;
+          this._videoTiming = videoTiming || null;
         }
 
         async render() {
@@ -4807,6 +4828,7 @@ class RandomStrategy extends WindowArray {
             let terminalHandled = false;
             let adTimeout = null;
             let adstartGraceTimer = null;
+            let adstartAt = null;
             let nativeAdError = null;
 
             const clearAdTimeout = () => {
@@ -4855,6 +4877,11 @@ class RandomStrategy extends WindowArray {
               if (firstFramePlayed || terminalEvent) return;
               firstFramePlayed = true;
               this._playerRevealed = true;
+              if (adstartAt) {
+                logIntext(
+                  `[Intext:Video:${this.playerId}] timing adstart_to_reveal=${Date.now() - adstartAt}ms source=${source} trigger=${this._videoTiming?.trigger || "unknown"}`,
+                );
+              }
               if (source === "ima_started") {
                 logIntext(`[Intext:Video:IMA] ima_started - revealing player on native STARTED`);
               } else if (source === "timeupdate") {
@@ -4908,8 +4935,14 @@ class RandomStrategy extends WindowArray {
             this.player.on("adstart", () => {
               logIntext(`[Intext:Video:IMA] ✅ adstart — Arrancando...`);
               adStarted = true;
+              adstartAt = Date.now();
+              if (this._videoTiming?.requestWinnerVideoAt) {
+                logIntext(
+                  `[Intext:Video:${this.playerId}] timing request_winner_video_to_adstart=${adstartAt - this._videoTiming.requestWinnerVideoAt}ms trigger=${this._videoTiming?.trigger || "unknown"}`,
+                );
+              }
               clearAdstartGraceTimer();
-              logIntext(`[Intext:Video:IMA] adstart_grace_started - waiting 400ms before pragmatic reveal`);
+              logIntext(`[Intext:Video:IMA] adstart_grace_started - waiting 200ms before pragmatic reveal`);
               adstartGraceTimer = setTimeout(() => {
                 adstartGraceTimer = null;
                 if (terminalEvent || terminalHandled) {
@@ -4923,7 +4956,7 @@ class RandomStrategy extends WindowArray {
                 }
                 logIntext(`[Intext:Video:IMA] adstart_grace_reveal - no early terminal after grace window`);
                 revealPlayer("adstart_grace");
-              }, 400);
+              }, 200);
 
               setTimeout(() => {
                 if (

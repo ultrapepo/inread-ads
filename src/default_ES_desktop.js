@@ -522,8 +522,8 @@
                     "useBlur": false
                 },
                 "loading": {
-                    "rootMargin": "400px 0px",
-                    "maxDelayMs": 6000
+                    "rootMargin": "1000px 0px",
+                    "maxDelayMs": 1500
                 },
                 "display": {
                     "adUnitPath": "telva/belleza/n",
@@ -586,8 +586,8 @@
                     }
                 },
                 "prebid": {
-                    "timeoutMs": 3000,
-                    "graceMs": 500,
+                    "timeoutMs": 1500,
+                    "graceMs": 200,
                     "excludedVideoBidders": [],
                     "networks": {
                         "default": {
