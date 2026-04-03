@@ -482,13 +482,13 @@
                 "debug": false,
                 "domainFilter": {
                     "enabled": true,
-                    "allowedDomains": ["telva"],
+                    "allowedDomains": ["telva", "marca"],
                     "dataLayerObj": "ueDataLayer",
                     "dataLayerProp": "be_page_domain"
                 },
                 "inclusions": {
                     "keyValues": {
-                        "newsid": ["69bbe63601a2f1b5478b4597"]
+                        "newsid": ["69bbe63601a2f1b5478b4597", "698dda7d22601d87168b45da"]
                     }
                 },
                 "allowedContentTypes": [
