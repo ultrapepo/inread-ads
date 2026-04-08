@@ -4341,6 +4341,13 @@ class RandomStrategy extends WindowArray {
                 minduration: vc.minduration || 1,
                 ...(vc.battr ? { battr: vc.battr } : {}),
                 ...(vc.skippable != null ? { skippable: vc.skippable } : {}),
+                ...(vc.skip != null
+                  ? { skip: vc.skip }
+                  : vc.skippable === true
+                    ? { skip: 1 }
+                    : vc.skippable === false
+                      ? { skip: 0 }
+                      : {}),
               };
               const networkId = this.node.manager.networkId;
               const prebidNetworks = this.config.prebid?.networks || {};
@@ -4382,7 +4389,6 @@ class RandomStrategy extends WindowArray {
                   name: "gam",
                   adslot: fullAdSlot,
                 },
-                pbadslot: pbadslot,
               },
               gpid: pbadslot,
             },
@@ -4410,10 +4416,91 @@ class RandomStrategy extends WindowArray {
           };
         }
 
+        normalizeTargetingMap(targeting) {
+          const normalized = {};
+          if (!targeting) return normalized;
+
+          if (Array.isArray(targeting)) {
+            targeting.forEach((entry) => {
+              const key = entry?.key;
+              const value = entry?.value;
+              if (!key || value == null || value === "") return;
+              normalized[key] = Array.isArray(value) ? value.join(",") : String(value);
+            });
+            return normalized;
+          }
+
+          if (typeof targeting === "object") {
+            Object.entries(targeting).forEach(([key, value]) => {
+              if (!key || value == null || value === "") return;
+              normalized[key] = Array.isArray(value) ? value.join(",") : String(value);
+            });
+          }
+
+          return normalized;
+        }
+
+        getIntextVideoBidDiagnostics(bid) {
+          const targetingFromBid = this.normalizeTargetingMap(bid?.adserverTargeting);
+          let targetingFromPbjs = {};
+          try {
+            const code = this.getPrebidCode();
+            if (Object.keys(targetingFromBid).length === 0 && window.pbjs?.getAdserverTargetingForAdUnitCode && code) {
+              targetingFromPbjs = this.normalizeTargetingMap(
+                window.pbjs.getAdserverTargetingForAdUnitCode(code),
+              );
+            }
+          } catch (err) {}
+
+          const targeting = { ...targetingFromPbjs, ...targetingFromBid };
+          const videoCacheKey =
+            bid?.videoCacheKey ||
+            bid?.cacheId ||
+            bid?.vastCacheKey ||
+            targeting.hb_uuid ||
+            targeting.hb_cache_id ||
+            null;
+
+          if (!targeting.hb_uuid && videoCacheKey) targeting.hb_uuid = String(videoCacheKey);
+          if (!targeting.hb_cache_id && videoCacheKey) targeting.hb_cache_id = String(videoCacheKey);
+          if (!targeting.hb_cache_host && bid?.hb_cache_host) targeting.hb_cache_host = String(bid.hb_cache_host);
+          if (!targeting.hb_cache_path && bid?.hb_cache_path) targeting.hb_cache_path = String(bid.hb_cache_path);
+          if (!targeting.hb_pb) {
+            const pb = bid?.pbCg || bid?.pbAg || bid?.pbHg || bid?.pbDg || bid?.pbLg || bid?.pbMg || null;
+            if (pb != null) targeting.hb_pb = String(pb);
+          }
+          if (!targeting.hb_bidder && bid?.bidderCode) targeting.hb_bidder = String(bid.bidderCode);
+          if (!targeting.hb_format) targeting.hb_format = "video";
+          if (!targeting.hb_adid && bid?.adId) targeting.hb_adid = String(bid.adId);
+
+          return {
+            targeting,
+            targetingSource: Object.keys(targetingFromBid).length
+              ? "bid.adserverTargeting"
+              : Object.keys(targetingFromPbjs).length
+                ? "pbjs.getAdserverTargetingForAdUnitCode"
+                : "fallback_fields",
+            targetingKeysPresent: Object.keys(targeting).filter(Boolean).sort(),
+            videoCacheKey: videoCacheKey || null,
+            cacheSignals: {
+              hb_uuid: targeting.hb_uuid || null,
+              hb_cache_id: targeting.hb_cache_id || null,
+              hb_cache_host: targeting.hb_cache_host || null,
+              hb_cache_path: targeting.hb_cache_path || null,
+            },
+            hasCacheSignal: Boolean(
+              videoCacheKey ||
+              targeting.hb_uuid ||
+              targeting.hb_cache_id ||
+              targeting.hb_cache_host ||
+              targeting.hb_cache_path
+            ),
+          };
+        }
+
         buildGAMVideoTagUrl() {
           const networkId = this.node.manager.networkId;
           const adUnitPath = this.getVideoAdUnitPath();
-          const videoCode = this.getPrebidCode();
           const videoId = this.node.videoId;
 
           let custParts = ["intext=true"];
@@ -4422,22 +4509,71 @@ class RandomStrategy extends WindowArray {
           }
 
           if (window.pbjs && this._lastVideoBid) {
-            const bid = this._lastVideoBid;            
-            
+            const bid = this._lastVideoBid;
             if (bid.source && bid.source.includes("prebid")) {
-              let pb = bid.pbCg || bid.pbAg || bid.pbHg || String(bid.cpm);
-    
-              custParts.push(`hb_pb=${encodeURIComponent(pb)}`);
-              custParts.push(`hb_bidder=${encodeURIComponent(bid.bidderCode)}`);
-              custParts.push(`hb_format=video`);
-              if (bid.adId) {
-                custParts.push(`hb_adid=${encodeURIComponent(bid.adId)}`);
+              const diagnostics = this.getIntextVideoBidDiagnostics(bid);
+              const targeting = diagnostics.targeting;
+              const pb = targeting.hb_pb || bid.pbCg || bid.pbAg || bid.pbHg || String(bid.cpm);
+
+              logIntext(`[Intext:Auction:${this.node.id}] intext_video_bid_targeting_detected`, {
+                bidderCode: bid.bidderCode || null,
+                adId: bid.adId || null,
+                targetingSource: diagnostics.targetingSource,
+                targetingKeysPresent: diagnostics.targetingKeysPresent,
+              });
+              logIntext(`[Intext:Auction:${this.node.id}] intext_video_bid_cache_detected`, {
+                bidderCode: bid.bidderCode || null,
+                adId: bid.adId || null,
+                videoCacheKey: diagnostics.videoCacheKey,
+                cacheSignals: diagnostics.cacheSignals,
+              });
+              if (!diagnostics.hasCacheSignal) {
+                warnIntext(`[Intext:Auction:${this.node.id}] intext_video_bid_missing_cache_signal`, {
+                  bidderCode: bid.bidderCode || null,
+                  adId: bid.adId || null,
+                  targetingSource: diagnostics.targetingSource,
+                  targetingKeysPresent: diagnostics.targetingKeysPresent,
+                });
               }
-              
+
+              custParts.push(`hb_pb=${encodeURIComponent(pb)}`);
+              if (targeting.hb_bidder) {
+                custParts.push(`hb_bidder=${encodeURIComponent(targeting.hb_bidder)}`);
+              }
+              if (targeting.hb_format) {
+                custParts.push(`hb_format=${encodeURIComponent(targeting.hb_format)}`);
+              }
+              if (targeting.hb_adid) {
+                custParts.push(`hb_adid=${encodeURIComponent(targeting.hb_adid)}`);
+              }
+              if (targeting.hb_uuid) {
+                custParts.push(`hb_uuid=${encodeURIComponent(targeting.hb_uuid)}`);
+              }
+              if (targeting.hb_cache_id) {
+                custParts.push(`hb_cache_id=${encodeURIComponent(targeting.hb_cache_id)}`);
+              }
+              if (targeting.hb_cache_host) {
+                custParts.push(`hb_cache_host=${encodeURIComponent(targeting.hb_cache_host)}`);
+              }
+              if (targeting.hb_cache_path) {
+                custParts.push(`hb_cache_path=${encodeURIComponent(targeting.hb_cache_path)}`);
+              }
+
               const aliasKey = bid.bidderCode.length > 20 ? bid.bidderCode.substring(0, 20) : bid.bidderCode;
               custParts.push(`hb_pb_${aliasKey}=${encodeURIComponent(pb)}`);
               custParts.push(`hb_bidder_${aliasKey}=${encodeURIComponent(bid.bidderCode)}`);
               custParts.push(`hb_format_${aliasKey}=video`);
+
+              logIntext(`[Intext:Auction:${this.node.id}] intext_video_gam_targeting_payload`, {
+                hb_pb: pb,
+                hb_bidder: targeting.hb_bidder || null,
+                hb_format: targeting.hb_format || null,
+                hb_adid: targeting.hb_adid || null,
+                hb_uuid: targeting.hb_uuid || null,
+                hb_cache_id: targeting.hb_cache_id || null,
+                hb_cache_host: targeting.hb_cache_host || null,
+                hb_cache_path: targeting.hb_cache_path || null,
+              });
             }
           }
 
