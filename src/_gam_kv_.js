@@ -5194,6 +5194,5262 @@ class RandomStrategy extends WindowArray {
           }
         }
       }
+      const INIMAGE_STYLE_ID = "gexp-inimage-styles";
+      const INIMAGE_BASE_STYLES = `
+        .gexp-inimage-shell {
+            position: absolute;
+            bottom: 12px;
+            right: 12px;
+            width: 300px;
+            height: 250px;
+            max-width: 35%;
+            max-height: 35%;
+            z-index: 20;
+            pointer-events: auto;
+            opacity: 0;
+            visibility: hidden;
+            overflow: visible;
+            transition: opacity 0.2s ease;
+        }
+        .gexp-inimage-shell.is-visible {
+            opacity: 1;
+            visibility: visible;
+        }
+        .gexp-inimage-overlay {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: flex-end;
+            justify-content: flex-end;
+            overflow: visible;
+        }
+        .gexp-inimage-slot {
+            width: 100%;
+            height: 100%;
+            overflow: visible;
+            display: flex;
+            align-items: flex-end;
+            justify-content: flex-end;
+            transform-origin: bottom right;
+        }
+        .gexp-inimage-label {
+            position: absolute;
+            top: -16px;
+            right: 22px;
+            padding: 2px 6px;
+            font-family: Roboto, Arial, Helvetica, sans-serif;
+            font-size: 9px;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: #111111;
+            background: rgba(255,255,255,0.88);
+            border-radius: 2px;
+            line-height: 1.2;
+            pointer-events: none;
+        }
+        .gexp-inimage-close {
+            position: absolute;
+            top: -12px;
+            right: -12px;
+            width: 28px;
+            height: 28px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border: 0;
+            border-radius: 999px;
+            background: rgba(17,17,17,0.72);
+            color: transparent;
+            font-size: 0;
+            cursor: pointer;
+            z-index: 50;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.18);
+            -webkit-tap-highlight-color: transparent;
+        }
+        .gexp-inimage-close:hover {
+            background: rgba(17,17,17,0.84);
+        }
+        .gexp-inimage-close::before,
+        .gexp-inimage-close::after {
+            content: "";
+            position: absolute;
+            width: 14px;
+            height: 2px;
+            border-radius: 999px;
+            background: #ffffff;
+        }
+        .gexp-inimage-close::before {
+            transform: rotate(45deg);
+        }
+        .gexp-inimage-close::after {
+            transform: rotate(-45deg);
+        }
+      `;
+
+      let inimageStylesAttached = false;
+      function ensureInimageBaseStyles() {
+        if (inimageStylesAttached) return;
+        if (typeof document === "undefined") return;
+        if (document.getElementById(INIMAGE_STYLE_ID)) return;
+
+        const styleEl = document.createElement("style");
+        styleEl.id = INIMAGE_STYLE_ID;
+        styleEl.innerHTML = INIMAGE_BASE_STYLES;
+        document.head.appendChild(styleEl);
+        inimageStylesAttached = true;
+      }
+
+      const getInimageDebugState = () => {
+        try {
+          if (typeof window !== "undefined") {
+            if (window.gexpInimageDebug === true) return true;
+            if (window.location && window.location.search.includes("gexpInimageDebug=true")) return true;
+            if (window.localStorage && window.localStorage.getItem("gexpInimageDebug") === "true") return true;
+          }
+        } catch (e) {}
+        return false;
+      };
+
+      if (typeof window !== "undefined") {
+        window.gexpInimageDebug = getInimageDebugState();
+      }
+
+      const inimageLogContextStyles = {
+        manager: "background:#455A64;color:#fff;border-radius:3px;padding:2px 4px;font-size:10px;font-weight:bold;",
+        placement: "background:#5D4037;color:#fff;border-radius:3px;padding:2px 4px;font-size:10px;font-weight:bold;",
+        auction: "background:#0277BD;color:#fff;border-radius:3px;padding:2px 4px;font-size:10px;font-weight:bold;",
+        refresh: "background:#00897B;color:#fff;border-radius:3px;padding:2px 4px;font-size:10px;font-weight:bold;",
+        nav: "background:#6A1B9A;color:#fff;border-radius:3px;padding:2px 4px;font-size:10px;font-weight:bold;",
+        display: "background:#2E7D32;color:#fff;border-radius:3px;padding:2px 4px;font-size:10px;font-weight:bold;",
+      };
+
+      const formatInimageLog = (args, defaultBadge) => {
+        let mainText = args[0];
+        let style1 = defaultBadge;
+        let hasCustomStyle = false;
+        let customStyleStr = "";
+
+        if (typeof mainText === "string" && mainText.includes("%c")) {
+          hasCustomStyle = true;
+          customStyleStr = args[1] || "";
+          args = [mainText.replace(/^%c/, ""), ...args.slice(2)];
+          mainText = args[0];
+        }
+
+        let prefixStr = "%c INIMAGE ";
+        let prefixStyle = style1;
+
+        if (typeof mainText === "string") {
+          const slotMatch = mainText.match(/\[Inimage:(Slot|Display):([^\]]+)\]/);
+          if (slotMatch && slotMatch[2]) {
+            const slotId = slotMatch[2].split(":")[0];
+            const color = getSlotColor(slotId);
+            prefixStyle = `background:${color};color:#fff;border-radius:3px;padding:2px 4px;font-size:10px;font-weight:bold;`;
+          } else if (mainText.includes("[InimageManager:NavContinua]")) {
+            prefixStyle = inimageLogContextStyles.nav;
+            prefixStr = "%c 🧭 INIMAGE ";
+          } else if (mainText.includes("[InimageManager]")) {
+            prefixStyle = inimageLogContextStyles.manager;
+          } else if (mainText.includes("[InimagePlacementEngine]")) {
+            prefixStyle = inimageLogContextStyles.placement;
+          } else if (mainText.includes("[Inimage:Prebid]") || mainText.includes("[Inimage:TAM]") || mainText.includes("[Inimage:Auction]")) {
+            prefixStyle = inimageLogContextStyles.auction;
+            prefixStr = "%c 🎯 INIMAGE ";
+          }
+
+          if (mainText.includes("refresh") || mainText.includes("REFRESH")) {
+            prefixStr = "%c 🔄 INIMAGE ";
+            if (prefixStyle === style1) prefixStyle = inimageLogContextStyles.refresh;
+          } else if (mainText.includes("[Inimage:Display:")) {
+            prefixStr = "%c 🖼 INIMAGE ";
+            if (prefixStyle === style1) prefixStyle = inimageLogContextStyles.display;
+          }
+        }
+
+        if (hasCustomStyle) {
+          return [`${prefixStr}%c ${mainText}`, prefixStyle, customStyleStr, ...args.slice(1)];
+        }
+        return [`${prefixStr}%c ${mainText}`, prefixStyle, "", ...args.slice(1)];
+      };
+
+      const logInimage = (...args) => { if (window.gexpInimageDebug) console.log(...formatInimageLog(args, badgeLog)); };
+      const warnInimage = (...args) => { if (window.gexpInimageDebug) console.warn(...formatInimageLog(args, badgeWarn)); };
+      const errorInimage = (...args) => { console.error(...formatInimageLog(args, badgeErr)); };
+      const groupInimage = (...args) => { if (window.gexpInimageDebug) console.groupCollapsed(...formatInimageLog(args, badgeLog)); };
+      const groupEndInimage = () => { if (window.gexpInimageDebug) console.groupEnd(); };
+
+      class InimagePlacementEngine {
+        constructor(domConfig = {}, eligibilityConfig = {}, rootElement = null) {
+          this.domConfig = domConfig;
+          this.eligibilityConfig = eligibilityConfig;
+          this.rootElement = rootElement || document;
+          this.mainColumns = Array.from(
+            this.rootElement.querySelectorAll(
+              this.domConfig.mainColumnSelector || ".ue-l-article__main-column",
+            ),
+          );
+          this._seenFigures = new Set();
+          this._seenImages = new Set();
+        }
+
+        findPlacements({ maxSlots = Infinity, firstOnly = false } = {}) {
+          const placements = [];
+          const figureSelector = this.domConfig.figureSelector || "figure";
+          const pictureSelector = this.domConfig.pictureSelector || "picture";
+          const imageSelector = this.domConfig.imageSelector || "img";
+          const scopeLabel = this.rootElement === document ? "document" : this.rootElement?.dataset?.ueNavindex ? `navIndex=${this.rootElement.dataset.ueNavindex}` : "scoped-root";
+
+          groupInimage(`[InimagePlacementEngine] 🔍 Discovery start (${scopeLabel})`);
+          logInimage(`[InimagePlacementEngine] main columns found: ${this.mainColumns.length}`);
+          logInimage(`[InimagePlacementEngine] selectors`, {
+            mainColumnSelector: this.domConfig.mainColumnSelector || ".ue-l-article__main-column",
+            figureSelector,
+            pictureSelector,
+            imageSelector,
+            maxSlots,
+            firstOnly,
+          });
+
+          for (const [mainIndex, mainColumn] of this.mainColumns.entries()) {
+            const figures = Array.from(mainColumn.querySelectorAll(figureSelector));
+            const pictures = Array.from(mainColumn.querySelectorAll(pictureSelector));
+            const imgs = Array.from(mainColumn.querySelectorAll(imageSelector));
+            groupInimage(`[InimagePlacementEngine] 📋 main[${mainIndex}] candidate scan`);
+            logInimage(`[InimagePlacementEngine] figure count=${figures.length}, picture/img count=${pictures.length}/${imgs.length}`);
+
+            for (const [figureIndex, figure] of figures.entries()) {
+              if (placements.length >= maxSlots) {
+                logInimage(`[InimagePlacementEngine] maxSlots reached (${maxSlots})`);
+                groupEndInimage();
+                groupEndInimage();
+                return placements;
+              }
+
+              const figureCheck = this.evaluateFigure(figure);
+              if (!figureCheck.eligible) {
+                logInimage(`[InimagePlacementEngine] figure[${figureIndex}] skipped — ${figureCheck.reason}`);
+                continue;
+              }
+
+              const picture = figure.querySelector(pictureSelector);
+              if (!picture) {
+                logInimage(`[InimagePlacementEngine] figure[${figureIndex}] skipped — no picture found`);
+                continue;
+              }
+
+              const img = picture.querySelector(imageSelector);
+              const imageCheck = this.evaluateImage(img);
+              if (!imageCheck.eligible) {
+                logInimage(`[InimagePlacementEngine] figure[${figureIndex}] skipped — ${imageCheck.reason}`, imageCheck.meta || {});
+                continue;
+              }
+              if (this._seenFigures.has(figure) || this._seenImages.has(img)) {
+                logInimage(`[InimagePlacementEngine] figure[${figureIndex}] skipped — already seen`);
+                continue;
+              }
+
+              this._seenFigures.add(figure);
+              this._seenImages.add(img);
+
+              const imageIndex = placements.length;
+              const placement = {
+                mainColumn,
+                figure,
+                picture,
+                img,
+                imageIndex,
+                overlayIndex: imageIndex,
+              };
+
+              placements.push(placement);
+              logInimage(`[InimagePlacementEngine] ✅ placement[${imageIndex}] accepted`, {
+                mainIndex,
+                figureIndex,
+                renderedWidth: imageCheck.meta.renderedWidth,
+                renderedHeight: imageCheck.meta.renderedHeight,
+                currentSrc: img.currentSrc || img.src || null,
+              });
+              if (firstOnly) {
+                logInimage(`[InimagePlacementEngine] firstOnly=true — stopping after first eligible image`);
+                groupEndInimage();
+                groupEndInimage();
+                return placements;
+              }
+            }
+
+            groupEndInimage();
+          }
+
+          logInimage(`[InimagePlacementEngine] ✅ final placements resolved: ${placements.length}`);
+          groupEndInimage();
+          return placements;
+        }
+
+        evaluateFigure(figure) {
+          if (!figure) return { eligible: false, reason: "missing_figure" };
+          const blockerSelector = this.domConfig.blockerSelector;
+          if (blockerSelector && figure.closest(blockerSelector)) {
+            return { eligible: false, reason: `inside blocker selector "${blockerSelector}"` };
+          }
+          return { eligible: true, reason: "ok" };
+        }
+
+        isEligibleFigure(figure) {
+          return this.evaluateFigure(figure).eligible;
+        }
+
+        evaluateImage(img) {
+          if (!img) return { eligible: false, reason: "missing_img" };
+
+          const rect = img.getBoundingClientRect();
+          const renderedWidth = rect.width || img.clientWidth || 0;
+          const renderedHeight = rect.height || img.clientHeight || 0;
+          const minImageWidth = this.eligibilityConfig.minImageWidth || 0;
+          const minImageHeight = this.eligibilityConfig.minImageHeight || 0;
+          const meta = { renderedWidth, renderedHeight, minImageWidth, minImageHeight };
+
+          if (renderedWidth < minImageWidth || renderedHeight < minImageHeight) {
+            return { eligible: false, reason: "below_min_dimensions", meta };
+          }
+
+          if (this.eligibilityConfig.skipIfHidden) {
+            const style = window.getComputedStyle(img);
+            meta.display = style.display;
+            meta.visibility = style.visibility;
+            meta.opacity = style.opacity;
+            if (style.display === "none" || style.visibility === "hidden" || style.opacity === "0") {
+              return { eligible: false, reason: "hidden_image", meta };
+            }
+          }
+
+          if (this.eligibilityConfig.requireLoadedImage && !img.complete && !img.naturalWidth) {
+            meta.complete = img.complete;
+            meta.naturalWidth = img.naturalWidth;
+            return { eligible: false, reason: "image_not_loaded", meta };
+          }
+
+          return { eligible: true, reason: "ok", meta };
+        }
+
+        isEligibleImage(img) {
+          return this.evaluateImage(img).eligible;
+        }
+      }
+
+      class InimageContainer {
+        constructor({ placement, overlayConfig = {}, slotId, onClose = null }) {
+          this.placement = placement;
+          this.overlayConfig = overlayConfig;
+          this.slotId = slotId;
+          this.onClose = onClose;
+          this.figure = placement.figure;
+          this.originalFigurePosition = null;
+          this.shell = null;
+          this.overlay = null;
+          this.slotEl = null;
+          this.labelEl = null;
+          this.closeButton = null;
+          this._boundClose = () => {
+            logInimage(`[Inimage:Slot:${this.slotId}] close button clicked`);
+            this.onClose?.();
+          };
+        }
+
+        attach() {
+          if (this.shell) {
+            logInimage(`[Inimage:Slot:${this.slotId}] attach skipped — shell already exists`);
+            return this.shell;
+          }
+
+          const computed = window.getComputedStyle(this.figure);
+          logInimage(`[Inimage:Slot:${this.slotId}] attach start`, {
+            figurePosition: computed.position,
+            labelEnabled: this.overlayConfig.showLabel !== false,
+          });
+          if (computed.position === "static") {
+            this.originalFigurePosition = this.figure.style.position || "";
+            this.figure.style.position = "relative";
+            logInimage(`[Inimage:Slot:${this.slotId}] figure positioning context forced to relative`);
+          } else {
+            logInimage(`[Inimage:Slot:${this.slotId}] figure positioning context already usable (${computed.position})`);
+          }
+
+          this.shell = document.createElement("div");
+          this.shell.className = "gexp-inimage-shell";
+          this.overlay = document.createElement("div");
+          this.overlay.className = "gexp-inimage-overlay";
+
+          this.closeButton = document.createElement("button");
+          this.closeButton.type = "button";
+          this.closeButton.className = "gexp-inimage-close";
+          this.closeButton.setAttribute("aria-label", "Cerrar publicidad");
+          this.closeButton.textContent = "×";
+          this.closeButton.addEventListener("click", this._boundClose);
+          this.shell.appendChild(this.closeButton);
+
+          if (this.overlayConfig.showLabel !== false) {
+            this.labelEl = document.createElement("div");
+            this.labelEl.className = "gexp-inimage-label";
+            this.labelEl.textContent = this.overlayConfig.label || "Publicidad";
+            this.overlay.appendChild(this.labelEl);
+          }
+
+          this.slotEl = document.createElement("div");
+          this.slotEl.id = this.slotId;
+          this.slotEl.className = "gexp-inimage-slot";
+
+          this.overlay.appendChild(this.slotEl);
+          this.shell.appendChild(this.overlay);
+          this.applyBaseStyles();
+          this.figure.appendChild(this.shell);
+          logInimage(`[Inimage:Slot:${this.slotId}] shell created and attached`);
+
+          return this.shell;
+        }
+
+        applyBaseStyles() {
+          if (!this.shell) return;
+          this.shell.style.bottom = `${this.overlayConfig.offsetBottom ?? 0}px`;
+          this.shell.style.right = `${this.overlayConfig.offsetRight ?? 0}px`;
+          this.shell.style.zIndex = `${this.overlayConfig.zIndex ?? 20}`;
+          logInimage(`[Inimage:Slot:${this.slotId}] base styles applied`, {
+            offsetBottom: this.overlayConfig.offsetBottom ?? 0,
+            offsetRight: this.overlayConfig.offsetRight ?? 0,
+            zIndex: this.overlayConfig.zIndex ?? 20,
+          });
+        }
+
+        updateOverlayMetrics(metrics) {
+          if (!this.shell || !metrics) return;
+          this.shell.style.width = `${metrics.width}px`;
+          this.shell.style.height = `${metrics.height}px`;
+          this.shell.style.maxWidth = `${Math.round(metrics.maxWidth)}px`;
+          this.shell.style.maxHeight = `${Math.round(metrics.maxHeight)}px`;
+          this.shell.style.left = `${metrics.left}px`;
+          this.shell.style.top = `${metrics.top}px`;
+          this.shell.style.right = "auto";
+          this.shell.style.bottom = "auto";
+          logInimage(`[Inimage:Slot:${this.slotId}] overlay metrics applied`, metrics);
+          this.applyCreativeScale(metrics.creativeWidth, metrics.creativeHeight);
+        }
+
+        applyCreativeScale(creativeWidth, creativeHeight) {
+          if (!this.slotEl || !creativeWidth || !creativeHeight) return;
+          const shellWidth = this.shell?.clientWidth || creativeWidth;
+          const shellHeight = this.shell?.clientHeight || creativeHeight;
+          const scale = Math.min(shellWidth / creativeWidth, shellHeight / creativeHeight);
+          const creativeRoot =
+            this.slotEl.querySelector('div[id^="google_ads_iframe"]') ||
+            this.slotEl.querySelector("iframe") ||
+            this.slotEl.lastElementChild;
+
+          if (creativeRoot) {
+            creativeRoot.style.width = `${creativeWidth}px`;
+            creativeRoot.style.height = `${creativeHeight}px`;
+            creativeRoot.style.transformOrigin = "";
+            creativeRoot.style.transform = "";
+            creativeRoot.style.position = "";
+            creativeRoot.style.bottom = "";
+            creativeRoot.style.right = "";
+          }
+
+          this.slotEl.style.width = `${creativeWidth}px`;
+          this.slotEl.style.height = `${creativeHeight}px`;
+          this.slotEl.style.position = "absolute";
+          this.slotEl.style.bottom = "0";
+          this.slotEl.style.right = "0";
+          this.slotEl.style.transformOrigin = "bottom right";
+          this.slotEl.style.transform = `scale(${scale})`;
+          logInimage(`[Inimage:Slot:${this.slotId}] creative scale applied`, {
+            creativeWidth,
+            creativeHeight,
+            shellWidth,
+            shellHeight,
+            scale,
+            hasCreativeRoot: !!creativeRoot,
+          });
+        }
+
+        show() {
+          if (this.shell) {
+            this.shell.classList.add("is-visible");
+            logInimage(`[Inimage:Slot:${this.slotId}] shell shown`);
+          }
+        }
+
+        hide() {
+          if (this.shell) {
+            this.shell.classList.remove("is-visible");
+            logInimage(`[Inimage:Slot:${this.slotId}] shell hidden`);
+          }
+        }
+
+        clearSlotMarkup() {
+          if (!this.slotEl) return;
+          this.slotEl.removeAttribute("data-gpt-displayed");
+          this.slotEl.innerHTML = "";
+          logInimage(`[Inimage:Slot:${this.slotId}] slot markup cleared for retry`);
+        }
+
+        getElement() {
+          return this.shell;
+        }
+
+        getSlotElement() {
+          return this.slotEl;
+        }
+
+        destroy() {
+          logInimage(`[Inimage:Slot:${this.slotId}] destroy container`);
+          if (this.closeButton) {
+            this.closeButton.removeEventListener("click", this._boundClose);
+          }
+          if (this.shell?.parentNode) {
+            this.shell.parentNode.removeChild(this.shell);
+          }
+          if (this.originalFigurePosition !== null) {
+            this.figure.style.position = this.originalFigurePosition;
+          }
+          this.shell = null;
+          this.overlay = null;
+          this.slotEl = null;
+          this.closeButton = null;
+        }
+      }
+      class InimageNode {
+        constructor({ id, config, manager, placement, slotIndex = 0, navIndex = null }) {
+          this.id = id;
+          this.config = config;
+          this.manager = manager;
+          this.placement = placement;
+          this.slotIndex = slotIndex;
+          this.navIndex = navIndex;
+          this.state = "idle";
+          this.slot = null;
+          this.wa = null;
+          this.waterfall = null;
+          this._cycleCount = 0;
+          this._renderSize = null;
+          this.closedByUser = false;
+          this.destroyed = false;
+          this._boundResize = () => this.updateOverlayMetrics();
+          this._boundLoad = () => this.updateOverlayMetrics();
+        }
+
+        initialize() {
+          groupInimage(`[Inimage:Slot:${this.id}] initialize`);
+          logInimage(`[Inimage:Slot:${this.id}] placement context`, {
+            slotIndex: this.slotIndex,
+            navIndex: this.navIndex,
+            currentSrc: this.placement?.img?.currentSrc || this.placement?.img?.src || null,
+          });
+
+          this.container = new InimageContainer({
+            placement: this.placement,
+            overlayConfig: this.config.overlay,
+            slotId: this.id,
+            onClose: () => this.closeByUser(),
+          });
+          this.container.attach();
+          this.container.hide();
+
+          this.wa = new WindowArray(this.id, this.manager.gexp.cfg, this.manager.gexp);
+          this.manager.gexp.windows[this.id] = this.wa;
+          logInimage(`[Inimage:Slot:${this.id}] WindowArray attached`);
+
+          this.waterfall = new InimageWaterfall({
+            node: this,
+            container: this.container,
+            config: this.config,
+            gexp: this.manager.gexp,
+            wa: this.wa,
+          });
+
+          this.observeResize();
+          this.updateOverlayMetrics();
+          this.waterfall.init();
+          groupEndInimage();
+        }
+
+        observeResize() {
+          if (this.isClosed()) return;
+          const img = this.placement?.img;
+          if (!img) {
+            warnInimage(`[Inimage:Slot:${this.id}] observeResize skipped — no img node`);
+            return;
+          }
+          img.addEventListener("load", this._boundLoad);
+          window.addEventListener("resize", this._boundResize);
+          logInimage(`[Inimage:Slot:${this.id}] load/resize observers attached`);
+          if (typeof ResizeObserver !== "undefined") {
+            this._resizeObserver = new ResizeObserver(() => {
+              logInimage(`[Inimage:Slot:${this.id}] ResizeObserver fired`);
+              this.updateOverlayMetrics();
+            });
+            this._resizeObserver.observe(img);
+            logInimage(`[Inimage:Slot:${this.id}] ResizeObserver observing image`);
+          }
+        }
+
+        getDisplaySizes() {
+          const sizes = this.config.display?.sizes;
+          if (Array.isArray(sizes) && sizes.length) return sizes;
+          return [[300, 250]];
+        }
+
+        chooseBaseCreativeSize(maxWidth, maxHeight, sizes) {
+          let chosen = sizes[0] || [300, 250];
+          let chosenArea = 0;
+          sizes.forEach((size) => {
+            const [w, h] = size;
+            const scale = Math.min(maxWidth / w, maxHeight / h, 1);
+            if (scale <= 0) return;
+            const area = (w * scale) * (h * scale);
+            if (area > chosenArea) {
+              chosenArea = area;
+              chosen = size;
+            }
+          });
+          logInimage(`[Inimage:Slot:${this.id}] creative size chosen`, {
+            maxWidth,
+            maxHeight,
+            availableSizes: sizes,
+            chosen,
+          });
+          return chosen;
+        }
+
+        computeOverlayMetrics(renderSize = null) {
+          if (this.isClosed()) return null;
+          const img = this.placement?.img;
+          if (!img) return null;
+
+          const rect = img.getBoundingClientRect();
+          const figureRect = this.placement?.figure?.getBoundingClientRect?.() || rect;
+          const renderedWidth = rect.width || img.clientWidth || 0;
+          const renderedHeight = rect.height || img.clientHeight || 0;
+          if (!renderedWidth || !renderedHeight) {
+            warnInimage(`[Inimage:Slot:${this.id}] overlay metrics unavailable — zero rendered image size`, {
+              renderedWidth,
+              renderedHeight,
+            });
+            return null;
+          }
+
+          const overlayCfg = this.config.overlay || {};
+          const maxWidth = renderedWidth * (overlayCfg.maxOverlayWidthRatio ?? 0.35);
+          const maxHeight = renderedHeight * (overlayCfg.maxOverlayHeightRatio ?? 0.35);
+          const sizes = this.getDisplaySizes();
+          const baseSize = renderSize || this.chooseBaseCreativeSize(maxWidth, maxHeight, sizes);
+          const minScale = overlayCfg.minScale ?? 0.65;
+          const maxScale = overlayCfg.maxScale ?? 1;
+          const fitScale = Math.min(maxWidth / baseSize[0], maxHeight / baseSize[1]);
+          if (!isFinite(fitScale) || fitScale <= 0) {
+            warnInimage(`[Inimage:Slot:${this.id}] overlay metrics invalid — fitScale <= 0`, {
+              maxWidth,
+              maxHeight,
+              baseSize,
+              fitScale,
+            });
+            return null;
+          }
+          const cappedFitScale = Math.min(maxScale, fitScale);
+          const scale = fitScale < minScale
+            ? cappedFitScale
+            : Math.max(minScale, cappedFitScale);
+          const width = Math.round(baseSize[0] * scale);
+          const height = Math.round(baseSize[1] * scale);
+          const relativeImageLeft = Math.max(0, rect.left - figureRect.left);
+          const relativeImageTop = Math.max(0, rect.top - figureRect.top);
+          const offsetRight = overlayCfg.offsetRight ?? 0;
+          const offsetBottom = overlayCfg.offsetBottom ?? 0;
+          const left = Math.max(
+            0,
+            Math.min(
+              relativeImageLeft + renderedWidth - width - offsetRight,
+              (figureRect.width || renderedWidth) - width,
+            ),
+          );
+          const top = Math.max(
+            0,
+            Math.min(
+              relativeImageTop + renderedHeight - height - offsetBottom,
+              (figureRect.height || renderedHeight) - height,
+            ),
+          );
+
+          const metrics = {
+            width,
+            height,
+            creativeWidth: baseSize[0],
+            creativeHeight: baseSize[1],
+            maxWidth,
+            maxHeight,
+            left,
+            top,
+            offsetRight,
+            offsetBottom,
+          };
+          logInimage(`[Inimage:Slot:${this.id}] overlay metrics calculated`, metrics);
+          return metrics;
+        }
+
+        updateOverlayMetrics(renderSize = null) {
+          if (this.isClosed()) return;
+          const metrics = this.computeOverlayMetrics(renderSize || this._renderSize);
+          if (!metrics) return;
+          this.container.updateOverlayMetrics(metrics);
+        }
+
+        askDisplay(bidResponse) {
+          return new Promise((resolve) => {
+            this.state = "asking_display";
+            const adUnitPath = this.manager.adUnitPath || this.manager.gexp.cfg.adUnit || "";
+            const sizes = this.getDisplaySizes();
+            const fullAdUnit = `/${this.manager.networkId}/${adUnitPath}`;
+
+            groupInimage(`[Inimage:Display:${this.id}] askDisplay`);
+            logInimage(`[Inimage:Display:${this.id}] GAM request inputs`, {
+              fullAdUnit,
+              sizes,
+              navIndex: this.navIndex,
+              bidResponse: bidResponse ? {
+                bidderCode: bidResponse.bidderCode,
+                cpm: bidResponse.cpm,
+                auctionId: bidResponse.auctionId,
+                adId: bidResponse.adId,
+              } : null,
+            });
+
+            googletag.cmd.push(() => {
+              if (!this.slot) {
+                this.slot = googletag.defineSlot(fullAdUnit, sizes, this.id);
+                if (!this.slot) {
+                  errorInimage(`[Inimage:Display:${this.id}] slot definition failed`);
+                  groupEndInimage();
+                  resolve({ filled: false, event: null });
+                  return;
+                }
+                this.slot.addService(googletag.pubads());
+                logInimage(`[Inimage:Display:${this.id}] slot defined and service attached`);
+              }
+
+              this.slot.clearTargeting();
+              this.slot.setTargeting("p", [this.id]);
+              this.slot.setTargeting("inimage", "true");
+              if (this.navIndex !== null && this.navIndex !== undefined) {
+                this.slot.setTargeting("gexp-inimage-navcont", String(this.navIndex));
+              }
+
+              if (window.pbjs && bidResponse) {
+                const pb = bidResponse.pbCg || bidResponse.pbAg || bidResponse.pbHg || String(bidResponse.cpm);
+                this.slot.setTargeting("hb_pb", pb);
+                this.slot.setTargeting("hb_bidder", bidResponse.bidderCode);
+                this.slot.setTargeting("hb_format", "banner");
+                if (bidResponse.adId) {
+                  this.slot.setTargeting("hb_adid", bidResponse.adId);
+                }
+              }
+
+              if (window.apstag && window.apstag.targetingKeys) {
+                const tamKeys = window.apstag.targetingKeys();
+                if (tamKeys && tamKeys[this.id]) {
+                  Object.entries(tamKeys[this.id]).forEach(([k, v]) => this.slot.setTargeting(k, v));
+                  logInimage(`[Inimage:Display:${this.id}] TAM targeting applied`, tamKeys[this.id]);
+                }
+              }
+
+              if (this.wa) {
+                this.wa.slot = this.slot;
+                this.wa.allowUpdate = true;
+              }
+
+              this.manager.gexp.request(this.slot);
+              logInimage(`[Inimage:Display:${this.id}] GAM display request dispatched`);
+
+              const initialRenderHandler = (event) => {
+                if (event.slot !== this.slot) return;
+                googletag.pubads().removeEventListener("slotRenderEnded", initialRenderHandler);
+                if (this.isClosed()) {
+                  logInimage(`[Inimage:Display:${this.id}] render callback ignored â€” node closed`);
+                  groupEndInimage();
+                  resolve({ filled: false, event: null });
+                  return;
+                }
+                const hasContent = !event.isEmpty;
+                const is1x1 = event.size && event.size[0] === 1 && event.size[1] === 1;
+                logInimage(`[Inimage:Display:${this.id}] render result`, {
+                  isEmpty: event.isEmpty,
+                  size: event.size || null,
+                  is1x1,
+                  lineItemId: event.lineItemId,
+                  creativeId: event.creativeId,
+                });
+                groupEndInimage();
+                resolve({ filled: hasContent, event, is1x1 });
+              };
+              googletag.pubads().addEventListener("slotRenderEnded", initialRenderHandler);
+
+              if (!this._hasPersistentListener) {
+                this._hasPersistentListener = true;
+                googletag.pubads().addEventListener("slotRenderEnded", (event) => {
+                  if (this.isClosed()) return;
+                  if (event.slot !== this.slot) return;
+                  if (event.isEmpty) return;
+                  if (event.size && event.size[0] > 1 && event.size[1] > 1) {
+                    this._renderSize = [event.size[0], event.size[1]];
+                    logInimage(`[Inimage:Display:${this.id}] persistent render listener updated creative size`, this._renderSize);
+                    this.updateOverlayMetrics(this._renderSize);
+                  }
+                });
+              }
+
+              const slotEl = this.container.getSlotElement();
+              if (slotEl && !slotEl.hasAttribute("data-gpt-displayed")) {
+                googletag.display(this.id);
+                slotEl.setAttribute("data-gpt-displayed", "true");
+                logInimage(`[Inimage:Display:${this.id}] googletag.display executed`);
+              }
+              googletag.pubads().refresh([this.slot]);
+              logInimage(`[Inimage:Display:${this.id}] googletag.pubads().refresh executed`);
+            });
+          });
+        }
+
+        showDisplay(displayResult) {
+          if (this.isClosed()) {
+            logInimage(`[Inimage:Display:${this.id}] showDisplay ignored â€” node closed`);
+            return;
+          }
+          this.state = "display";
+          if (displayResult?.event?.size && displayResult.event.size[0] > 1 && displayResult.event.size[1] > 1) {
+            this._renderSize = [displayResult.event.size[0], displayResult.event.size[1]];
+          }
+          this.updateOverlayMetrics(this._renderSize);
+          this.container.show();
+          this.recordTelemetry("fill", { slotId: this.id, size: displayResult?.event?.size || null });
+          logInimage(`[Inimage:Display:${this.id}] fill confirmed`, {
+            renderSize: this._renderSize,
+            lineItemId: displayResult?.event?.lineItemId,
+            creativeId: displayResult?.event?.creativeId,
+          });
+          this.scheduleRefreshCycle();
+        }
+
+        scheduleRefreshCycle() {
+          if (this.isClosed()) {
+            logInimage(`[Inimage:Display:${this.id}] refresh cycle skipped â€” node closed`);
+            return;
+          }
+          const refreshCfg = this.config.refreshCycle;
+          if (!refreshCfg || !refreshCfg.enabled) {
+            logInimage(`[Inimage:Display:${this.id}] refresh cycle disabled`);
+            return;
+          }
+
+          this._cycleCount += 1;
+          if (this._cycleCount >= refreshCfg.maxCycles) {
+            logInimage(`[Inimage:Display:${this.id}] max refresh cycles reached (${this._cycleCount}/${refreshCfg.maxCycles})`);
+            return;
+          }
+
+          const targetIntervalMs = refreshCfg.delayMs || 30000;
+          const el = this.container.getElement();
+          if (!el) {
+            warnInimage(`[Inimage:Display:${this.id}] refresh cycle skipped — no container element`);
+            return;
+          }
+
+          if (this._visibilityTimer) this._visibilityTimer.stop();
+          logInimage(`[Inimage:Display:${this.id}] scheduling refresh cycle ${this._cycleCount}/${refreshCfg.maxCycles} (visible time ${targetIntervalMs}ms)`);
+
+          let accumulatedVisibleTime = 0;
+          let lastVisibleTimestamp = 0;
+          let isCurrentlyVisible = false;
+          let checkInterval = null;
+          let observer = null;
+
+          const triggerRefresh = () => {
+            if (this.isClosed()) {
+              logInimage(`[Inimage:Display:${this.id}] refresh trigger ignored â€” node closed`);
+              return;
+            }
+            logInimage(`[Inimage:Display:${this.id}] visible-time threshold reached -> refresh`);
+            if (observer) observer.disconnect();
+            if (checkInterval) clearInterval(checkInterval);
+            this.destroyDisplayForRetry();
+            this.waterfall.prebidStarted = false;
+            this.waterfall.startAuction("refresh");
+          };
+
+          const updateAccumulator = () => {
+            if (isCurrentlyVisible && document.visibilityState === "visible") {
+              const now = Date.now();
+              if (lastVisibleTimestamp > 0) accumulatedVisibleTime += now - lastVisibleTimestamp;
+              lastVisibleTimestamp = now;
+              if (accumulatedVisibleTime >= targetIntervalMs) {
+                triggerRefresh();
+              }
+            } else {
+              lastVisibleTimestamp = 0;
+            }
+          };
+
+          if (typeof IntersectionObserver !== "undefined") {
+            observer = new IntersectionObserver((entries) => {
+              if (this.isClosed()) return;
+              const entry = entries[0];
+              const wasVisible = isCurrentlyVisible;
+              isCurrentlyVisible = entry.isIntersecting;
+              logInimage(`[Inimage:Display:${this.id}] refresh visibility update`, {
+                isIntersecting: entry.isIntersecting,
+                accumulatedVisibleTime,
+              });
+              if (isCurrentlyVisible && !wasVisible && document.visibilityState === "visible") {
+                lastVisibleTimestamp = Date.now();
+              } else if (!isCurrentlyVisible && wasVisible) {
+                updateAccumulator();
+              }
+            }, { threshold: 0.1 });
+            observer.observe(el);
+          } else {
+            isCurrentlyVisible = true;
+            logInimage(`[Inimage:Display:${this.id}] refresh visibility fallback -> always visible`);
+          }
+
+          checkInterval = setInterval(updateAccumulator, 500);
+          this._visibilityTimer = {
+            stop: () => {
+              if (observer) observer.disconnect();
+              if (checkInterval) clearInterval(checkInterval);
+            },
+          };
+        }
+
+        destroyDisplayForRetry() {
+          if (this.isClosed()) {
+            logInimage(`[Inimage:Display:${this.id}] destroyDisplayForRetry skipped â€” node closed`);
+            return;
+          }
+          logInimage(`[Inimage:Display:${this.id}] destroyDisplayForRetry`);
+          if (this._visibilityTimer) {
+            this._visibilityTimer.stop();
+            this._visibilityTimer = null;
+          }
+          if (this.slot) {
+            googletag.cmd.push(() => googletag.destroySlots([this.slot]));
+            this.slot = null;
+          }
+          this.container.clearSlotMarkup();
+          this.container.show();
+        }
+
+        discardDisplay() {
+          if (this.isClosed()) {
+            logInimage(`[Inimage:Display:${this.id}] discardDisplay skipped â€” node closed`);
+            return;
+          }
+          logInimage(`[Inimage:Display:${this.id}] no-fill -> discard display`);
+          if (this.slot) {
+            googletag.cmd.push(() => {
+              googletag.destroySlots([this.slot]);
+              this.slot = null;
+            });
+          }
+          this.container.hide();
+          this.recordTelemetry("no_fill", { slotId: this.id });
+        }
+
+        recordTelemetry(eventName, payload = {}) {
+          if (this.manager.gexp.statsG) {
+            this.manager.gexp.statsG.addVariable(`inimage_${eventName}`, JSON.stringify(payload));
+          }
+        }
+
+        isClosed() {
+          return this.closedByUser || this.destroyed;
+        }
+
+        closeByUser() {
+          if (this.isClosed()) {
+            logInimage(`[Inimage:Slot:${this.id}] closeByUser ignored â€” already closed`);
+            return;
+          }
+          this.closedByUser = true;
+          this.state = "dismissed";
+          logInimage(`[Inimage:Slot:${this.id}] manual close requested`);
+          this.recordTelemetry("closed_by_user", { slotId: this.id, navIndex: this.navIndex });
+          this.waterfall?.cancelPendingFlow("user_close");
+          if (this._visibilityTimer) {
+            this._visibilityTimer.stop();
+            this._visibilityTimer = null;
+          }
+          if (this._resizeObserver) this._resizeObserver.disconnect();
+          this.placement?.img?.removeEventListener("load", this._boundLoad);
+          window.removeEventListener("resize", this._boundResize);
+          if (this.slot) {
+            googletag.cmd.push(() => {
+              if (this.slot) {
+                googletag.destroySlots([this.slot]);
+                this.slot = null;
+              }
+            });
+          }
+          this.container?.clearSlotMarkup();
+          this.container?.destroy();
+          delete this.manager.gexp.windows[this.id];
+        }
+
+        destroy() {
+          if (this.destroyed) return;
+          this.destroyed = true;
+          logInimage(`[Inimage:Slot:${this.id}] destroy node`);
+          this.waterfall?.cancelPendingFlow("destroy");
+          if (this._resizeObserver) this._resizeObserver.disconnect();
+          if (this._visibilityTimer) this._visibilityTimer.stop();
+          this._visibilityTimer = null;
+          this.placement?.img?.removeEventListener("load", this._boundLoad);
+          window.removeEventListener("resize", this._boundResize);
+          if (this.slot) {
+            googletag.cmd.push(() => googletag.destroySlots([this.slot]));
+            this.slot = null;
+          }
+          this.container?.destroy();
+          delete this.manager.gexp.windows[this.id];
+        }
+      }
+      class InimageWaterfall {
+        constructor({ node, container, config, gexp, wa }) {
+          this.node = node;
+          this.container = container;
+          this.config = config;
+          this.gexp = gexp;
+          this.wa = wa;
+          this.prebidStarted = false;
+          this.timer = null;
+          this.intersectionObserver = null;
+          this._lastPrebidStatus = null;
+          this._lastPrebidResult = null;
+          this._prebidReadinessRetryUsed = false;
+        }
+
+        init() {
+          logInimage(`[Inimage:Auction:${this.node.id}] init waterfall`);
+          this.setupIntersectionTrigger();
+          this.setupTimerTrigger();
+        }
+
+        cancelPendingFlow(reason = "cancelled") {
+          logInimage(`[Inimage:Auction:${this.node.id}] cancelPendingFlow`, { reason });
+          if (this.intersectionObserver) {
+            this.intersectionObserver.disconnect();
+            this.intersectionObserver = null;
+          }
+          if (this.timer) {
+            clearTimeout(this.timer);
+            this.timer = null;
+          }
+        }
+
+        setupIntersectionTrigger() {
+          if (this.node.isClosed()) {
+            logInimage(`[Inimage:Auction:${this.node.id}] intersection trigger skipped â€” node closed`);
+            return;
+          }
+          const margin = this.config.loading?.rootMargin || "200px 0px";
+          const el = this.container.getElement();
+          if (!el) {
+            warnInimage(`[Inimage:Auction:${this.node.id}] intersection trigger skipped — no element`);
+            return;
+          }
+
+          if ("IntersectionObserver" in window) {
+            this.intersectionObserver = new IntersectionObserver((entries) => {
+              if (this.node.isClosed()) return;
+              if (entries[0].isIntersecting) {
+                logInimage(`[Inimage:Auction:${this.node.id}] trigger=intersection`);
+                this.startAuction("intersection");
+                this.intersectionObserver.disconnect();
+                this.intersectionObserver = null;
+              }
+            }, { threshold: 0, rootMargin: margin });
+            this.intersectionObserver.observe(el);
+            logInimage(`[Inimage:Auction:${this.node.id}] intersection observer armed`, { rootMargin: margin });
+          } else {
+            logInimage(`[Inimage:Auction:${this.node.id}] IntersectionObserver unavailable -> fallback trigger`);
+            this.startAuction("fallback");
+          }
+        }
+
+        setupTimerTrigger() {
+          if (this.node.isClosed()) {
+            logInimage(`[Inimage:Auction:${this.node.id}] timer trigger skipped â€” node closed`);
+            return;
+          }
+          const timeout = this.config.loading?.maxDelayMs || 5000;
+          this.timer = setTimeout(() => {
+            logInimage(`[Inimage:Auction:${this.node.id}] trigger=timer after ${timeout}ms`);
+            this.startAuction("timer");
+          }, timeout);
+          logInimage(`[Inimage:Auction:${this.node.id}] timer trigger armed`, { timeout });
+        }
+
+        async startAuction(trigger) {
+          if (this.node.isClosed()) {
+            logInimage(`[Inimage:Auction:${this.node.id}] startAuction ignored â€” node closed`, { trigger });
+            return;
+          }
+          if (this.prebidStarted) {
+            logInimage(`[Inimage:Auction:${this.node.id}] startAuction ignored — already started`, { trigger });
+            return;
+          }
+          this.prebidStarted = true;
+          clearTimeout(this.timer);
+          this.node.recordTelemetry("auction_start", { trigger });
+          this._currentAuctionId = null;
+          this._lastPrebidStatus = null;
+          this._lastPrebidResult = null;
+
+          groupInimage(`[Inimage:Auction:${this.node.id}] start trigger=${trigger}`);
+          if (trigger === "refresh") {
+            logInimage(`[Inimage:Auction:${this.node.id}] refresh cleanup before auction`);
+            if (window.pbjs?.clearTargeting) window.pbjs.clearTargeting(this.node.id);
+            if (window.pbjs?.removeAdUnit) window.pbjs.removeAdUnit(this.node.id);
+          }
+
+          const prebidConfig = this.getPrebidBannerConfig();
+          logInimage(`[Inimage:Auction:${this.node.id}] prebid config`, prebidConfig);
+          if (prebidConfig) {
+            this._lastPrebidResult = await this.executePrebid(prebidConfig);
+            this._lastPrebidStatus = this._lastPrebidResult?.status || null;
+            logInimage(`[Inimage:Auction:${this.node.id}] prebid_final_state`, this._lastPrebidResult);
+          } else {
+            logInimage(`[Inimage:Auction:${this.node.id}] prebid skipped — no eligible config`);
+          }
+          if (this.node.isClosed()) {
+            logInimage(`[Inimage:Auction:${this.node.id}] auction aborted after Prebid â€” node closed`);
+            groupEndInimage();
+            return;
+          }
+          this._lastDisplayBid = this.getBestDisplayBid(prebidConfig?.code || this.node.id, this._lastPrebidResult);
+          if (this._lastDisplayBid) {
+            logInimage(`[Inimage:Auction:${this.node.id}] best_display_bid_selected`, {
+              bidderCode: this._lastDisplayBid.bidderCode,
+              cpm: this._lastDisplayBid.cpm,
+              auctionId: this._lastDisplayBid.auctionId,
+              adId: this._lastDisplayBid.adId,
+            });
+          } else {
+            logInimage(`[Inimage:Auction:${this.node.id}] best_display_bid_missing`, {
+              prebidStatus: this._lastPrebidStatus,
+              prebidResult: this._lastPrebidResult,
+            });
+          }
+          logInimage(`[Inimage:Auction:${this.node.id}] best display bid`, this._lastDisplayBid ? {
+            bidderCode: this._lastDisplayBid.bidderCode,
+            cpm: this._lastDisplayBid.cpm,
+            auctionId: this._lastDisplayBid.auctionId,
+            adId: this._lastDisplayBid.adId,
+          } : null);
+
+          const tamConfig = this.getTAMConfiguration();
+          logInimage(`[Inimage:Auction:${this.node.id}] TAM config`, tamConfig);
+          logInimage(`[Inimage:Auction:${this.node.id}] auction_continues_to_tam`, {
+            prebidStatus: this._lastPrebidStatus,
+            hasBid: !!this._lastDisplayBid,
+            resolvedBy: this._lastPrebidResult?.resolvedBy || null,
+            hadUsableBannerBids: this._lastPrebidResult?.hadUsableBannerBids || false,
+          });
+          if (tamConfig) {
+            await this.executeAmazonTam(tamConfig);
+          } else {
+            logInimage(`[Inimage:Auction:${this.node.id}] TAM skipped — no eligible config`);
+          }
+
+          if (this.node.isClosed()) {
+            logInimage(`[Inimage:Auction:${this.node.id}] auction aborted after TAM â€” node closed`);
+            groupEndInimage();
+            return;
+          }
+          logInimage(`[Inimage:Auction:${this.node.id}] auction_continues_to_gam`, {
+            prebidStatus: this._lastPrebidStatus,
+            hasBid: !!this._lastDisplayBid,
+            resolvedBy: this._lastPrebidResult?.resolvedBy || null,
+            hadUsableBannerBids: this._lastPrebidResult?.hadUsableBannerBids || false,
+          });
+          const displayResult = await this.node.askDisplay(this._lastDisplayBid);
+          if (this.node.isClosed()) {
+            logInimage(`[Inimage:Auction:${this.node.id}] display result ignored â€” node closed`);
+            groupEndInimage();
+            return;
+          }
+          if (displayResult.filled) {
+            logInimage(`[Inimage:Auction:${this.node.id}] fill result -> showDisplay`);
+            this.node.showDisplay(displayResult);
+          } else if (this.shouldRetryAfterPrebidReadiness(trigger)) {
+            logInimage(`[Inimage:Auction:${this.node.id}] first no-fill after Prebid readiness miss -> controlled retry`);
+            this.schedulePrebidReadinessRetry();
+          } else {
+            logInimage(`[Inimage:Auction:${this.node.id}] fill result -> no-fill`);
+            this.node.discardDisplay();
+          }
+          groupEndInimage();
+        }
+
+        getPrebidBannerConfig() {
+          const code = this.node.id;
+          const sizes = this.getDisplaySizes();
+          const networkId = this.node.manager.networkId;
+          const prebidNetworks = this.config.prebid?.networks || {};
+          const targetNetwork = prebidNetworks[networkId] || prebidNetworks.default || {};
+          const bids = targetNetwork.bidders || [];
+          if (!sizes.length || !bids.length) return null;
+          return {
+            code,
+            mediaTypes: { banner: { sizes } },
+            bids,
+            ortb2Imp: this.buildOrtb2Imp(code),
+          };
+        }
+
+        executePrebidLegacy(configuration) {
+          return this.executePrebid(configuration);
+          return new Promise((resolve) => {
+            if (this.node.isClosed()) {
+              logInimage(`[Inimage:Prebid] skipped â€” node closed`);
+              resolve(null);
+              return;
+            }
+            if (!window.pbjs || typeof window.pbjs.requestBids === "undefined") {
+              logInimage(`[Inimage:Prebid] pbjs unavailable — skipping`);
+              resolve(null);
+              return;
+            }
+
+            window.pbjs.que.push(() => {
+              if (this.node.isClosed()) {
+                resolve(null);
+                return;
+              }
+              try {
+                this.registerPrebidAdUnit(configuration);
+                const timeout = this.getPrebidTimeout();
+                const knownAuctionIds = new Set(
+                  (window.pbjs.getBidResponsesForAdUnitCode(configuration.code)?.bids || [])
+                    .map((bid) => bid.auctionId)
+                    .filter(Boolean),
+                );
+                logInimage(`[Inimage:Prebid] requestBids`, {
+                  code: configuration.code,
+                  timeout,
+                  knownAuctionIds: Array.from(knownAuctionIds),
+                });
+                const safetyTimer = setTimeout(() => {
+                  warnInimage(`[Inimage:Prebid] safety timeout (${timeout + 500}ms)`);
+                  resolve(null);
+                }, timeout + 500);
+                window.pbjs.requestBids({
+                  timeout,
+                  adUnitCodes: [configuration.code],
+                  bidsBackHandler: (bidResponses, timedOut, auctionIdParam) => {
+                    clearTimeout(safetyTimer);
+                    if (this.node.isClosed()) {
+                      resolve(null);
+                      return;
+                    }
+                    const rawBids = window.pbjs.getBidResponsesForAdUnitCode(configuration.code)?.bids || [];
+                    const newAuctionIds = rawBids
+                      .map((bid) => bid.auctionId)
+                      .filter((auctionId) => auctionId && !knownAuctionIds.has(auctionId));
+                    const resolvedAuctionId =
+                      auctionIdParam ||
+                      (newAuctionIds.length > 0 ? newAuctionIds[newAuctionIds.length - 1] : null) ||
+                      null;
+                    this._currentAuctionId = resolvedAuctionId;
+                    logInimage(`[Inimage:Prebid] bidsBackHandler resolved`, {
+                      timedOut,
+                      auctionIdParam,
+                      resolvedAuctionId,
+                      bidCount: rawBids.length,
+                    });
+                    window.pbjs.setTargetingForGPTAsync([configuration.code]);
+                    resolve("prebid_done");
+                  },
+                });
+              } catch (e) {
+                warnInimage(`[Inimage:Prebid] exception in pbjs queue`, e);
+                resolve(null);
+              }
+            });
+          });
+        }
+
+        async executePrebid(configuration) {
+          if (this.node.isClosed()) {
+            logInimage(`[Inimage:Prebid] skipped — node closed`);
+            return this.buildPrebidFinalResult({
+              status: "prebid_skipped_closed",
+              resolvedBy: "node_closed",
+            });
+          }
+
+          const readiness = await this.waitForPrebidReady("executePrebid");
+          if (!readiness.ready) {
+            warnInimage(`[Inimage:Prebid] pbjs unavailable — skipping after bounded readiness wait`, readiness);
+            const result = this.buildPrebidFinalResult({
+              status: "prebid_not_ready",
+              resolvedBy: "readiness",
+              waitedMs: readiness.waitedMs,
+            });
+            logInimage(`[Inimage:Prebid] prebid_finalized`, result);
+            return result;
+          }
+
+          this.registerPrebidAliases();
+
+          return new Promise((resolve) => {
+            let settled = false;
+            let safetyTimer = null;
+            let timeoutLogTimer = null;
+            let graceTimer = null;
+            const requestStartedAt = Date.now();
+            const timeout = this.getPrebidTimeout();
+            const graceMs = this.getPrebidGraceMs();
+            const watchdogMs = Math.max(1200, graceMs + 1000);
+            const knownAuctionIds = new Set(
+              (window.pbjs.getBidResponsesForAdUnitCode(configuration.code)?.bids || [])
+                .map((bid) => bid.auctionId)
+                .filter(Boolean),
+            );
+            let bidsBackHandlerSeen = false;
+            const finish = (result) => {
+              if (settled) return;
+              settled = true;
+              if (safetyTimer) clearTimeout(safetyTimer);
+              if (timeoutLogTimer) clearTimeout(timeoutLogTimer);
+              if (graceTimer) clearTimeout(graceTimer);
+              this._currentAuctionId = result?.auctionId || null;
+              logInimage(`[Inimage:Prebid] prebid_finalized`, result);
+              resolve(result);
+            };
+
+            const collectSnapshot = () => {
+              const rawBids = window.pbjs.getBidResponsesForAdUnitCode(configuration.code)?.bids || [];
+              const bannerBids = rawBids.filter((bid) => (bid.mediaType === "banner" || !bid.mediaType));
+              const uniqueAuctionIds = Array.from(new Set(rawBids.map((bid) => bid.auctionId).filter(Boolean)));
+              return { rawBids, bannerBids, uniqueAuctionIds };
+            };
+
+            const resolveAuctionId = (preferredAuctionId, bannerBids, uniqueAuctionIds) => {
+              if (preferredAuctionId) return preferredAuctionId;
+              if (bannerBids.length === 1 && bannerBids[0].auctionId) return bannerBids[0].auctionId;
+              if (uniqueAuctionIds.length === 1) return uniqueAuctionIds[0];
+              return null;
+            };
+
+            const finalizeWithSnapshot = ({ resolvedBy, timedOut = false, preferredAuctionId = null }) => {
+              const waitedMs = Date.now() - requestStartedAt;
+              const { rawBids, bannerBids, uniqueAuctionIds } = collectSnapshot();
+              const auctionId = resolveAuctionId(preferredAuctionId, bannerBids, uniqueAuctionIds);
+              const finalBannerBids = auctionId
+                ? bannerBids.filter((bid) => bid.auctionId === auctionId)
+                : bannerBids;
+              const result = this.buildPrebidFinalResult({
+                status: finalBannerBids.length > 0 ? "prebid_done" : timedOut ? "prebid_timeout" : "prebid_done_no_bids",
+                auctionId,
+                timedOut,
+                bidCount: rawBids.length,
+                bannerBidCount: finalBannerBids.length,
+                resolvedBy,
+                waitedMs,
+                hadUsableBannerBids: finalBannerBids.length > 0,
+              });
+              logInimage(`[Inimage:Prebid] prebid_final_state`, result);
+              window.pbjs.setTargetingForGPTAsync([configuration.code]);
+              finish(result);
+            };
+
+            window.pbjs.que.push(() => {
+              if (this.node.isClosed()) {
+                finish(this.buildPrebidFinalResult({
+                  status: "prebid_skipped_closed",
+                  resolvedBy: "node_closed",
+                }));
+                return;
+              }
+              const queuedMissing = this.getPrebidMissingHelpers();
+              if (queuedMissing.length) {
+                warnInimage(`[Inimage:Prebid] pbjs became unavailable inside queue`, {
+                  missing: queuedMissing,
+                  helper: "pbjs.que",
+                });
+                finish(this.buildPrebidFinalResult({
+                  status: "prebid_not_ready",
+                  resolvedBy: "queue_readiness",
+                  waitedMs: Date.now() - requestStartedAt,
+                }));
+                return;
+              }
+              try {
+                this.registerPrebidAdUnit(configuration);
+                logInimage(`[Inimage:Prebid] prebid_request_started`, {
+                  code: configuration.code,
+                  timeout,
+                  graceMs,
+                  watchdogMs,
+                  knownAuctionIds: Array.from(knownAuctionIds),
+                  readinessWaitMs: readiness.waitedMs,
+                  readinessAttempts: readiness.attempts,
+                });
+                timeoutLogTimer = setTimeout(() => {
+                  if (settled || bidsBackHandlerSeen) return;
+                  warnInimage(`[Inimage:Prebid] prebid_timeout_reached`, {
+                    stage: "provisional",
+                    resolvedBy: "watchdog_pending_callback",
+                    waitedMs: Date.now() - requestStartedAt,
+                    timeout,
+                    graceMs,
+                    watchdogMs,
+                  });
+                }, timeout + graceMs);
+                safetyTimer = setTimeout(() => {
+                  const timeoutResult = this.buildPrebidFinalResult({
+                    status: "prebid_timeout",
+                    timedOut: true,
+                    resolvedBy: bidsBackHandlerSeen ? "watchdog_after_callback" : "watchdog_no_callback",
+                    waitedMs: Date.now() - requestStartedAt,
+                  });
+                  warnInimage(`[Inimage:Prebid] prebid_timeout_reached`, {
+                    stage: "final",
+                    ...timeoutResult,
+                  });
+                  finish(timeoutResult);
+                }, timeout + graceMs + watchdogMs);
+                window.pbjs.requestBids({
+                  timeout,
+                  adUnitCodes: [configuration.code],
+                  bidsBackHandler: (bidResponses, timedOut, auctionIdParam) => {
+                    bidsBackHandlerSeen = true;
+                    if (timeoutLogTimer) {
+                      clearTimeout(timeoutLogTimer);
+                      timeoutLogTimer = null;
+                    }
+                    if (safetyTimer) {
+                      clearTimeout(safetyTimer);
+                      safetyTimer = null;
+                    }
+                    if (this.node.isClosed()) {
+                      finish(this.buildPrebidFinalResult({
+                        status: "prebid_skipped_closed",
+                        resolvedBy: "node_closed",
+                      }));
+                      return;
+                    }
+                    const { rawBids, bannerBids, uniqueAuctionIds } = collectSnapshot();
+                    const newAuctionIds = rawBids
+                      .map((bid) => bid.auctionId)
+                      .filter((auctionId) => auctionId && !knownAuctionIds.has(auctionId));
+                    const resolvedAuctionId =
+                      auctionIdParam ||
+                      (bannerBids.length === 1 && bannerBids[0].auctionId ? bannerBids[0].auctionId : null) ||
+                      (uniqueAuctionIds.length === 1 ? uniqueAuctionIds[0] : null) ||
+                      (newAuctionIds.length > 0 ? newAuctionIds[newAuctionIds.length - 1] : null) ||
+                      null;
+                    logInimage(`[Inimage:Prebid] bidsBackHandler resolved`, {
+                      timedOut,
+                      auctionIdParam,
+                      resolvedAuctionId,
+                      bidCount: rawBids.length,
+                      bannerBidCount: bannerBids.length,
+                      waitedMs: Date.now() - requestStartedAt,
+                    });
+                    if (timedOut && graceMs > 0) {
+                      logInimage(`[Inimage:Prebid] prebid_grace_window_started`, {
+                        auctionId: resolvedAuctionId,
+                        timedOut,
+                        bidCount: rawBids.length,
+                        bannerBidCount: bannerBids.length,
+                        graceMs,
+                      });
+                      graceTimer = setTimeout(() => {
+                        logInimage(`[Inimage:Prebid] prebid_grace_window_finished`, {
+                          auctionId: resolvedAuctionId,
+                          waitedMs: Date.now() - requestStartedAt,
+                          graceMs,
+                        });
+                        finalizeWithSnapshot({
+                          resolvedBy: "bidsBackHandler_grace",
+                          timedOut: true,
+                          preferredAuctionId: resolvedAuctionId,
+                        });
+                      }, graceMs);
+                      return;
+                    }
+                    finalizeWithSnapshot({
+                      resolvedBy: "bidsBackHandler",
+                      timedOut,
+                      preferredAuctionId: resolvedAuctionId,
+                    });
+                  },
+                });
+              } catch (e) {
+                warnInimage(`[Inimage:Prebid] exception in pbjs queue`, e);
+                finish(this.buildPrebidFinalResult({
+                  status: "prebid_error",
+                  resolvedBy: "exception",
+                  waitedMs: Date.now() - requestStartedAt,
+                }));
+              }
+            });
+          });
+        }
+
+        getPrebidReadinessConfig() {
+          const readinessCfg = this.config.prebid?.readiness || {};
+          return {
+            intervalMs: readinessCfg.intervalMs || 100,
+            maxRetries: readinessCfg.maxRetries ?? 12,
+            maxWaitMs: readinessCfg.maxWaitMs || 1200,
+          };
+        }
+
+        getPrebidGraceMs() {
+          return this.config.prebid?.graceMs ?? 200;
+        }
+
+        buildPrebidFinalResult({
+          status = "prebid_done",
+          auctionId = null,
+          timedOut = false,
+          bidCount = 0,
+          bannerBidCount = 0,
+          resolvedBy = "unknown",
+          waitedMs = 0,
+          hadUsableBannerBids = false,
+        } = {}) {
+          return {
+            status,
+            auctionId,
+            timedOut,
+            bidCount,
+            bannerBidCount,
+            resolvedBy,
+            waitedMs,
+            hadUsableBannerBids,
+          };
+        }
+
+        getPrebidMissingHelpers() {
+          const missing = [];
+          const pb = window.pbjs;
+          if (!pb) {
+            return ["window.pbjs"];
+          }
+          if (!pb.que || typeof pb.que.push !== "function") missing.push("window.pbjs.que");
+          if (typeof pb.requestBids !== "function") missing.push("window.pbjs.requestBids");
+          if (typeof pb.getBidResponsesForAdUnitCode !== "function") missing.push("window.pbjs.getBidResponsesForAdUnitCode");
+          if (typeof pb.setTargetingForGPTAsync !== "function") missing.push("window.pbjs.setTargetingForGPTAsync");
+          return missing;
+        }
+
+        waitForPrebidReady(helperName = "unknown") {
+          const { intervalMs, maxRetries, maxWaitMs } = this.getPrebidReadinessConfig();
+          const startedAt = Date.now();
+          let attempts = 0;
+
+          return new Promise((resolve) => {
+            const check = () => {
+              const missing = this.getPrebidMissingHelpers();
+              const waitedMs = Date.now() - startedAt;
+              if (!missing.length) {
+                logInimage(`[Inimage:Prebid] pbjs ready`, {
+                  helper: helperName,
+                  waitedMs,
+                  attempts,
+                });
+                resolve({ ready: true, missing: [], waitedMs, attempts, helper: helperName });
+                return;
+              }
+
+              logInimage(`[Inimage:Prebid] pbjs readiness pending`, {
+                helper: helperName,
+                missing,
+                pbjsExists: !!window.pbjs,
+                waitedMs,
+                attempts,
+              });
+
+              if (attempts >= maxRetries || waitedMs >= maxWaitMs || this.node.isClosed()) {
+                resolve({
+                  ready: false,
+                  missing,
+                  pbjsExists: !!window.pbjs,
+                  waitedMs,
+                  attempts,
+                  helper: helperName,
+                  maxRetries,
+                  maxWaitMs,
+                });
+                return;
+              }
+
+              attempts += 1;
+              setTimeout(check, Math.min(intervalMs, Math.max(0, maxWaitMs - waitedMs)));
+            };
+
+            check();
+          });
+        }
+
+        shouldRetryAfterPrebidReadiness(trigger) {
+          return !this._prebidReadinessRetryUsed &&
+            trigger !== "refresh" &&
+            trigger !== "prebid_readiness_retry" &&
+            this._lastPrebidStatus === "prebid_not_ready";
+        }
+
+        schedulePrebidReadinessRetry() {
+          this._prebidReadinessRetryUsed = true;
+          this.node.recordTelemetry("prebid_readiness_retry", { slotId: this.node.id });
+          this.node.destroyDisplayForRetry();
+          this.container.hide();
+          this.prebidStarted = false;
+          this.timer = setTimeout(() => {
+            if (this.node.isClosed()) {
+              logInimage(`[Inimage:Auction:${this.node.id}] Prebid readiness retry skipped — node closed`);
+              return;
+            }
+            logInimage(`[Inimage:Auction:${this.node.id}] Prebid readiness retry firing`);
+            this.startAuction("prebid_readiness_retry");
+          }, 250);
+        }
+
+        getBestDisplayBid(code, prebidResult = null) {
+          if (!window.pbjs || !code) return null;
+          const rawBids = window.pbjs.getBidResponsesForAdUnitCode(code)?.bids || [];
+          const bannerBids = rawBids.filter((bid) => (bid.mediaType === "banner" || !bid.mediaType));
+          const uniqueAuctionIds = Array.from(new Set(bannerBids.map((bid) => bid.auctionId).filter(Boolean)));
+          const resolvedAuctionId =
+            prebidResult?.auctionId ||
+            this._currentAuctionId ||
+            (bannerBids.length === 1 && bannerBids[0].auctionId ? bannerBids[0].auctionId : null) ||
+            (uniqueAuctionIds.length === 1 ? uniqueAuctionIds[0] : null);
+          if (!resolvedAuctionId) {
+            logInimage(`[Inimage:Prebid] best_display_bid_missing`, {
+              reason: "no_final_auction_id",
+              bidCount: rawBids.length,
+              bannerBidCount: bannerBids.length,
+              prebidResult,
+            });
+            return null;
+          }
+          logInimage(`[Inimage:Prebid] filtering bids by auctionId`, {
+            code,
+            currentAuctionId: resolvedAuctionId,
+            rawBidCount: rawBids.length,
+          });
+          const bids = bannerBids
+            .filter((bid) => bid.auctionId === resolvedAuctionId)
+            .sort((a, b) => b.cpm - a.cpm);
+          logInimage(`[Inimage:Prebid] filtered banner bids`, bids.map((bid) => ({
+            bidderCode: bid.bidderCode,
+            cpm: bid.cpm,
+            auctionId: bid.auctionId,
+          })));
+          if (!bids.length) {
+            logInimage(`[Inimage:Prebid] best_display_bid_missing`, {
+              reason: "no_banner_bids_for_final_auction",
+              auctionId: resolvedAuctionId,
+              bidCount: rawBids.length,
+              bannerBidCount: bannerBids.length,
+              prebidResult,
+            });
+            return null;
+          }
+          return bids[0] || null;
+        }
+
+        executeAmazonTam(configuration) {
+          return new Promise((resolve) => {
+            if (this.node.isClosed()) {
+              logInimage(`[Inimage:TAM] skipped â€” node closed`);
+              resolve(null);
+              return;
+            }
+            if (!window.apstag || typeof window.apstag.fetchBids === "undefined") {
+              logInimage(`[Inimage:TAM] apstag unavailable — skipping`);
+              resolve(null);
+              return;
+            }
+
+            logInimage(`[Inimage:TAM] fetchBids request`, configuration);
+            const safetyTimer = setTimeout(() => {
+              warnInimage(`[Inimage:TAM] safety timeout`);
+              resolve("tam_timeout");
+            }, 2000);
+            try {
+              window.apstag.fetchBids(configuration, () => {
+                clearTimeout(safetyTimer);
+                if (this.node.isClosed()) {
+                  resolve(null);
+                  return;
+                }
+                try {
+                  window.apstag.setDisplayBids();
+                  logInimage(`[Inimage:TAM] setDisplayBids applied`);
+                } catch (err) {
+                  warnInimage(`[Inimage:TAM] setDisplayBids failed`, err);
+                }
+                resolve("tam_done");
+              });
+            } catch (err) {
+              clearTimeout(safetyTimer);
+              warnInimage(`[Inimage:TAM] fetchBids threw`, err);
+              resolve("tam_error");
+            }
+          });
+        }
+
+        getTAMConfiguration() {
+          if (this.config.tam?.enabled === false) return null;
+          const slotId = this.node.id;
+          const slotName = this.node.manager.adUnitPath || "";
+          const sizes = this.getDisplaySizes().filter((s) => s !== "fluid" && s[0] > 1);
+          if (!slotId || !slotName || !sizes.length) return null;
+          return {
+            slots: [
+              {
+                slotID: slotId,
+                slotName: `/${this.node.manager.networkId}/${slotName}`,
+                sizes,
+              },
+            ],
+          };
+        }
+
+        buildOrtb2Imp(adUnitCode) {
+          const networkId = this.gexp.cfg.networkId || "99071977";
+          const adUnitPath = this.node.manager.adUnitPath || "";
+          const fullAdSlot = `/${networkId}/${adUnitPath}`;
+          const pbadslot = `${fullAdSlot}#${adUnitCode}`;
+          return {
+            ext: {
+              data: {
+                adserver: {
+                  name: "gam",
+                  adslot: fullAdSlot,
+                },
+                pbadslot,
+              },
+              gpid: pbadslot,
+            },
+          };
+        }
+
+        registerPrebidAdUnit(configuration) {
+          const pb = window.pbjs;
+          if (!pb) return;
+          try {
+            googletag.cmd.push(() => {
+              const gptSlots = googletag.pubads().getSlots();
+              gptSlots.forEach((slot) => {
+                if (slot.getSlotElementId() === configuration.code || slot.getSlotElementId()?.startsWith("gexp-inimage")) {
+                  const tMap = slot.getTargetingMap();
+                  Object.keys(tMap).forEach((key) => {
+                    if (key.startsWith("hb_")) {
+                      slot.clearTargeting(key);
+                    }
+                  });
+                }
+              });
+            });
+          } catch (e) {}
+          pb.removeAdUnit(configuration.code);
+          pb.addAdUnits([configuration]);
+          logInimage(`[Inimage:Prebid] adUnit registered`, { code: configuration.code });
+        }
+
+        registerPrebidAliases() {
+          if (this._aliasesRegistered) return;
+          this._aliasesRegistered = true;
+
+          const networkId = this.gexp.cfg.networkId;
+          const prebidNetworks = this.config.prebid?.networks || {};
+          const targetNetwork = prebidNetworks[networkId] || prebidNetworks.default || {};
+          const aliases = targetNetwork.aliases;
+          if (!aliases || !window.pbjs) {
+            logInimage(`[Inimage:Prebid] no aliases to register`);
+            return;
+          }
+
+          window.pbjs.que.push(() => {
+            try {
+              for (const [alias, original] of Object.entries(aliases)) {
+                if (typeof window.pbjs.aliasBidder === "function") {
+                  window.pbjs.aliasBidder(original, alias);
+                }
+              }
+              logInimage(`[Inimage:Prebid] aliases registered`, aliases);
+            } catch (e) {
+              warnInimage(`[Inimage:Prebid] failed to configure aliases`, e);
+            }
+          });
+        }
+
+        getPrebidTimeout() {
+          return this.config.prebid?.timeoutMs || 1000;
+        }
+
+        getDisplaySizes() {
+          const sizes = this.config.display?.sizes;
+          if (Array.isArray(sizes) && sizes.length) return sizes;
+          return [[300, 250]];
+        }
+      }
+      const INIMAGE_CONTENT_TYPE_MAP = {
+        n: "noticia",
+        noticia: "noticia",
+        dir: "directo",
+        directo: "directo",
+        ne: "noticia-especial",
+        "noticia-especial": "noticia-especial",
+        cro: "cronica",
+        cronica: "cronica",
+        o: "opinion",
+        opinion: "opinion",
+      };
+
+      function inimageEscapeRegex(str = "") {
+        return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      }
+
+      function inimageDeepMerge(target, source) {
+        const isObject = (obj) =>
+          obj && typeof obj === "object" && !Array.isArray(obj);
+        if (!isObject(target) || !isObject(source)) {
+          return source;
+        }
+        const merged = Object.assign({}, target);
+        Object.keys(source).forEach((key) => {
+          if (isObject(source[key]) && isObject(merged[key])) {
+            merged[key] = inimageDeepMerge(merged[key], source[key]);
+          } else {
+            merged[key] = source[key];
+          }
+        });
+        return merged;
+      }
+
+      class InimageManager {
+        constructor(config, gexpInstance) {
+          this.config = config;
+          this.gexp = gexpInstance;
+          this.nodes = [];
+          this.siteContext = this.getSiteContext();
+          this.siteConfig = this.resolveSiteConfig();
+          this.adUnitPath = this.extractStaticAdUnitPath();
+          this.networkId = this.config?.networkId || "99071977";
+          this.processedFigures = new WeakSet();
+          ensureInimageBaseStyles();
+
+          if (this.siteConfig?.debug === true) {
+            window.gexpInimageDebug = true;
+          }
+
+          groupInimage(`[InimageManager] bootstrap`);
+          logInimage(`[InimageManager] site context`, this.siteContext);
+          logInimage(`[InimageManager] resolved siteConfig`, this.siteConfig);
+
+          if (!this.gexp.isEnabled()) {
+            logInimage(`[InimageManager] execution skipped — gexp disabled`);
+            groupEndInimage();
+            return;
+          }
+          if (!this.siteConfig) {
+            logInimage(`[InimageManager] execution skipped — no siteConfig`);
+            groupEndInimage();
+            return;
+          }
+          if (this.siteConfig?.domainFilter?.enabled && !this.passesDomainFilter()) {
+            groupEndInimage();
+            return;
+          }
+
+          const allowedTypes = this.siteConfig.allowedContentTypes || [];
+          logInimage(`[InimageManager] detected contentType="${this.siteContext.contentType}" allowed=${allowedTypes.join(",") || "all"}`);
+          if (allowedTypes.length > 0 && !allowedTypes.includes(this.siteContext.contentType)) {
+            logInimage(`[InimageManager] execution skipped — contentType not allowed`);
+            groupEndInimage();
+            return;
+          }
+          if (this.siteConfig?.exclusions?.disableAll === true) {
+            logInimage(`[InimageManager] execution skipped — exclusions.disableAll=true`);
+            groupEndInimage();
+            return;
+          }
+
+          const launchInimagePositions = () => {
+            logInimage(`[InimageManager] DOM ready -> launch inimage positions`);
+            googletag.cmd.push(() => {
+              this.resolveAdUnit();
+              this.siteContext.contentType = this.detectContentType();
+              logInimage(`[InimageManager] contentType resolved for launch`, this.siteContext.contentType);
+              this.siteConfig = this.resolveContentTypeProfile(this.siteConfig, this.siteContext.contentType);
+              logInimage(`[InimageManager] siteConfig after contentType profile`, this.siteConfig);
+              if (this.isBlockedByExclusions()) {
+                groupEndInimage();
+                return;
+              }
+              if (!this.isAllowedByInclusions()) {
+                groupEndInimage();
+                return;
+              }
+              this.createInimagePositions();
+
+              const infiniteScrollTypes = ["noticia", "noticia-especial"];
+              if (this.siteConfig?.infiniteScroll?.enabled && infiniteScrollTypes.includes(this.siteContext.contentType)) {
+                logInimage(`[InimageManager] nav-continua enabled for contentType=${this.siteContext.contentType}`);
+                this.startNavContinuaObserver();
+              } else {
+                logInimage(`[InimageManager] nav-continua not started`, {
+                  enabled: this.siteConfig?.infiniteScroll?.enabled,
+                  contentType: this.siteContext.contentType,
+                });
+              }
+              groupEndInimage();
+            });
+          };
+
+          if (document.readyState === "loading") {
+            document.addEventListener("DOMContentLoaded", launchInimagePositions);
+          } else {
+            launchInimagePositions();
+          }
+        }
+
+        extractStaticAdUnitPath() {
+          const devPath = window.GEXP_DEV_CONFIG?.inimageSites?.default?.general?.display?.adUnitPath;
+          if (devPath) return devPath;
+          if (typeof data !== "undefined" && data?.adSlots?.[0]?.adUnit) return data.adSlots[0].adUnit;
+          if (typeof ueDFPData !== "undefined" && ueDFPData?.adSlots?.[0]?.adUnit) return ueDFPData.adSlots[0].adUnit;
+          return this.config?.adUnit || "";
+        }
+
+        getSiteContext() {
+          const dl = ((typeof window !== "undefined" ? (window.ueDataLayer || window.utag_data) : null) || {});
+          return {
+            site: dl.be_page_domain || window.location.hostname,
+            section: dl.be_page_section || null,
+            subsection: dl.be_page_subsection1 || null,
+            contentType: this.detectContentType(),
+          };
+        }
+
+        detectContentType(rootElement = null) {
+          const dl = ((typeof window !== "undefined" ? (window.ueDataLayer || window.utag_data) : null) || {});
+          if (dl.be_page_content_type) {
+            return INIMAGE_CONTENT_TYPE_MAP[dl.be_page_content_type] || dl.be_page_content_type;
+          }
+          try {
+            if (typeof googletag !== "undefined" && googletag.pubads && typeof googletag.pubads === "function") {
+              const ctValues = googletag.pubads().getTargeting("ct");
+              if (ctValues && ctValues.length > 0) {
+                return INIMAGE_CONTENT_TYPE_MAP[ctValues[0]] || ctValues[0];
+              }
+            }
+          } catch (e) {}
+          const root = rootElement || document;
+          if (root.querySelector(".ue-c-streamlive__body")) return "directo";
+          if (root.querySelector(".ue-l-article__main-column")) return "noticia";
+          return "noticia";
+        }
+
+        resolveContentTypeProfile(baseConfig, contentType) {
+          const profiles = baseConfig?.contentTypes;
+          if (!profiles || !contentType || !profiles[contentType]) return baseConfig;
+          return inimageDeepMerge(baseConfig, profiles[contentType]);
+        }
+
+        resolveSiteConfig() {
+          const siteConfigs = this.config?.inimageSites;
+          if (!siteConfigs) return null;
+          const hostname = this.siteContext.site.replace("www.", "");
+          const baseConfig = siteConfigs[hostname] || siteConfigs.default;
+          if (!baseConfig?.general) return null;
+
+          let resolved = JSON.parse(JSON.stringify(baseConfig.general));
+          const overrides = Array.isArray(baseConfig.overrides) ? baseConfig.overrides : [];
+          overrides.forEach((override) => {
+            if (this.matchesOverrideConditions(override?.if)) {
+              resolved = inimageDeepMerge(resolved, override?.then || {});
+            }
+          });
+          resolved.__siteContext = this.siteContext;
+          return resolved;
+        }
+
+        matchesOverrideConditions(conditions) {
+          if (!Array.isArray(conditions) || conditions.length === 0) return false;
+          return conditions.some((condition) => this.evaluateCondition(condition));
+        }
+
+        evaluateCondition(conditionStr = "") {
+          const [key, value] = conditionStr.split(":");
+          if (!key || typeof value === "undefined") return false;
+          switch (key.trim()) {
+            case "device": {
+              const dl = ((typeof window !== "undefined" ? (window.ueDataLayer || window.utag_data) : null) || {});
+              const isMobileVar = dl.device_category === "mobile" || dl.be_page_site_version === "mobile" || this.gexp.isMobileDevice();
+              if (value.trim() === "mobile") return isMobileVar;
+              if (value.trim() === "desktop") return !isMobileVar;
+              return false;
+            }
+            case "contentType":
+              return this.siteContext.contentType === value.trim();
+            case "url":
+              return this.matchUrlCondition(value.trim());
+            default:
+              return false;
+          }
+        }
+
+        matchUrlCondition(pattern) {
+          if (!pattern) return false;
+          const url = window.location?.pathname || "";
+          if (pattern === "*") return true;
+          const regex = new RegExp("^" + pattern.split("*").map((part) => inimageEscapeRegex(part)).join(".*") + "$");
+          return regex.test(url);
+        }
+
+        passesDomainFilter() {
+          const filter = this.siteConfig?.domainFilter;
+          if (!filter || filter.allowedDomains === "all") {
+            logInimage(`[InimageManager] domainFilter pass — allowedDomains=all or disabled`);
+            return true;
+          }
+          let currentDomain = null;
+          const dl = window[filter.dataLayerObj] || window.utag_data;
+          if (dl) {
+            const dlData = Array.isArray(dl) ? dl[0] : dl;
+            currentDomain = dlData?.[filter.dataLayerProp] || null;
+          }
+          if (!currentDomain && window.location) currentDomain = window.location.hostname;
+          const allowed = filter.allowedDomains.some((domain) => String(currentDomain || "").includes(domain));
+          if (!allowed) {
+            logInimage(`[InimageManager] ❌ blocked by domainFilter`, {
+              currentDomain,
+              allowedDomains: filter.allowedDomains,
+            });
+          } else {
+            logInimage(`[InimageManager] ✅ domainFilter passed`, {
+              currentDomain,
+              allowedDomains: filter.allowedDomains,
+            });
+          }
+          return allowed;
+        }
+
+        resolveAdUnit() {
+          let source = "config_fallback";
+          let resolvedPath = this.adUnitPath;
+          let resolvedNetworkId = this.networkId;
+
+          try {
+            const slots = googletag.pubads().getSlots();
+            if (slots && slots.length > 0) {
+              const refSlot = slots.find((s) => {
+                const elId = s.getSlotElementId() || "";
+                if (elId.startsWith("gexp-intext") || elId.startsWith("gexp-inimage")) return false;
+                const path = s.getAdUnitPath() || "";
+                if (/\/p_/.test(path)) return false;
+                return true;
+              }) || slots[0];
+
+              const fullPath = refSlot.getAdUnitPath();
+              if (fullPath) {
+                const parts = fullPath.replace(/^\//, "").split("/");
+                if (parts.length >= 2) {
+                  resolvedNetworkId = parts[0];
+                  resolvedPath = parts.slice(1).join("/").replace(/\bp_/g, "");
+                  source = `gpt_slot(${refSlot.getSlotElementId()})`;
+                }
+              }
+            }
+          } catch (e) {}
+
+          if (!resolvedPath && this.siteConfig?.display?.adUnitPath) {
+            resolvedPath = this.siteConfig.display.adUnitPath;
+            source = "config_display_fallback";
+          }
+
+          this.adUnitPath = resolvedPath;
+          this.networkId = resolvedNetworkId;
+
+          const networkOverrides = this.siteConfig?.networks?.[this.networkId];
+          if (networkOverrides) {
+            this.siteConfig = inimageDeepMerge(this.siteConfig, networkOverrides);
+            logInimage(`[InimageManager] applied network overrides`, {
+              networkId: this.networkId,
+              keys: Object.keys(networkOverrides),
+            });
+          }
+          logInimage(`[InimageManager] AdUnit resolved: ${this.adUnitPath} (source: ${source})`);
+          logInimage(`[InimageManager] Network resolved: ${this.networkId}`);
+        }
+
+        getPageAdUnitPath() {
+          if (typeof data !== "undefined" && data?.adSlots?.[0]?.adUnit) return data.adSlots[0].adUnit;
+          if (typeof ueDFPData !== "undefined" && ueDFPData?.adSlots?.[0]?.adUnit) return ueDFPData.adSlots[0].adUnit;
+          return this.adUnitPath || null;
+        }
+
+        getPageCustomTargeting() {
+          if (typeof data !== "undefined" && data?.customTargeting) return data.customTargeting;
+          if (typeof ueDFPData !== "undefined" && ueDFPData?.customTargeting) return ueDFPData.customTargeting;
+          try {
+            if (typeof googletag !== "undefined" && googletag.pubads && typeof googletag.pubads === "function") {
+              const pubads = googletag.pubads();
+              if (pubads && typeof pubads.getTargetingKeys === "function") {
+                const keys = pubads.getTargetingKeys();
+                if (keys && keys.length > 0) {
+                  const targeting = {};
+                  keys.forEach((key) => {
+                    const values = pubads.getTargeting(key);
+                    targeting[key] = values && values.length === 1 ? values[0] : values;
+                  });
+                  return targeting;
+                }
+              }
+            }
+          } catch (e) {}
+          if (typeof window !== "undefined" && (window.ueDataLayer || window.utag_data)) return window.ueDataLayer || window.utag_data;
+          return null;
+        }
+
+        normalizeTargetingValues(rawValue) {
+          if (rawValue === undefined || rawValue === null) return [];
+          if (Array.isArray(rawValue)) {
+            return rawValue
+              .flatMap((value) => this.normalizeTargetingValues(value))
+              .filter((value) => value !== "");
+          }
+          if (typeof rawValue === "string" && rawValue.includes(",")) {
+            return rawValue
+              .split(",")
+              .map((value) => String(value).trim())
+              .filter(Boolean);
+          }
+          return [String(rawValue).trim()].filter(Boolean);
+        }
+
+        isBlockedByExclusions() {
+          const excl = this.siteConfig?.exclusions;
+          if (!excl) return false;
+          if (excl.disableAll === true) {
+            logInimage(`[InimageManager] ❌ blocked by exclusions.disableAll=true`);
+            return true;
+          }
+          if (Array.isArray(excl.adUnitPaths) && excl.adUnitPaths.length > 0) {
+            const pageAdUnit = this.getPageAdUnitPath();
+            const matchedPath = pageAdUnit && excl.adUnitPaths.find((blockedPath) => pageAdUnit.startsWith(blockedPath));
+            if (matchedPath) {
+              logInimage(`[InimageManager] ❌ blocked by exclusions.adUnitPaths`, { pageAdUnit, matchedPath });
+              return true;
+            }
+          }
+          if (excl.keyValues && typeof excl.keyValues === "object") {
+            const pageTargeting = this.getPageCustomTargeting();
+            if (pageTargeting) {
+              for (const [key, blockedValues] of Object.entries(excl.keyValues)) {
+                if (!Array.isArray(blockedValues) || blockedValues.length === 0) continue;
+                const rawPageValue = pageTargeting[key];
+                if (rawPageValue === undefined || rawPageValue === null) continue;
+                const pageValues = this.normalizeTargetingValues(rawPageValue);
+                const matchedValue = blockedValues.find((blocked) => pageValues.includes(String(blocked)));
+                if (matchedValue) {
+                  logInimage(`[InimageManager] ❌ blocked by exclusions.keyValues`, { key, matchedValue, pageValues });
+                  return true;
+                }
+              }
+            }
+          }
+          return false;
+        }
+
+        isAllowedByInclusions() {
+          const inc = this.siteConfig?.inclusions;
+          if (!inc) return true;
+          if (inc.keyValues && typeof inc.keyValues === "object" && Object.keys(inc.keyValues).length > 0) {
+            const pageTargeting = this.getPageCustomTargeting();
+            if (pageTargeting) {
+              for (const [key, allowedValues] of Object.entries(inc.keyValues)) {
+                if (!Array.isArray(allowedValues) || allowedValues.length === 0) continue;
+                const rawPageValue = pageTargeting[key];
+                if (rawPageValue === undefined || rawPageValue === null) continue;
+                const pageValues = this.normalizeTargetingValues(rawPageValue);
+                const matchedValue = allowedValues.find((allowed) => pageValues.includes(String(allowed)));
+                if (matchedValue) {
+                  logInimage(`[InimageManager] ✅ allowed by inclusions.keyValues`, { key, matchedValue, pageValues });
+                  return true;
+                }
+              }
+            }
+            logInimage(`[InimageManager] ❌ blocked by inclusions.keyValues — no allowed values found`);
+            return false;
+          }
+          return true;
+        }
+
+        isSlotDisabledByExclusion(index, configScope = this.siteConfig) {
+          const ds = configScope?.exclusions?.disableSlots;
+          if (!ds) return false;
+          if (Array.isArray(ds) && ds.includes(index)) return true;
+          if (Array.isArray(ds.always) && ds.always.includes(index)) return true;
+          return false;
+        }
+
+        getSlotId(index, pncSuffix = "") {
+          const base = index === 0 ? "gexp-inimage" : `gexp-inimage-${index + 1}`;
+          return pncSuffix ? `${base}${pncSuffix}` : base;
+        }
+
+        buildPlacementList(rootElement, scopedConfig) {
+          const slotsConfig = scopedConfig.slots || {};
+          const mode = slotsConfig.mode || (slotsConfig.maxSlots > 1 ? "multi" : "first_image_only");
+          const maxSlots = slotsConfig.maxSlots ?? Infinity;
+          logInimage(`[InimageManager] buildPlacementList`, {
+            mode,
+            maxSlots,
+            rootNavIndex: rootElement?.dataset?.ueNavindex || null,
+          });
+          const engine = new InimagePlacementEngine(scopedConfig.dom, scopedConfig.eligibility, rootElement);
+          const placements = engine.findPlacements({
+            maxSlots,
+            firstOnly: mode === "first_image_only",
+          });
+
+          return placements.filter((placement, idx) => {
+            if (this.processedFigures.has(placement.figure)) {
+              logInimage(`[InimageManager] placement[${idx}] skipped — duplicated figure already processed`);
+              return false;
+            }
+            this.processedFigures.add(placement.figure);
+            return true;
+          });
+        }
+
+        createInimagePositions() {
+          try {
+            groupInimage(`[InimageManager] createInimagePositions`);
+            const placements = this.buildPlacementList(document, this.siteConfig);
+            logInimage(`[InimageManager] placements discovered=${placements.length}`);
+            this.createNodesFromPlacements(placements, this.siteConfig, "");
+            groupEndInimage();
+          } catch (err) {
+            errorInimage(`[InimageManager] Failed to create positions`, err);
+          }
+        }
+
+        createNodesFromPlacements(placements, scopedConfig, pncSuffix = "", navIndex = null) {
+          if (!placements.length) {
+            logInimage(`[InimageManager] no placements to convert into nodes`, { navIndex, pncSuffix });
+            return;
+          }
+          const slotsConfig = scopedConfig.slots;
+          const maxSlots = slotsConfig?.maxSlots ?? Infinity;
+          let slotsCreated = 0;
+          const newNodes = [];
+
+          placements.forEach((placement, index) => {
+            if (slotsCreated >= maxSlots) {
+              logInimage(`[InimageManager] placement[${index}] skipped — maxSlots reached (${maxSlots})`);
+              return;
+            }
+            if (slotsConfig) {
+              if (!slotsConfig.enabled) {
+                logInimage(`[InimageManager] placement[${index}] skipped — slots.enabled=false`);
+                return;
+              }
+              if (slotsConfig.enabledSlots && !slotsConfig.enabledSlots.includes(index)) {
+                logInimage(`[InimageManager] placement[${index}] skipped — not in enabledSlots`);
+                return;
+              }
+            }
+            if (this.isSlotDisabledByExclusion(index, scopedConfig)) {
+              logInimage(`[InimageManager] placement[${index}] skipped — disableSlots exclusion`);
+              return;
+            }
+
+            let nodeConfig = scopedConfig;
+            const slotOverrides = scopedConfig.slotOverrides?.[String(index)];
+            if (slotOverrides) {
+              nodeConfig = JSON.parse(JSON.stringify(scopedConfig));
+              Object.keys(slotOverrides).forEach((section) => {
+                if (typeof slotOverrides[section] === "object" && !Array.isArray(slotOverrides[section])) {
+                  nodeConfig[section] = { ...(nodeConfig[section] || {}), ...slotOverrides[section] };
+                } else {
+                  nodeConfig[section] = slotOverrides[section];
+                }
+              });
+              logInimage(`[InimageManager] slotOverrides applied to slot[${index}]`, slotOverrides);
+            }
+
+            const slotId = this.getSlotId(index, pncSuffix);
+            const node = new InimageNode({
+              id: slotId,
+              config: nodeConfig,
+              manager: this,
+              placement,
+              slotIndex: index,
+              navIndex,
+            });
+            this.nodes.push(node);
+            newNodes.push(node);
+            slotsCreated += 1;
+            logInimage(`[InimageManager] node created`, { slotId, navIndex, slotIndex: index });
+          });
+
+          newNodes.forEach((node) => node.initialize());
+          logInimage(`[InimageManager] nodes initialized=${newNodes.length}`, { navIndex, pncSuffix });
+        }
+
+        startNavContinuaObserver() {
+          const isConfig = this.siteConfig?.infiniteScroll;
+          if (!isConfig?.enabled) return;
+
+          this._processedNavIndexes = new Set([0]);
+          logInimage(`[InimageManager:NavContinua] observer start`, {
+            mainSelector: isConfig.mainSelector,
+            maxArticles: isConfig.maxArticles || 5,
+          });
+          const observer = new MutationObserver((mutations) => {
+            for (const mutation of mutations) {
+              for (const node of mutation.addedNodes) {
+                if (node.nodeType !== 1) continue;
+                const mains = node.matches?.(isConfig.mainSelector)
+                  ? [node]
+                  : Array.from(node.querySelectorAll?.(isConfig.mainSelector) || []);
+
+                for (const mainEl of mains) {
+                  const navIndex = parseInt(mainEl.dataset.ueNavindex, 10);
+                  if (isNaN(navIndex) || navIndex === 0) {
+                    logInimage(`[InimageManager:NavContinua] ignored main without usable navIndex`);
+                    continue;
+                  }
+                  if (this._processedNavIndexes.has(navIndex)) {
+                    logInimage(`[InimageManager:NavContinua] navIndex=${navIndex} ignored — already processed`);
+                    continue;
+                  }
+                  if (this._processedNavIndexes.size > (isConfig.maxArticles || 5)) {
+                    logInimage(`[InimageManager:NavContinua] navIndex=${navIndex} ignored — maxArticles reached`);
+                    continue;
+                  }
+                  this._processedNavIndexes.add(navIndex);
+                  requestAnimationFrame(() => {
+                    groupInimage(`[InimageManager:NavContinua] navIndex=${navIndex}`);
+                    googletag.cmd.push(() => {
+                      const allSlots = googletag.pubads().getSlots();
+                      const mainSlots = allSlots.filter((slot) => {
+                        const el = document.getElementById(slot.getSlotElementId());
+                        return el && mainEl.contains(el);
+                      });
+                      logInimage(`[InimageManager:NavContinua] scoped GPT slots=${mainSlots.length}`);
+                      const ncTargeting = mainSlots.some((slot) => {
+                        const val = slot.getTargeting("nc");
+                        if (Array.isArray(val)) return val.includes("1");
+                        return val === "1";
+                      });
+                      if (!ncTargeting) {
+                        logInimage(`[InimageManager:NavContinua] navIndex=${navIndex} skipped: no nc=1 GPT slot found in scoped main`);
+                        groupEndInimage();
+                        return;
+                      }
+                      logInimage(`[InimageManager:NavContinua] navIndex=${navIndex} accepted — nc=1 found`);
+                      this.onNewArticleDetected(mainEl, navIndex);
+                      groupEndInimage();
+                    });
+                  });
+                }
+              }
+            }
+          });
+
+          observer.observe(document.body, { childList: true, subtree: true });
+        }
+
+        onNewArticleDetected(mainElement, navIndex) {
+          const isConfig = this.siteConfig?.infiniteScroll;
+          if (!isConfig) return;
+
+          let scrollConfig = inimageDeepMerge({ ...this.siteConfig }, {});
+          const contentType = this.detectContentType(mainElement);
+          logInimage(`[InimageManager:NavContinua] navIndex=${navIndex} contentType="${contentType}"`);
+          const ctProfile = this.siteConfig?.contentTypes?.[contentType];
+          if (ctProfile) scrollConfig = inimageDeepMerge(scrollConfig, ctProfile);
+          if (isConfig.overrides) scrollConfig = inimageDeepMerge(scrollConfig, isConfig.overrides);
+
+          const pncSuffix = navIndex >= 1 ? `-pnc-${navIndex}` : "";
+          const placements = this.buildPlacementList(mainElement, scrollConfig);
+          logInimage(`[InimageManager:NavContinua] navIndex=${navIndex} placements discovered=${placements.length}`);
+          this.createNodesFromPlacements(placements, scrollConfig, pncSuffix, navIndex);
+        }
+      }
+      const INTERSTITIAL_STYLE_ID = "gexp-interstitial-styles";
+      const INTERSTITIAL_BASE_STYLES = `
+        .gexp-interstitial-shell {
+            position: fixed;
+            inset: 0;
+            z-index: 2147483000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: auto;
+            transition: opacity 0.2s ease;
+        }
+        .gexp-interstitial-shell.is-visible {
+            opacity: 1;
+            visibility: visible;
+        }
+        .gexp-interstitial-backdrop {
+            position: absolute;
+            inset: 0;
+            background: rgba(90, 90, 90, 0.58);
+            pointer-events: auto;
+        }
+        .gexp-interstitial-panel {
+            position: relative;
+            z-index: 1;
+            width: min(92vw, 960px);
+            max-width: 92vw;
+            max-height: 90vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+            border-radius: 12px;
+            background: rgba(0, 0, 0, 0.02);
+            pointer-events: none;
+            box-sizing: border-box;
+        }
+        .gexp-interstitial-slot {
+            position: relative;
+            z-index: 1;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            min-width: 300px;
+            min-height: 250px;
+            max-width: 100%;
+            max-height: 100%;
+            overflow: hidden;
+            pointer-events: auto;
+        }
+        .gexp-interstitial-slot.is-active {
+            display: flex;
+        }
+        .gexp-interstitial-display-stage {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            max-width: 100%;
+            max-height: 100%;
+            box-sizing: border-box;
+            margin: auto;
+        }
+        .gexp-interstitial-slot iframe,
+        .gexp-interstitial-slot video,
+        .gexp-interstitial-slot .video-js,
+        .gexp-interstitial-slot > div {
+            max-width: 100%;
+            max-height: 100%;
+            box-sizing: border-box;
+        }
+        .gexp-interstitial-hud {
+            position: absolute;
+            inset: 0;
+            z-index: 2147483646;
+            pointer-events: none;
+        }
+        .gexp-interstitial-status,
+        .gexp-interstitial-countdown {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            z-index: 2147483646;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 36px;
+            min-height: 36px;
+            border-radius: 999px;
+            background: rgba(17, 17, 17, 0.82);
+            color: #ffffff;
+            font-family: Arial, Helvetica, sans-serif;
+            font-size: 14px;
+            font-weight: 700;
+            line-height: 1;
+            pointer-events: none;
+        }
+        .gexp-interstitial-close {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            z-index: 2147483647;
+            width: 36px;
+            height: 36px;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            border: 0;
+            border-radius: 999px;
+            background: rgba(17, 17, 17, 0.92);
+            cursor: pointer;
+            pointer-events: auto;
+        }
+        .gexp-interstitial-close.is-visible {
+            display: inline-flex;
+        }
+        .gexp-interstitial-close::before,
+        .gexp-interstitial-close::after {
+            content: "";
+            position: absolute;
+            width: 16px;
+            height: 2px;
+            border-radius: 999px;
+            background: #ffffff;
+        }
+        .gexp-interstitial-close::before {
+            transform: rotate(45deg);
+        }
+        .gexp-interstitial-close::after {
+            transform: rotate(-45deg);
+        }
+        @media (max-width: 480px), (max-height: 480px) {
+            .gexp-interstitial-shell {
+                align-items: center;
+                justify-content: center;
+                padding: 0;
+                overflow: hidden;
+            }
+            .gexp-interstitial-panel {
+                width: calc(100vw - 16px);
+                max-width: calc(100vw - 16px);
+                max-height: calc(100vh - 16px);
+                padding: 8px;
+                border-radius: 10px;
+                overflow: visible;
+                align-items: center;
+                justify-content: center;
+                margin: auto;
+            }
+            .gexp-interstitial-slot {
+                min-width: 0;
+                min-height: 0;
+                max-width: 100%;
+                max-height: calc(100vh - 32px);
+                align-items: center;
+                justify-content: center;
+                margin: auto;
+            }
+            #gexp-interstitial.gexp-interstitial-slot {
+                width: auto;
+                max-width: none;
+                max-height: none;
+                overflow: visible;
+            }
+            #gexp-interstitial-video.gexp-interstitial-slot {
+                width: 100%;
+                max-width: 100%;
+                max-height: calc(100vh - 32px);
+                overflow: hidden;
+            }
+            #gexp-interstitial-video iframe,
+            #gexp-interstitial-video video,
+            #gexp-interstitial-video .video-js,
+            #gexp-interstitial-video .vjs-tech,
+            #gexp-interstitial-video .ima-ad-container {
+                width: 100% !important;
+                max-width: 100% !important;
+                min-width: 0 !important;
+                max-height: calc(100vh - 32px) !important;
+                box-sizing: border-box;
+            }
+            .gexp-interstitial-display-stage {
+                width: auto;
+                max-width: none;
+                max-height: none;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                margin: auto;
+            }
+            .gexp-interstitial-display-stage > div,
+            .gexp-interstitial-display-stage iframe {
+                box-sizing: border-box;
+                margin-left: auto !important;
+                margin-right: auto !important;
+            }
+            #gexp-interstitial-video iframe,
+            #gexp-interstitial-video video,
+            #gexp-interstitial-video .video-js {
+                height: auto;
+            }
+            .gexp-interstitial-hud {
+                position: fixed;
+                inset: 0;
+                z-index: 2147483646;
+                width: 100vw;
+                height: 100vh;
+                pointer-events: none;
+            }
+            .gexp-interstitial-status,
+            .gexp-interstitial-countdown {
+                top: max(8px, env(safe-area-inset-top));
+                right: max(8px, env(safe-area-inset-right));
+                min-width: 34px;
+                min-height: 34px;
+                font-size: 13px;
+            }
+            .gexp-interstitial-close {
+                top: max(8px, env(safe-area-inset-top));
+                right: max(8px, env(safe-area-inset-right));
+                width: 38px;
+                height: 38px;
+                pointer-events: auto;
+                touch-action: manipulation;
+            }
+        }
+        @media (max-width: 480px) and (orientation: landscape) {
+            .gexp-interstitial-panel {
+                width: calc(100vw - 16px);
+                max-width: calc(100vw - 16px);
+                max-height: calc(100vh - 12px);
+                padding: 6px;
+            }
+            .gexp-interstitial-slot,
+            .gexp-interstitial-slot iframe,
+            .gexp-interstitial-slot video,
+            .gexp-interstitial-slot .video-js,
+            .gexp-interstitial-slot .vjs-tech,
+            .gexp-interstitial-slot .ima-ad-container,
+            .gexp-interstitial-slot > div {
+                max-height: calc(100vh - 24px) !important;
+            }
+        }
+      `;
+
+      let interstitialStylesAttached = false;
+      function ensureInterstitialBaseStyles() {
+        if (interstitialStylesAttached) return;
+        if (typeof document === "undefined") return;
+        if (document.getElementById(INTERSTITIAL_STYLE_ID)) {
+          interstitialStylesAttached = true;
+          return;
+        }
+        const styleEl = document.createElement("style");
+        styleEl.id = INTERSTITIAL_STYLE_ID;
+        styleEl.innerHTML = INTERSTITIAL_BASE_STYLES;
+        document.head.appendChild(styleEl);
+        interstitialStylesAttached = true;
+      }
+
+      const interstitialBadgeBase = "color:#fff;border-radius:3px;padding:2px 4px;font-size:10px;font-weight:bold;";
+      const interstitialBadgeLog = `background:#546E7A;${interstitialBadgeBase}`;
+      const interstitialBadgeWarn = `background:#EF6C00;${interstitialBadgeBase}`;
+      const interstitialBadgeErr = `background:#C62828;${interstitialBadgeBase}`;
+      const interstitialContextStyles = {
+        manager: "background:#455A64;color:#fff;border-radius:3px;padding:2px 4px;font-size:10px;font-weight:bold;",
+        auction: "background:#0277BD;color:#fff;border-radius:3px;padding:2px 4px;font-size:10px;font-weight:bold;",
+        video: "background:#6A1B9A;color:#fff;border-radius:3px;padding:2px 4px;font-size:10px;font-weight:bold;",
+        display: "background:#2E7D32;color:#fff;border-radius:3px;padding:2px 4px;font-size:10px;font-weight:bold;",
+        node: "background:#00897B;color:#fff;border-radius:3px;padding:2px 4px;font-size:10px;font-weight:bold;",
+      };
+
+      const getInterstitialDebugState = () => {
+        try {
+          if (typeof window !== "undefined") {
+            if (window.gexpInterstitialDebug === true) return true;
+            if (window.location && window.location.search.includes("gexpInterstitialDebug=true")) return true;
+            if (window.localStorage && window.localStorage.getItem("gexpInterstitialDebug") === "true") return true;
+          }
+        } catch (e) {}
+        return false;
+      };
+
+      if (typeof window !== "undefined") {
+        window.gexpInterstitialDebug = getInterstitialDebugState();
+      }
+
+      const formatInterstitialLog = (args, defaultBadge) => {
+        let mainText = args[0];
+        let style1 = defaultBadge;
+        if (typeof mainText !== "string") {
+          return [`%cINTERSTITIAL`, style1, ...args];
+        }
+
+        if (mainText.includes("[InterstitialManager")) {
+          style1 = interstitialContextStyles.manager;
+        } else if (mainText.includes("[Interstitial:Auction:")) {
+          style1 = interstitialContextStyles.auction;
+        } else if (mainText.includes("[Interstitial:Video:")) {
+          style1 = interstitialContextStyles.video;
+        } else if (mainText.includes("[Interstitial:Display:")) {
+          style1 = interstitialContextStyles.display;
+        } else if (mainText.includes("[Interstitial:Node:")) {
+          style1 = interstitialContextStyles.node;
+        }
+
+        const slotMatch = mainText.match(/\[Interstitial:(?:Auction|Video|Display|Node):([^\]]+)\]/);
+        const slotLabel = slotMatch ? ` ${slotMatch[1]}` : "";
+        return [`%cINTERSTITIAL${slotLabel}`, style1, mainText, ...args.slice(1)];
+      };
+
+      const logInterstitial = (...args) => { if (window.gexpInterstitialDebug) console.log(...formatInterstitialLog(args, interstitialBadgeLog)); };
+      const warnInterstitial = (...args) => { if (window.gexpInterstitialDebug) console.warn(...formatInterstitialLog(args, interstitialBadgeWarn)); };
+      const errorInterstitial = (...args) => { console.error(...formatInterstitialLog(args, interstitialBadgeErr)); };
+      const groupInterstitial = (...args) => { if (window.gexpInterstitialDebug) console.groupCollapsed(...formatInterstitialLog(args, interstitialBadgeLog)); };
+      const groupEndInterstitial = () => { if (window.gexpInterstitialDebug) console.groupEnd(); };
+
+      class InterstitialContainer {
+        constructor(uiConfig = {}, onClose = null) {
+          this.uiConfig = uiConfig;
+          this.onClose = onClose;
+          this.shell = null;
+          this.backdrop = null;
+          this.panel = null;
+          this.hudEl = null;
+          this.displaySlotEl = null;
+          this.displayStageEl = null;
+          this.videoSlotEl = null;
+          this.statusEl = null;
+          this.closeButton = null;
+          this._countdownTimer = null;
+          this._previousBodyOverflow = "";
+          this._boundClose = () => this.onClose?.();
+          this._boundAbsorbInteraction = (event) => {
+            const target = event.target;
+            if (
+              (this.closeButton && this.closeButton.contains(target)) ||
+              (this.displaySlotEl && this.displaySlotEl.contains(target)) ||
+              (this.videoSlotEl && this.videoSlotEl.contains(target))
+            ) {
+              return;
+            }
+            event.preventDefault();
+            event.stopPropagation();
+          };
+        }
+
+        attach() {
+          if (this.shell) return this.shell;
+          this.shell = document.createElement("div");
+          this.shell.className = "gexp-interstitial-shell";
+          this.shell.style.zIndex = String(this.uiConfig.zIndex || 2147483000);
+          this.shell.addEventListener("click", this._boundAbsorbInteraction);
+          this.shell.addEventListener("pointerdown", this._boundAbsorbInteraction);
+          this.shell.addEventListener("touchstart", this._boundAbsorbInteraction, { passive: false });
+
+          this.backdrop = document.createElement("div");
+          this.backdrop.className = "gexp-interstitial-backdrop";
+          this.backdrop.style.background = this.uiConfig.backdropColor || "rgba(90, 90, 90, 0.58)";
+          this.backdrop.addEventListener("click", this._boundAbsorbInteraction);
+          this.backdrop.addEventListener("pointerdown", this._boundAbsorbInteraction);
+          this.backdrop.addEventListener("touchstart", this._boundAbsorbInteraction, { passive: false });
+
+          this.panel = document.createElement("div");
+          this.panel.className = "gexp-interstitial-panel";
+          this.panel.style.maxWidth = this.uiConfig.maxWidth || "960px";
+          this.panel.style.maxHeight = this.uiConfig.maxHeight || "90vh";
+
+          this.hudEl = document.createElement("div");
+          this.hudEl.className = "gexp-interstitial-hud";
+
+          this.statusEl = document.createElement("div");
+          this.statusEl.className = "gexp-interstitial-status gexp-interstitial-countdown";
+          this.statusEl.textContent = "";
+
+          this.closeButton = document.createElement("button");
+          this.closeButton.type = "button";
+          this.closeButton.className = "gexp-interstitial-close";
+          this.closeButton.setAttribute("aria-label", "Cerrar publicidad");
+          this.closeButton.addEventListener("click", this._boundClose);
+
+          this.displaySlotEl = document.createElement("div");
+          this.displaySlotEl.id = "gexp-interstitial";
+          this.displaySlotEl.className = "gexp-interstitial-slot";
+
+          this.displayStageEl = document.createElement("div");
+          this.displayStageEl.className = "gexp-interstitial-display-stage";
+          this.displayStageEl.setAttribute("aria-hidden", "true");
+
+          this.videoSlotEl = document.createElement("div");
+          this.videoSlotEl.id = "gexp-interstitial-video";
+          this.videoSlotEl.className = "gexp-interstitial-slot";
+
+          this.panel.appendChild(this.displaySlotEl);
+          this.panel.appendChild(this.videoSlotEl);
+          this.hudEl.appendChild(this.statusEl);
+          this.hudEl.appendChild(this.closeButton);
+          this.panel.appendChild(this.hudEl);
+          this.shell.appendChild(this.backdrop);
+          this.shell.appendChild(this.panel);
+          document.body.appendChild(this.shell);
+          if (this.isMobileConstrainedViewport()) {
+            logInterstitial(`[Interstitial:Node:gexp-interstitial] mobile_viewport_centering_applied`);
+            logInterstitial(`[Interstitial:Node:gexp-interstitial] mobile_close_viewport_anchor_applied`);
+            logInterstitial(`[Interstitial:Node:gexp-interstitial] mobile_close_clickable_ready`);
+          }
+          this.hideClose();
+          return this.shell;
+        }
+
+        setActiveMode(mode) {
+          const showDisplay = mode === "display";
+          if (this.displaySlotEl) this.displaySlotEl.classList.toggle("is-active", showDisplay);
+          if (this.videoSlotEl) this.videoSlotEl.classList.toggle("is-active", !showDisplay);
+        }
+
+        open(mode) {
+          this.attach();
+          this.setActiveMode(mode);
+          this.lockBodyScroll();
+          this.shell.classList.add("is-visible");
+        }
+
+        close() {
+          if (!this.shell) return;
+          this.stopCountdown();
+          this.shell.classList.remove("is-visible");
+          this.unlockBodyScroll();
+        }
+
+        destroy() {
+          this.stopCountdown();
+          if (this.closeButton) this.closeButton.removeEventListener("click", this._boundClose);
+          if (this.shell) {
+            this.shell.removeEventListener("click", this._boundAbsorbInteraction);
+            this.shell.removeEventListener("pointerdown", this._boundAbsorbInteraction);
+            this.shell.removeEventListener("touchstart", this._boundAbsorbInteraction);
+          }
+          if (this.backdrop) {
+            this.backdrop.removeEventListener("click", this._boundAbsorbInteraction);
+            this.backdrop.removeEventListener("pointerdown", this._boundAbsorbInteraction);
+            this.backdrop.removeEventListener("touchstart", this._boundAbsorbInteraction);
+          }
+          this.unlockBodyScroll();
+          if (this.shell?.parentNode) this.shell.parentNode.removeChild(this.shell);
+          this.shell = null;
+          this.backdrop = null;
+          this.panel = null;
+          this.hudEl = null;
+          this.displaySlotEl = null;
+          this.displayStageEl = null;
+          this.videoSlotEl = null;
+          this.statusEl = null;
+          this.closeButton = null;
+        }
+
+        startCountdown(seconds) {
+          this.stopCountdown();
+          const totalSeconds = Math.max(0, parseInt(seconds, 10) || 0);
+          if (!this.statusEl) return Promise.resolve();
+          this.hideClose();
+          this.statusEl.style.display = totalSeconds > 0 ? "flex" : "none";
+          logInterstitial(`[Interstitial:Node:gexp-interstitial] countdown_start`, { seconds: totalSeconds });
+          if (totalSeconds <= 0) return Promise.resolve();
+          return new Promise((resolve) => {
+            let lastLoggedRemaining = null;
+            const startedAt = Date.now();
+            const render = () => {
+              const elapsed = Math.floor((Date.now() - startedAt) / 1000);
+              const remaining = Math.max(0, totalSeconds - elapsed);
+              this.statusEl.textContent = String(remaining);
+              if (remaining !== lastLoggedRemaining) {
+                lastLoggedRemaining = remaining;
+                logInterstitial(`[Interstitial:Node:gexp-interstitial] countdown`, { remaining });
+              }
+              if (remaining <= 0) {
+                this.stopCountdown();
+                resolve();
+              }
+            };
+            render();
+            this._countdownTimer = setInterval(render, 250);
+          });
+        }
+
+        stopCountdown() {
+          if (this._countdownTimer) {
+            clearInterval(this._countdownTimer);
+            this._countdownTimer = null;
+          }
+        }
+
+        showClose() {
+          if (this.statusEl) this.statusEl.style.display = "none";
+          if (this.closeButton) this.closeButton.classList.add("is-visible");
+          logInterstitial(`[Interstitial:Node:gexp-interstitial] close_visible`);
+        }
+
+        hideClose() {
+          if (this.closeButton) this.closeButton.classList.remove("is-visible");
+        }
+
+        getDisplaySlotElement() {
+          return this.displaySlotEl;
+        }
+
+        getDisplayStageElement() {
+          return this.displayStageEl;
+        }
+
+        getVideoSlotElement() {
+          return this.videoSlotEl;
+        }
+
+        isMobileConstrainedViewport() {
+          try {
+            return window.matchMedia?.("(max-width: 480px), (max-height: 480px)")?.matches === true;
+          } catch (err) {
+            return false;
+          }
+        }
+
+        applyDisplayCreativeSize(size) {
+          if (!this.displaySlotEl || !Array.isArray(size) || size.length < 2) return;
+          const width = Number(size[0]);
+          const height = Number(size[1]);
+          if (!Number.isFinite(width) || !Number.isFinite(height) || width <= 1 || height <= 1) return;
+
+          this.displaySlotEl.style.width = `${width}px`;
+          this.displaySlotEl.style.height = `${height}px`;
+          this.displaySlotEl.style.minWidth = `${width}px`;
+          this.displaySlotEl.style.minHeight = `${height}px`;
+
+          if (this.isMobileConstrainedViewport()) {
+            this.displaySlotEl.style.maxWidth = "";
+            this.displaySlotEl.style.maxHeight = "";
+            logInterstitial(`[Interstitial:Display:gexp-interstitial] mobile_display_natural_size_applied`, { width, height });
+            return;
+          }
+
+          this.displaySlotEl.style.maxWidth = "calc(100vw - 48px)";
+          this.displaySlotEl.style.maxHeight = "calc(100vh - 48px)";
+          logInterstitial(`[Interstitial:Display:gexp-interstitial] desktop_display_natural_size_applied`, { width, height });
+        }
+
+        centerMobileDisplayRender(size) {
+          if (!this.displaySlotEl || !this.displayStageEl || !this.isMobileConstrainedViewport()) return;
+          const width = Array.isArray(size) ? Number(size[0]) : null;
+          const height = Array.isArray(size) ? Number(size[1]) : null;
+          if (!Number.isFinite(width) || !Number.isFinite(height) || width <= 1 || height <= 1) return;
+
+          if (!this.displayStageEl.parentNode) {
+            logInterstitial(`[Interstitial:Display:gexp-interstitial] mobile_display_stage_created`, {
+              width,
+              height,
+            });
+          }
+
+          const children = Array.from(this.displaySlotEl.childNodes).filter((child) => child !== this.displayStageEl);
+          if (children.length) {
+            if (!this.displayStageEl.parentNode) this.displaySlotEl.appendChild(this.displayStageEl);
+            children.forEach((child) => this.displayStageEl.appendChild(child));
+          } else if (!this.displayStageEl.parentNode) {
+            this.displaySlotEl.appendChild(this.displayStageEl);
+          }
+
+          this.displaySlotEl.style.width = `${width}px`;
+          this.displaySlotEl.style.height = `${height}px`;
+          this.displaySlotEl.style.minWidth = `${width}px`;
+          this.displaySlotEl.style.minHeight = `${height}px`;
+          this.displaySlotEl.style.maxWidth = "";
+          this.displaySlotEl.style.maxHeight = "";
+          this.displayStageEl.style.width = Number.isFinite(width) && width > 0 ? `${width}px` : "auto";
+          this.displayStageEl.style.height = Number.isFinite(height) && height > 0 ? `${height}px` : "auto";
+          this.displayStageEl.style.maxWidth = "";
+          this.displayStageEl.style.maxHeight = "";
+          this.displayStageEl.style.transform = "";
+          this.displayStageEl.style.margin = "auto";
+          this.displayStageEl.style.pointerEvents = "auto";
+
+          logInterstitial(`[Interstitial:Display:gexp-interstitial] mobile_display_css_constraints_removed`, {
+            width,
+            height,
+          });
+          logInterstitial(`[Interstitial:Display:gexp-interstitial] mobile_display_stage_no_scale`, { width, height });
+          logInterstitial(`[Interstitial:Display:gexp-interstitial] mobile_display_centering_applied`, {
+            stageChildren: this.displayStageEl.childNodes.length,
+          });
+          logInterstitial(`[Interstitial:Display:gexp-interstitial] mobile_display_render_natural_size_centered`, {
+            width,
+            height,
+          });
+        }
+
+        lockBodyScroll() {
+          if (typeof document === "undefined" || !document.body) return;
+          if (!this._bodyScrollLocked) {
+            this._previousBodyOverflow = document.body.style.overflow || "";
+            document.body.style.overflow = "hidden";
+            this._bodyScrollLocked = true;
+          }
+        }
+
+        unlockBodyScroll() {
+          if (typeof document === "undefined" || !document.body) return;
+          if (this._bodyScrollLocked) {
+            document.body.style.overflow = this._previousBodyOverflow;
+            this._bodyScrollLocked = false;
+          }
+        }
+      }
+      class InterstitialNode {
+        constructor({ manager, config }) {
+          this.manager = manager;
+          this.config = config;
+          this.id = "gexp-interstitial";
+          this.videoId = "gexp-interstitial-video";
+          this.state = "idle";
+          this.slot = null;
+          this.wa = null;
+          this.container = new InterstitialContainer(
+            this.config.ui || {},
+            () => this.close(),
+          );
+          this.waterfall = null;
+          this.videoCreative = null;
+          this.lastVideoFailureReason = null;
+          this.closed = false;
+          this.shown = false;
+        }
+
+        initialize() {
+          if (this.waterfall) return;
+          this.container.attach();
+          this.wa = new WindowArray(
+            this.id,
+            this.manager.gexp.cfg,
+            this.manager.gexp,
+          );
+          this.manager.gexp.windows[this.id] = this.wa;
+          this.waterfall = new InterstitialWaterfall({
+            node: this,
+            container: this.container,
+            config: this.config,
+            gexp: this.manager.gexp,
+            wa: this.wa,
+          });
+        }
+
+        prepareAndShow() {
+          this.initialize();
+          logInterstitial(`[Interstitial:Node:${this.id}] prepare_and_show`);
+          return this.waterfall.startAuction("delay");
+        }
+
+        askDisplay(bidResponse) {
+          return new Promise((resolve) => {
+            const adUnitPath =
+              this.manager.adUnitPath || this.manager.gexp.cfg.adUnit || "";
+            const sizes = this.getDisplaySizes();
+            const fullAdUnit = `/${this.manager.networkId}/${adUnitPath}`;
+            logInterstitial(`[Interstitial:Display:${this.id}] request_gam_display`, {
+              fullAdUnit,
+              sizes,
+              bidder: bidResponse?.bidderCode || null,
+              cpm: bidResponse?.cpm ?? null,
+            });
+
+            googletag.cmd.push(() => {
+              if (!this.slot) {
+                this.slot = googletag.defineSlot(fullAdUnit, sizes, this.id);
+                if (!this.slot) {
+                  warnInterstitial(`[Interstitial:Display:${this.id}] define_slot_failed`, { fullAdUnit });
+                  resolve({ filled: false, event: null });
+                  return;
+                }
+                this.slot.addService(googletag.pubads());
+              }
+
+              this.slot.clearTargeting();
+              this.slot.setTargeting("p", [this.id]);
+              this.slot.setTargeting("interstitial", "true");
+
+              if (window.pbjs && bidResponse) {
+                const pb = bidResponse.pbCg || bidResponse.pbAg || bidResponse.pbHg || String(bidResponse.cpm);
+                this.slot.setTargeting("hb_pb", pb);
+                this.slot.setTargeting("hb_bidder", bidResponse.bidderCode);
+                this.slot.setTargeting("hb_format", "banner");
+                if (bidResponse.adId) {
+                  this.slot.setTargeting("hb_adid", bidResponse.adId);
+                }
+              }
+
+              if (window.apstag && window.apstag.targetingKeys) {
+                const tamKeys = window.apstag.targetingKeys();
+                if (tamKeys && tamKeys[this.id]) {
+                  Object.entries(tamKeys[this.id]).forEach(([k, v]) => {
+                    this.slot.setTargeting(k, v);
+                  });
+                }
+              }
+
+              if (this.wa) {
+                this.wa.slot = this.slot;
+                this.wa.allowUpdate = true;
+              }
+
+              this.manager.gexp.request(this.slot);
+
+              const renderHandler = (event) => {
+                if (event.slot !== this.slot) return;
+                googletag.pubads().removeEventListener("slotRenderEnded", renderHandler);
+                const hasRenderableCreative =
+                  !event.isEmpty &&
+                  Array.isArray(event.size) &&
+                  event.size[0] > 1 &&
+                  event.size[1] > 1;
+                logInterstitial(`[Interstitial:Display:${this.id}] slot_render_ended`, {
+                  filled: hasRenderableCreative,
+                  isEmpty: event.isEmpty,
+                  size: event.size,
+                  advertiserId: event.advertiserId,
+                  lineItemId: event.lineItemId,
+                });
+                if (hasRenderableCreative) {
+                  this.container.applyDisplayCreativeSize(event.size);
+                  this.container.centerMobileDisplayRender(event.size);
+                }
+                resolve({ filled: hasRenderableCreative, event });
+              };
+              googletag.pubads().addEventListener("slotRenderEnded", renderHandler);
+
+              const slotEl = this.container.getDisplaySlotElement();
+              if (slotEl && !slotEl.hasAttribute("data-gpt-displayed")) {
+                googletag.display(this.id);
+                slotEl.setAttribute("data-gpt-displayed", "true");
+              }
+              googletag.pubads().refresh([this.slot]);
+            });
+          });
+        }
+
+        async buildAndPrepareVideo(adTagUrl, bidResponse) {
+          this.destroyVideoCreative();
+          this.lastVideoFailureReason = null;
+          logInterstitial(`[Interstitial:Auction:${this.id}] video_prepare_start`, {
+            adTagUrl,
+            bidder: bidResponse?.bidderCode || null,
+            cpm: bidResponse?.cpm ?? null,
+          });
+          try {
+            this.videoCreative = new InterstitialVideoCreative({
+              container: this.container,
+              adTagUrl,
+              bid: bidResponse,
+              node: this,
+              config: this.config,
+            });
+            await this.videoCreative.render();
+            logInterstitial(`[Interstitial:Auction:${this.id}] video_prepare_success`, {
+              bidder: bidResponse?.bidderCode || null,
+              cpm: bidResponse?.cpm ?? null,
+            });
+            return true;
+          } catch (err) {
+            this.lastVideoFailureReason = err?.message || "video_prepare_failed";
+            warnInterstitial(`[Interstitial:Auction:${this.id}] video_prepare_fail`, {
+              reason: this.lastVideoFailureReason,
+              bidder: bidResponse?.bidderCode || null,
+              cpm: bidResponse?.cpm ?? null,
+              error: err,
+            });
+            this.destroyVideoCreative();
+            return false;
+          }
+        }
+
+        async show(mode, payload = {}) {
+          if (this.shown || this.closed) return false;
+          this.shown = true;
+          this.state = mode;
+          logInterstitial(`[Interstitial:Node:${this.id}] reveal_real`, {
+            mode,
+            bidder: payload.bid?.bidderCode ?? null,
+            cpm: payload.bid?.cpm ?? null,
+          });
+          this.container.open(mode);
+          this.manager.markShownNow();
+          this.recordTelemetry("shown", {
+            mode,
+            cpm: payload.bid?.cpm ?? null,
+            bidder: payload.bid?.bidderCode ?? null,
+          });
+          const countdownSeconds = this.config.ui?.countdownSeconds ?? 3;
+          await this.container.startCountdown(countdownSeconds);
+          if (!this.closed) {
+            this.container.showClose();
+          }
+          return true;
+        }
+
+        close() {
+          if (this.closed) return;
+          this.closed = true;
+          this.state = "closed";
+          logInterstitial(`[Interstitial:Node:${this.id}] closed_by_user`);
+          this.recordTelemetry("closed_by_user", { slotId: this.id });
+          this.destroyDisplaySlot();
+          this.destroyVideoCreative();
+          this.container.close();
+          this.container.destroy();
+          delete this.manager.gexp.windows[this.id];
+        }
+
+        destroyDisplaySlot() {
+          const slotEl = this.container.getDisplaySlotElement();
+          if (slotEl) {
+            slotEl.removeAttribute("data-gpt-displayed");
+            slotEl.innerHTML = "";
+          }
+          if (this.slot) {
+            googletag.cmd.push(() => {
+              if (this.slot) {
+                googletag.destroySlots([this.slot]);
+                this.slot = null;
+              }
+            });
+          }
+        }
+
+        destroyVideoCreative() {
+          const slotEl = this.container.getVideoSlotElement();
+          try {
+            if (this.videoCreative) {
+              logInterstitial(`[Interstitial:Video:${this.id}] destroy`);
+            }
+            this.videoCreative?.destroy?.();
+          } catch (err) {}
+          this.videoCreative = null;
+          if (slotEl) {
+            slotEl.innerHTML = "";
+          }
+        }
+
+        recordTelemetry(eventName, payload = {}) {
+          if (this.manager.gexp.statsG) {
+            this.manager.gexp.statsG.addVariable(
+              `interstitial_${eventName}`,
+              JSON.stringify(payload),
+            );
+          }
+        }
+
+        getDisplaySizes() {
+          const sizes = this.config.display?.sizes;
+          if (Array.isArray(sizes) && sizes.length) return sizes;
+          return [[300, 250]];
+        }
+      }
+
+      class InterstitialWaterfall {
+        constructor({ node, container, config, gexp, wa }) {
+          this.node = node;
+          this.container = container;
+          this.config = config;
+          this.gexp = gexp;
+          this.wa = wa;
+          this.started = false;
+          this._currentAuctionId = null;
+          this._lastDisplayBid = null;
+          this._lastVideoBid = null;
+          this._lastNoShowReason = null;
+        }
+
+        async startAuction(trigger) {
+          if (this.started || this.node.closed) return false;
+          this.started = true;
+          groupInterstitial(`[Interstitial:Auction:${this.node.id}] start trigger=${trigger}`);
+
+          this.registerPrebidAliases();
+          const prebidConfig = this.getPrebidMultiFormatConfig();
+          logInterstitial(`[Interstitial:Auction:${this.node.id}] prebid_config`, prebidConfig);
+          if (prebidConfig) {
+            await this.executePrebid(prebidConfig);
+          } else {
+            warnInterstitial(`[Interstitial:Auction:${this.node.id}] no_prebid_configuration`);
+          }
+
+          const sanitizedBids = this.inspectAuctionBids(prebidConfig?.code || this.node.id);
+          this._lastDisplayBid = sanitizedBids.displayBid;
+          this._lastVideoBid = sanitizedBids.videoBid;
+          logInterstitial(`[Interstitial:Auction:${this.node.id}] bids_back`, {
+            rawCount: sanitizedBids.rawCount,
+            validDisplayCount: sanitizedBids.displayCount,
+            validVideoCount: sanitizedBids.videoCount,
+            auctionId: this._currentAuctionId,
+          });
+          logInterstitial(`[Interstitial:Auction:${this.node.id}] display_best_bid`, this.summarizeBid(this._lastDisplayBid));
+          logInterstitial(`[Interstitial:Auction:${this.node.id}] video_best_bid`, this.summarizeBid(this._lastVideoBid));
+          const winner = this.selectWinner();
+          logInterstitial(`[Interstitial:Auction:${this.node.id}] winner`, winner);
+
+          if (!winner) {
+            this.reportNoShow(this._lastNoShowReason || "no_usable_bid", {
+              displayBid: this.summarizeBid(this._lastDisplayBid),
+              videoBid: this.summarizeBid(this._lastVideoBid),
+            });
+            groupEndInterstitial();
+            return false;
+          }
+
+          const attempts = this.buildAttemptPlan(winner);
+          let shown = false;
+          let lastFailure = null;
+          for (let i = 0; i < attempts.length; i += 1) {
+            const attempt = attempts[i];
+            if (i > 0) {
+              logInterstitial(`[Interstitial:Auction:${this.node.id}] fallback_start`, {
+                from: attempts[i - 1].mode,
+                to: attempt.mode,
+                previousReason: lastFailure,
+              });
+              if (attempt.reason === "only_video_fallback_to_display") {
+                logInterstitial(`[Interstitial:Auction:${this.node.id}] only_video_fallback_to_display`, {
+                  previousReason: lastFailure,
+                  hasDisplayBid: Boolean(attempt.bid),
+                });
+              }
+            }
+            const result = await this.tryMode(attempt);
+            if (result.shown) {
+              if (i > 0) {
+                logInterstitial(`[Interstitial:Auction:${this.node.id}] fallback_success`, {
+                  mode: attempt.mode,
+                  reason: result.reason,
+                });
+              }
+              shown = true;
+              break;
+            }
+            lastFailure = result.reason || "unknown_failure";
+            if (i > 0) {
+              warnInterstitial(`[Interstitial:Auction:${this.node.id}] fallback_fail`, {
+                mode: attempt.mode,
+                reason: lastFailure,
+              });
+            }
+          }
+
+          if (!shown) {
+            this.reportNoShow(lastFailure || this._lastNoShowReason || "fallback_exhausted", {
+              winner: winner.mode,
+              displayBid: this.summarizeBid(this._lastDisplayBid),
+              videoBid: this.summarizeBid(this._lastVideoBid),
+            });
+            this.node.recordTelemetry("no_fill", {
+              requestedMode: winner.mode,
+              displayBid: this._lastDisplayBid?.cpm ?? null,
+              videoBid: this._lastVideoBid?.cpm ?? null,
+              reason: lastFailure || this._lastNoShowReason || "fallback_exhausted",
+            });
+          }
+          groupEndInterstitial();
+          return shown;
+        }
+
+        normalizeDecisionMode(rawMode) {
+          if (rawMode === "display_only") return "only_display";
+          if (rawMode === "video_only") return "only_video";
+          if (rawMode === "only_display" || rawMode === "only_video" || rawMode === "auto") return rawMode;
+          return "auto";
+        }
+
+        selectWinner() {
+          const mode = this.normalizeDecisionMode(this.config.decision?.mode);
+          const minCpm = Number(this.config.decision?.minCpm ?? 0);
+          const priorityBelowMin = this.normalizeDecisionMode(
+            this.config.decision?.priorityBelowMin === "display"
+              ? "only_display"
+              : this.config.decision?.priorityBelowMin === "video"
+                ? "only_video"
+                : this.config.decision?.priorityBelowMin,
+          );
+          const displayBid = this._lastDisplayBid;
+          const videoBid = this._lastVideoBid;
+
+          if (mode === "only_display") {
+            if (!displayBid) {
+              logInterstitial(`[Interstitial:Auction:${this.node.id}] no_prebid_bid_but_forced_display_only`);
+              return { mode: "display", bid: null, reason: "forced_display_without_prebid_bid" };
+            }
+            return { mode: "display", bid: displayBid, reason: "forced_display" };
+          }
+
+          if (mode === "only_video") {
+            if (!videoBid) {
+              logInterstitial(`[Interstitial:Auction:${this.node.id}] no_prebid_bid_but_forced_only_video`);
+              logInterstitial(`[Interstitial:Auction:${this.node.id}] only_video_still_requests_video_without_bid`, {
+                minCpm,
+                displayBid: this.summarizeBid(displayBid),
+              });
+              logInterstitial(`[Interstitial:Auction:${this.node.id}] only_video_video_first_attempt`, {
+                videoBid: null,
+                displayBid: this.summarizeBid(displayBid),
+                minCpm,
+              });
+              return { mode: "video", bid: null, reason: "forced_video_without_prebid_bid" };
+            }
+            const videoCpm = Number(videoBid.cpm || 0);
+            const displayCpm = Number(displayBid?.cpm || 0);
+            if (minCpm > 0 && videoCpm < minCpm && displayBid && displayCpm >= minCpm) {
+              logInterstitial(`[Interstitial:Auction:${this.node.id}] only_video_display_overrides_low_video_bid`, {
+                videoBid: this.summarizeBid(videoBid),
+                displayBid: this.summarizeBid(displayBid),
+                minCpm,
+              });
+              return { mode: "display", bid: displayBid, reason: "only_video_display_overrides_low_video_bid" };
+            }
+            if (minCpm > 0 && videoCpm < minCpm) {
+              logInterstitial(`[Interstitial:Auction:${this.node.id}] only_video_still_requests_video_below_min_cpm`, {
+                videoBid: this.summarizeBid(videoBid),
+                displayBid: this.summarizeBid(displayBid),
+                minCpm,
+              });
+            }
+            logInterstitial(`[Interstitial:Auction:${this.node.id}] only_video_video_first_attempt`, {
+              videoBid: this.summarizeBid(videoBid),
+              displayBid: this.summarizeBid(displayBid),
+              minCpm,
+            });
+            return { mode: "video", bid: videoBid, reason: "forced_video" };
+          }
+
+          logInterstitial(`[Interstitial:Auction:${this.node.id}] auto_ignores_min_cpm`, {
+            minCpm,
+            priorityBelowMin,
+          });
+          if (displayBid && videoBid) {
+            return displayBid.cpm >= videoBid.cpm
+              ? { mode: "display", bid: displayBid, reason: "highest_bid_auto" }
+              : { mode: "video", bid: videoBid, reason: "highest_bid_auto" };
+          }
+          if (displayBid) return { mode: "display", bid: displayBid, reason: "display_only_bid" };
+          if (videoBid) return { mode: "video", bid: videoBid, reason: "video_only_bid" };
+          logInterstitial(`[Interstitial:Auction:${this.node.id}] no_prebid_bid_defaulting_to_display_auto`);
+          return { mode: "display", bid: null, reason: "auto_default_display_without_prebid_bid" };
+        }
+
+        buildAttemptPlan(winner) {
+          if (!winner) return [];
+          const mode = this.normalizeDecisionMode(this.config.decision?.mode);
+          const attempts = [winner];
+          if (mode === "only_video") {
+            if (winner.mode !== "video") return attempts;
+            attempts.push({
+              mode: "display",
+              bid: this._lastDisplayBid || null,
+              reason: "only_video_fallback_to_display",
+            });
+            return attempts;
+          }
+          if (mode !== "auto") return attempts;
+          const alternateMode = winner.mode === "display" ? "video" : "display";
+          const alternateBid = alternateMode === "display" ? this._lastDisplayBid : this._lastVideoBid;
+          if (!alternateBid) {
+            logInterstitial(`[Interstitial:Auction:${this.node.id}] no_alternate_bid`, { alternateMode });
+            return attempts;
+          }
+          attempts.push({
+            mode: alternateMode,
+            bid: alternateBid,
+            reason: "auto_fallback_alternate",
+          });
+          return attempts;
+        }
+
+        async tryMode(attempt) {
+          if (!attempt || !attempt.mode) return { shown: false, reason: "invalid_attempt" };
+
+          if (attempt.mode === "display") {
+            if (!attempt.bid) {
+              logInterstitial(`[Interstitial:Auction:${this.node.id}] display_request_without_prebid_bid`, {
+                reason: attempt.reason || null,
+              });
+            }
+            const tamConfig = this.getTAMConfiguration();
+            logInterstitial(`[Interstitial:TAM:${this.node.id}] request_tam_display`, tamConfig);
+            if (tamConfig) await this.executeAmazonTam(tamConfig);
+            const displayResult = await this.node.askDisplay(attempt.bid);
+            if (!displayResult.filled) {
+              warnInterstitial(`[Interstitial:Display:${this.node.id}] no_fill`, {
+                size: displayResult.event?.size || null,
+              });
+              return { shown: false, reason: "display_no_fill" };
+            }
+            const shown = await this.node.show("display", { bid: attempt.bid, event: displayResult.event });
+            return { shown, reason: shown ? "display_shown" : "display_show_failed" };
+          }
+
+          if (attempt.mode === "video") {
+            if (!attempt.bid) {
+              logInterstitial(`[Interstitial:Auction:${this.node.id}] video_request_without_prebid_bid`, {
+                reason: attempt.reason || null,
+              });
+            }
+            const tamVideoConfig = this.getTAMVideoConfiguration();
+            logInterstitial(`[Interstitial:Auction:${this.node.id}] request_tam_video`, tamVideoConfig);
+            if (tamVideoConfig) await this.executeAmazonTam(tamVideoConfig);
+            const adTagUrl = this.buildGAMVideoTagUrl();
+            logInterstitial(`[Interstitial:Auction:${this.node.id}] request_gam_video`, {
+              adTagUrl,
+              bid: this.summarizeBid(attempt.bid),
+            });
+            const ready = await this.node.buildAndPrepareVideo(adTagUrl, attempt.bid);
+            if (!ready) {
+              const reason = this.node.lastVideoFailureReason || this.node.videoCreative?.lastFailureReason || "video_prepare_failed";
+              return { shown: false, reason };
+            }
+            const shown = await this.node.show("video", { bid: attempt.bid });
+            return { shown, reason: shown ? "video_shown" : "video_show_failed" };
+          }
+
+          return { shown: false, reason: "unsupported_mode" };
+        }
+
+        getPrebidMultiFormatConfig() {
+          const mode = this.normalizeDecisionMode(this.config.decision?.mode);
+          const code = this.node.id;
+          const mediaTypes = {};
+          let bids = [];
+          const networkId = this.node.manager.networkId;
+          const prebidNetworks = this.config.prebid?.networks || {};
+          const targetNetwork = prebidNetworks[networkId] || prebidNetworks.default || {};
+
+          if (mode === "auto" || mode === "only_display") {
+            const sizes = this.getDisplaySizes();
+            if (sizes.length) {
+              const bannerMediaTypes = { banner: { sizes } };
+              mediaTypes.banner = bannerMediaTypes.banner;
+              bids = bids.concat(
+                (targetNetwork.bidders || []).map((bid) => this.buildPrebidBidConfig(bid, bannerMediaTypes)),
+              );
+            }
+          }
+
+          if (mode === "auto" || mode === "only_video") {
+            const vc = this.config.video;
+            if (vc?.enabled) {
+              const normalizedPlayerSize = this.normalizeVideoPlayerSize(vc.playerSize || [640, 360]);
+              const videoMediaType = {
+                context: vc.context || "instream",
+                playerSize: normalizedPlayerSize.playerSize,
+                mimes: vc.mimes || ["video/mp4", "application/javascript"],
+                protocols: vc.protocols || [2, 3, 5, 6, 7],
+                playbackmethod: vc.playbackmethod || [6],
+                plcmt: vc.plcmt || 1,
+                placement: vc.placement || 1,
+                linearity: vc.linearity || 1,
+                api: vc.api || [1, 2],
+                maxduration: vc.maxduration || 30,
+                minduration: vc.minduration || 1,
+                startdelay: vc.startdelay != null ? vc.startdelay : 0,
+                ...(vc.battr ? { battr: vc.battr } : {}),
+                ...(vc.skippable != null ? { skippable: vc.skippable } : {}),
+                ...(vc.skip != null ? { skip: vc.skip } : vc.skippable != null ? { skip: vc.skippable ? 1 : 0 } : {}),
+              };
+              if (vc.startdelay == null) {
+                logInterstitial(`[Interstitial:Prebid:${this.node.id}] interstitial_prebid_video_startdelay_applied`, {
+                  startdelay: videoMediaType.startdelay,
+                  reason: "default_for_instream",
+                });
+              }
+              const videoMediaTypes = {
+                video: videoMediaType,
+              };
+              mediaTypes.video = videoMediaTypes.video;
+              const effectiveVideoBidders = this.enhanceVideoBidders(targetNetwork.videoBidders || [], normalizedPlayerSize);
+              bids = bids.concat(
+                effectiveVideoBidders.map((bid) => this.buildPrebidBidConfig(bid, videoMediaTypes)),
+              );
+              this.logPrebidVideoConfiguration(mediaTypes.video, effectiveVideoBidders);
+            }
+          }
+
+          if (!Object.keys(mediaTypes).length || !bids.length) return null;
+          const adUnit = {
+            code,
+            mediaTypes,
+            bids,
+            ortb2Imp: this.buildOrtb2Imp(code),
+          };
+          logInterstitial(`[Interstitial:Prebid:${this.node.id}] interstitial_prebid_multiformat_adunit`, adUnit);
+          return adUnit;
+        }
+
+        normalizeVideoPlayerSize(inputSize) {
+          let width = null;
+          let height = null;
+
+          if (Array.isArray(inputSize) && Array.isArray(inputSize[0])) {
+            width = Number(inputSize[0][0]);
+            height = Number(inputSize[0][1]);
+          } else if (Array.isArray(inputSize)) {
+            width = Number(inputSize[0]);
+            height = Number(inputSize[1]);
+          } else if (inputSize && typeof inputSize === "object") {
+            width = Number(inputSize.width);
+            height = Number(inputSize.height);
+          }
+
+          if (!Number.isFinite(width) || width <= 0) width = 640;
+          if (!Number.isFinite(height) || height <= 0) height = 360;
+
+          const normalized = {
+            playerSize: [[width, height]],
+            width,
+            height,
+          };
+          logInterstitial(`[Interstitial:Prebid:${this.node.id}] interstitial_video_player_size_input`, inputSize);
+          logInterstitial(`[Interstitial:Prebid:${this.node.id}] interstitial_video_player_size_normalized`, normalized);
+          return normalized;
+        }
+
+        enhanceVideoBidders(videoBidders, normalizedPlayerSize) {
+          return (videoBidders || []).map((bid) => {
+            if (!bid || typeof bid !== "object") return bid;
+            if (bid.bidder !== "rubicon_video") return bid;
+
+            const params = {
+              ...(bid.params || {}),
+            };
+            const enhanced = {
+              ...bid,
+              params: {
+                ...params,
+                playerWidth: params.playerWidth || normalizedPlayerSize.width,
+                playerHeight: params.playerHeight || normalizedPlayerSize.height,
+              },
+            };
+            logInterstitial(`[Interstitial:Prebid:${this.node.id}] rubicon_video_params_enhanced`, {
+              bidder: bid.bidder,
+              previousParams: bid.params || {},
+              params: enhanced.params,
+            });
+            return enhanced;
+          });
+        }
+
+        logPrebidVideoConfiguration(videoMediaType, videoBidders) {
+          const requiredFields = [
+            "context",
+            "playerSize",
+            "mimes",
+            "protocols",
+            "playbackmethod",
+            "plcmt",
+            "placement",
+            "linearity",
+            "api",
+            "minduration",
+            "maxduration",
+            "startdelay",
+          ];
+          const importantOptionalFields = ["battr", "skippable", "skip"];
+          const bidders = (videoBidders || []).map((bid) => ({
+            bidder: bid?.bidder || null,
+            params: bid?.params || {},
+          }));
+
+          logInterstitial(`[Interstitial:Prebid:${this.node.id}] interstitial_prebid_video_media_types`, videoMediaType);
+          logInterstitial(`[Interstitial:Prebid:${this.node.id}] interstitial_prebid_video_bidders`, bidders);
+
+          requiredFields.concat(importantOptionalFields).forEach((field) => {
+            if (videoMediaType?.[field] == null) {
+              warnInterstitial(`[Interstitial:Prebid:${this.node.id}] interstitial_prebid_video_missing_field`, {
+                field,
+                bidders: bidders.map((bid) => bid.bidder),
+              });
+            }
+          });
+
+          if (bidders.some((bid) => bid.bidder === "pubmatic_video")) {
+            ["context", "playerSize", "mimes", "plcmt", "placement", "linearity", "protocols", "playbackmethod", "startdelay"].forEach((field) => {
+              if (videoMediaType?.[field] == null) {
+                warnInterstitial(`[Interstitial:Prebid:${this.node.id}] pubmatic_video_missing_required_video_field`, {
+                  bidder: "pubmatic_video",
+                  field,
+                  reason: "pubmatic_video_requires_complete_video_media_type",
+                });
+              }
+            });
+          }
+
+          if (bidders.some((bid) => bid.bidder === "criteo_video") && videoMediaType?.skip == null) {
+            warnInterstitial(`[Interstitial:Prebid:${this.node.id}] interstitial_prebid_video_missing_field`, {
+              bidder: "criteo_video",
+              field: "skip",
+              reason: "criteo_video_requires_skip",
+            });
+          }
+        }
+
+        buildPrebidBidConfig(bid, mediaTypes) {
+          if (!bid || typeof bid !== "object") return bid;
+          return {
+            ...bid,
+            mediaTypes,
+          };
+        }
+
+        inspectAuctionBids(code) {
+          const rawBids = this.getAuctionBids(code);
+          const displayBids = [];
+          const videoBids = [];
+
+          rawBids.forEach((bid) => {
+            const inspected = this.inspectBid(bid);
+            logInterstitial(`[Interstitial:Auction:${this.node.id}] inspect_bid`, inspected.logData);
+            if (inspected.acceptedAs === "display") {
+              displayBids.push(bid);
+              return;
+            }
+            if (inspected.acceptedAs === "video") {
+              logInterstitial(`[Interstitial:Auction:${this.node.id}] accepted_video_bid`, inspected.logData);
+              videoBids.push(bid);
+              return;
+            }
+            if (inspected.rejectedAs === "display") {
+              warnInterstitial(`[Interstitial:Auction:${this.node.id}] discard_invalid_display_bid`, inspected.logData);
+            }
+            if (inspected.rejectedAs === "video") {
+              warnInterstitial(`[Interstitial:Auction:${this.node.id}] discard_invalid_video_bid`, inspected.logData);
+            }
+          });
+
+          displayBids.sort((a, b) => Number(b?.cpm || 0) - Number(a?.cpm || 0));
+          videoBids.sort((a, b) => Number(b?.cpm || 0) - Number(a?.cpm || 0));
+
+          return {
+            rawCount: rawBids.length,
+            displayCount: displayBids.length,
+            videoCount: videoBids.length,
+            displayBid: displayBids[0] || null,
+            videoBid: videoBids[0] || null,
+          };
+        }
+
+        getAuctionBids(code) {
+          if (!window.pbjs || !code) return [];
+          return (window.pbjs.getBidResponsesForAdUnitCode(code)?.bids || []).filter((bid) => {
+            if (this._currentAuctionId && bid.auctionId !== this._currentAuctionId) return false;
+            return true;
+          });
+        }
+
+        inspectBid(bid) {
+          const bidder = bid?.bidder || bid?.bidderCode || null;
+          const bidderCode = bid?.bidderCode || bid?.bidder || null;
+          const mediaType = bid?.mediaType || null;
+          const cpm = Number(bid?.cpm || 0);
+          const width = bid?.width ?? null;
+          const height = bid?.height ?? null;
+          const hasVastUrl = Boolean(bid?.vastUrl);
+          const hasVastXml = Boolean(bid?.vastXml);
+          const hasHtmlAd = typeof bid?.ad === "string" && bid.ad.trim().length > 0;
+          const hasAdUrl = Boolean(bid?.adUrl);
+          const hasRenderer = Boolean(bid?.renderer);
+          const hasVideoSignal = hasVastUrl || hasVastXml;
+          const isAliasVideo = this.isAliasVideoBid(bid);
+          let acceptedAs = null;
+          let rejectedAs = null;
+          let discardReason = null;
+
+          if (isAliasVideo) {
+            if (mediaType !== "video") {
+              rejectedAs = "video";
+              discardReason = mediaType === "banner" ? "alias_video_returned_banner" : "alias_video_non_video_media_type";
+            } else if (!hasVideoSignal) {
+              rejectedAs = "video";
+              discardReason = "alias_video_missing_vast";
+            } else {
+              acceptedAs = "video";
+            }
+          } else if (mediaType === "video") {
+            if (!hasVideoSignal) {
+              rejectedAs = "video";
+              discardReason = "video_missing_vast_signal";
+            } else {
+              acceptedAs = "video";
+            }
+          } else if (mediaType === "banner") {
+            const hasDisplayCreative = hasHtmlAd || hasAdUrl || hasRenderer;
+            if (!hasDisplayCreative) {
+              rejectedAs = "display";
+              discardReason = "banner_missing_display_creative";
+            } else {
+              acceptedAs = "display";
+            }
+          } else if (!mediaType) {
+            rejectedAs = "display";
+            discardReason = "missing_media_type_for_display";
+          } else {
+            discardReason = "unsupported_media_type";
+          }
+
+          const logData = {
+            bidder,
+            bidderCode,
+            mediaType,
+            cpm,
+            width,
+            height,
+            hasVastUrl,
+            hasVastXml,
+            hasHtmlAd,
+            hasAdUrl,
+            hasRenderer,
+            isAliasVideo,
+            acceptedAs,
+            rejectedAs,
+            discardReason,
+          };
+
+          return {
+            acceptedAs,
+            rejectedAs,
+            discardReason,
+            logData,
+          };
+        }
+
+        isAliasVideoBid(bid) {
+          const bidder = String(bid?.bidder || "");
+          const bidderCode = String(bid?.bidderCode || "");
+          return bidder.endsWith("_video") || bidderCode.endsWith("_video");
+        }
+
+        executePrebid(configuration) {
+          return new Promise((resolve) => {
+            if (!window.pbjs || typeof window.pbjs.requestBids === "undefined" || !window.pbjs.que) {
+              warnInterstitial(`[Interstitial:Prebid:${this.node.id}] unavailable`);
+              resolve(null);
+              return;
+            }
+            window.pbjs.que.push(() => {
+              try {
+                this.registerPrebidAdUnit(configuration);
+                const timeout = this.getPrebidTimeout();
+                const knownAuctionIds = new Set(
+                  (window.pbjs.getBidResponsesForAdUnitCode(configuration.code)?.bids || [])
+                    .map((bid) => bid.auctionId)
+                    .filter(Boolean),
+                );
+                const safetyTimer = setTimeout(() => resolve(null), timeout + 500);
+                window.pbjs.requestBids({
+                  timeout,
+                  adUnitCodes: [configuration.code],
+                  bidsBackHandler: (bidResponses, timedOut, auctionIdParam) => {
+                    clearTimeout(safetyTimer);
+                    const rawBids = window.pbjs.getBidResponsesForAdUnitCode(configuration.code)?.bids || [];
+                    const newAuctionIds = rawBids
+                      .map((bid) => bid.auctionId)
+                      .filter((auctionId) => auctionId && !knownAuctionIds.has(auctionId));
+                    this._currentAuctionId =
+                      auctionIdParam ||
+                      (newAuctionIds.length > 0 ? newAuctionIds[newAuctionIds.length - 1] : null) ||
+                      null;
+                    logInterstitial(`[Interstitial:Prebid:${this.node.id}] bids_back`, {
+                      auctionId: this._currentAuctionId,
+                      timedOut,
+                      bidResponses,
+                    });
+                    window.pbjs.setTargetingForGPTAsync([configuration.code]);
+                    resolve("prebid_done");
+                  },
+                });
+              } catch (err) {
+                warnInterstitial(`[Interstitial:Prebid:${this.node.id}] failed`, err);
+                resolve(null);
+              }
+            });
+          });
+        }
+
+        executeAmazonTam(configuration) {
+          return new Promise((resolve) => {
+            if (!window.apstag || typeof window.apstag.fetchBids === "undefined") {
+              warnInterstitial(`[Interstitial:TAM:${this.node.id}] unavailable`);
+              resolve(null);
+              return;
+            }
+            const safetyTimer = setTimeout(() => resolve("tam_timeout"), 2000);
+            try {
+              window.apstag.fetchBids(configuration, () => {
+                clearTimeout(safetyTimer);
+                try {
+                  window.apstag.setDisplayBids();
+                } catch (err) {}
+                logInterstitial(`[Interstitial:TAM:${this.node.id}] response`, configuration);
+                resolve("tam_done");
+              });
+            } catch (err) {
+              clearTimeout(safetyTimer);
+              warnInterstitial(`[Interstitial:TAM:${this.node.id}] error`, err);
+              resolve("tam_error");
+            }
+          });
+        }
+
+        getTAMConfiguration() {
+          if (this.config.tam?.enabled === false) return null;
+          const slotName = this.node.manager.adUnitPath || "";
+          const sizes = this.getDisplaySizes().filter((size) => size !== "fluid" && size[0] > 1);
+          if (!slotName || !sizes.length) return null;
+          return {
+            slots: [
+              {
+                slotID: this.node.id,
+                slotName: `/${this.node.manager.networkId}/${slotName}`,
+                sizes,
+              },
+            ],
+          };
+        }
+
+        getTAMVideoConfiguration() {
+          if (this.config.tam?.enabled === false) return null;
+          const videoConfig = this.config.video;
+          if (!videoConfig?.enabled) return null;
+          const slotName = this.getVideoAdUnitPath();
+          const playerSize = videoConfig.playerSize || [640, 360];
+          if (!slotName) return null;
+          return {
+            slots: [
+              {
+                slotID: this.node.videoId,
+                slotName: `/${this.node.manager.networkId}/${slotName}`,
+                mediaType: "video",
+                sizes: [playerSize],
+              },
+            ],
+          };
+        }
+
+        buildOrtb2Imp(adUnitCode, adUnitPathOverride) {
+          const networkId = this.gexp.cfg.networkId || "99071977";
+          const adUnitPath = adUnitPathOverride || this.node.manager.adUnitPath || "";
+          const fullAdSlot = `/${networkId}/${adUnitPath}`;
+          const pbadslot = `${fullAdSlot}#${adUnitCode}`;
+          return {
+            ext: {
+              data: {
+                adserver: {
+                  name: "gam",
+                  adslot: fullAdSlot,
+                },
+                pbadslot,
+              },
+              gpid: pbadslot,
+            },
+          };
+        }
+
+        normalizeTargetingMap(targeting) {
+          const normalized = {};
+          if (!targeting) return normalized;
+
+          if (Array.isArray(targeting)) {
+            targeting.forEach((entry) => {
+              if (!entry || typeof entry !== "object") return;
+              const key = entry.key || entry.name;
+              const value = entry.val ?? entry.value;
+              if (!key || value == null || value === "") return;
+              normalized[key] = Array.isArray(value) ? value.join(",") : String(value);
+            });
+            return normalized;
+          }
+
+          if (typeof targeting === "object") {
+            Object.entries(targeting).forEach(([key, value]) => {
+              if (!key || value == null || value === "") return;
+              normalized[key] = Array.isArray(value) ? value.join(",") : String(value);
+            });
+          }
+
+          return normalized;
+        }
+
+        getVideoBidDiagnostics(bid) {
+          const targetingFromBid = this.normalizeTargetingMap(bid?.adserverTargeting);
+          let targetingFromPbjs = {};
+          try {
+            if (Object.keys(targetingFromBid).length === 0 && window.pbjs?.getAdserverTargetingForAdUnitCode) {
+              targetingFromPbjs = this.normalizeTargetingMap(
+                window.pbjs.getAdserverTargetingForAdUnitCode(this.node.id),
+              );
+            }
+          } catch (err) {}
+
+          const targeting = { ...targetingFromPbjs, ...targetingFromBid };
+          const videoCacheKey =
+            bid?.videoCacheKey ||
+            bid?.cacheId ||
+            bid?.vastCacheKey ||
+            targeting.hb_uuid ||
+            targeting.hb_cache_id ||
+            null;
+
+          if (!targeting.hb_uuid && videoCacheKey) targeting.hb_uuid = String(videoCacheKey);
+          if (!targeting.hb_cache_id && videoCacheKey) targeting.hb_cache_id = String(videoCacheKey);
+          if (!targeting.hb_cache_host && bid?.hb_cache_host) targeting.hb_cache_host = String(bid.hb_cache_host);
+          if (!targeting.hb_cache_path && bid?.hb_cache_path) targeting.hb_cache_path = String(bid.hb_cache_path);
+          if (!targeting.hb_pb) {
+            const pb = bid?.pbCg || bid?.pbAg || bid?.pbHg || bid?.pbDg || bid?.pbLg || null;
+            if (pb != null) targeting.hb_pb = String(pb);
+          }
+          if (!targeting.hb_bidder && bid?.bidderCode) targeting.hb_bidder = String(bid.bidderCode);
+          if (!targeting.hb_format) targeting.hb_format = "video";
+          if (!targeting.hb_adid && bid?.adId) targeting.hb_adid = String(bid.adId);
+          if (!targeting.hb_size && bid?.width && bid?.height) targeting.hb_size = `${bid.width}x${bid.height}`;
+
+          const targetingKeysPresent = Object.keys(targeting).filter(Boolean).sort();
+          const hasVastUrl = Boolean(bid?.vastUrl);
+          const hasVastXml = Boolean(bid?.vastXml);
+          const hasVideoCacheKey = Boolean(videoCacheKey);
+          const hasCacheSignal =
+            hasVideoCacheKey ||
+            Boolean(targeting.hb_uuid) ||
+            Boolean(targeting.hb_cache_id) ||
+            Boolean(targeting.hb_cache_host) ||
+            Boolean(targeting.hb_cache_path);
+
+          return {
+            targeting,
+            targetingSource: Object.keys(targetingFromBid).length ? "bid.adserverTargeting" : Object.keys(targetingFromPbjs).length ? "pbjs.getAdserverTargetingForAdUnitCode" : "fallback_fields",
+            targetingKeysPresent,
+            hasVastUrl,
+            hasVastXml,
+            hasVideoCacheKey,
+            videoCacheKey: videoCacheKey || null,
+            hasCacheSignal,
+            cacheSignals: {
+              videoCacheKey: videoCacheKey || null,
+              hb_uuid: targeting.hb_uuid || null,
+              hb_cache_id: targeting.hb_cache_id || null,
+              hb_cache_host: targeting.hb_cache_host || null,
+              hb_cache_path: targeting.hb_cache_path || null,
+            },
+          };
+        }
+
+        buildCustParamsString(paramMap) {
+          return Object.entries(paramMap)
+            .filter(([key, value]) => key && value != null && String(value) !== "")
+            .map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(String(value))}`)
+            .join("&");
+        }
+
+        buildGAMVideoTagUrl() {
+          const networkId = this.node.manager.networkId;
+          const adUnitPath = this.getVideoAdUnitPath();
+          const videoId = this.node.videoId;
+          const playerSize = this.config.video?.playerSize || [640, 360];
+          const bid = this._lastVideoBid;
+          const allowDirectVastFallback = this.config.video?.allowDirectVastFallback === true;
+          const bidDiagnostics = this.getVideoBidDiagnostics(bid);
+          const custParamMap = {
+            interstitial: "true",
+            p: this.node.id,
+            ...bidDiagnostics.targeting,
+          };
+
+          logInterstitial(`[Interstitial:Auction:${this.node.id}] video_bid_targeting_detected`, {
+            ...this.summarizeBid(bid),
+            targetingSource: bidDiagnostics.targetingSource,
+            targetingKeysPresent: bidDiagnostics.targetingKeysPresent,
+          });
+          logInterstitial(`[Interstitial:Auction:${this.node.id}] video_bid_cache_detected`, {
+            ...this.summarizeBid(bid),
+            hasVideoCacheKey: bidDiagnostics.hasVideoCacheKey,
+            videoCacheKey: bidDiagnostics.videoCacheKey,
+            cacheSignals: bidDiagnostics.cacheSignals,
+            hasVastUrl: bidDiagnostics.hasVastUrl,
+            hasVastXml: bidDiagnostics.hasVastXml,
+          });
+          if (!bidDiagnostics.hasCacheSignal) {
+            warnInterstitial(`[Interstitial:Auction:${this.node.id}] video_bid_missing_cache_signal`, {
+              ...this.summarizeBid(bid),
+              targetingSource: bidDiagnostics.targetingSource,
+              targetingKeysPresent: bidDiagnostics.targetingKeysPresent,
+            });
+          }
+          if (!bidDiagnostics.hasVastUrl && !bidDiagnostics.hasVastXml) {
+            warnInterstitial(`[Interstitial:Auction:${this.node.id}] video_bid_missing_vast_signal`, {
+              ...this.summarizeBid(bid),
+              targetingSource: bidDiagnostics.targetingSource,
+            });
+          }
+
+          if (window.apstag && window.apstag.targetingKeys) {
+            const tamKeys = window.apstag.targetingKeys();
+            if (tamKeys && tamKeys[videoId]) {
+              Object.entries(tamKeys[videoId]).forEach(([k, v]) => {
+                const value = Array.isArray(v) ? v.join(",") : v;
+                if (value != null && value !== "") custParamMap[k] = value;
+              });
+            }
+          }
+
+          const custParams = this.buildCustParamsString(custParamMap);
+          logInterstitial(`[Interstitial:Auction:${this.node.id}] gam_video_tag_required`, {
+            ...this.summarizeBid(bid),
+            adUnitPath,
+            allowDirectVastFallback,
+          });
+          logInterstitial(`[Interstitial:Auction:${this.node.id}] gam_video_targeting_payload`, {
+            ...this.summarizeBid(bid),
+            targetingSource: bidDiagnostics.targetingSource,
+            targetingKeysPresent: bidDiagnostics.targetingKeysPresent,
+            custParams,
+          });
+
+          const params = new URLSearchParams({
+            iu: `/${networkId}/${adUnitPath}`,
+            vpos: "preroll",
+            sz: `${playerSize[0]}x${playerSize[1]}`,
+            gdfp_req: "1",
+            env: "vp",
+            output: "xml_vast4",
+            unviewed_position_start: "1",
+            ad_rule: "0",
+            plcmt: String(this.config.video?.plcmt || 1),
+            vpmute: "1",
+            vpa: "auto",
+            url: window.location.href,
+            description_url: window.location.href,
+            correlator: String(Date.now()),
+            cust_params: custParams,
+          });
+
+          let finalUrl = `https://securepubads.g.doubleclick.net/gampad/ads?${params.toString()}`;
+          let deliveryMode = "gam_ad_tag";
+
+          if (!finalUrl) {
+            warnInterstitial(`[Interstitial:Auction:${this.node.id}] gam_video_tag_unavailable`, {
+              ...this.summarizeBid(bid),
+              reason: "missing_gam_video_tag",
+              allowDirectVastFallback,
+            });
+          }
+
+          if (!bidDiagnostics.hasCacheSignal && bid?.vastUrl && allowDirectVastFallback) {
+            finalUrl = bid.vastUrl;
+            deliveryMode = "direct_vast_url_fallback";
+            warnInterstitial(`[Interstitial:Auction:${this.node.id}] direct_vast_fallback_used`, {
+              ...this.summarizeBid(bid),
+              reason: "missing_cache_signal",
+            });
+          } else if (!bidDiagnostics.hasCacheSignal && bid?.vastUrl) {
+            logInterstitial(`[Interstitial:Auction:${this.node.id}] direct_vast_fallback_disabled`, {
+              ...this.summarizeBid(bid),
+              reason: "missing_cache_signal",
+              allowDirectVastFallback,
+            });
+          }
+
+          logInterstitial(`[Interstitial:Auction:${this.node.id}] gam_video_cache_resolution`, {
+            ...this.summarizeBid(bid),
+            deliveryMode,
+            targetingSource: bidDiagnostics.targetingSource,
+            cacheSignals: bidDiagnostics.cacheSignals,
+            hasVastUrl: bidDiagnostics.hasVastUrl,
+            hasVastXml: bidDiagnostics.hasVastXml,
+            custParams,
+          });
+          logInterstitial(`[Interstitial:Video:${this.node.id}] gam_vast_url`, finalUrl);
+          return finalUrl;
+        }
+
+        getVideoAdUnitPath() {
+          const overridePath = this.config.video?.adUnitPath;
+          const basePath = this.node.manager.adUnitPath || this.config.display?.adUnitPath || "";
+          let finalPath = overridePath || basePath;
+          if (!overridePath) {
+            const parts = String(basePath || "").split("/").filter(Boolean);
+            if (parts.length > 0) {
+              parts[parts.length - 1] = "video-interstitial";
+              finalPath = parts.join("/");
+            } else {
+              finalPath = "video-interstitial";
+            }
+          }
+          logInterstitial(`[Interstitial:Video:${this.node.id}] video_ad_unit_path`, {
+            baseAdUnitPath: basePath,
+            overrideAdUnitPath: overridePath || null,
+            finalAdUnitPath: finalPath,
+          });
+          return finalPath;
+        }
+
+        registerPrebidAdUnit(configuration) {
+          const pb = window.pbjs;
+          if (!pb) return;
+          try {
+            googletag.cmd.push(() => {
+              const gptSlots = googletag.pubads().getSlots();
+              gptSlots.forEach((slot) => {
+                if (slot.getSlotElementId() === configuration.code || slot.getSlotElementId()?.startsWith("gexp-interstitial")) {
+                  const tMap = slot.getTargetingMap();
+                  Object.keys(tMap).forEach((key) => {
+                    if (key.startsWith("hb_")) {
+                      slot.clearTargeting(key);
+                    }
+                  });
+                }
+              });
+            });
+          } catch (e) {}
+          pb.removeAdUnit(configuration.code);
+          if (configuration?.mediaTypes?.video) {
+            logInterstitial(`[Interstitial:Prebid:${this.node.id}] interstitial_prebid_video_media_types`, configuration.mediaTypes.video);
+            logInterstitial(
+              `[Interstitial:Prebid:${this.node.id}] interstitial_prebid_video_bidders`,
+              (configuration.bids || [])
+                .filter((bid) => bid?.mediaTypes?.video)
+                .map((bid) => ({ bidder: bid.bidder || null, params: bid.params || {} })),
+            );
+          }
+          logInterstitial(`[Interstitial:Prebid:${this.node.id}] interstitial_prebid_multiformat_adunit`, configuration);
+          pb.addAdUnits([configuration]);
+        }
+
+        registerPrebidAliases() {
+          if (this._aliasesRegistered) return;
+          this._aliasesRegistered = true;
+          const networkId = this.gexp.cfg.networkId;
+          const prebidNetworks = this.config.prebid?.networks || {};
+          const targetNetwork = prebidNetworks[networkId] || prebidNetworks.default || {};
+          const aliases = targetNetwork.aliases;
+          if (!aliases || !window.pbjs || !window.pbjs.que) return;
+          window.pbjs.que.push(() => {
+            try {
+              const gvlMapping = {
+                rubicon: 52,
+                appnexus: 32,
+                criteo: 91,
+                pubmatic: 76,
+                smartadserver: 45,
+                ix: 10,
+                ttd: 21,
+                teads: 132,
+              };
+              for (const [alias, original] of Object.entries(aliases)) {
+                if (typeof window.pbjs.aliasBidder === "function") {
+                  if (gvlMapping[original]) {
+                    window.pbjs.aliasBidder(original, alias, { gvlid: gvlMapping[original] });
+                    logInterstitial(`[Interstitial:Prebid:${this.node.id}] prebid_alias_registered_with_gvl`, {
+                      alias,
+                      original,
+                      gvlid: gvlMapping[original],
+                    });
+                  } else {
+                    window.pbjs.aliasBidder(original, alias);
+                    logInterstitial(`[Interstitial:Prebid:${this.node.id}] prebid_alias_registered_without_gvl`, {
+                      alias,
+                      original,
+                    });
+                  }
+                }
+              }
+            } catch (err) {
+              warnInterstitial(`[Interstitial:Prebid:${this.node.id}] prebid_alias_registration_failed`, {
+                error: err,
+              });
+            }
+          });
+        }
+
+        getDisplaySizes() {
+          const sizes = this.config.display?.sizes;
+          if (Array.isArray(sizes) && sizes.length) return sizes;
+          return [[300, 250]];
+        }
+
+        getPrebidTimeout() {
+          return this.config.prebid?.timeoutMs || 1000;
+        }
+
+        summarizeBid(bid) {
+          if (!bid) return null;
+          const diagnostics = this.getVideoBidDiagnostics(bid);
+          return {
+            bidder: bid.bidder || bid.bidderCode || null,
+            bidderCode: bid.bidderCode || bid.bidder || null,
+            cpm: bid.cpm ?? null,
+            mediaType: bid.mediaType || null,
+            adId: bid.adId || null,
+            auctionId: bid.auctionId || null,
+            width: bid.width ?? null,
+            height: bid.height ?? null,
+            hasVastUrl: Boolean(bid.vastUrl),
+            hasVastXml: Boolean(bid.vastXml),
+            hasVideoCacheKey: diagnostics.hasVideoCacheKey,
+            hasHtmlAd: typeof bid.ad === "string" && bid.ad.trim().length > 0,
+            targetingKeysPresent: diagnostics.targetingKeysPresent,
+            isAliasVideo: this.isAliasVideoBid(bid),
+          };
+        }
+
+        reportNoShow(reason, extra = {}) {
+          const finalReason = reason || "unknown_no_show";
+          this._lastNoShowReason = finalReason;
+          warnInterstitial(`[Interstitial:Auction:${this.node.id}] no_show`, {
+            reason: finalReason,
+            ...extra,
+          });
+        }
+      }
+      class InterstitialVideoCreative {
+        constructor({ container, adTagUrl, bid, node, config }) {
+          this.container = container;
+          this.adTagUrl = adTagUrl || null;
+          this.bid = bid || null;
+          this.node = node;
+          this.config = config;
+          this.playerId = `gexp-interstitial-player-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+          this.videoEl = null;
+          this.player = null;
+          this._settled = false;
+          this._aborted = false;
+          this._adFlowStarted = false;
+          this._dummyBootstrapActive = false;
+          this._bootstrapWindowOpen = false;
+          this._bootstrapWindowTimer = null;
+          this.allowDirectVastFallback = this.config.video?.allowDirectVastFallback === true;
+          this.lastFailureReason = null;
+        }
+
+        async render() {
+          logInterstitial(`[Interstitial:Video:${this.node.id}] render_start`, {
+            adTagUrl: this.adTagUrl,
+            bidder: this.bid?.bidderCode || null,
+            cpm: this.bid?.cpm ?? null,
+          });
+          await this.ensureDependencies();
+          this.createVideoElement();
+          this.initVideoJS();
+          await this.requestAds();
+        }
+
+        async ensureDependencies() {
+          const AssetLoader = {
+            loadScript(src) {
+              return new Promise((resolve, reject) => {
+                if (document.querySelector(`script[src="${src}"]`)) {
+                  resolve();
+                  return;
+                }
+                const script = document.createElement("script");
+                script.src = src;
+                script.async = true;
+                script.onload = resolve;
+                script.onerror = reject;
+                document.head.appendChild(script);
+              });
+            },
+            loadCSS(href) {
+              if (document.querySelector(`link[href="${href}"]`)) return;
+              const link = document.createElement("link");
+              link.rel = "stylesheet";
+              link.href = href;
+              document.head.appendChild(link);
+            },
+          };
+
+          AssetLoader.loadCSS("https://vjs.zencdn.net/7.20.3/video-js.css");
+          AssetLoader.loadCSS("https://cdnjs.cloudflare.com/ajax/libs/videojs-contrib-ads/6.9.0/videojs-contrib-ads.css");
+          AssetLoader.loadCSS("https://cdnjs.cloudflare.com/ajax/libs/videojs-ima/1.11.0/videojs.ima.css");
+
+          if (!window.videojs) {
+            await AssetLoader.loadScript("https://vjs.zencdn.net/7.20.3/video.min.js");
+          }
+          await AssetLoader.loadScript("https://cdnjs.cloudflare.com/ajax/libs/videojs-contrib-ads/6.9.0/videojs-contrib-ads.min.js");
+          if (!window.google?.ima) {
+            await AssetLoader.loadScript("https://imasdk.googleapis.com/js/sdkloader/ima3.js");
+          }
+          await AssetLoader.loadScript("https://cdnjs.cloudflare.com/ajax/libs/videojs-ima/1.11.0/videojs.ima.min.js");
+        }
+
+        createVideoElement() {
+          const slotEl = this.container.getVideoSlotElement();
+          if (!slotEl) throw new Error("missing_video_slot");
+          slotEl.innerHTML = "";
+          this.videoEl = document.createElement("video");
+          this.videoEl.id = this.playerId;
+          this.videoEl.className = "video-js vjs-default-skin vjs-big-play-centered";
+          this.videoEl.setAttribute("playsinline", "");
+          this.videoEl.setAttribute("webkit-playsinline", "");
+          this.videoEl.setAttribute("muted", "muted");
+          this.videoEl.setAttribute("preload", "auto");
+          const sourceEl = document.createElement("source");
+          sourceEl.src =
+            "data:video/mp4;base64,AAAAIGZ0eXBpc29tAAACAGlzb21pc28yYXZjMW1wNDEAAAAIZnJlZQAABqhtb292AAAAbG12aGQAAAAA3WwLtt1sC7YAAAPoAAAAqgABAAABAAAAAAAAAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACAAAAGGlvZHMAAAAAEID/AABEAAAn1QAAAAAABNN0cmFrAAAAXHRraGQAAAAD3WwLtt1sC7YAAAABAAAAAAAACgAAAAAAAAAAAAAAAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAEAAAAAAHgAAABIAAAAAAAMtbWRpYQAAACBtZGhkAAAAAN1sC7bdbAu2AAAD6AAAAKpxAAQAAAAAAAFoZGxyAAAAAAAAAAB2aWRlAAAAAAAAAAAAAAAAVmlkZW9IYW5kbGVyAAAAAittaW5mAAAAFHZtaGQAAAABAAAAAAAAAAAAAAAkZGluZgAAABxkcmVmAAAAAAAAAAEAAAAMdXJsIAAAAAEAAAIIc3RibAAAAGRzdHNkAAAAAAAAAAEAAABQVmF2YzEAAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAAAHgASAEgAAABIAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAY//8AAAAxYXZjQwH0AAr/4QAYZ/QACq609NQYBBmQAAADAAQAAAMANI8WLkgAAAAQZ2QACqwOQAAAAAAAEHN0dHMAAAAAAAAAAQAAAAEAAACqAAAAFHN0c3MAAAAAAAAAAQAAAAEAAAAcc3RzYwAAAAAAAAABAAAAAQAAAAEAAAABAAAAFHN0c3oAAAAAAAAAEwAAAAEAAAAUc3RjbwAAAAAAAAABAAAALAAAAGR1dHRhAAAAWG1ldGEAAAAAAAAAIWhkbHIAAAAAAAAAAG1kaXJhcHBsAAAAAAAAAAAAAAAAK2lsc3QAAAAjqXRvbwAAABtkYXRhAAAAAQAAAABBcHBsZSBWdWxjYW4A";
+          sourceEl.type = "video/mp4";
+          this.videoEl.appendChild(sourceEl);
+          this._dummyBootstrapActive = true;
+          logInterstitial(`[Interstitial:Video:${this.node.id}] dummy_bootstrap_src_set`, {
+            playerId: this.playerId,
+          });
+          this.videoEl.style.width = "min(90vw, 960px)";
+          this.videoEl.style.height = "auto";
+          this.videoEl.style.maxHeight = "85vh";
+          this.videoEl.style.display = "block";
+          slotEl.appendChild(this.videoEl);
+        }
+
+        openBootstrapWindow(reason = "unknown") {
+          this.closeBootstrapWindow("reopen");
+          this._bootstrapWindowOpen = true;
+          logInterstitial(`[Interstitial:Video:${this.node.id}] bootstrap_window_open`, {
+            reason,
+            playerId: this.playerId,
+          });
+          this._bootstrapWindowTimer = setTimeout(() => {
+            this.closeBootstrapWindow("bootstrap_window_timeout");
+          }, 8000);
+        }
+
+        closeBootstrapWindow(reason = "unknown") {
+          if (this._bootstrapWindowTimer) {
+            clearTimeout(this._bootstrapWindowTimer);
+            this._bootstrapWindowTimer = null;
+          }
+          if (!this._bootstrapWindowOpen) return;
+          this._bootstrapWindowOpen = false;
+          this._dummyBootstrapActive = false;
+          logInterstitial(`[Interstitial:Video:${this.node.id}] bootstrap_window_closed`, {
+            reason,
+            playerId: this.playerId,
+          });
+        }
+
+        shouldIgnoreCode4DuringBootstrap(err) {
+          return err?.code === 4 && this._bootstrapWindowOpen && !this._settled && !this._aborted;
+        }
+
+        initVideoJS() {
+          this.openBootstrapWindow("videojs_init");
+          this.player = window.videojs(this.videoEl, {
+            autoplay: false,
+            muted: true,
+            controls: false,
+            preload: "auto",
+            fluid: true,
+            errorDisplay: false,
+          });
+          this.player.on("error", () => {
+            const err = this.player?.error?.();
+            if (this.shouldIgnoreCode4DuringBootstrap(err)) {
+              logInterstitial(`[Interstitial:Video:${this.node.id}] player_media_error_ignored_bootstrap_window`, {
+                reason: "bootstrap_or_ima_takeover_src_not_supported",
+                code: err?.code || null,
+                message: err?.message || null,
+                bootstrapWindowOpen: this._bootstrapWindowOpen,
+                adFlowStarted: this._adFlowStarted,
+              });
+              const errDisplay = this.videoEl?.parentElement?.querySelector?.(".vjs-error-display");
+              if (errDisplay) errDisplay.style.display = "none";
+              return;
+            }
+            this.lastFailureReason = "video_media_error";
+            warnInterstitial(`[Interstitial:Video:${this.node.id}] player_media_error_terminal`, {
+              reason: this.lastFailureReason,
+              code: err?.code || null,
+              message: err?.message || null,
+            });
+          });
+          logInterstitial(`[Interstitial:Video:${this.node.id}] player_created`, { playerId: this.playerId });
+        }
+
+        requestAds() {
+          return new Promise((resolve, reject) => {
+            if (!this.player) {
+              reject(new Error("no_player"));
+              return;
+            }
+
+            const useAdsResponse = !this.adTagUrl && this.allowDirectVastFallback && !!this.bid?.vastXml;
+            const adTagUrl = useAdsResponse ? null : (this.adTagUrl || (this.allowDirectVastFallback ? this.bid?.vastUrl : ""));
+            if (!useAdsResponse && !adTagUrl) {
+              warnInterstitial(`[Interstitial:Video:${this.node.id}] gam_video_tag_unavailable`, {
+                reason: "missing_ad_tag_url",
+                allowDirectVastFallback: this.allowDirectVastFallback,
+                hasVastUrl: Boolean(this.bid?.vastUrl),
+                hasVastXml: Boolean(this.bid?.vastXml),
+              });
+              if ((this.bid?.vastUrl || this.bid?.vastXml) && !this.allowDirectVastFallback) {
+                logInterstitial(`[Interstitial:Video:${this.node.id}] direct_vast_fallback_disabled`, {
+                  reason: "missing_ad_tag_url",
+                  hasVastUrl: Boolean(this.bid?.vastUrl),
+                  hasVastXml: Boolean(this.bid?.vastXml),
+                });
+              }
+              reject(new Error("missing_vast_tag"));
+              return;
+            }
+            if (!this.adTagUrl && this.allowDirectVastFallback && (this.bid?.vastUrl || this.bid?.vastXml)) {
+              warnInterstitial(`[Interstitial:Video:${this.node.id}] direct_vast_fallback_used`, {
+                reason: useAdsResponse ? "using_vast_xml_ads_response" : "using_vast_url_ad_tag",
+                hasVastUrl: Boolean(this.bid?.vastUrl),
+                hasVastXml: Boolean(this.bid?.vastXml),
+              });
+            }
+
+            let adStarted = false;
+            let firstFramePlayed = false;
+            let terminalEvent = null;
+            let nativeAdError = null;
+            let adstartGraceTimer = null;
+            const prepareTimeoutMs = this.getPrepareTimeoutMs();
+            const imaTimeoutMs = this.getImaTimeoutMs();
+            const clearTimers = () => {
+              clearTimeout(timeout);
+              if (adstartGraceTimer) {
+                clearTimeout(adstartGraceTimer);
+                adstartGraceTimer = null;
+              }
+            };
+            const settleResolve = (source = "unknown") => {
+              if (this._settled) return;
+              this._settled = true;
+              firstFramePlayed = true;
+              clearTimers();
+              this.closeBootstrapWindow(`ready_${source}`);
+              logInterstitial(`[Interstitial:Video:${this.node.id}] ready`, {
+                source,
+                reveal_real_source: source,
+              });
+              resolve(true);
+            };
+            const settleReject = (err) => {
+              if (this._settled) return;
+              this._settled = true;
+              clearTimers();
+              this.closeBootstrapWindow("prepare_reject");
+              this.lastFailureReason = err?.message || "video_prepare_failed";
+              warnInterstitial(`[Interstitial:Video:${this.node.id}] prepare_terminal`, {
+                reason: this.lastFailureReason,
+                terminalEvent,
+                nativeAdError,
+              });
+              warnInterstitial(`[Interstitial:Video:${this.node.id}] prepare_fail_reason`, {
+                reason: this.lastFailureReason,
+                terminalEvent,
+                bidder: this.bid?.bidderCode || this.bid?.bidder || null,
+                cpm: this.bid?.cpm ?? null,
+              });
+              reject(err);
+            };
+            const markTerminal = (reason) => {
+              if (terminalEvent) return false;
+              terminalEvent = reason;
+              return true;
+            };
+            const rejectBeforeReady = (reason, details = null) => {
+              if (this._settled || this._aborted) return;
+              if (!markTerminal(reason)) return;
+              const err = new Error(reason);
+              if (details) err.details = details;
+              settleReject(err || new Error(reason));
+            };
+            const timeout = setTimeout(() => {
+              logInterstitial(`[Interstitial:Video:${this.node.id}] prepare_timeout`, {
+                timeoutMs: prepareTimeoutMs,
+                adStarted,
+                firstFramePlayed,
+                terminalEvent,
+              });
+              rejectBeforeReady("video_prepare_timeout");
+            }, prepareTimeoutMs);
+
+            const revealPlayer = (source = "unknown") => {
+              if (firstFramePlayed || terminalEvent || this._aborted) return;
+              settleResolve(source);
+            };
+
+            const handleTerminalBeforePlayback = (reason, details = null) => {
+              if (firstFramePlayed) {
+                markTerminal(reason);
+                return;
+              }
+              rejectBeforeReady(reason, details);
+            };
+
+            this.player.on("adstart", () => {
+              this._adFlowStarted = true;
+              adStarted = true;
+              logInterstitial(`[Interstitial:Video:${this.node.id}] adstart`);
+              if (adstartGraceTimer) clearTimeout(adstartGraceTimer);
+              adstartGraceTimer = setTimeout(() => {
+                if (!this._settled && !terminalEvent && !this._aborted && !firstFramePlayed) {
+                  revealPlayer("adstart_grace");
+                }
+              }, 200);
+            });
+            this.player.on("timeupdate", () => {
+              const currentTime = typeof this.player.currentTime === "function" ? this.player.currentTime() : null;
+              logInterstitial(`[Interstitial:Video:${this.node.id}] timeupdate`, { currentTime });
+              if (adStarted && currentTime > 0) {
+                revealPlayer("timeupdate");
+              }
+            });
+            this.player.on("adserror", (evt) => {
+              this.closeBootstrapWindow("adserror");
+              const err = evt?.data?.AdError;
+              nativeAdError = {
+                code: err?.getErrorCode?.() || null,
+                message: err?.getMessage?.() || null,
+                vastCode: err?.getVastErrorCode?.() || null,
+              };
+              warnInterstitial(`[Interstitial:Video:${this.node.id}] ima_ad_error`, {
+                reason: "video_ad_error",
+                ...nativeAdError,
+              });
+              handleTerminalBeforePlayback("video_ad_error", nativeAdError);
+            });
+            this.player.on("adtimeout", () => {
+              this.closeBootstrapWindow("adtimeout");
+              warnInterstitial(`[Interstitial:Video:${this.node.id}] adtimeout`, { reason: "video_ad_timeout" });
+              handleTerminalBeforePlayback("video_ad_timeout");
+            });
+            this.player.on("readyforpreroll", () => {
+              logInterstitial(`[Interstitial:Video:${this.node.id}] readyforpreroll`);
+            });
+            this.player.on("adend", () => {
+              this.closeBootstrapWindow("adend");
+              logInterstitial(`[Interstitial:Video:${this.node.id}] adend`);
+              handleTerminalBeforePlayback("video_end_before_ready");
+            });
+            this.player.on("alladscompleted", () => {
+              this.closeBootstrapWindow("alladscompleted");
+              logInterstitial(`[Interstitial:Video:${this.node.id}] alladscompleted`);
+              handleTerminalBeforePlayback("video_alladscompleted_before_ready");
+            });
+            this.player.on("error", () => {
+              const err = this.player?.error?.();
+              if (this.shouldIgnoreCode4DuringBootstrap(err)) {
+                logInterstitial(`[Interstitial:Video:${this.node.id}] player_media_error_ignored_bootstrap_window`, {
+                  reason: "bootstrap_or_ima_takeover_src_not_supported",
+                  code: err?.code || null,
+                  message: err?.message || null,
+                  bootstrapWindowOpen: this._bootstrapWindowOpen,
+                  adFlowStarted: this._adFlowStarted,
+                });
+                return;
+              }
+              this.closeBootstrapWindow("player_media_error");
+              warnInterstitial(`[Interstitial:Video:${this.node.id}] player_media_error_terminal`, {
+                reason: "video_media_error",
+                code: err?.code || null,
+                message: err?.message || null,
+              });
+              handleTerminalBeforePlayback("video_media_error", {
+                code: err?.code || null,
+                message: err?.message || null,
+              });
+            });
+
+            this.player.ready(() => {
+              try {
+                logInterstitial(`[Interstitial:Video:${this.node.id}] player_ready`);
+                const options = {
+                  id: this.playerId,
+                  showCountdown: true,
+                  autoPlayAdBreaks: true,
+                  debug: true,
+                  timeout: imaTimeoutMs,
+                  prerollTimeout: imaTimeoutMs,
+                  postrollTimeout: imaTimeoutMs,
+                  ...(useAdsResponse ? { adsResponse: this.bid?.vastXml } : { adTagUrl }),
+                };
+                logInterstitial(`[Interstitial:Video:${this.node.id}] ima_init`, options);
+                this._adFlowStarted = true;
+                this.player.ima(options);
+                if (
+                  this.player.ima &&
+                  typeof this.player.ima.addEventListener === "function" &&
+                  window.google?.ima?.AdEvent &&
+                  window.google?.ima?.AdErrorEvent
+                ) {
+                  this.player.ima.addEventListener(
+                    window.google.ima.AdErrorEvent.Type.AD_ERROR,
+                    (event) => {
+                      this.closeBootstrapWindow("native_ad_error");
+                      const err = event.getError();
+                      nativeAdError = {
+                        code: err?.getErrorCode?.() || null,
+                        message: err?.getMessage?.() || null,
+                        vastCode: err?.getVastErrorCode?.() || null,
+                      };
+                      warnInterstitial(`[Interstitial:Video:${this.node.id}] ima_ad_error`, {
+                        reason: "video_native_ad_error",
+                        ...nativeAdError,
+                      });
+                      handleTerminalBeforePlayback("video_native_ad_error", nativeAdError);
+                    },
+                  );
+                  this.player.ima.addEventListener(
+                    window.google.ima.AdEvent.Type.STARTED,
+                    () => {
+                      logInterstitial(`[Interstitial:Video:${this.node.id}] native_started`);
+                      revealPlayer("ima_started");
+                    },
+                  );
+                  this.player.ima.addEventListener(
+                    window.google.ima.AdEvent.Type.COMPLETE,
+                    () => {
+                      this.closeBootstrapWindow("native_complete");
+                      handleTerminalBeforePlayback("video_end_before_ready");
+                    },
+                  );
+                  this.player.ima.addEventListener(
+                    window.google.ima.AdEvent.Type.SKIPPED,
+                    () => {
+                      this.closeBootstrapWindow("native_skipped");
+                      handleTerminalBeforePlayback("video_end_before_ready");
+                    },
+                  );
+                }
+                this.player.ima.initializeAdDisplayContainer();
+                const playPromise = this.player.play();
+                if (playPromise && playPromise.catch) {
+                  playPromise.catch((err) => {
+                    warnInterstitial(`[Interstitial:Video:${this.node.id}] player_media_error_terminal`, {
+                      reason: "video_media_error",
+                      message: err?.message || null,
+                    });
+                  });
+                }
+              } catch (err) {
+                settleReject(err);
+              }
+            });
+          });
+        }
+
+        getPrepareTimeoutMs() {
+          const timeoutMs = parseInt(this.config.video?.prepareTimeoutMs, 10);
+          return Number.isFinite(timeoutMs) && timeoutMs >= 0 ? timeoutMs : 25000;
+        }
+
+        getImaTimeoutMs() {
+          const timeoutMs = parseInt(this.config.video?.imaTimeoutMs, 10);
+          return Number.isFinite(timeoutMs) && timeoutMs >= 0 ? timeoutMs : 30000;
+        }
+
+        destroy() {
+          this._aborted = true;
+          this.closeBootstrapWindow("destroy");
+          logInterstitial(`[Interstitial:Video:${this.node.id}] destroy_abort`, {
+            settled: this._settled,
+            reason: this.lastFailureReason,
+          });
+          try {
+            this.player?.dispose?.();
+          } catch (err) {}
+          this.player = null;
+        }
+      }
+
+      class InterstitialManager {
+        constructor(config, gexpInstance) {
+          this.config = config;
+          this.gexp = gexpInstance;
+          this.node = null;
+          this.siteContext = this.getSiteContext();
+          this.siteConfig = this.resolveSiteConfig();
+          this.adUnitPath = this.extractStaticAdUnitPath();
+          this.networkId = this.config?.networkId || "99071977";
+          this._delayTimer = null;
+          this._visibilityListener = null;
+          ensureInterstitialBaseStyles();
+
+          if (this.siteConfig?.debug === true) {
+            window.gexpInterstitialDebug = true;
+          }
+
+          logInterstitial(`[InterstitialManager] bootstrap`, {
+            siteContext: this.siteContext,
+            hasSiteConfig: !!this.siteConfig,
+            initialAdUnitPath: this.adUnitPath,
+            networkId: this.networkId,
+          });
+
+          if (!this.gexp.isEnabled() || !this.siteConfig) return;
+
+          const boot = () => {
+            googletag.cmd.push(() => {
+              this.resolveAdUnit();
+              this.siteContext.contentType = this.detectContentType();
+              this.siteConfig = this.resolveContentTypeProfile(this.siteConfig, this.siteContext.contentType);
+              logInterstitial(`[InterstitialManager] resolved_bootstrap`, {
+                adUnitPath: this.adUnitPath,
+                networkId: this.networkId,
+                contentType: this.siteContext.contentType,
+              });
+              if (!this.canRunOnPage()) return;
+              this.scheduleActivation();
+            });
+          };
+
+          if (document.readyState === "loading") {
+            document.addEventListener("DOMContentLoaded", boot, { once: true });
+          } else {
+            boot();
+          }
+        }
+
+        static CONTENT_TYPE_MAP = {
+          n: "noticia",
+          noticia: "noticia",
+          dir: "directo",
+          directo: "directo",
+          ne: "noticia-especial",
+          "noticia-especial": "noticia-especial",
+          cro: "cronica",
+          cronica: "cronica",
+          o: "opinion",
+          opinion: "opinion",
+        };
+
+        static escapeRegex(str = "") {
+          return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+        }
+
+        static deepMerge(target, source) {
+          const isObject = (obj) =>
+            obj && typeof obj === "object" && !Array.isArray(obj);
+          if (!isObject(target) || !isObject(source)) return source;
+          const merged = Object.assign({}, target);
+          Object.keys(source).forEach((key) => {
+            if (isObject(source[key]) && isObject(merged[key])) {
+              merged[key] = InterstitialManager.deepMerge(merged[key], source[key]);
+            } else {
+              merged[key] = source[key];
+            }
+          });
+          return merged;
+        }
+
+        extractStaticAdUnitPath() {
+          const devPath = window.GEXP_DEV_CONFIG?.interstitialSites?.default?.general?.display?.adUnitPath;
+          if (devPath) return devPath;
+          if (typeof data !== "undefined" && data?.adSlots?.[0]?.adUnit) return data.adSlots[0].adUnit;
+          if (typeof ueDFPData !== "undefined" && ueDFPData?.adSlots?.[0]?.adUnit) return ueDFPData.adSlots[0].adUnit;
+          return this.config?.adUnit || "";
+        }
+
+        getSiteContext() {
+          const dl = ((typeof window !== "undefined" ? (window.ueDataLayer || window.utag_data) : null) || {});
+          return {
+            site: dl.be_page_domain || window.location.hostname,
+            section: dl.be_page_section || null,
+            subsection: dl.be_page_subsection1 || null,
+            contentType: this.detectContentType(),
+          };
+        }
+
+        detectContentType(rootElement = null) {
+          const dl = ((typeof window !== "undefined" ? (window.ueDataLayer || window.utag_data) : null) || {});
+          if (dl.be_page_content_type) {
+            return InterstitialManager.CONTENT_TYPE_MAP[dl.be_page_content_type] || dl.be_page_content_type;
+          }
+          try {
+            if (typeof googletag !== "undefined" && googletag.pubads && typeof googletag.pubads === "function") {
+              const ctValues = googletag.pubads().getTargeting("ct");
+              if (ctValues && ctValues.length > 0) {
+                return InterstitialManager.CONTENT_TYPE_MAP[ctValues[0]] || ctValues[0];
+              }
+            }
+          } catch (e) {}
+          const root = rootElement || document;
+          if (root.querySelector(".ue-c-streamlive__body")) return "directo";
+          if (root.querySelector(".ue-l-article__main-column")) return "noticia";
+          return "noticia";
+        }
+
+        resolveContentTypeProfile(baseConfig, contentType) {
+          const profiles = baseConfig?.contentTypes;
+          if (!profiles || !contentType || !profiles[contentType]) return baseConfig;
+          return InterstitialManager.deepMerge(baseConfig, profiles[contentType]);
+        }
+
+        resolveSiteConfig() {
+          const siteConfigs = this.config?.interstitialSites;
+          if (!siteConfigs) return null;
+          const hostname = this.siteContext.site.replace("www.", "");
+          const baseConfig = siteConfigs[hostname] || siteConfigs.default;
+          if (!baseConfig?.general) return null;
+          let resolved = JSON.parse(JSON.stringify(baseConfig.general));
+          const overrides = Array.isArray(baseConfig.overrides) ? baseConfig.overrides : [];
+          overrides.forEach((override) => {
+            if (this.matchesOverrideConditions(override?.if)) {
+              resolved = InterstitialManager.deepMerge(resolved, override?.then || {});
+            }
+          });
+          resolved.__siteContext = this.siteContext;
+          return resolved;
+        }
+
+        isDebugEnabled() {
+          return getInterstitialDebugState() || this.siteConfig?.debug === true;
+        }
+
+        shouldBypassCooldown() {
+          try {
+            if (typeof window !== "undefined") {
+              if (window.gexpInterstitialBypassCooldown === true) return true;
+              if (window.location && window.location.search.includes("gexpInterstitialBypassCooldown=true")) return true;
+              if (window.localStorage && window.localStorage.getItem("gexpInterstitialBypassCooldown") === "true") return true;
+            }
+          } catch (e) {}
+
+          const storageCfg = this.siteConfig?.storage || {};
+          if (storageCfg.respectCooldown === false) return true;
+          if (storageCfg.ignoreCooldownWhenDebug === true && this.isDebugEnabled()) return true;
+          return false;
+        }
+
+        matchesOverrideConditions(conditions) {
+          if (!Array.isArray(conditions) || conditions.length === 0) return false;
+          return conditions.some((condition) => this.evaluateCondition(condition));
+        }
+
+        evaluateCondition(conditionStr = "") {
+          const [key, value] = conditionStr.split(":");
+          if (!key || typeof value === "undefined") return false;
+          switch (key.trim()) {
+            case "device": {
+              const dl = ((typeof window !== "undefined" ? (window.ueDataLayer || window.utag_data) : null) || {});
+              const isMobileVar = dl.device_category === "mobile" || dl.be_page_site_version === "mobile" || this.gexp.isMobileDevice();
+              if (value.trim() === "mobile") return isMobileVar;
+              if (value.trim() === "desktop") return !isMobileVar;
+              return false;
+            }
+            case "contentType":
+              return this.siteContext.contentType === value.trim();
+            case "url":
+              return this.matchUrlCondition(value.trim());
+            default:
+              return false;
+          }
+        }
+
+        matchUrlCondition(pattern) {
+          if (!pattern) return false;
+          const url = window.location?.pathname || "";
+          if (pattern === "*") return true;
+          const regex = new RegExp("^" + pattern.split("*").map((part) => InterstitialManager.escapeRegex(part)).join(".*") + "$");
+          return regex.test(url);
+        }
+
+        resolveAdUnit() {
+          let resolvedPath = this.adUnitPath;
+          let resolvedNetworkId = this.networkId;
+          try {
+            const slots = googletag.pubads().getSlots();
+            if (slots && slots.length > 0) {
+              const refSlot = slots.find((slot) => {
+                const elId = slot.getSlotElementId() || "";
+                if (elId.startsWith("gexp-intext") || elId.startsWith("gexp-inimage") || elId.startsWith("gexp-interstitial")) return false;
+                const path = slot.getAdUnitPath() || "";
+                if (/\/p_/.test(path)) return false;
+                return true;
+              }) || slots[0];
+              const fullPath = refSlot.getAdUnitPath();
+              if (fullPath) {
+                const parts = fullPath.replace(/^\//, "").split("/");
+                if (parts.length >= 2) {
+                  resolvedNetworkId = parts[0];
+                  resolvedPath = parts.slice(1).join("/").replace(/\bp_/g, "");
+                }
+              }
+            }
+          } catch (e) {}
+
+          if (!resolvedPath && this.siteConfig?.display?.adUnitPath) {
+            resolvedPath = this.siteConfig.display.adUnitPath;
+          }
+
+          this.adUnitPath = resolvedPath;
+          this.networkId = resolvedNetworkId;
+          logInterstitial(`[InterstitialManager] ad_unit_resolved`, {
+            baseAdUnitPath: resolvedPath,
+            networkId: resolvedNetworkId,
+          });
+          const networkOverrides = this.siteConfig?.networks?.[this.networkId];
+          if (networkOverrides) {
+            this.siteConfig = InterstitialManager.deepMerge(this.siteConfig, networkOverrides);
+          }
+        }
+
+        canRunOnPage() {
+          if (!this.siteConfig) {
+            warnInterstitial(`[InterstitialManager] canRunOnPage=false`, { reason: "missing_site_config" });
+            return false;
+          }
+          if (this.siteConfig?.domainFilter?.enabled && !this.passesDomainFilter()) {
+            warnInterstitial(`[InterstitialManager] canRunOnPage=false`, { reason: "blocked_by_domain_filter" });
+            return false;
+          }
+          const allowedTypes = this.siteConfig.allowedContentTypes || [];
+          if (allowedTypes.length > 0 && !allowedTypes.includes(this.siteContext.contentType)) {
+            warnInterstitial(`[InterstitialManager] canRunOnPage=false`, {
+              reason: "blocked_by_content_type",
+              contentType: this.siteContext.contentType,
+              allowedTypes,
+            });
+            return false;
+          }
+          if (!this.isDeviceAllowed()) {
+            warnInterstitial(`[InterstitialManager] canRunOnPage=false`, { reason: "device_not_allowed" });
+            return false;
+          }
+          if (this.isCooldownActive()) {
+            warnInterstitial(`[InterstitialManager] canRunOnPage=false`, { reason: "cooldown_active" });
+            return false;
+          }
+          if (this.isBlockedByExclusions()) {
+            warnInterstitial(`[InterstitialManager] canRunOnPage=false`, { reason: "blocked_by_exclusions" });
+            return false;
+          }
+          if (!this.isAllowedByInclusions()) {
+            warnInterstitial(`[InterstitialManager] canRunOnPage=false`, { reason: "blocked_by_inclusions" });
+            return false;
+          }
+          logInterstitial(`[InterstitialManager] canRunOnPage=true`);
+          return true;
+        }
+
+        passesDomainFilter() {
+          const filter = this.siteConfig?.domainFilter;
+          if (!filter || filter.allowedDomains === "all") return true;
+          let currentDomain = null;
+          const dl = window[filter.dataLayerObj] || window.utag_data;
+          if (dl) {
+            const dlData = Array.isArray(dl) ? dl[0] : dl;
+            currentDomain = dlData?.[filter.dataLayerProp] || null;
+          }
+          if (!currentDomain && window.location) currentDomain = window.location.hostname;
+          return filter.allowedDomains.some((domain) => String(currentDomain || "").includes(domain));
+        }
+
+        getPageAdUnitPath() {
+          if (typeof data !== "undefined" && data?.adSlots?.[0]?.adUnit) return data.adSlots[0].adUnit;
+          if (typeof ueDFPData !== "undefined" && ueDFPData?.adSlots?.[0]?.adUnit) return ueDFPData.adSlots[0].adUnit;
+          return this.adUnitPath || null;
+        }
+
+        getPageCustomTargeting() {
+          if (typeof data !== "undefined" && data?.customTargeting) return data.customTargeting;
+          if (typeof ueDFPData !== "undefined" && ueDFPData?.customTargeting) return ueDFPData.customTargeting;
+          try {
+            if (typeof googletag !== "undefined" && googletag.pubads && typeof googletag.pubads === "function") {
+              const pubads = googletag.pubads();
+              if (pubads && typeof pubads.getTargetingKeys === "function") {
+                const keys = pubads.getTargetingKeys();
+                if (keys && keys.length > 0) {
+                  const targeting = {};
+                  keys.forEach((key) => {
+                    const values = pubads.getTargeting(key);
+                    targeting[key] = values && values.length === 1 ? values[0] : values;
+                  });
+                  return targeting;
+                }
+              }
+            }
+          } catch (e) {}
+          if (typeof window !== "undefined" && (window.ueDataLayer || window.utag_data)) return window.ueDataLayer || window.utag_data;
+          return null;
+        }
+
+        normalizeTargetingValues(rawValue) {
+          if (rawValue === undefined || rawValue === null) return [];
+          if (Array.isArray(rawValue)) {
+            return rawValue.flatMap((value) => this.normalizeTargetingValues(value)).filter(Boolean);
+          }
+          if (typeof rawValue === "string" && rawValue.includes(",")) {
+            return rawValue.split(",").map((value) => String(value).trim()).filter(Boolean);
+          }
+          return [String(rawValue).trim()].filter(Boolean);
+        }
+
+        isBlockedByExclusions() {
+          const excl = this.siteConfig?.exclusions;
+          if (!excl) return false;
+          if (excl.disableAll === true) {
+            logInterstitial(`[InterstitialManager] exclusions`, { blocked: true, reason: "disable_all" });
+            return true;
+          }
+          if (Array.isArray(excl.adUnitPaths) && excl.adUnitPaths.length > 0) {
+            const pageAdUnit = this.getPageAdUnitPath();
+            if (pageAdUnit && excl.adUnitPaths.some((blockedPath) => pageAdUnit.startsWith(blockedPath))) {
+              logInterstitial(`[InterstitialManager] exclusions`, {
+                blocked: true,
+                reason: "ad_unit_path",
+                pageAdUnit,
+              });
+              return true;
+            }
+          }
+          if (excl.keyValues && typeof excl.keyValues === "object") {
+            const pageTargeting = this.getPageCustomTargeting();
+            if (pageTargeting) {
+              for (const [key, blockedValues] of Object.entries(excl.keyValues)) {
+                if (!Array.isArray(blockedValues) || blockedValues.length === 0) continue;
+                const pageValues = this.normalizeTargetingValues(pageTargeting[key]);
+                if (blockedValues.some((blocked) => pageValues.includes(String(blocked)))) {
+                  logInterstitial(`[InterstitialManager] exclusions`, {
+                    blocked: true,
+                    reason: "key_value",
+                    key,
+                    pageValues,
+                  });
+                  return true;
+                }
+              }
+            }
+          }
+          logInterstitial(`[InterstitialManager] exclusions`, { blocked: false });
+          return false;
+        }
+
+        isAllowedByInclusions() {
+          const inc = this.siteConfig?.inclusions;
+          if (!inc) return true;
+          if (inc.keyValues && typeof inc.keyValues === "object" && Object.keys(inc.keyValues).length > 0) {
+            const pageTargeting = this.getPageCustomTargeting();
+            if (!pageTargeting) {
+              logInterstitial(`[InterstitialManager] inclusions`, { allowed: false, reason: "missing_page_targeting" });
+              return false;
+            }
+            for (const [key, allowedValues] of Object.entries(inc.keyValues)) {
+              if (!Array.isArray(allowedValues) || allowedValues.length === 0) continue;
+              const pageValues = this.normalizeTargetingValues(pageTargeting[key]);
+              if (allowedValues.some((allowed) => pageValues.includes(String(allowed)))) {
+                logInterstitial(`[InterstitialManager] inclusions`, { allowed: true, key, pageValues });
+                return true;
+              }
+            }
+            logInterstitial(`[InterstitialManager] inclusions`, { allowed: false, reason: "no_match" });
+            return false;
+          }
+          logInterstitial(`[InterstitialManager] inclusions`, { allowed: true, reason: "no_rules" });
+          return true;
+        }
+
+        isDeviceAllowed() {
+          const targeting = this.siteConfig?.deviceTargeting || {};
+          const allowDesktop = targeting.desktop !== false;
+          const allowMobile = targeting.mobile !== false;
+          const isMobile = this.gexp.isMobileDevice();
+          const allowed = !allowDesktop && !allowMobile
+            ? false
+            : isMobile
+              ? allowMobile
+              : allowDesktop;
+          logInterstitial(`[InterstitialManager] device_gating`, {
+            isMobile,
+            allowDesktop,
+            allowMobile,
+            allowed,
+          });
+          return allowed;
+        }
+
+        getLastShownAt() {
+          const key = this.siteConfig?.storage?.lastShownAtKey || "gexp_interstitial_last_shown_at";
+          try {
+            const raw = window.localStorage?.getItem(key);
+            return raw ? parseInt(raw, 10) || 0 : 0;
+          } catch (e) {
+            return 0;
+          }
+        }
+
+        isCooldownActive() {
+          if (this.shouldBypassCooldown()) {
+            logInterstitial(`[InterstitialManager] cooldown bypassed`, {
+              debugEnabled: this.isDebugEnabled(),
+              respectCooldown: this.siteConfig?.storage?.respectCooldown,
+              ignoreCooldownWhenDebug: this.siteConfig?.storage?.ignoreCooldownWhenDebug,
+            });
+            return false;
+          }
+          const cooldownMs = parseInt(this.siteConfig?.storage?.cooldownMs, 10);
+          const effectiveCooldown = Number.isFinite(cooldownMs) && cooldownMs >= 0 ? cooldownMs : 28800000;
+          const lastShownAt = this.getLastShownAt();
+          const active = lastShownAt > 0 && (Date.now() - lastShownAt) < effectiveCooldown;
+          logInterstitial(`[InterstitialManager] cooldown_check`, {
+            active,
+            lastShownAt,
+            cooldownMs: effectiveCooldown,
+          });
+          return active;
+        }
+
+        markShownNow() {
+          const key = this.siteConfig?.storage?.lastShownAtKey || "gexp_interstitial_last_shown_at";
+          try {
+            window.localStorage?.setItem(key, String(Date.now()));
+          } catch (e) {}
+        }
+
+        scheduleActivation() {
+          const delayMs = parseInt(this.siteConfig?.trigger?.delayMs, 10);
+          const effectiveDelay = Number.isFinite(delayMs) && delayMs >= 0 ? delayMs : 10000;
+          logInterstitial(`[InterstitialManager] delay_armed`, { delayMs: effectiveDelay });
+          this._delayTimer = setTimeout(() => this.activateWhenEligible(), effectiveDelay);
+        }
+
+        activateWhenEligible() {
+          logInterstitial(`[InterstitialManager] start_trigger_delay`);
+          if (!this.canRunOnPage()) return;
+          if (this.siteConfig?.trigger?.pageVisibleOnly && document.visibilityState !== "visible") {
+            warnInterstitial(`[InterstitialManager] page_not_visible`, {
+              visibilityState: document.visibilityState,
+            });
+            this._visibilityListener = () => {
+              if (document.visibilityState !== "visible") return;
+              document.removeEventListener("visibilitychange", this._visibilityListener);
+              this._visibilityListener = null;
+              if (this.canRunOnPage()) {
+                logInterstitial(`[InterstitialManager] page_visible_resume`);
+                this.startNode();
+              }
+            };
+            document.addEventListener("visibilitychange", this._visibilityListener);
+            return;
+          }
+          this.startNode();
+        }
+
+        startNode() {
+          if (!this.node) {
+            this.node = new InterstitialNode({
+              manager: this,
+              config: this.siteConfig,
+            });
+          }
+          logInterstitial(`[InterstitialManager] node_start`);
+          this.node.prepareAndShow();
+        }
+      }
 class WPromise
 {
     constructor() {
@@ -6075,6 +11331,8 @@ class GAMExp {
     constructor() {
         this.statsG = null;
         this.intextManager = null;
+        this.inimageManager = null;
+        this.interstitialManager = null;
         if (window.__disable_gam_kv__ !== true) {
             pbjs.que.push(() => {
                 pbjs.setConfig({ useBidCache: true });
@@ -6099,7 +11357,15 @@ class GAMExp {
 
             this.loadConfig().then(() => {
                 this.initialize();                
-                this.intextManager = new IntextManager(this.cfg, this);
+                if (typeof IntextManager !== "undefined" && this.cfg?.intextSites) {
+                    this.intextManager = new IntextManager(this.cfg, this);
+                }
+                if (typeof InimageManager !== "undefined" && this.cfg?.inimageSites) {
+                    this.inimageManager = new InimageManager(this.cfg, this);
+                }
+                if (typeof InterstitialManager !== "undefined" && this.cfg?.interstitialSites) {
+                    this.interstitialManager = new InterstitialManager(this.cfg, this);
+                }
             });
         }
     }
