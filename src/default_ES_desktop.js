@@ -542,7 +542,7 @@
             "rqpbtim": 2000,
             "tl": true
         },
-        "gexp-interstitial": {
+                "gexp-interstitial": {
             "p": 4,
             "mu": 3,
             "md": 2,
@@ -594,13 +594,13 @@
                 "debug": false,
                 "domainFilter": {
                     "enabled": true,
-                    "allowedDomains": ["telva", "marca"],
+                    "allowedDomains": ["telva"],
                     "dataLayerObj": "ueDataLayer",
                     "dataLayerProp": "be_page_domain"
                 },
                 "inclusions": {
-                    "keyValues": {
-                        "newsid": ["69bbe63601a2f1b5478b4597", "698dda7d22601d87168b45da", "6998415322601d777c8b45aa"]
+                    "keyValues": {                        
+                        "random1": ["5", "6"]
                     }
                 },
                 "allowedContentTypes": [
@@ -698,7 +698,7 @@
                     }
                 },
                 "prebid": {
-                    "timeoutMs": 1500,
+                    "timeoutMs": 2000,
                     "graceMs": 200,
                     "excludedVideoBidders": [],
                     "networks": {
