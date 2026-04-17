@@ -4888,6 +4888,9 @@ class RandomStrategy extends WindowArray {
           this._playerRevealed = false;
           this._videoEndHandled = false;
           this._videoTiming = videoTiming || null;
+          this._adMediaEl = null;
+          this._adMediaCleanup = null;
+          this._adMediaDiscoveryTimers = [];
         }
 
         async render() {
@@ -5041,6 +5044,56 @@ class RandomStrategy extends WindowArray {
           });
         }
 
+        findAdMediaElement() {
+          const playerRoot = this.player?.el?.();
+          if (!playerRoot) {
+            logIntext(`[Intext:Video:IMA] ad_media_element_not_found - player root missing`);
+            return null;
+          }
+
+          const selectors = [
+            ".ima-ad-container video",
+            ".vjs-ima-ad-container video",
+            ".ima-video-container video",
+            ".ima-html5-video-content video",
+            "video",
+          ];
+
+          for (const selector of selectors) {
+            const mediaEls = Array.from(playerRoot.querySelectorAll(selector));
+            if (!mediaEls.length) continue;
+
+            const preferred = mediaEls.find((el) => el !== this.videoEl) || mediaEls[0];
+            if (preferred) {
+              logIntext(
+                `[Intext:Video:IMA] ad_media_element_found - selector=${selector} currentTime=${preferred.currentTime || 0}`,
+              );
+              return preferred;
+            }
+          }
+
+          logIntext(`[Intext:Video:IMA] ad_media_element_not_found - no internal video found`);
+          return null;
+        }
+
+        cleanupAdMediaObservation() {
+          if (this._adMediaDiscoveryTimers?.length) {
+            this._adMediaDiscoveryTimers.forEach((timerId) => clearTimeout(timerId));
+            this._adMediaDiscoveryTimers = [];
+          }
+
+          if (this._adMediaCleanup) {
+            try {
+              this._adMediaCleanup();
+            } catch (e) {
+              // ignore
+            }
+            this._adMediaCleanup = null;
+          }
+
+          this._adMediaEl = null;
+        }
+
         requestAds() {
           return new Promise((resolve, reject) => {
             if (!this.player) {
@@ -5080,25 +5133,35 @@ class RandomStrategy extends WindowArray {
             let terminalEvent = null;
             let terminalHandled = false;
             let adTimeout = null;
-            let adstartGraceTimer = null;
             let adstartAt = null;
             let nativeAdError = null;
+            let nativeStartedFallbackTimer = null;
+            let mediaReadyConfirmTimer = null;
+            let mediaTimeupdateLogged = false;
+            let mediaElementFound = false;
 
             const clearAdTimeout = () => {
               if (!adTimeout) return;
               clearTimeout(adTimeout);
               adTimeout = null;
             };
-            const clearAdstartGraceTimer = () => {
-              if (!adstartGraceTimer) return;
-              clearTimeout(adstartGraceTimer);
-              adstartGraceTimer = null;
+            const clearNativeStartedFallbackTimer = () => {
+              if (!nativeStartedFallbackTimer) return;
+              clearTimeout(nativeStartedFallbackTimer);
+              nativeStartedFallbackTimer = null;
+            };
+            const clearMediaReadyConfirmTimer = () => {
+              if (!mediaReadyConfirmTimer) return;
+              clearTimeout(mediaReadyConfirmTimer);
+              mediaReadyConfirmTimer = null;
             };
             const settle = (type, value) => {
               if (settled) return;
               settled = true;
               clearAdTimeout();
-              clearAdstartGraceTimer();
+              clearNativeStartedFallbackTimer();
+              clearMediaReadyConfirmTimer();
+              this.cleanupAdMediaObservation();
               if (type === "resolve") resolve(value);
               else reject(value);
             };
@@ -5107,12 +5170,9 @@ class RandomStrategy extends WindowArray {
               terminalHandled = true;
               terminalEvent = source;
               clearAdTimeout();
-              if (adstartGraceTimer) {
-                logIntext(
-                  `[Intext:Video:IMA] adstart_grace_cancelled_by_terminal - terminal=${source}`,
-                );
-              }
-              clearAdstartGraceTimer();
+              clearNativeStartedFallbackTimer();
+              clearMediaReadyConfirmTimer();
+              this.cleanupAdMediaObservation();
               return true;
             };
             this._settle = settle;
@@ -5127,7 +5187,13 @@ class RandomStrategy extends WindowArray {
             }, 25000);
 
             const revealPlayer = (source = "unknown") => {
-              if (firstFramePlayed || terminalEvent) return;
+              if (terminalEvent || terminalHandled) {
+                logIntext(
+                  `[Intext:Video:IMA] reveal_blocked_by_terminal - source=${source} terminal=${terminalEvent || "unknown"}`,
+                );
+                return;
+              }
+              if (firstFramePlayed) return;
               firstFramePlayed = true;
               this._playerRevealed = true;
               if (adstartAt) {
@@ -5135,10 +5201,14 @@ class RandomStrategy extends WindowArray {
                   `[Intext:Video:${this.playerId}] timing adstart_to_reveal=${Date.now() - adstartAt}ms source=${source} trigger=${this._videoTiming?.trigger || "unknown"}`,
                 );
               }
-              if (source === "ima_started") {
-                logIntext(`[Intext:Video:IMA] ima_started - revealing player on native STARTED`);
-              } else if (source === "timeupdate") {
-                logIntext(`[Intext:Video:IMA] timeupdate_started - revealing player after currentTime > 0`);
+              if (source === "native_started") {
+                logIntext(`[Intext:Video:IMA] reveal_from_native_started`);
+              } else if (source === "media_playing") {
+                logIntext(`[Intext:Video:IMA] reveal_from_media_playing`);
+              } else if (source === "media_timeupdate") {
+                logIntext(`[Intext:Video:IMA] reveal_from_media_timeupdate`);
+              } else if (source === "media_loadeddata_confirmed") {
+                logIntext(`[Intext:Video:IMA] reveal_from_media_loadeddata_confirmed`);
               } else {
                 logIntext(`[Intext:Video:IMA] 🎬 Playback confirmado por ${source}. Mostrando player.`);
               }
@@ -5159,6 +5229,123 @@ class RandomStrategy extends WindowArray {
               setTimeout(() => {
                 try { this.destroy(); } catch (e) { /* ignore */ }
               }, 50);
+            };
+
+            const isRevealBlocked = () =>
+              firstFramePlayed || terminalEvent || terminalHandled || this._aborted || !this.player;
+
+            const getMediaCurrentTime = () => {
+              const mediaEl = this._adMediaEl;
+              if (!mediaEl) return 0;
+              const currentTime = Number(mediaEl.currentTime);
+              return Number.isFinite(currentTime) ? currentTime : 0;
+            };
+
+            const scheduleMediaReadyConfirmation = (source) => {
+              clearMediaReadyConfirmTimer();
+              const confirmPlayback = () => {
+                if (isRevealBlocked()) return;
+                if (getMediaCurrentTime() > 0) {
+                  revealPlayer("media_loadeddata_confirmed");
+                }
+              };
+
+              confirmPlayback();
+              if (firstFramePlayed || terminalEvent) return;
+
+              mediaReadyConfirmTimer = setTimeout(() => {
+                mediaReadyConfirmTimer = null;
+                if (source === "loadeddata") {
+                  logIntext(`[Intext:Video:IMA] ad_media_loadeddata - deferred confirmation check`);
+                } else {
+                  logIntext(`[Intext:Video:IMA] ad_media_canplay - deferred confirmation check`);
+                }
+                confirmPlayback();
+              }, 120);
+            };
+
+            const attachAdMediaListeners = (mediaEl) => {
+              if (!mediaEl) return;
+              if (this._adMediaEl === mediaEl && this._adMediaCleanup) return;
+
+              this.cleanupAdMediaObservation();
+              this._adMediaEl = mediaEl;
+              mediaElementFound = true;
+
+              const onLoadedData = () => {
+                logIntext(`[Intext:Video:IMA] ad_media_loadeddata`);
+                scheduleMediaReadyConfirmation("loadeddata");
+              };
+              const onCanPlay = () => {
+                logIntext(`[Intext:Video:IMA] ad_media_canplay`);
+                scheduleMediaReadyConfirmation("canplay");
+              };
+              const onPlaying = () => {
+                logIntext(`[Intext:Video:IMA] ad_media_playing`);
+                revealPlayer("media_playing");
+              };
+              const onTimeUpdate = () => {
+                if (getMediaCurrentTime() > 0) {
+                  if (!mediaTimeupdateLogged) {
+                    mediaTimeupdateLogged = true;
+                    logIntext(`[Intext:Video:IMA] ad_media_timeupdate_started`);
+                  }
+                  revealPlayer("media_timeupdate");
+                }
+              };
+              const onError = () => {
+                logIntext(`[Intext:Video:IMA] ad_media_error`);
+              };
+              const onStalled = () => {
+                logIntext(`[Intext:Video:IMA] ad_media_stalled`);
+              };
+              const onAbort = () => {
+                logIntext(`[Intext:Video:IMA] ad_media_abort`);
+              };
+
+              mediaEl.addEventListener("loadeddata", onLoadedData);
+              mediaEl.addEventListener("canplay", onCanPlay);
+              mediaEl.addEventListener("playing", onPlaying);
+              mediaEl.addEventListener("timeupdate", onTimeUpdate);
+              mediaEl.addEventListener("error", onError);
+              mediaEl.addEventListener("stalled", onStalled);
+              mediaEl.addEventListener("abort", onAbort);
+
+              this._adMediaCleanup = () => {
+                mediaEl.removeEventListener("loadeddata", onLoadedData);
+                mediaEl.removeEventListener("canplay", onCanPlay);
+                mediaEl.removeEventListener("playing", onPlaying);
+                mediaEl.removeEventListener("timeupdate", onTimeUpdate);
+                mediaEl.removeEventListener("error", onError);
+                mediaEl.removeEventListener("stalled", onStalled);
+                mediaEl.removeEventListener("abort", onAbort);
+              };
+
+              if (getMediaCurrentTime() > 0) {
+                if (!mediaTimeupdateLogged) {
+                  mediaTimeupdateLogged = true;
+                  logIntext(`[Intext:Video:IMA] ad_media_timeupdate_started`);
+                }
+                revealPlayer("media_timeupdate");
+              }
+            };
+
+            const startAdMediaObservation = () => {
+              if (this._adMediaEl || this._adMediaCleanup || this._adMediaDiscoveryTimers.length) return;
+
+              [0, 60, 180, 400].forEach((delayMs) => {
+                const timerId = setTimeout(() => {
+                  this._adMediaDiscoveryTimers = this._adMediaDiscoveryTimers.filter(
+                    (pendingTimerId) => pendingTimerId !== timerId,
+                  );
+                  if (isRevealBlocked()) return;
+                  const mediaEl = this.findAdMediaElement();
+                  if (mediaEl) {
+                    attachAdMediaListeners(mediaEl);
+                  }
+                }, delayMs);
+                this._adMediaDiscoveryTimers.push(timerId);
+              });
             };
 
             const handleTerminalBeforeReveal = (source, error) => {
@@ -5194,22 +5381,7 @@ class RandomStrategy extends WindowArray {
                   `[Intext:Video:${this.playerId}] timing request_winner_video_to_adstart=${adstartAt - this._videoTiming.requestWinnerVideoAt}ms trigger=${this._videoTiming?.trigger || "unknown"}`,
                 );
               }
-              clearAdstartGraceTimer();
-              logIntext(`[Intext:Video:IMA] adstart_grace_started - waiting 200ms before pragmatic reveal`);
-              adstartGraceTimer = setTimeout(() => {
-                adstartGraceTimer = null;
-                if (terminalEvent || terminalHandled) {
-                  logIntext(
-                    `[Intext:Video:IMA] adstart_grace_cancelled_by_terminal - terminal=${terminalEvent || "unknown"}`,
-                  );
-                  return;
-                }
-                if (firstFramePlayed || this._playerRevealed || this._aborted || !this.player) {
-                  return;
-                }
-                logIntext(`[Intext:Video:IMA] adstart_grace_reveal - no early terminal after grace window`);
-                revealPlayer("adstart_grace");
-              }, 200);
+              startAdMediaObservation();
 
               setTimeout(() => {
                 if (
@@ -5222,14 +5394,14 @@ class RandomStrategy extends WindowArray {
                   this.player.currentTime() > 0
                 ) {
                   logIntext(`[Intext:Video:IMA] ⏱ Confirmación diferida tras adstart con currentTime > 0`);
-                  revealPlayer("adstart+currentTime");
+                  startAdMediaObservation();
                 }
               }, 800);
             });
 
             this.player.on("timeupdate", () => {
               if (adStarted && !firstFramePlayed && !terminalEvent && !this.spinnerHidden) {
-                if (this.player.currentTime() > 0) revealPlayer("timeupdate");
+                startAdMediaObservation();
               }
             });
 
@@ -5361,7 +5533,14 @@ class RandomStrategy extends WindowArray {
                         logIntext(
                           `[Intext:Video:IMA:Native] native started - STARTED event fired`,
                         );
-                        revealPlayer("ima_started");
+                        startAdMediaObservation();
+                        clearNativeStartedFallbackTimer();
+                        nativeStartedFallbackTimer = setTimeout(() => {
+                          nativeStartedFallbackTimer = null;
+                          if (isRevealBlocked()) return;
+                          if (mediaElementFound) return;
+                          revealPlayer("native_started");
+                        }, 500);
                       },
                     );
                     this.player.ima.addEventListener(
@@ -5433,6 +5612,7 @@ class RandomStrategy extends WindowArray {
 
         abort() {
           this._aborted = true;
+          this.cleanupAdMediaObservation();
           logIntext(
             `[Intext:Video:IMA] 🛑 abort() — display won, cancelling video path`,
           );
@@ -5440,6 +5620,7 @@ class RandomStrategy extends WindowArray {
         }
 
         destroy() {
+          this.cleanupAdMediaObservation();
           try {
             this.player?.dispose?.();
           } catch (err) {
