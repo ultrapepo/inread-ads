@@ -1403,6 +1403,11 @@ class RandomStrategy extends WindowArray {
       const INtext_STYLE_ID = "gexp-intext-styles";
       const INtext_BASE_STYLES = `
         .gexp-intext-slot {
+            --gexp-intext-bg: linear-gradient(180deg, #fafbfc 0%, #f4f6f8 100%);
+            --gexp-intext-border: rgba(15, 23, 42, 0.08);
+            --gexp-intext-shadow: inset 0 0 0 1px var(--gexp-intext-border);
+            --gexp-intext-label: rgba(15, 23, 42, 0.62);
+            --gexp-intext-loader-overlay: rgba(250, 251, 252, 0.88);
             width: 100%;
             max-width: 100%;
             margin: 0 auto;          
@@ -1412,7 +1417,11 @@ class RandomStrategy extends WindowArray {
             min-height: 0;           
             height: 0;
             opacity: 0;
+            box-sizing: border-box;
             text-align: center;
+            background: var(--gexp-intext-bg);
+            box-shadow: var(--gexp-intext-shadow);
+            border-radius: 2px;
             transition:
                 height   0.42s cubic-bezier(0.16, 1, 0.3, 1),
                 opacity  0.35s ease 0.08s,
@@ -1435,7 +1444,7 @@ class RandomStrategy extends WindowArray {
 
         .gexp-intext-slot.is-open::before {
             content: "PUBLICIDAD";
-            color: #000000;
+            color: var(--gexp-intext-label);
             letter-spacing: 0.08em;
             width: 100%;
             text-align: center;
@@ -1450,13 +1459,17 @@ class RandomStrategy extends WindowArray {
         }
         .gexp-intext-loader {
             position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
+            inset: 0;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
+            width: 100%;
+            height: 100%;
+            box-sizing: border-box;
+            padding-top: 20px;
+            background: var(--gexp-intext-loader-overlay);
+            border-radius: inherit;
             pointer-events: none;
             display: none; /* Shown via JS during refresh/load */
             z-index: 100;
@@ -3209,8 +3222,6 @@ class RandomStrategy extends WindowArray {
              newWrapper.classList.add("is-open");
              newWrapper.style.opacity = "1";
              newWrapper.style.display = "block";
-             newWrapper.style.margin = "32px auto";
-             newWrapper.style.paddingTop = "15px";
              const newLoader = newWrapper.querySelector(".gexp-intext-loader");
              if (newLoader) newLoader.style.display = "flex";
 
@@ -3486,6 +3497,7 @@ class RandomStrategy extends WindowArray {
         applyStyles() {
           const style = this.styleConfig || {};
           if (style.containerBackground) {
+            this.domNode.style.setProperty("--gexp-intext-bg", style.containerBackground);
             this.domNode.style.backgroundColor = style.containerBackground;
           }
           if (style.fixedHeight) {
@@ -4875,7 +4887,7 @@ class RandomStrategy extends WindowArray {
             loader.style.top = "0";
             loader.style.left = "0";
             loader.style.transform = "none";
-            loader.style.background = "#f7f7f7";
+            loader.style.background = "var(--gexp-intext-loader-overlay)";
             loader.style.position = "absolute";
             loader.style.zIndex = "999";
             loader.style.pointerEvents = "auto";
