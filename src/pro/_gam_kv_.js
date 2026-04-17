@@ -5063,7 +5063,15 @@ class RandomStrategy extends WindowArray {
             const mediaEls = Array.from(playerRoot.querySelectorAll(selector));
             if (!mediaEls.length) continue;
 
-            const preferred = mediaEls.find((el) => el !== this.videoEl) || mediaEls[0];
+            const realMediaEls = mediaEls.filter((el) => el && el !== this.videoEl);
+            if (!realMediaEls.length) {
+              logIntext(
+                `[Intext:Video:IMA] ad_media_element_not_found - selector=${selector} matched only base/dummy player video`,
+              );
+              continue;
+            }
+
+            const preferred = realMediaEls[0];
             if (preferred) {
               logIntext(
                 `[Intext:Video:IMA] ad_media_element_found - selector=${selector} currentTime=${preferred.currentTime || 0}`,
