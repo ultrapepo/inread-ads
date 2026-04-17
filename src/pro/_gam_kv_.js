@@ -3496,9 +3496,23 @@ class RandomStrategy extends WindowArray {
 
         applyStyles() {
           const style = this.styleConfig || {};
-          if (style.containerBackground) {
-            this.domNode.style.setProperty("--gexp-intext-bg", style.containerBackground);
-            this.domNode.style.backgroundColor = style.containerBackground;
+          const containerBackground =
+            typeof style.containerBackground === "string"
+              ? style.containerBackground.trim()
+              : style.containerBackground;
+          const hasCustomBackground =
+            !!containerBackground &&
+            !(
+              typeof containerBackground === "string" &&
+              containerBackground.toLowerCase() === "transparent"
+            );
+
+          if (hasCustomBackground) {
+            this.domNode.style.setProperty("--gexp-intext-bg", containerBackground);
+            this.domNode.style.backgroundColor = containerBackground;
+          } else {
+            this.domNode.style.removeProperty("--gexp-intext-bg");
+            this.domNode.style.removeProperty("background-color");
           }
           if (style.fixedHeight) {
             this.domNode.style.height = "0px";
@@ -3551,6 +3565,7 @@ class RandomStrategy extends WindowArray {
 
         setElement(el) {
           this.domNode = el;
+          this.applyStyles();
         }
       }
 
