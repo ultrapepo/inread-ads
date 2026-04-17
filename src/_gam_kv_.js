@@ -3760,6 +3760,7 @@ class RandomStrategy extends WindowArray {
             window.pbjs.que.push(() => {
               try {
               this.registerPrebidAdUnit(configuration);
+              this.applyIntextDisplayFloorToPrebid(configuration);
 
               const _safetyTimer = setTimeout(() => {
                 logIntext(`[Intext:Prebid] ⚠️ Safety timeout (${this.getPrebidTimeout() + 500}ms) — resolving to avoid blocking`);
@@ -4710,6 +4711,95 @@ class RandomStrategy extends WindowArray {
 
         getPrebidTimeout() {
           return this.config.prebid?.timeoutMs || 1000;
+        }
+
+        getIntextDisplayFloorValue() {
+          const wa = this.wa;
+          if (!wa) return null;
+
+          // 1) Si ya existe el effectivePrice calculado por GEXP, úsalo
+          if (typeof wa.effectivePrice === "number" && isFinite(wa.effectivePrice) && wa.effectivePrice > 0) {
+            return parseFloat(wa.effectivePrice);
+          }
+
+          // 2) Si hay lastPrice persistido, úsalo
+          if (typeof wa.state?.lastPrice === "number" && isFinite(wa.state.lastPrice) && wa.state.lastPrice > 0) {
+            return parseFloat(wa.state.lastPrice);
+          }
+
+          // 3) Si hay windowStart válido, úsalo contra el array de precios
+          const idx = wa.state?.windowStart;
+          if (
+            typeof idx === "number" &&
+            idx >= 0 &&
+            Array.isArray(wa.array) &&
+            typeof wa.array[idx] === "number" &&
+            isFinite(wa.array[idx]) &&
+            wa.array[idx] > 0
+          ) {
+            return parseFloat(wa.array[idx]);
+          }
+
+          // 4) Si ya existe en slot targeting previo, úsalo como fallback
+          try {
+            const slot = this.node?.slot;
+            if (slot && typeof slot.getTargeting === "function") {
+              const kv = slot.getTargeting("gexp_floor");
+              if (Array.isArray(kv) && kv[0] && !isNaN(parseFloat(kv[0]))) {
+                return parseFloat(kv[0]);
+              }
+            }
+          } catch (e) {
+            /* ignore */
+          }
+
+          return null;
+        }
+
+        applyIntextDisplayFloorToPrebid(configuration) {
+          if (!window.pbjs?.setConfig || !configuration?.code) return null;
+
+          const hasBanner = Boolean(configuration?.mediaTypes?.banner);
+          const floorKey = `${configuration.code}|banner`;
+
+          // El floor del intext solo aplica a banner/display
+          if (!hasBanner) {
+            if (WindowArray.pbFloorCfg?.floors?.data?.values) {
+              delete WindowArray.pbFloorCfg.floors.data.values[floorKey];
+              window.pbjs.setConfig(WindowArray.pbFloorCfg);
+            }
+            logIntext(
+              `[Intext:Prebid:${this.node.id}] display_prebid_floor_cleared - no banner mediaType for ${floorKey}`,
+            );
+            return null;
+          }
+
+          const floorValue = this.getIntextDisplayFloorValue();
+
+          // Ojo: gexp_floor está en EUR en vuestro stack
+          WindowArray.pbFloorCfg.floors.data.currency = "EUR";
+          WindowArray.pbFloorCfg.floors.data.schema = {
+            delimiter: "|",
+            fields: ["adUnitCode", "mediaType"],
+          };
+
+          if (!(floorValue > 0)) {
+            delete WindowArray.pbFloorCfg.floors.data.values[floorKey];
+            window.pbjs.setConfig(WindowArray.pbFloorCfg);
+            logIntext(
+              `[Intext:Prebid:${this.node.id}] display_prebid_floor_missing - key=${floorKey}, floor cleared`,
+            );
+            return null;
+          }
+
+          WindowArray.pbFloorCfg.floors.data.values[floorKey] = parseFloat(floorValue);
+          window.pbjs.setConfig(WindowArray.pbFloorCfg);
+
+          logIntext(
+            `[Intext:Prebid:${this.node.id}] display_prebid_floor_applied - key=${floorKey}, gexp_floor=${floorValue}`,
+          );
+
+          return floorValue;
         }
 
         getCachedBidsForMode(mode) {
