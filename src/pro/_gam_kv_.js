@@ -4,7 +4,6 @@ class WindowArray {
         floors: {
             data: {
                 currency: 'USD',
-                floorsSchemaVersion: 2,
                 schema: {
                     delimiter: '|',
                     fields: ['adUnitCode', 'mediaType']
@@ -4941,6 +4940,63 @@ class RandomStrategy extends WindowArray {
           return { value: null, source: "missing" };
         }
 
+        setIntextDisplayFloorConfig(floorKey, floorValue) {
+          if (!window.pbjs?.setConfig || !floorKey) return null;
+
+          const currentValues = {
+            ...(WindowArray.pbFloorCfg?.floors?.data?.values || {}),
+          };
+
+          if (floorValue > 0) {
+            currentValues[floorKey] = parseFloat(floorValue);
+          } else {
+            delete currentValues[floorKey];
+          }
+
+          const floorPayload = {
+            floors: {
+              data: {
+                currency: "EUR",
+                schema: {
+                  delimiter: "|",
+                  fields: ["adUnitCode", "mediaType"],
+                },
+                values: currentValues,
+              },
+            },
+          };
+
+          WindowArray.pbFloorCfg = floorPayload;
+          logIntext(
+            `[Intext:Prebid:${this.node.id}] display_prebid_floor_setconfig_payload - key=${floorKey}, floor=${floorValue > 0 ? parseFloat(floorValue) : "cleared"}, payload=${JSON.stringify(floorPayload)}`,
+          );
+
+          window.pbjs.setConfig(floorPayload);
+
+          let floorsConfigAfter = null;
+          try {
+            floorsConfigAfter = typeof window.pbjs.getConfig === "function"
+              ? window.pbjs.getConfig("floors")
+              : null;
+          } catch (e) {
+            floorsConfigAfter = null;
+          }
+
+          let acceptedState = "unknown";
+          const configuredValue = floorsConfigAfter?.data?.values?.[floorKey];
+          if (floorValue > 0) {
+            acceptedState = Number(configuredValue) === Number(parseFloat(floorValue)) ? "accepted" : "unconfirmed";
+          } else {
+            acceptedState = typeof configuredValue === "undefined" ? "cleared" : "unconfirmed";
+          }
+
+          logIntext(
+            `[Intext:Prebid:${this.node.id}] display_prebid_floor_config_after_set - key=${floorKey}, floor=${floorValue > 0 ? parseFloat(floorValue) : "cleared"}, accepted=${acceptedState}, config=${JSON.stringify(floorsConfigAfter)}`,
+          );
+
+          return floorPayload;
+        }
+
         applyIntextDisplayFloorToPrebid(configuration) {
           if (!window.pbjs?.setConfig || !configuration?.code) return null;
 
@@ -4949,10 +5005,7 @@ class RandomStrategy extends WindowArray {
 
           // El floor del intext solo aplica a banner/display
           if (!hasBanner) {
-            if (WindowArray.pbFloorCfg?.floors?.data?.values) {
-              delete WindowArray.pbFloorCfg.floors.data.values[floorKey];
-              window.pbjs.setConfig(WindowArray.pbFloorCfg);
-            }
+            this.setIntextDisplayFloorConfig(floorKey, null);
             logIntext(
               `[Intext:Prebid:${this.node.id}] display_prebid_floor_cleared - no banner mediaType for ${floorKey}`,
             );
@@ -4962,25 +5015,15 @@ class RandomStrategy extends WindowArray {
           const floorInfo = this.getIntextDisplayFloorInfo();
           const floorValue = floorInfo.value;
 
-          // Ojo: gexp_floor está en EUR en vuestro stack
-          WindowArray.pbFloorCfg.floors.data.currency = "EUR";
-          WindowArray.pbFloorCfg.floors.data.floorsSchemaVersion = 2;
-          WindowArray.pbFloorCfg.floors.data.schema = {
-            delimiter: "|",
-            fields: ["adUnitCode", "mediaType"],
-          };
-
           if (!(floorValue > 0)) {
-            delete WindowArray.pbFloorCfg.floors.data.values[floorKey];
-            window.pbjs.setConfig(WindowArray.pbFloorCfg);
+            this.setIntextDisplayFloorConfig(floorKey, null);
             logIntext(
               `[Intext:Prebid:${this.node.id}] display_prebid_floor_missing - key=${floorKey}, floor cleared`,
             );
             return null;
           }
 
-          WindowArray.pbFloorCfg.floors.data.values[floorKey] = parseFloat(floorValue);
-          window.pbjs.setConfig(WindowArray.pbFloorCfg);
+          this.setIntextDisplayFloorConfig(floorKey, floorValue);
 
           if (floorInfo.source === "initial") {
             logIntext(
