@@ -4,6 +4,7 @@ class WindowArray {
         floors: {
             data: {
                 currency: 'USD',
+                floorsSchemaVersion: 2,
                 schema: {
                     delimiter: '|',
                     fields: ['adUnitCode', 'mediaType']
@@ -2693,7 +2694,11 @@ class RandomStrategy extends WindowArray {
         getPreservedRefreshHeight(currentEl) {
           const nodeLockedHeight = parseInt(this.lockedHeight, 10) || 0;
           const datasetLockedHeight = parseInt(currentEl?.dataset?.lockedHeight, 10) || 0;
-          const currentOffsetHeight = currentEl?.offsetHeight || 0;
+          const chromeHeight = this.getWrapperChromeHeight();
+          const rawOffsetHeight = currentEl?.offsetHeight || 0;
+          const currentOffsetHeight = rawOffsetHeight > chromeHeight
+            ? Math.max(rawOffsetHeight - chromeHeight, 0)
+            : rawOffsetHeight;
 
           let preservedHeight = 360;
           let lockSource = "default_360";
@@ -2722,6 +2727,25 @@ class RandomStrategy extends WindowArray {
           );
 
           return preservedHeight;
+        }
+
+        getWrapperChromeHeight() {
+          return 15;
+        }
+
+        getDisplayWrapperTotalHeight(contentHeight, logReason = "") {
+          const numericHeight = parseInt(contentHeight, 10) || 0;
+          if (!(numericHeight > 0)) return 0;
+          const totalHeight = numericHeight + this.getWrapperChromeHeight();
+          if (logReason) {
+            logIntext(
+              `[Intext:Display:${this.id}] ${logReason} - content_height=${numericHeight}, total_height=${totalHeight}`,
+            );
+          }
+          logIntext(
+            `[Intext:Display:${this.id}] display_wrapper_total_height_applied - content_height=${numericHeight}, total_height=${totalHeight}`,
+          );
+          return totalHeight;
         }
 
         initialize() {
@@ -3047,8 +3071,12 @@ class RandomStrategy extends WindowArray {
               slotDoc.style.padding = "";
 
              if (this.lockedHeight) {
-                 slotDoc.style.minHeight = this.lockedHeight + "px";
-                 slotDoc.style.height = this.lockedHeight + "px"; 
+                 const totalWrapperHeight = this.getDisplayWrapperTotalHeight(
+                   this.lockedHeight,
+                   this.lockedHeight === 600 ? "display_300x600_visual_height_adjusted" : "",
+                 );
+                 slotDoc.style.minHeight = totalWrapperHeight + "px";
+                 slotDoc.style.height = totalWrapperHeight + "px"; 
                  slotDoc.dataset.lockedHeight = String(this.lockedHeight);
              } else {
                  slotDoc.style.minHeight = "360px";
@@ -3081,9 +3109,10 @@ class RandomStrategy extends WindowArray {
                 slotDoc.style.alignItems = 'flex-start';
                 
                 const finalHeight = Math.max((this.lockedHeight || 0), proportionalHeight);
+                const totalWrapperHeight = this.getDisplayWrapperTotalHeight(finalHeight);
                 
-                slotDoc.style.minHeight = finalHeight + "px";
-                slotDoc.style.height = finalHeight + "px";
+                slotDoc.style.minHeight = totalWrapperHeight + "px";
+                slotDoc.style.height = totalWrapperHeight + "px";
 
              } else {
                 slotDoc.style.overflow = '';
@@ -3216,8 +3245,12 @@ class RandomStrategy extends WindowArray {
              }
 
              const newWrapper = this.manager.createWrapperNode(this.id, "display");
-             newWrapper.style.height = preservedHeight + "px";
-             newWrapper.style.minHeight = preservedHeight + "px";
+             const totalWrapperHeight = this.getDisplayWrapperTotalHeight(
+               preservedHeight,
+               preservedHeight === 600 ? "display_300x600_visual_height_adjusted" : "",
+             );
+             newWrapper.style.height = totalWrapperHeight + "px";
+             newWrapper.style.minHeight = totalWrapperHeight + "px";
              newWrapper.dataset.lockedHeight = String(preservedHeight);
              newWrapper.classList.add("is-open");
              newWrapper.style.opacity = "1";
@@ -3428,15 +3461,20 @@ class RandomStrategy extends WindowArray {
           if (displayInDom) {
             displayEl.classList.add("is-open");
             displayEl.style.display = "block";
-            displayEl.style.height = (this.lockedHeight || 360) + "px";
-            displayEl.style.minHeight = (this.lockedHeight || 360) + "px";
+            const totalWrapperHeight = this.getDisplayWrapperTotalHeight(
+              this.lockedHeight || 360,
+              this.lockedHeight === 600 ? "display_300x600_visual_height_adjusted" : "",
+            );
+            displayEl.style.height = totalWrapperHeight + "px";
+            displayEl.style.minHeight = totalWrapperHeight + "px";
             displayEl.style.opacity = "1";
             if (videoInDom) this.videoContainer.close({ destroy: false });
           } else if (videoInDom) {
             videoEl.classList.add("is-open");
             videoEl.style.display = "block";
-            videoEl.style.height = (this.lockedHeight || 360) + "px";
-            videoEl.style.minHeight = (this.lockedHeight || 360) + "px";
+            const totalWrapperHeight = this.getDisplayWrapperTotalHeight(this.lockedHeight || 360);
+            videoEl.style.height = totalWrapperHeight + "px";
+            videoEl.style.minHeight = totalWrapperHeight + "px";
             videoEl.style.opacity = "1";
             logIntext(`[Intext:Slot:${this.id}] ⬜ Keeping VIDEO container open (display was destroyed)`);
           } else {
@@ -3531,7 +3569,11 @@ class RandomStrategy extends WindowArray {
           this.isOpen = true;
           let finalHeight;
           if (lockedHeightOverride && lockedHeightOverride > 1) {
-              finalHeight = (lockedHeightOverride + 15) + "px";
+              const chromeHeight =
+                typeof this.domNode?.dataset?.wrapperChromeHeight !== "undefined"
+                  ? parseInt(this.domNode.dataset.wrapperChromeHeight, 10) || 15
+                  : 15;
+              finalHeight = (lockedHeightOverride + chromeHeight) + "px";
           } else {
               const preset = this.domNode.dataset.targetHeight;
               finalHeight = preset || "360px";
@@ -3579,6 +3621,38 @@ class RandomStrategy extends WindowArray {
           this.prebidStarted = false;
           this.timer = null;
           this.intersectionObserver = null;
+        }
+
+        getPbjsBidResponsesSafe(adUnitCode) {
+          if (
+            !window.pbjs ||
+            typeof window.pbjs.getBidResponsesForAdUnitCode !== "function"
+          ) {
+            if (!IntextWaterfall._loggedPbjsBidResponsesApiMissing) {
+              IntextWaterfall._loggedPbjsBidResponsesApiMissing = true;
+              logIntext(
+                `[Intext:Prebid:${this.node.id}] pbjs_bid_responses_api_missing - using empty bids fallback`,
+              );
+            }
+            return { bids: [] };
+          }
+
+          try {
+            return window.pbjs.getBidResponsesForAdUnitCode(adUnitCode) || { bids: [] };
+          } catch (e) {
+            if (!IntextWaterfall._loggedPbjsBidResponsesApiMissing) {
+              IntextWaterfall._loggedPbjsBidResponsesApiMissing = true;
+              logIntext(
+                `[Intext:Prebid:${this.node.id}] pbjs_bid_responses_api_missing - using empty bids fallback`,
+              );
+            }
+            return { bids: [] };
+          }
+        }
+
+        getPbjsBidsSafe(adUnitCode) {
+          const bidResponses = this.getPbjsBidResponsesSafe(adUnitCode);
+          return Array.isArray(bidResponses?.bids) ? bidResponses.bids : [];
         }
 
         init() {
@@ -3650,8 +3724,9 @@ class RandomStrategy extends WindowArray {
                 logIntext(
                   `[Intext:Display:${this.node.id}] display_refresh_preserved_height - height=${preservedHeight}`,
                 );
-                videoEl.style.height = preservedHeight + "px";
-                videoEl.style.minHeight = preservedHeight + "px";
+                const totalWrapperHeight = this.node.getDisplayWrapperTotalHeight(preservedHeight);
+                videoEl.style.height = totalWrapperHeight + "px";
+                videoEl.style.minHeight = totalWrapperHeight + "px";
                 videoEl.dataset.lockedHeight = String(preservedHeight);
                 videoEl.classList.add("is-open");
                 videoEl.style.display = "block";
@@ -3683,8 +3758,12 @@ class RandomStrategy extends WindowArray {
                   logIntext(
                     `[Intext:Display:${this.node.id}] display_refresh_preserved_height - height=${preservedHeight}`,
                   );
-                  activeEl.style.height = preservedHeight + "px";
-                  activeEl.style.minHeight = preservedHeight + "px";
+                  const totalWrapperHeight = this.node.getDisplayWrapperTotalHeight(
+                    preservedHeight,
+                    preservedHeight === 600 ? "display_300x600_visual_height_adjusted" : "",
+                  );
+                  activeEl.style.height = totalWrapperHeight + "px";
+                  activeEl.style.minHeight = totalWrapperHeight + "px";
                   activeEl.dataset.lockedHeight = String(preservedHeight);
                   activeEl.classList.add("is-open");
                   activeEl.style.display = "block";
@@ -3789,97 +3868,125 @@ class RandomStrategy extends WindowArray {
               this.registerPrebidAdUnit(configuration);
               this.applyIntextDisplayFloorToPrebid(configuration);
 
-              const _safetyTimer = setTimeout(() => {
-                logIntext(`[Intext:Prebid] ⚠️ Safety timeout (${this.getPrebidTimeout() + 500}ms) — resolving to avoid blocking`);
-                resolve(null);
-              }, this.getPrebidTimeout() + 500);
+              const graceMs = this.config.prebid?.graceMs ?? 300;
+              const watchdogMs = this.getPrebidTimeout() + graceMs + 1500;
+              let settled = false;
+              let watchdogFired = false;
+              let finalizeTimer = null;
+
+              const resolveAuctionId = (auctionIdParam = null) => {
+                const raw = this.getPbjsBidsSafe(configuration.code);
+                let id = auctionIdParam;
+                if (!id && raw.length > 0) {
+                  id = raw[raw.length - 1].auctionId;
+                  logIntext(
+                    `[Intext:Slot:${this.node.id}]   Prebid: auctionId extracted from bid objects: ${id?.substring(0,8)}`,
+                  );
+                }
+                return id;
+              };
+
+              const finalize = (phase, timedOut = false, auctionIdParam = null) => {
+                if (settled) return;
+                settled = true;
+                clearTimeout(_watchdogTimer);
+                if (finalizeTimer) {
+                  clearTimeout(finalizeTimer);
+                  finalizeTimer = null;
+                }
+
+                const auctionId = resolveAuctionId(auctionIdParam);
+                this._currentAuctionId = auctionId;
+
+                const allRaw = this.getPbjsBidsSafe(configuration.code);
+                const allResponses = auctionId
+                  ? allRaw.filter(b => b.auctionId === auctionId)
+                  : allRaw;
+                const bannerBids = allResponses.filter(b => b.mediaType === "banner");
+                const videoBids = allResponses.filter(b => b.mediaType === "video");
+
+                const phaseLabel = phase === "grace" ? " [after grace window]" : phase === "watchdog" ? " [watchdog]" : "";
+                logIntext(
+                  `[Intext:Slot:${this.node.id}]   Prebid [${configuration.code}] auction=${auctionId?.substring(0,8) || 'unknown'}: ${allResponses.length} bid responses (${bannerBids.length} banner, ${videoBids.length} video)${timedOut ? ' [TIMED OUT]' : ''}${phaseLabel}`,
+                );
+                if (bannerBids.length > 0) {
+                  const topBanner = bannerBids.sort((a, b) => b.cpm - a.cpm)[0];
+                  logIntext(
+                    `[Intext:Slot:${this.node.id}]     ├─ Best Banner: $${topBanner.cpm.toFixed(2)} from ${topBanner.bidderCode}`,
+                  );
+                  bannerBids.forEach(b => {
+                    logIntext(
+                      `[Intext:Slot:${this.node.id}]     │  └─ ${b.bidderCode}: $${b.cpm.toFixed(2)} (${b.mediaType})`,
+                    );
+                  });
+                }
+                if (videoBids.length > 0) {
+                  const topVideo = videoBids.sort((a, b) => b.cpm - a.cpm)[0];
+                  logIntext(
+                    `[Intext:Slot:${this.node.id}]     ├─ Best Video:  $${topVideo.cpm.toFixed(2)} from ${topVideo.bidderCode}`,
+                  );
+                  videoBids.forEach(b => {
+                    logIntext(
+                      `[Intext:Slot:${this.node.id}]     │  └─ ${b.bidderCode}: $${b.cpm.toFixed(2)} (${b.mediaType})`,
+                    );
+                  });
+                }
+
+                try {
+                  const noBids = window.pbjs.getNoBids?.() || [];
+                  const relevantNoBids = auctionId
+                    ? noBids.filter(nb => nb.adUnitCode === configuration.code && nb.auctionId === auctionId)
+                    : noBids.filter(nb => nb.adUnitCode === configuration.code);
+                  if (relevantNoBids.length > 0) {
+                    logIntext(
+                      `[Intext:Slot:${this.node.id}]     ├─ No-bids (${relevantNoBids.length}): ${relevantNoBids.map(nb => nb.bidder).join(', ')}`,
+                    );
+                  }
+                } catch (e) { /* getNoBids may not exist */ }
+
+                if (allResponses.length === 0) {
+                  logIntext(
+                    `[Intext:Slot:${this.node.id}]     └─ No bid responses received`,
+                  );
+                }
+
+                window.pbjs.setTargetingForGPTAsync([configuration.code]);
+                resolve("prebid_done");
+              };
+
+              logIntext(
+                `[Intext:Prebid:${this.node.id}] prebid_watchdog_armed - ms=${watchdogMs} code=${configuration.code}`,
+              );
+              const _watchdogTimer = setTimeout(() => {
+                watchdogFired = true;
+                if (settled) return;
+                logIntext(
+                  `[Intext:Prebid:${this.node.id}] prebid_watchdog_fired - code=${configuration.code}`,
+                );
+                logIntext(
+                  `[Intext:Prebid:${this.node.id}] prebid_watchdog_finalize_with_available_bids - code=${configuration.code}`,
+                );
+                finalize("watchdog", true);
+              }, watchdogMs);
 
               window.pbjs.requestBids({
                 timeout: this.getPrebidTimeout(),
                 adUnitCodes: [configuration.code],
                 bidsBackHandler: (bidResponses, timedOut, auctionIdParam) => {
-                  clearTimeout(_safetyTimer);
-                  const resolveAuctionId = () => {
-                    const raw = window.pbjs.getBidResponsesForAdUnitCode(configuration.code)?.bids || [];
-                    let id = auctionIdParam;
-                    if (!id && raw.length > 0) {
-                      id = raw[raw.length - 1].auctionId;
-                      logIntext(
-                        `[Intext:Slot:${this.node.id}]   Prebid: auctionId extracted from bid objects: ${id?.substring(0,8)}`,
-                      );
-                    }
-                    return id;
-                  };
-
-                  const finalize = (phase) => {
-                    const auctionId = resolveAuctionId();
-                    this._currentAuctionId = auctionId;
-
-                    const allRaw = window.pbjs.getBidResponsesForAdUnitCode(configuration.code)?.bids || [];
-                    const allResponses = auctionId
-                      ? allRaw.filter(b => b.auctionId === auctionId)
-                      : allRaw;
-                    const bannerBids = allResponses.filter(b => b.mediaType === "banner");
-                    const videoBids = allResponses.filter(b => b.mediaType === "video");
-
-                    const phaseLabel = phase === "grace" ? " [after grace window]" : "";
+                  if (!watchdogFired) {
                     logIntext(
-                      `[Intext:Slot:${this.node.id}]   Prebid [${configuration.code}] auction=${auctionId?.substring(0,8) || 'unknown'}: ${allResponses.length} bid responses (${bannerBids.length} banner, ${videoBids.length} video)${timedOut ? ' [TIMED OUT]' : ''}${phaseLabel}`,
+                      `[Intext:Prebid:${this.node.id}] prebid_callback_arrived_before_watchdog - code=${configuration.code}`,
                     );
-                    if (bannerBids.length > 0) {
-                      const topBanner = bannerBids.sort((a, b) => b.cpm - a.cpm)[0];
-                      logIntext(
-                        `[Intext:Slot:${this.node.id}]     ├─ Best Banner: $${topBanner.cpm.toFixed(2)} from ${topBanner.bidderCode}`,
-                      );
-                      bannerBids.forEach(b => {
-                        logIntext(
-                          `[Intext:Slot:${this.node.id}]     │  └─ ${b.bidderCode}: $${b.cpm.toFixed(2)} (${b.mediaType})`,
-                        );
-                      });
-                    }
-                    if (videoBids.length > 0) {
-                      const topVideo = videoBids.sort((a, b) => b.cpm - a.cpm)[0];
-                      logIntext(
-                        `[Intext:Slot:${this.node.id}]     ├─ Best Video:  $${topVideo.cpm.toFixed(2)} from ${topVideo.bidderCode}`,
-                      );
-                      videoBids.forEach(b => {
-                        logIntext(
-                          `[Intext:Slot:${this.node.id}]     │  └─ ${b.bidderCode}: $${b.cpm.toFixed(2)} (${b.mediaType})`,
-                        );
-                      });
-                    }
-
-                    try {
-                      const noBids = window.pbjs.getNoBids?.() || [];
-                      const relevantNoBids = auctionId
-                        ? noBids.filter(nb => nb.adUnitCode === configuration.code && nb.auctionId === auctionId)
-                        : noBids.filter(nb => nb.adUnitCode === configuration.code);
-                      if (relevantNoBids.length > 0) {
-                        logIntext(
-                          `[Intext:Slot:${this.node.id}]     ├─ No-bids (${relevantNoBids.length}): ${relevantNoBids.map(nb => nb.bidder).join(', ')}`,
-                        );
-                      }
-                    } catch (e) { /* getNoBids may not exist */ }
-
-                    if (allResponses.length === 0) {
-                      logIntext(
-                        `[Intext:Slot:${this.node.id}]     └─ No bid responses received`,
-                      );
-                    }
-
-                    window.pbjs.setTargetingForGPTAsync([configuration.code]);
-                    resolve("prebid_done");
-                  };
-
-                  const graceMs = this.config.prebid?.graceMs ?? 300;
+                  }
                   if (timedOut && graceMs > 0) {
-                    const bidsAtTimeout = (window.pbjs.getBidResponsesForAdUnitCode(configuration.code)?.bids || []).length;
+                    const bidsAtTimeout = this.getPbjsBidsSafe(configuration.code).length;
                     logIntext(
                       `[Intext:Slot:${this.node.id}]   Prebid: TIMED OUT with ${bidsAtTimeout} bids — waiting ${graceMs}ms grace window for late bids...`,
                     );
-                    setTimeout(() => finalize("grace"), graceMs);
+                    if (finalizeTimer) clearTimeout(finalizeTimer);
+                    finalizeTimer = setTimeout(() => finalize("grace", timedOut, auctionIdParam), graceMs);
                   } else {
-                    finalize("immediate");
+                    finalize("immediate", timedOut, auctionIdParam);
                   }
                 },
               });
@@ -3962,7 +4069,7 @@ class RandomStrategy extends WindowArray {
             );
           } else if (typeof window.pbjs !== "undefined") {
             const currentAuctionId = this._currentAuctionId;
-            const allBids = (window.pbjs.getBidResponsesForAdUnitCode(code)?.bids || [])
+            const allBids = this.getPbjsBidsSafe(code)
               .filter(b => currentAuctionId ? b.auctionId === currentAuctionId : true);
 
             const seen = new Set();
@@ -3972,7 +4079,7 @@ class RandomStrategy extends WindowArray {
               return true;
             });
 
-            const totalBids = window.pbjs.getBidResponsesForAdUnitCode(code)?.bids?.length || 0;
+            const totalBids = this.getPbjsBidsSafe(code).length || 0;
             if (totalBids > uniqueBids.length) {
               logIntext(
                 `[Intext:Slot:${this.node.id}] ├─ Bid filtering: ${totalBids} total, ${totalBids - uniqueBids.length} stale (from previous auctions), ${uniqueBids.length} current`,
@@ -4740,18 +4847,18 @@ class RandomStrategy extends WindowArray {
           return this.config.prebid?.timeoutMs || 1000;
         }
 
-        getIntextDisplayFloorValue() {
+        getIntextDisplayFloorInfo() {
           const wa = this.wa;
-          if (!wa) return null;
+          if (!wa) return { value: null, source: "missing" };
 
           // 1) Si ya existe el effectivePrice calculado por GEXP, úsalo
           if (typeof wa.effectivePrice === "number" && isFinite(wa.effectivePrice) && wa.effectivePrice > 0) {
-            return parseFloat(wa.effectivePrice);
+            return { value: parseFloat(wa.effectivePrice), source: "effectivePrice" };
           }
 
           // 2) Si hay lastPrice persistido, úsalo
           if (typeof wa.state?.lastPrice === "number" && isFinite(wa.state.lastPrice) && wa.state.lastPrice > 0) {
-            return parseFloat(wa.state.lastPrice);
+            return { value: parseFloat(wa.state.lastPrice), source: "lastPrice" };
           }
 
           // 3) Si hay windowStart válido, úsalo contra el array de precios
@@ -4764,23 +4871,40 @@ class RandomStrategy extends WindowArray {
             isFinite(wa.array[idx]) &&
             wa.array[idx] > 0
           ) {
-            return parseFloat(wa.array[idx]);
+            return { value: parseFloat(wa.array[idx]), source: "windowStart" };
           }
 
-          // 4) Si ya existe en slot targeting previo, úsalo como fallback
+          // 4) En primera subasta display, deriva un floor inicial estable desde el índice base
+          try {
+            const initialIdx = typeof wa.getBasePrice === "function" ? wa.getBasePrice() : null;
+            if (
+              typeof initialIdx === "number" &&
+              initialIdx >= 0 &&
+              Array.isArray(wa.array) &&
+              typeof wa.array[initialIdx] === "number" &&
+              isFinite(wa.array[initialIdx]) &&
+              wa.array[initialIdx] > 0
+            ) {
+              return { value: parseFloat(wa.array[initialIdx]), source: "initial" };
+            }
+          } catch (e) {
+            /* ignore */
+          }
+
+          // 5) Si ya existe en slot targeting previo, úsalo como fallback
           try {
             const slot = this.node?.slot;
             if (slot && typeof slot.getTargeting === "function") {
               const kv = slot.getTargeting("gexp_floor");
               if (Array.isArray(kv) && kv[0] && !isNaN(parseFloat(kv[0]))) {
-                return parseFloat(kv[0]);
+                return { value: parseFloat(kv[0]), source: "slot_targeting" };
               }
             }
           } catch (e) {
             /* ignore */
           }
 
-          return null;
+          return { value: null, source: "missing" };
         }
 
         applyIntextDisplayFloorToPrebid(configuration) {
@@ -4801,10 +4925,12 @@ class RandomStrategy extends WindowArray {
             return null;
           }
 
-          const floorValue = this.getIntextDisplayFloorValue();
+          const floorInfo = this.getIntextDisplayFloorInfo();
+          const floorValue = floorInfo.value;
 
           // Ojo: gexp_floor está en EUR en vuestro stack
           WindowArray.pbFloorCfg.floors.data.currency = "EUR";
+          WindowArray.pbFloorCfg.floors.data.floorsSchemaVersion = 2;
           WindowArray.pbFloorCfg.floors.data.schema = {
             delimiter: "|",
             fields: ["adUnitCode", "mediaType"],
@@ -4822,9 +4948,15 @@ class RandomStrategy extends WindowArray {
           WindowArray.pbFloorCfg.floors.data.values[floorKey] = parseFloat(floorValue);
           window.pbjs.setConfig(WindowArray.pbFloorCfg);
 
-          logIntext(
-            `[Intext:Prebid:${this.node.id}] display_prebid_floor_applied - key=${floorKey}, gexp_floor=${floorValue}`,
-          );
+          if (floorInfo.source === "initial") {
+            logIntext(
+              `[Intext:Prebid:${this.node.id}] display_prebid_floor_initial_applied - key=${floorKey}, gexp_floor=${floorValue}`,
+            );
+          } else {
+            logIntext(
+              `[Intext:Prebid:${this.node.id}] display_prebid_floor_applied - key=${floorKey}, gexp_floor=${floorValue}`,
+            );
+          }
 
           return floorValue;
         }
