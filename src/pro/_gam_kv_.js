@@ -2916,9 +2916,10 @@ class RandomStrategy extends WindowArray {
                         slotDoc.style.alignItems = 'flex-start';
                         
                         const finalHeight = Math.max((this.lockedHeight || 0), proportionalHeight);
+                        const totalWrapperHeight = this.getDisplayWrapperTotalHeight(finalHeight);
               
-                        slotDoc.style.minHeight = finalHeight + "px";
-                        slotDoc.style.height = finalHeight + "px";
+                        slotDoc.style.minHeight = totalWrapperHeight + "px";
+                        slotDoc.style.height = totalWrapperHeight + "px";
 
                     } else {
                         slotDoc.style.overflow = '';
@@ -2931,8 +2932,12 @@ class RandomStrategy extends WindowArray {
                         scaleTarget.style.height = '';
 
                         if (this.lockedHeight) {
-                            slotDoc.style.minHeight = this.lockedHeight + "px";
-                            slotDoc.style.height = this.lockedHeight + "px";
+                            const totalWrapperHeight = this.getDisplayWrapperTotalHeight(
+                              this.lockedHeight,
+                              this.lockedHeight === 600 ? "display_300x600_visual_height_adjusted" : "",
+                            );
+                            slotDoc.style.minHeight = totalWrapperHeight + "px";
+                            slotDoc.style.height = totalWrapperHeight + "px";
                         }
 
                         if (actualHeight > 0 && actualHeight < (this.lockedHeight || 360)) {
@@ -4876,7 +4881,36 @@ class RandomStrategy extends WindowArray {
 
           // 4) En primera subasta display, deriva un floor inicial estable desde el índice base
           try {
-            const initialIdx = typeof wa.getBasePrice === "function" ? wa.getBasePrice() : null;
+            const deriveInitialAdUnit = () => {
+              if (wa.cI?.adUnit) return wa.cI.adUnit;
+              try {
+                const slotAdUnitPath = wa.slot?.getAdUnitPath?.();
+                if (slotAdUnitPath) {
+                  const slotParts = String(slotAdUnitPath).split("/").filter(Boolean);
+                  if (slotParts.length >= 2) return slotParts[1];
+                  if (slotParts.length >= 1) return slotParts[0];
+                }
+              } catch (e) {
+                /* ignore */
+              }
+
+              const cfgAdUnit = wa.gexp?.cfg?.adUnit;
+              if (cfgAdUnit) {
+                const cfgParts = String(cfgAdUnit).split("/").filter(Boolean);
+                if (cfgParts.length >= 1) return cfgParts[0];
+              }
+
+              return null;
+            };
+
+            const initialAdUnit = deriveInitialAdUnit();
+            let initialIdx = null;
+            if (initialAdUnit && typeof wa.gexp?.getPivotIndex === "function") {
+              initialIdx = wa.gexp.getPivotIndex(initialAdUnit, wa.position, 0, wa.offY);
+            }
+            if (initialIdx === null || typeof initialIdx === "undefined") {
+              initialIdx = typeof wa.pCfg?.p === "number" ? wa.pCfg.p + 1 : null;
+            }
             if (
               typeof initialIdx === "number" &&
               initialIdx >= 0 &&
