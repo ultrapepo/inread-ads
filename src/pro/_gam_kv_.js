@@ -1644,7 +1644,9 @@ class RandomStrategy extends WindowArray {
               logIntext(`[IntextManager] Detected content type: "${this.siteContext.contentType}"`);
 
               this.siteConfig = this.resolveContentTypeProfile(this.siteConfig, this.siteContext.contentType);
-
+              if (!this.isContentTypeAllowed(this.siteConfig, this.siteContext.contentType, "[IntextManager]")) {
+                return;
+              }
               if (this.isBlockedByExclusions()) {
                 return;
               }
@@ -1803,6 +1805,20 @@ class RandomStrategy extends WindowArray {
         };
 
         detectContentType(rootElement = null) {
+          const root = rootElement || document;
+          if (rootElement) {
+            const attrType =
+              rootElement.getAttribute?.("data-content-type") ||
+              rootElement.dataset?.contentType ||
+              rootElement.getAttribute?.("data-ue-content-type") ||
+              null;
+            if (attrType) {
+              return IntextManager.CONTENT_TYPE_MAP[attrType] || attrType;
+            }
+            if (root.querySelector('.ue-c-streamlive__body')) return 'directo';
+            if (root.querySelector('.ue-c-article__body')) return 'noticia';
+          }
+
           const dl = (typeof window !== "undefined" ? (window.ueDataLayer || window.utag_data) : null) || {};
           if (dl.be_page_content_type) {
             const normalized = IntextManager.CONTENT_TYPE_MAP[dl.be_page_content_type] || dl.be_page_content_type;
@@ -1819,7 +1835,6 @@ class RandomStrategy extends WindowArray {
             }
           } catch (e) { /* silent */ }
 
-          const root = rootElement || document;
           if (root.querySelector('.ue-c-streamlive__body')) return 'directo';
           if (root.querySelector('.ue-c-article__body')) return 'noticia';
 
@@ -1911,8 +1926,148 @@ class RandomStrategy extends WindowArray {
           return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
         }
 
-        isBlockedByExclusions() {
-          const excl = this.siteConfig?.exclusions;
+        getHostnameNormalized(hostname = null) {
+          let normalized = hostname;
+          if (!normalized && typeof window !== "undefined" && window.location?.hostname) {
+            normalized = window.location.hostname;
+          }
+          return String(normalized || "").toLowerCase().replace(/^www\./, "");
+        }
+
+        mergeRuleBlock(base, siteSpecific) {
+          const hasBase = base && typeof base === "object";
+          const hasSiteSpecific = siteSpecific && typeof siteSpecific === "object";
+          if (!hasBase && !hasSiteSpecific) return null;
+          const baseClone = hasBase ? JSON.parse(JSON.stringify(base)) : {};
+          const siteClone = hasSiteSpecific ? JSON.parse(JSON.stringify(siteSpecific)) : {};
+          return IntextManager.deepMerge(baseClone, siteClone);
+        }
+
+        resolveScopedRuleBlock(block, hostname = null) {
+          if (!block || typeof block !== "object") return null;
+
+          const normalizedHostname = this.getHostnameNormalized(hostname);
+          const generalBlock = Object.keys(block).reduce((acc, key) => {
+            if (key !== "sites") acc[key] = block[key];
+            return acc;
+          }, {});
+          const siteSpecific =
+            block.sites?.[normalizedHostname] ||
+            block.sites?.[hostname] ||
+            null;
+          const resolved = this.mergeRuleBlock(generalBlock, siteSpecific);
+
+          logIntext(
+            `[IntextManager] scoped_rule_block_resolved - hostname=${normalizedHostname || "unknown"}, has_general=${Object.keys(generalBlock).length > 0}, has_site_specific=${Boolean(siteSpecific)}`,
+          );
+
+          return resolved;
+        }
+
+        getScopedSlotsForRoot(rootElement) {
+          if (!rootElement || typeof googletag === "undefined" || !googletag.pubads || typeof googletag.pubads !== "function") {
+            return [];
+          }
+
+          try {
+            return googletag.pubads().getSlots().filter((slot) => {
+              const slotElId = slot?.getSlotElementId?.();
+              if (!slotElId || slotElId.indexOf("gexp-intext") === 0) return false;
+              const slotEl = document.getElementById(slotElId);
+              return Boolean(slotEl && rootElement.contains(slotEl));
+            });
+          } catch (e) {
+            return [];
+          }
+        }
+
+        getSlotTargetingMap(slot) {
+          if (!slot || typeof slot.getTargetingKeys !== "function") return {};
+          const targeting = {};
+          try {
+            slot.getTargetingKeys().forEach((key) => {
+              const values = slot.getTargeting(key);
+              targeting[key] = values && values.length === 1 ? values[0] : values;
+            });
+          } catch (e) {}
+          return targeting;
+        }
+
+        resolveScopedAdContext(rootElement) {
+          const scopedSlots = this.getScopedSlotsForRoot(rootElement);
+          const referenceSlot =
+            scopedSlots.find((slot) => {
+              const fullPath = slot?.getAdUnitPath?.() || "";
+              return fullPath && !/\/p_/.test(fullPath);
+            }) ||
+            scopedSlots[0] ||
+            null;
+
+          let networkId = this.networkId;
+          let adUnitPath = this.adUnitPath;
+          if (referenceSlot?.getAdUnitPath) {
+            const fullPath = referenceSlot.getAdUnitPath();
+            const parts = String(fullPath || "").replace(/^\//, "").split("/");
+            if (parts.length >= 2) {
+              networkId = parts[0] || networkId;
+              adUnitPath = parts.slice(1).join("/").replace(/\bp_/g, "") || adUnitPath;
+            }
+          }
+
+          const pageTargeting = this.getPageCustomTargeting();
+          const slotTargeting = this.getSlotTargetingMap(referenceSlot);
+          const contentType = this.detectContentType(rootElement);
+          const pageUrl =
+            rootElement?.querySelector?.('link[rel="canonical"]')?.href ||
+            rootElement?.dataset?.url ||
+            window.location.href;
+          const hostname = this.getHostnameNormalized(
+            (() => {
+              try {
+                return new URL(pageUrl, window.location.href).hostname;
+              } catch (e) {
+                return this.siteContext?.site || window.location.hostname;
+              }
+            })(),
+          );
+
+          const scopedContext = {
+            networkId,
+            adUnitPath,
+            targeting: { ...(pageTargeting || {}), ...(slotTargeting || {}) },
+            contentType,
+            pageUrl,
+            hostname,
+          };
+
+          logIntext(
+            `[IntextManager:NavContinua] navcontinua_scoped_context_resolved - slots=${scopedSlots.length}, hostname=${hostname}, contentType=${contentType}, pageUrl=${pageUrl}`,
+            scopedContext,
+          );
+          logIntext(
+            `[IntextManager:NavContinua] navcontinua_scoped_adunit_resolved - networkId=${networkId}, adUnitPath=${adUnitPath || "missing"}, source_slot=${referenceSlot?.getSlotElementId?.() || "fallback"}`,
+          );
+
+          return scopedContext;
+        }
+
+        isContentTypeAllowed(siteConfig, contentType, logPrefix = "[IntextManager]") {
+          const allowedTypes = siteConfig?.allowedContentTypes || [];
+          if (allowedTypes.length > 0 && !allowedTypes.includes(contentType)) {
+            logIntext(
+              `${logPrefix} navcontinua_content_type_blocked - contentType=${contentType}, allowed=${allowedTypes.join(",")}`,
+            );
+            return false;
+          }
+          return true;
+        }
+
+        isBlockedByExclusions(context = null) {
+          const hostname = this.getHostnameNormalized(context?.hostname || this.siteContext?.site);
+          const excl = this.resolveScopedRuleBlock(
+            context?.siteConfig?.exclusions || this.siteConfig?.exclusions,
+            hostname,
+          );
           if (!excl) return false;
 
           if (excl.disableAll === true) {
@@ -1921,7 +2076,7 @@ class RandomStrategy extends WindowArray {
           }
 
           if (Array.isArray(excl.adUnitPaths) && excl.adUnitPaths.length > 0) {
-            const pageAdUnit = this.getPageAdUnitPath();
+            const pageAdUnit = this.getPageAdUnitPath(context);
             if (pageAdUnit) {
               const matchedPath = excl.adUnitPaths.find(blockedPath =>
                 pageAdUnit.startsWith(blockedPath)
@@ -1934,7 +2089,7 @@ class RandomStrategy extends WindowArray {
           }
 
           if (excl.keyValues && typeof excl.keyValues === 'object' && Object.keys(excl.keyValues).length > 0) {
-            const pageTargeting = this.getPageCustomTargeting();
+            const pageTargeting = this.getPageCustomTargeting(context);
             if (pageTargeting) {
               for (const [key, blockedValues] of Object.entries(excl.keyValues)) {
                 if (!Array.isArray(blockedValues) || blockedValues.length === 0) continue;
@@ -1964,12 +2119,16 @@ class RandomStrategy extends WindowArray {
           return false;
         }
 
-        isAllowedByInclusions() {
-          const inc = this.siteConfig?.inclusions;
+        isAllowedByInclusions(context = null) {
+          const hostname = this.getHostnameNormalized(context?.hostname || this.siteContext?.site);
+          const inc = this.resolveScopedRuleBlock(
+            context?.siteConfig?.inclusions || this.siteConfig?.inclusions,
+            hostname,
+          );
           if (!inc) return true;
 
           if (inc.keyValues && typeof inc.keyValues === 'object' && Object.keys(inc.keyValues).length > 0) {
-            const pageTargeting = this.getPageCustomTargeting();
+            const pageTargeting = this.getPageCustomTargeting(context);
             if (pageTargeting) {
               for (const [key, allowedValues] of Object.entries(inc.keyValues)) {
                 if (!Array.isArray(allowedValues) || allowedValues.length === 0) continue;
@@ -2001,7 +2160,10 @@ class RandomStrategy extends WindowArray {
           return true;
         }
 
-        getPageAdUnitPath() {
+        getPageAdUnitPath(context = null) {
+          if (context?.adUnitPath) {
+            return context.adUnitPath;
+          }
           if (typeof data !== 'undefined' && data?.adSlots?.[0]?.adUnit) {
             return data.adSlots[0].adUnit;
           }
@@ -2011,7 +2173,10 @@ class RandomStrategy extends WindowArray {
           return this.adUnitPath || null;
         }
 
-        getPageCustomTargeting() {
+        getPageCustomTargeting(context = null) {
+          if (context?.targeting && typeof context.targeting === "object") {
+            return context.targeting;
+          }
           if (typeof data !== 'undefined' && data?.customTargeting) {
             return data.customTargeting;
           }
@@ -2309,7 +2474,8 @@ class RandomStrategy extends WindowArray {
           const isConfig = this.siteConfig?.infiniteScroll;
           if (!isConfig) return;
 
-          const contentType = this.detectContentType(mainElement);
+          const scopedContext = this.resolveScopedAdContext(mainElement);
+          const contentType = scopedContext.contentType || this.detectContentType(mainElement);
           logIntext(`[IntextManager:NavContinua] navIndex=${navIndex}: content type = "${contentType}"`);
 
           let scrollConfig = IntextManager.deepMerge({...this.siteConfig}, {});
@@ -2320,46 +2486,37 @@ class RandomStrategy extends WindowArray {
           if (isConfig.overrides) {
             scrollConfig = IntextManager.deepMerge(scrollConfig, isConfig.overrides);
           }
-
-          const exclusions = isConfig.exclusions;
-          if (exclusions) {
-            if (exclusions.disableAll === true) {
-              logIntext(`[IntextManager:NavContinua] ❌ BLOCKED by infiniteScroll.exclusions.disableAll`);
-              return;
-            }
-            if (Array.isArray(exclusions.adUnitPaths) && exclusions.adUnitPaths.length > 0) {
-              const pageAdUnit = this.getPageAdUnitPath();
-              if (pageAdUnit && exclusions.adUnitPaths.some(p => pageAdUnit.startsWith(p))) {
-                logIntext(`[IntextManager:NavContinua] ❌ BLOCKED by infiniteScroll.exclusions.adUnitPaths`);
-                return;
-              }
-            }
-            if (exclusions.keyValues && Object.keys(exclusions.keyValues).length > 0) {
-              const pageTargeting = this.getPageCustomTargeting();
-              if (pageTargeting) {
-                for (const [key, blockedValues] of Object.entries(exclusions.keyValues)) {
-                  if (!Array.isArray(blockedValues) || blockedValues.length === 0) continue;
-                  const rawVal = pageTargeting[key];
-                  if (rawVal === undefined || rawVal === null) continue;
-                  let pageValues;
-                  if (Array.isArray(rawVal)) pageValues = rawVal.map(String);
-                  else if (typeof rawVal === 'string' && rawVal.includes(',')) pageValues = rawVal.split(',').map(v => v.trim());
-                  else pageValues = [String(rawVal)];
-                  if (blockedValues.some(b => pageValues.includes(String(b)))) {
-                    logIntext(`[IntextManager:NavContinua] ❌ BLOCKED by infiniteScroll.exclusions.keyValues key="${key}"`);
-                    return;
-                  }
-                }
-              }
-            }
+          if (!this.isContentTypeAllowed(scrollConfig, contentType, "[IntextManager:NavContinua]")) {
+            return;
           }
+
+          const scopedRuleContext = {
+            ...scopedContext,
+            contentType,
+            navIndex,
+            siteConfig: scrollConfig,
+          };
+
+          if (this.isBlockedByExclusions(scopedRuleContext)) {
+            logIntext(
+              `[IntextManager:NavContinua] navcontinua_exclusions_blocked - navIndex=${navIndex}, adUnitPath=${scopedRuleContext.adUnitPath || "missing"}`,
+            );
+            return;
+          }
+
+          if (!this.isAllowedByInclusions(scopedRuleContext)) {
+            logIntext(`[IntextManager:NavContinua] navcontinua_inclusions_allowed - navIndex=${navIndex}, allowed=false`);
+            return;
+          }
+
+          logIntext(`[IntextManager:NavContinua] navcontinua_inclusions_allowed - navIndex=${navIndex}, allowed=true`);
 
           const pncSuffix = navIndex >= 1 ? `-pnc-${navIndex}` : '';
 
-          this.createIntextPositionsScoped(mainElement, scrollConfig, pncSuffix, navIndex);
+          this.createIntextPositionsScoped(mainElement, scrollConfig, pncSuffix, navIndex, scopedRuleContext);
         }
 
-        createIntextPositionsScoped(rootElement, scopedConfig, pncSuffix, navIndex) {
+        createIntextPositionsScoped(rootElement, scopedConfig, pncSuffix, navIndex, scopedContext = null) {
           try {
             const engine = new IntextPlacementEngine(
               scopedConfig.dom,
@@ -2441,6 +2598,10 @@ class RandomStrategy extends WindowArray {
                 placement,
                 slotIndex: index,
                 navIndex: navIndex,
+                scopedContext: {
+                  ...(scopedContext || {}),
+                  navIndex,
+                },
               });
               newNodes.push(node);
               this.nodes.push(node);
@@ -2656,6 +2817,8 @@ class RandomStrategy extends WindowArray {
           manager,
           placement,
           slotIndex = 0,
+          navIndex = 0,
+          scopedContext = null,
         }) {
           this.id = id;
           this.videoId = videoId;
@@ -2665,6 +2828,8 @@ class RandomStrategy extends WindowArray {
           this.manager = manager;
           this.placement = placement;
           this.slotIndex = slotIndex;
+          this.navIndex = navIndex;
+          this.scopedContext = scopedContext;
           this.state = "idle";
           this.waterfall = null;
           this.activeCreative = null;
@@ -2774,10 +2939,10 @@ class RandomStrategy extends WindowArray {
           return new Promise((resolve) => {
             this.state = "asking_display";
             const adUnitPath =
-              this.manager.adUnitPath || this.manager.gexp.cfg.adUnit || "";
+              this.scopedContext?.adUnitPath || this.manager.adUnitPath || this.manager.gexp.cfg.adUnit || "";
             let sizes = this.config.display?.sizes || [[300, 250], [336, 280], [320, 100], [320, 50]];
 
-            const networkId = this.manager.networkId;
+            const networkId = this.scopedContext?.networkId || this.manager.networkId;
             const fullAdUnit = `/${networkId}/${adUnitPath}`;
 
             logIntext(
@@ -4430,6 +4595,7 @@ class RandomStrategy extends WindowArray {
           const slotId = this.node.videoId;
           const slotName = this.getVideoAdUnitPath();
           const playerSize = videoConfig.playerSize || [640, 360];
+          const networkId = this.node.scopedContext?.networkId || this.node.manager.networkId;
 
           if (!slotId || !slotName) return null;
 
@@ -4437,7 +4603,7 @@ class RandomStrategy extends WindowArray {
             slots: [
               {
                 slotID: slotId,
-                slotName: `/${this.gexp.cfg.networkId}/${slotName}`,
+                slotName: `/${networkId}/${slotName}`,
                 mediaType: "video",
                 sizes: [playerSize],
               },
@@ -4456,7 +4622,7 @@ class RandomStrategy extends WindowArray {
             const sizes = this.getDisplaySizes();
             if (sizes.length) {
               mediaTypes.banner = { sizes };
-              const networkId = this.node.manager.networkId;
+              const networkId = this.node.scopedContext?.networkId || this.node.manager.networkId;
               const prebidNetworks = this.config.prebid?.networks || {};
               const targetNetwork = prebidNetworks[networkId] || prebidNetworks.default || {};
               allBids = allBids.concat(targetNetwork.bidders || []);              
@@ -4488,7 +4654,7 @@ class RandomStrategy extends WindowArray {
                       ? { skip: 0 }
                       : {}),
               };
-              const networkId = this.node.manager.networkId;
+              const networkId = this.node.scopedContext?.networkId || this.node.manager.networkId;
               const prebidNetworks = this.config.prebid?.networks || {};
               const targetNetwork = prebidNetworks[networkId] || prebidNetworks.default || {};
               const excludedVideoList = this.config.prebid?.excludedVideoBidders || [];
@@ -4515,9 +4681,16 @@ class RandomStrategy extends WindowArray {
         }
 
         buildOrtb2Imp(adUnitCode, adUnitPathOverride) {
-          const networkId = this.gexp.cfg.networkId || "99071977";
+          const networkId =
+            this.node.scopedContext?.networkId ||
+            this.node.manager.networkId ||
+            this.gexp.cfg.networkId ||
+            "99071977";
           const adUnitPath =
-            adUnitPathOverride || this.node.manager.adUnitPath || "";
+            adUnitPathOverride ||
+            this.node.scopedContext?.adUnitPath ||
+            this.node.manager.adUnitPath ||
+            "";
           const fullAdSlot = `/${networkId}/${adUnitPath}`;
           const pbadslot = `${fullAdSlot}#${adUnitCode}`;
 
@@ -4537,10 +4710,11 @@ class RandomStrategy extends WindowArray {
         getTAMConfiguration() {
           if (this.config.tam?.enabled === false) return null;
           const slotId = this.node.id;
-          const slotName = this.node.manager.adUnitPath || "";
+          const slotName = this.node.scopedContext?.adUnitPath || this.node.manager.adUnitPath || "";
           const sizes = this.getDisplaySizes().filter(
             (s) => s !== "fluid" && s[0] > 1,
           );
+          const networkId = this.node.scopedContext?.networkId || this.node.manager.networkId;
 
           if (!slotId || !slotName || !sizes.length) return null;
 
@@ -4548,7 +4722,7 @@ class RandomStrategy extends WindowArray {
             slots: [
               {
                 slotID: slotId,
-                slotName: `/${this.node.manager.networkId}/${slotName}`,
+                slotName: `/${networkId}/${slotName}`,
                 sizes: sizes,
               },
             ],
@@ -4638,7 +4812,7 @@ class RandomStrategy extends WindowArray {
         }
 
         buildGAMVideoTagUrl() {
-          const networkId = this.node.manager.networkId;
+          const networkId = this.node.scopedContext?.networkId || this.node.manager.networkId;
           const adUnitPath = this.getVideoAdUnitPath();
           const videoId = this.node.videoId;
 
@@ -4769,7 +4943,7 @@ class RandomStrategy extends WindowArray {
         }
 
         getVideoAdUnitPath() {
-          const basePath = this.node.manager.adUnitPath || "";
+          const basePath = this.node.scopedContext?.adUnitPath || this.node.manager.adUnitPath || "";
           const parts = basePath.split("/");
           if (parts.length > 0) {
             parts[parts.length - 1] = "video-intext";
@@ -4809,7 +4983,7 @@ class RandomStrategy extends WindowArray {
           if (this._aliasesRegistered) return;
           this._aliasesRegistered = true;
 
-          const networkId = this.gexp.cfg.networkId;
+          const networkId = this.node.scopedContext?.networkId || this.node.manager.networkId || this.gexp.cfg.networkId;
           const prebidNetworks = this.config.prebid?.networks || {};
           const targetNetwork = prebidNetworks[networkId] || prebidNetworks.default || {};
           const aliases = targetNetwork.aliases;
@@ -4940,35 +5114,96 @@ class RandomStrategy extends WindowArray {
           return { value: null, source: "missing" };
         }
 
-        setIntextDisplayFloorConfig(floorKey, floorValue) {
-          if (!window.pbjs?.setConfig || !floorKey) return null;
-
-          const currentValues = {
-            ...(WindowArray.pbFloorCfg?.floors?.data?.values || {}),
+        getCoreFloorsConfigData() {
+          const fallbackData = {
+            currency: "USD",
+            schema: {
+              delimiter: "|",
+              fields: ["adUnitCode", "mediaType"],
+            },
+            values: {},
           };
 
-          if (floorValue > 0) {
-            currentValues[floorKey] = parseFloat(floorValue);
-          } else {
-            delete currentValues[floorKey];
+          let source = "fallback";
+          let baseFloors = null;
+          let baseData = null;
+
+          try {
+            if (typeof window.pbjs?.getConfig === "function") {
+              const pbjsFloors = window.pbjs.getConfig("floors");
+              if (pbjsFloors?.data) {
+                source = "pbjs";
+                baseFloors = pbjsFloors;
+                baseData = pbjsFloors.data;
+              }
+            }
+          } catch (e) {}
+
+          if (!baseData && WindowArray.pbFloorCfg?.floors?.data) {
+            source = "windowarray";
+            baseFloors = WindowArray.pbFloorCfg.floors;
+            baseData = WindowArray.pbFloorCfg.floors.data;
           }
 
-          const floorPayload = {
-            floors: {
-              data: {
-                currency: "EUR",
-                schema: {
-                  delimiter: "|",
-                  fields: ["adUnitCode", "mediaType"],
-                },
-                values: currentValues,
-              },
+          if (!baseData) {
+            baseFloors = { data: fallbackData };
+            baseData = fallbackData;
+          }
+
+          logIntext(
+            `[Intext:Prebid:${this.node.id}] display_prebid_floor_core_detected - source=${source}, data=${JSON.stringify(baseData)}`,
+          );
+
+          return {
+            source,
+            floors: baseFloors,
+            data: baseData,
+            fallbackData,
+          };
+        }
+
+        buildMergedFloorsConfig(floorKey, floorValue) {
+          const { floors, data, fallbackData } = this.getCoreFloorsConfigData();
+          const values = {
+            ...(fallbackData.values || {}),
+            ...((data && data.values) || {}),
+          };
+          const parsedFloorValue = parseFloat(floorValue);
+          const hasValidFloorValue = Number.isFinite(parsedFloorValue) && parsedFloorValue > 0;
+
+          if (hasValidFloorValue) {
+            values[floorKey] = parsedFloorValue;
+          } else {
+            delete values[floorKey];
+          }
+
+          const mergedFloors = {
+            ...(floors || {}),
+            data: {
+              ...fallbackData,
+              ...(data || {}),
+              schema: data?.schema || fallbackData.schema,
+              values,
             },
           };
 
+          return {
+            floorPayload: {
+              floors: mergedFloors,
+            },
+            floorValue: hasValidFloorValue ? parsedFloorValue : null,
+          };
+        }
+
+        setIntextDisplayFloorConfig(floorKey, floorValue) {
+          if (!window.pbjs?.setConfig || !floorKey) return null;
+
+          const { floorPayload, floorValue: parsedFloorValue } =
+            this.buildMergedFloorsConfig(floorKey, floorValue);
+
           WindowArray.pbFloorCfg = floorPayload;
           logIntext(
-            `[Intext:Prebid:${this.node.id}] display_prebid_floor_setconfig_payload - key=${floorKey}, floor=${floorValue > 0 ? parseFloat(floorValue) : "cleared"}, payload=${JSON.stringify(floorPayload)}`,
+            `[Intext:Prebid:${this.node.id}] display_prebid_floor_setconfig_payload - key=${floorKey}, floor=${parsedFloorValue != null ? parsedFloorValue : "cleared"}, payload=${JSON.stringify(floorPayload)}`,
           );
 
           window.pbjs.setConfig(floorPayload);
@@ -4984,14 +5219,14 @@ class RandomStrategy extends WindowArray {
 
           let acceptedState = "unknown";
           const configuredValue = floorsConfigAfter?.data?.values?.[floorKey];
-          if (floorValue > 0) {
-            acceptedState = Number(configuredValue) === Number(parseFloat(floorValue)) ? "accepted" : "unconfirmed";
+          if (parsedFloorValue != null) {
+            acceptedState = Number(configuredValue) === Number(parsedFloorValue) ? "accepted" : "unconfirmed";
           } else {
             acceptedState = typeof configuredValue === "undefined" ? "cleared" : "unconfirmed";
           }
 
           logIntext(
-            `[Intext:Prebid:${this.node.id}] display_prebid_floor_config_after_set - key=${floorKey}, floor=${floorValue > 0 ? parseFloat(floorValue) : "cleared"}, accepted=${acceptedState}, config=${JSON.stringify(floorsConfigAfter)}`,
+            `[Intext:Prebid:${this.node.id}] display_prebid_floor_config_after_set - key=${floorKey}, floor=${parsedFloorValue != null ? parsedFloorValue : "cleared"}, accepted=${acceptedState}, config=${JSON.stringify(floorsConfigAfter)}`,
           );
 
           return floorPayload;
