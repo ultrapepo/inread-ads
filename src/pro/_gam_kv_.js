@@ -2208,8 +2208,9 @@ class RandomStrategy extends WindowArray {
           return null;
         }
         
-        isSlotDisabledByExclusion(index) {
-          const ds = this.siteConfig?.exclusions?.disableSlots;
+        isSlotDisabledByExclusion(index, context = null) {
+          const siteConfig = context?.siteConfig || this.siteConfig;
+          const ds = siteConfig?.exclusions?.disableSlots;
           if (!ds) return false;
 
           if (Array.isArray(ds)) {
@@ -2224,7 +2225,7 @@ class RandomStrategy extends WindowArray {
             for (const rule of ds.rules) {
               if (!Array.isArray(rule.slots) || !rule.slots.includes(index)) continue;
               if (Array.isArray(rule.ifAdUnitPath) && rule.ifAdUnitPath.length > 0) {
-                const pageAdUnit = this.getPageAdUnitPath();
+                const pageAdUnit = this.getPageAdUnitPath(context);
                 if (pageAdUnit && rule.ifAdUnitPath.some(p => pageAdUnit.startsWith(p))) {
                   logIntext(`[IntextManager] Slot ${index}: DISABLED by disableSlots rule (adUnitPath match)`);
                   return true;
@@ -2232,7 +2233,7 @@ class RandomStrategy extends WindowArray {
               }
 
               if (rule.ifKeyValues && typeof rule.ifKeyValues === 'object' && Object.keys(rule.ifKeyValues).length > 0) {
-                const pageTargeting = this.getPageCustomTargeting();
+                const pageTargeting = this.getPageCustomTargeting(context);
                 if (pageTargeting) {
                   for (const [key, blockedValues] of Object.entries(rule.ifKeyValues)) {
                     if (!Array.isArray(blockedValues) || blockedValues.length === 0) continue;
@@ -2545,11 +2546,11 @@ class RandomStrategy extends WindowArray {
                 if (slotsConfig.enabledSlots && !slotsConfig.enabledSlots.includes(index)) return;
               }
 
-              const isExclusions = this.siteConfig?.infiniteScroll?.exclusions;
-              if (isExclusions?.disableSlots) {
-                const ds = isExclusions.disableSlots;
-                if (Array.isArray(ds) && ds.includes(index)) return;
-                if (Array.isArray(ds.always) && ds.always.includes(index)) return;
+              if (this.isSlotDisabledByExclusion(index, scopedContext)) {
+                logIntext(
+                  `[IntextManager:NavContinua] navIndex=${navIndex} Slot ${index}: DISABLED by scoped exclusions.disableSlots`,
+                );
+                return;
               }
 
               const displayWrapper = this.createWrapperNode(index, "display", pncSuffix);
@@ -4815,6 +4816,7 @@ class RandomStrategy extends WindowArray {
           const networkId = this.node.scopedContext?.networkId || this.node.manager.networkId;
           const adUnitPath = this.getVideoAdUnitPath();
           const videoId = this.node.videoId;
+          const pageUrl = this.node.scopedContext?.pageUrl || window.location.href;
 
           let custParts = ["intext=true"];
           if (this.node.navIndex) {
@@ -4929,8 +4931,8 @@ class RandomStrategy extends WindowArray {
             plcmt: "1",
             vpmute: "1",
             vpa: "auto",
-            url: window.location.href,
-            description_url: window.location.href,
+            url: pageUrl,
+            description_url: pageUrl,
             correlator: String(Date.now()),
             cust_params: custParams,
           });
@@ -5022,7 +5024,8 @@ class RandomStrategy extends WindowArray {
         }
 
         getPrebidTimeout() {
-          return this.config.prebid?.timeoutMs || 1000;
+          const configuredTimeout = Number(this.config?.prebid?.timeoutMs);
+          return configuredTimeout > 0 ? configuredTimeout : 1500;
         }
 
         getIntextDisplayFloorInfo() {
