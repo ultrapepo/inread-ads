@@ -5028,18 +5028,53 @@ class RandomStrategy extends WindowArray {
           return configuredTimeout > 0 ? configuredTimeout : 1500;
         }
 
-        getIntextDisplayFloorInfo() {
+        isIntextBannerFloorKey(floorKey) {
+          return /^gexp-intext(?:-\d+)?\|banner$/.test(String(floorKey || ""));
+        }
+
+        getIntextDisplayFloorInfo(floorKey) {
           const wa = this.wa;
           if (!wa) return { value: null, source: "missing" };
 
+          const allowedSources = new Set(["effectivePrice", "lastPrice", "windowStart", "initial"]);
+          const logFloorCandidate = (candidate, source, mediaType) => {
+            logIntext(`[Intext:Prebid:${this.node.id}] display_prebid_floor_write_candidate`, {
+              code: this.getPrebidCode(),
+              floorKey,
+              candidate,
+              source,
+              mediaType,
+            });
+          };
+          const logRejectedCandidate = (candidate, source, mediaType) => {
+            logIntext(`[Intext:Prebid:${this.node.id}] display_prebid_floor_write_rejected_non_banner`, {
+              code: this.getPrebidCode(),
+              floorKey,
+              candidate,
+              source,
+              mediaType,
+            });
+          };
+          const commitCandidate = (candidate, source) => {
+            logFloorCandidate(candidate, source, "banner");
+            if (!allowedSources.has(source)) {
+              logRejectedCandidate(candidate, source, "banner");
+              return null;
+            }
+            if (!(candidate > 0)) return null;
+            return { value: parseFloat(candidate), source };
+          };
+
           // 1) Si ya existe el effectivePrice calculado por GEXP, úsalo
           if (typeof wa.effectivePrice === "number" && isFinite(wa.effectivePrice) && wa.effectivePrice > 0) {
-            return { value: parseFloat(wa.effectivePrice), source: "effectivePrice" };
+            const candidate = commitCandidate(wa.effectivePrice, "effectivePrice");
+            if (candidate) return candidate;
           }
 
           // 2) Si hay lastPrice persistido, úsalo
           if (typeof wa.state?.lastPrice === "number" && isFinite(wa.state.lastPrice) && wa.state.lastPrice > 0) {
-            return { value: parseFloat(wa.state.lastPrice), source: "lastPrice" };
+            const candidate = commitCandidate(wa.state.lastPrice, "lastPrice");
+            if (candidate) return candidate;
           }
 
           // 3) Si hay windowStart válido, úsalo contra el array de precios
@@ -5052,7 +5087,8 @@ class RandomStrategy extends WindowArray {
             isFinite(wa.array[idx]) &&
             wa.array[idx] > 0
           ) {
-            return { value: parseFloat(wa.array[idx]), source: "windowStart" };
+            const candidate = commitCandidate(wa.array[idx], "windowStart");
+            if (candidate) return candidate;
           }
 
           // 4) En primera subasta display, deriva un floor inicial estable desde el índice base
@@ -5095,19 +5131,21 @@ class RandomStrategy extends WindowArray {
               isFinite(wa.array[initialIdx]) &&
               wa.array[initialIdx] > 0
             ) {
-              return { value: parseFloat(wa.array[initialIdx]), source: "initial" };
+              const candidate = commitCandidate(wa.array[initialIdx], "initial");
+              if (candidate) return candidate;
             }
           } catch (e) {
             /* ignore */
           }
 
-          // 5) Si ya existe en slot targeting previo, úsalo como fallback
+          // 5) No reutilizar gexp_floor desde GAM targeting: puede venir contaminado por otros formatos.
           try {
             const slot = this.node?.slot;
             if (slot && typeof slot.getTargeting === "function") {
               const kv = slot.getTargeting("gexp_floor");
               if (Array.isArray(kv) && kv[0] && !isNaN(parseFloat(kv[0]))) {
-                return { value: parseFloat(kv[0]), source: "slot_targeting" };
+                logFloorCandidate(parseFloat(kv[0]), "slot_targeting", "unknown");
+                logRejectedCandidate(parseFloat(kv[0]), "slot_targeting", "unknown");
               }
             }
           } catch (e) {
@@ -5167,10 +5205,34 @@ class RandomStrategy extends WindowArray {
 
         buildMergedFloorsConfig(floorKey, floorValue) {
           const { floors, data, fallbackData } = this.getCoreFloorsConfigData();
-          const values = {
+          const rawValues = {
             ...(fallbackData.values || {}),
             ...((data && data.values) || {}),
           };
+          const values = {};
+          Object.entries(rawValues).forEach(([key, value]) => {
+            if (!key) return;
+
+            if (String(key).startsWith("gexp-intext")) {
+              if (!this.isIntextBannerFloorKey(key)) {
+                logIntext(`[Intext:Prebid:${this.node.id}] display_prebid_floor_write_rejected_non_banner`, {
+                  code: this.getPrebidCode(),
+                  floorKey: key,
+                  candidate: value,
+                  source: "existing_config",
+                  mediaType: String(key).split("|")[1] || "unknown",
+                });
+                return;
+              }
+
+              const parsedExistingValue = parseFloat(value);
+              if (!(parsedExistingValue > 0)) return;
+              values[key] = parsedExistingValue;
+              return;
+            }
+
+            values[key] = value;
+          });
           const parsedFloorValue = parseFloat(floorValue);
           const hasValidFloorValue = Number.isFinite(parsedFloorValue) && parsedFloorValue > 0;
 
@@ -5205,11 +5267,24 @@ class RandomStrategy extends WindowArray {
             this.buildMergedFloorsConfig(floorKey, floorValue);
 
           WindowArray.pbFloorCfg = floorPayload;
+          logIntext(`[Intext:Prebid:${this.node.id}] display_prebid_floor_state_snapshot`, {
+            code: this.getPrebidCode(),
+            floorKey,
+            values: floorPayload?.floors?.data?.values || {},
+          });
           logIntext(
             `[Intext:Prebid:${this.node.id}] display_prebid_floor_setconfig_payload - key=${floorKey}, floor=${parsedFloorValue != null ? parsedFloorValue : "cleared"}, payload=${JSON.stringify(floorPayload)}`,
           );
 
           window.pbjs.setConfig(floorPayload);
+
+          if (parsedFloorValue != null) {
+            logIntext(`[Intext:Prebid:${this.node.id}] display_prebid_floor_write_committed`, {
+              code: this.getPrebidCode(),
+              floorKey,
+              floor: parsedFloorValue,
+            });
+          }
 
           let floorsConfigAfter = null;
           try {
@@ -5243,6 +5318,13 @@ class RandomStrategy extends WindowArray {
 
           // El floor del intext solo aplica a banner/display
           if (!hasBanner) {
+            logIntext(`[Intext:Prebid:${this.node.id}] display_prebid_floor_write_rejected_non_banner`, {
+              code: configuration.code,
+              floorKey,
+              candidate: null,
+              source: "configuration",
+              mediaType: "non_banner",
+            });
             this.setIntextDisplayFloorConfig(floorKey, null);
             logIntext(
               `[Intext:Prebid:${this.node.id}] display_prebid_floor_cleared - no banner mediaType for ${floorKey}`,
@@ -5250,7 +5332,7 @@ class RandomStrategy extends WindowArray {
             return null;
           }
 
-          const floorInfo = this.getIntextDisplayFloorInfo();
+          const floorInfo = this.getIntextDisplayFloorInfo(floorKey);
           const floorValue = floorInfo.value;
 
           if (!(floorValue > 0)) {
