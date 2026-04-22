@@ -39,6 +39,7 @@ class WindowArray {
         this.refreshing = false;
         this.pCfg = null;
         this.cI = null;
+        this.sentPrebidTimings=false;
         this.effectivePrice=null;
         this.effectivePriceIndex=null;
         this.tempWindowStart=null;
@@ -134,7 +135,7 @@ class WindowArray {
         //if(this.position==="rd")
         //    iP+=10;
 
-        if (typeof this.pCfg.rv !== "undefined" && Math.random()>.5)
+        if (typeof this.pCfg.rv !== "undefined" && Math.random()>.8)
             iP = Math.max(0, iP + Math.floor(Math.random() * this.pCfg.rv * 2 - this.pCfg.rv));
         return iP;
     }
@@ -148,7 +149,10 @@ class WindowArray {
 
         let slot = this.slot;
         this.allowUpdate = true;
+        if(this.cI)
+            this.nReloads++;
         this.cI = {
+            adRendered:false,
             strategy: this.state.strategy,
             nHouse: this.state.nHouse,
             nAdex: this.state.nAdex,
@@ -157,7 +161,6 @@ class WindowArray {
             nReloads: this.nReloads,
             adFilled: false,
             adLoadTime: null,
-            adReadyTime: null,
             adMaxViewability: 0,
             adViewable: false,
             last: this.state.last,
@@ -166,8 +169,7 @@ class WindowArray {
             lastRes: this.state.lastRes,
             lastWasPrebid:this.state.lastWasPrebid,
             usingPrebid:false,
-            adRequestTime: this.gexp.getTimeOffset(),
-            usingPricePivot: false,
+            position:this.position,
             adUpFloorCredits: this.state.nUpCredits,
             debugStr: '',
             isBlankReload: false,
@@ -367,8 +369,19 @@ class WindowArray {
         if (this.offY == null)
             this.offY = 0;
         this.updatePrice(this.state.lastRes, this.state.last);
+        let p=this.getBasePrice();
         if(this.prebidIndex!==-1 &&
-            (this.prebidValue>(this.array[this.state.windowStart]/4))
+        /*    (this.prebidValue > 0.5 ||
+                this.state.lastType==this.IT_PREBID || this.state.lastType==this.IT_NONE || this.state.lastType==this.IT_HOUSE ||
+                this.prebidValue>this.array[this.state.windowStart]*0.75 ||
+                (this.array[this.state.windowStart] <= p)
+            )*/
+            (this.prebidValue > 0.5 ||
+                this.state.lastType==this.IT_HOUSE ||
+                this.prebidValue>this.array[this.state.windowStart]*0.50 ||
+                (this.getRandom(1)==1 && this.array[this.state.windowStart] <= p)
+
+            )
         )
         {
             this.setPrebidPrice();
@@ -416,6 +429,67 @@ class WindowArray {
     }
 
     checkPrebid() {
+        if(this.sentPrebidTimings===false)
+        {
+            this.sentPrebidTimings=true;
+            let pb=window.pbjs;
+            if(!pb)
+                return;
+            let slotName="";
+            if(pb.__ctrl)
+            {
+                pb=pb.__ctrl.realObj;
+                slotName=this.slot.getName()+"_1";
+            }
+            else
+            {
+                slotName=this.slot.getSlotElementId()
+            }
+            let foundBids={};
+            let saveTimings=()=> {
+                if(pbjs && pbjs.getBidResponsesForAdUnitCode) {
+                let pbjsBids = pbjs.getBidResponsesForAdUnitCode(slotName);
+                if (pbjsBids) {
+                    let bb = pbjsBids.bids;
+                    for (var k = 0; k < bb.length; k++) {
+                        let cb = bb[k];
+                        if (typeof foundBids[cb["bidder"]] !== "undefined")
+                            continue;
+                        foundBids[cb["bidder"]] = 1;
+
+                            let prefix="prebid_" + cb["bidder"];
+                            this.cI[prefix + "_timeToRespond"] = cb.timeToRespond;
+                            this.cI[prefix + "_creativeId"] = "" + cb.creativeId;
+                            this.cI[prefix+ "_cpm"] = cb.cpm;
+                            this.cI[prefix+ "_currency"] = cb.currency;
+                            this.cI[prefix+ "_size"]=cb.size;
+                            if(typeof cb.meta!==undefined)
+                            {
+                                for(var k in cb.meta)
+                                {
+                                    if(k==="advertiserDomains")
+                                    {
+                                        this.cI[prefix+"_meta_"+k]=(cb.meta[k] && cb.meta[k].length>0)?cb.meta[k][0]:'';
+                                        continue;
+                                    }
+                                    if(typeof cb.meta[k]!=="object")
+                                    {
+                                        this.cI[prefix+"_meta_"+k]=cb.meta[k];
+                                    }
+                                    else
+                                        this.cI[prefix+"_meta_"+k]=JSON.stringify(cb.meta[k]);
+                                }
+                            }
+                            this.cI[prefix+ "_size"]=cb.size;
+                        }
+                    }
+                }
+            }
+            saveTimings();
+            setTimeout(()=>{
+                saveTimings();
+            },3000)
+        }
         let pbtoval = function (a) {
             if (a.length === 0)
                 return 0;
@@ -449,9 +523,12 @@ class WindowArray {
         let m = Math.max(t_pb, t_aps);
         let hbb=s.getTargeting('hb_bidder');
         let bidder=null;
-        if(typeof hbb!=="undefined" && hbb.length>0)
-        {
-            bidder=hbb[0];
+        if(m==t_aps)
+            bidder="amazon";
+        else {
+            if (typeof hbb !== "undefined" && hbb.length > 0) {
+                bidder = hbb[0];
+            }
         }
         if (m > 0) {
             return {
@@ -495,6 +572,34 @@ class WindowArray {
         } else {
             this.offY = 0;
         }
+        if(this.pCfg.umu==1 && this.gexp.isEnabled())
+        {
+            this.cI.usingUMU=1;
+            let id=this.slot.getSlotElementId();
+            let p=document.getElementById(id);
+            if(p && p.parentNode) {
+                let sp=p.parentNode;
+                this.slotContainer=sp;
+                this.muSave={
+                    position:sp.style.position,
+                    top:sp.style.top,
+                    left:sp.style.left
+                };
+                //let scrollTop = window.scrollY || window.pageYOffset || document.documentElement.scrollTop;
+                let minTop=this.pCfg.umumint ?? 0;
+                //let maxTop = this.pCfg.umumaxt ?? 300;
+                //let rnd=(maxTop-minTop)*Math.random()+minTop;
+                let rnd=this.getRandom(1)*50+minTop;
+                sp.style.position="fixed";
+                sp.style.top=rnd+"px";
+                sp.style.left="100px";
+                this.cI.oSlOffy = parseInt(off.top / 100);
+                /* Offset del div del slot con respecto al scroll del usuario */
+                this.cI.oUsOffY = parseInt(off.uTop / 100);
+            }
+
+        }
+
         let today=this.today();
         if (this.state.date != today) {
             this.state.date = today;
@@ -543,7 +648,7 @@ class WindowArray {
                 targetings = Object.assign(targetings, pbt);
                 if(typeof this.effectivePrice==="undefined" || this.effectivePrice === "undefined")
                 {
-                    this.effectivePrice=this.array[Math.floor(Math.max(0,Math.min(this.array.length - 1, this.state.windowStart)))];
+                    this.effectivePrice=this.array[Math.floor(Math.max(1,Math.min(this.array.length - 1, this.state.windowStart)))];
                 }
                 targetings[this.getkName("floor")] = "" + this.effectivePrice;
             }
@@ -579,17 +684,51 @@ class WindowArray {
         {
             targetings['useTarget']=1;
         }*/
+        for(var y=1;y<=4;y++)
+        {
+            this.cI["random"+y]=this.getRandom(y);
+            targetings["random"+y]=this.cI["random"+y];
+        }
+
+        targetings["tlm"]=this.gexp.statsG.telp==true?"1":"0";
+        targetings["tlm_id"]=this.gexp.statsG.telId;
+        targetings["nvis"]=this.gexp.statsG.dailyStorageInstance.get("nVisits")
+
         this.slot.updateTargetingFromMap(targetings);
 
         let allT = this.slot.getTargetingMap();
+        let foundPremium=false;
         for (var k in allT) {
             if(k.includes("hb_pb")) {
                 try {
-                    this.cI[k + "_f"] = parseFloat(allT[k][0]);
+                    this.cI[k] = parseFloat(allT[k][0]);
                 }catch(e){}
             }
             this.cI[k] = allT[k][0];
         }
+        try {
+            let pads=googletag.pubads();
+            let globalKeys = pads.getTargetingKeys();
+            for (var i=0;i<globalKeys.length;i++) {
+                var k=globalKeys[i];
+                var tg=pads.getTargeting(k)[0];
+                if(k==="isPremium")
+                {
+                    tg=(tg=="1" || tg=="true");
+                }
+                if (typeof this.cI[k] === "undefined") {
+                    this.cI[k] = tg;
+                }
+
+                if (k === "isPremium" && (this.cI[k]=="true" || this.cI[k]=="1")) {
+                    foundPremium = true;
+                    localStorage.setItem("_gexp_prem", "1");
+                }
+            }
+            if (foundPremium === false && localStorage.getItem("_gexp_prem")=="1") {
+                pads.setTargeting("isPremium", "1");
+            }
+        }catch(e){}
         if(this.prebidIndex > -1 && this.prebidValue >=1)
         {
             this.slot.clearTargeting("r");
@@ -705,6 +844,11 @@ class WindowArray {
 
     response(ev) {
 
+        if(this.pCfg.umu==1 && this.slotContainer && this.gexp.isEnabled()) {
+            for(var k in this.muSave)
+                this.slotContainer.style[k]=this.muSave[k];
+        }
+
         if (this.allowUpdate === false)
             return;
         this.allowUpdate = false;
@@ -716,7 +860,10 @@ class WindowArray {
         this.canReload = false;
         this.clearTargetings();
         this.canReload = this.isReloadAllowed(event);
-        this.cI.adResponseTime = (new Date().getTime()) - this.adResponseTime;
+        setTimeout(()=>{
+        this.cI.qemQueryId=this.slot.getEscapedQemQueryId();
+        },1000);
+        this.cI.adResponseTime = this.getTimeOffset();
         if (event === null) {
             this.cI.isBlank = true;
 
@@ -929,7 +1076,6 @@ class WindowArray {
 
                 
         let f = () => {
-            this.nReloads++;
             if (this.cI) {
                 this.cI.wasRefreshed = true;
             }
@@ -1121,28 +1267,16 @@ class WindowArray {
 
 
         let s = this.state.nProbes;
-
-        let ahsum=(this.state.nHouse+this.state.nAdex);
-        if(s > 4) {
-            if (ahsum > 6) {
-
-                if (this.state.nAdex / ahsum > .75)
-                    this.state.windowStart += this.state.nConsAdex;
-            }
-                this.cI.debugStr += "a";
-                this.effectivePrice = this.array[this.state.windowStart];
-                this.effectivePriceIndex = this.state.windowStart;
-                return;
-        }
-       /* let bp=this.getBasePrice();
-        if(
+        let bp=this.getBasePrice();
+        if(bp>0 && this.state.windowStart && this.array[this.state.windowStart] &&
             this.array[this.state.windowStart] > 12*bp
         )
         {
+            this.cI.debugStr+="x";
             this.effectivePrice = this.array[this.state.windowStart];
             this.effectivePriceIndex = this.state.windowStart;
             return;
-        }*/
+        }
         /*if(this.position=="rd" && this.offY>40 && this.state.nProbes < 2)
         {
             this.cI.debugStr+="x";
@@ -1163,12 +1297,12 @@ class WindowArray {
                     //      f=15;
                     //  else
                     if(Math.random() < .30 && this.offY>=0 && this.offY < 35) {
-                        if(this.offY < 7) {
+                        if(this.offY < 6) {
                             f = Math.max(0,Math.floor(Math.random() * 5) - 1);
                             this.cI.floorStage="a";
                         }
                         else {
-                            f = 1 ;
+                            f = 0 ;
                             this.cI.floorStage="b";
                         }
 
@@ -1181,24 +1315,24 @@ class WindowArray {
                 case 1: {
                     this.cI.debugStr += "d";
                     if (this.state.nHouse == 0) {
-                        if(this.offY < 7)
-                            f = 3;
-                        else
+                        if(this.offY < 6)
                             f = 2;
+                        else
+                            f = 1;
                     }
                     else
-                        f = 1;
+                        f = 0;
                 }
                     break;
                 case 2: {
                     this.cI.debugStr += "e";
                     if (this.state.nHouse == 0) {
-                        if(this.offY < 7)
+                        if(this.offY < 6)
                             f = 3;
                         else
                             f = 2;
                     } else {
-                        f = 1;
+                        f = 0;
                         max=7;
                     }
                 }
@@ -1222,7 +1356,7 @@ class WindowArray {
                             f = 2;
                             max = 16;
                         } else {
-                            f = 1;
+                            f = 0;
                             max = 16;
                         }
                     }
@@ -1305,6 +1439,10 @@ class WindowArray {
         this.effectivePrice=this.array[this.state.windowStart];
         this.effectivePriceIndex=this.state.windowStart;
     }
+    getTimeOffset()
+    {
+        return parseInt(performance.now());
+    }
     checkBlocked(p)
     {
         if(typeof this.state.blocked!=="undefined")
@@ -1364,11 +1502,18 @@ class WindowArray {
                 this.cI.adMaxViewability = percent;
         }
     }
+    onRequested()
+    {
+        if(this.cI!==null)
+        {
+            this.cI.adRequestedTime=this.getTimeOffset();
+        }
+    }
 
     onLoaded() {
 
         if (this.cI !== null) {
-            this.cI.adLoadTime = (new Date().getTime()) - this.adLoadTime;
+            this.cI.adLoadTime = this.getTimeOffset();
         }
         //if (typeof this.pCfg.rqpbtim !== false && this.cI !== null && this.cI.willReload == true)
         if (this.cI !== null && this.cI.willReload == true)
@@ -1377,6 +1522,14 @@ class WindowArray {
                 if (this.prebidPromise)
                     this.prebidPromise.resolve();
             }, 4000); //this.pCfg.rqpbtim);
+    }
+    onRendered()
+    {
+        if(this.cI!==null)
+        {
+            this.cI.adRendered=true;
+            this.cI.adRenderedTime=this.getTimeOffset();
+        }
     }
 }
 
@@ -6501,7 +6654,7 @@ class StatsGatherer
         let baseId=localStorage.getItem("telPId")
         this.visTracker=new PageVisibilityTracker({minVisibleMs:500});
         this.bfCacheTracker=new BfCacheEventTracker();
-        if(baseNumber===null)
+        if(baseNumber===null || baseId===null)
         {
             baseNumber=Math.floor(Math.random()*1000);
             if(typeof window.crypto!=="undefined" && typeof window.crypto.randomUUID!=="undefined")
@@ -6511,6 +6664,7 @@ class StatsGatherer
             localStorage.setItem('telP', baseNumber);
             localStorage.setItem('telPId', baseId);
         }
+        this.scrollData={};
         this.telp=(baseNumber%sendProbability===0);
         this.telId=baseId;
         this.tln=telemetryName;
@@ -6714,8 +6868,10 @@ class StatsGatherer
                 this.rows[k]["session"]=this.sessionStorageInstance.getAll();
                 this.rows[k]["daily"]=this.dailyStorageInstance.getAll();
                 this.rows[k]["history"]=this.historyStorageInstance.getAll();
+                this.rows[k]["scroll"]=this.scrollData;
                 this.rows[k].gexp_enabled=this.gexp.enabled;
                 this.rows[k].gexp_error=this.gexp.error;
+                this.rows[k].gexp_errored=this.gexp.errored;
                 this.rows[k].newUser=this.gexp.isNewUser();
                 this.rows[k].adtut=this.gexp.getUserType();
                 this.rows[k].initialVisibilityState=this.visTracker.initialVisibilityState;
@@ -6935,38 +7091,156 @@ class StatsGatherer
         cI["timestamp_t"]=new Date().getTime();
     }
     captureScrollMetrics() {
-        let maxScrollDepth = 0;
-        let lastScrollTime = Date.now();
-        this.sessionStorageInstance.set("maxScrollDepth", 0);
-        this.sessionStorageInstance.set("scrollVelocity", 0);
-        this.sessionStorageInstance.set("lastScrollY", 0);
-        let scTimeout=null;
-        let mainCb=()=>{
-            scTimeout=setTimeout(()=>{scTimeoutFunc()},500);
-            window.removeEventListener("scroll",mainCb);
+
+        // =============================================
+        // Variables principales
+        // =============================================
+        const startTime = Date.now();
+
+        let maxScrollDepthPx = 0;
+        let lastScrollY = 0;
+        let totalPixelsScrolled = 0;
+
+        let sampleCounter = 0;
+        let scrollBehaviour = "";
+        let currentIntervalPixels = 0;
+
+        // Nuevas métricas solicitadas
+        let maxScrollPercentage = 0;
+        const timeToScroll = { 25: null, 50: null, 75: null, 90: null };
+
+        const INTERVAL_SAMPLES = 4;        // 4 × 500ms = 2 segundos
+        const PIXELS_PER_UNIT = 100;
+        const MAX_SAMPLES=40;
+        let nSamples=0;
+
+        // Inicializar sessionStorage
+        this.scrollData["maxScrollDepth"]= 0;
+        this.scrollData["maxScrollPercentage"]= 0;
+        this.scrollData["scrollVelocity"]= 0;
+        this.scrollData["totalPixelsScrolled"]= 0;
+        this.scrollData["scrollBehaviour"]= "";
+        this.scrollData["timeToScroll"]= timeToScroll;   // objeto con tiempos en segundos
+
+        let scTimeout = null;
+
+        // =============================================
+        // Función para calcular porcentaje de scroll actual
+        // =============================================
+        const getScrollPercentage = (scrollY) => {
+            const scrollableHeight = document.documentElement.scrollHeight - window.innerHeight;
+            if (scrollableHeight <= 0) return 0;
+            return Math.min(Math.round((scrollY / scrollableHeight) * 100), 100);
         };
 
-        let scTimeoutFunc = () => {
-            const scrollDepth = window.scrollY;
-            maxScrollDepth = Math.max(maxScrollDepth, scrollDepth);
-            this.sessionStorageInstance.set("maxScrollDepth", maxScrollDepth);
+        // =============================================
+        // Inicialización inmediata (scroll inicial)
+        // =============================================
 
-            // Calculate scroll velocity
-            const currentTime = Date.now();
-            const scrollVelocity = (window.scrollY - (this.sessionStorageInstance.getAll().lastScrollY || 0)) / (currentTime - lastScrollTime);
-            lastScrollTime = currentTime;
+        const initialY = window.scrollY ??
+            window.pageYOffset ??
+            document.documentElement.scrollTop ??
+            document.body.scrollTop ?? 0;
+        this.scrollData["initialY"]=initialY;
+        if (initialY < 1000) {
+            totalPixelsScrolled += initialY;
+            currentIntervalPixels += initialY;
+            maxScrollDepthPx = initialY;
 
-            this.sessionStorageInstance.set("scrollVelocity", scrollVelocity);
-            this.sessionStorageInstance.set("lastScrollY", window.scrollY);
-            scTimeout=null;
-            window.addEventListener("scroll",mainCb);
+            const perc = getScrollPercentage(initialY);
+            maxScrollPercentage = perc;
+
+            // Registrar como scroll inicial hacia abajo
+            scrollBehaviour += "D" + Math.round(initialY / PIXELS_PER_UNIT);
+            this.scrollData["scrollBehaviour"]= scrollBehaviour;
+
+            // Registrar tiempos de umbrales si ya los supera al cargar
+            const nowSec = 0; // justo al inicio
+            if (perc >= 25 && timeToScroll[25] === null) timeToScroll[25] = nowSec;
+            if (perc >= 50 && timeToScroll[50] === null) timeToScroll[50] = nowSec;
+            if (perc >= 75 && timeToScroll[75] === null) timeToScroll[75] = nowSec;
+            if (perc >= 90 && timeToScroll[90] === null) timeToScroll[90] = nowSec;
         }
 
-        window.addEventListener("scroll",mainCb);
+        lastScrollY = initialY;
+        this.scrollData["maxScrollDepth"]=Math.round(maxScrollDepthPx);
+        this.scrollData["maxScrollPercentage"]= maxScrollPercentage;
+        this.scrollData["timeToScroll"]= timeToScroll;
+
+        let currentY=initialY;
+
+        // =============================================
+        // Función principal (ejecutada cada ~500ms)
+        // =============================================
+        const scTimeoutFunc = () => {
+
+            currentY = window.scrollY ??
+                window.pageYOffset ??
+                document.documentElement.scrollTop ??
+                document.body.scrollTop ?? 0;
 
 
+            const diff = Math.abs(currentY - lastScrollY);
+            if (diff > 5) {
+                totalPixelsScrolled += diff;
+                currentIntervalPixels += diff;
+            }
+
+            maxScrollDepthPx = Math.max(maxScrollDepthPx, currentY);
+
+            // Calcular porcentaje actual
+            const currentPercentage = getScrollPercentage(currentY);
+            maxScrollPercentage = Math.max(maxScrollPercentage, currentPercentage);
+
+            // Registrar tiempo para cada umbral (solo la primera vez)
+            const elapsedSeconds = Math.round((Date.now() - startTime) / 1000);
+            if (currentPercentage >= 25 && timeToScroll[25] === null) timeToScroll[25] = elapsedSeconds;
+            if (currentPercentage >= 50 && timeToScroll[50] === null) timeToScroll[50] = elapsedSeconds;
+            if (currentPercentage >= 75 && timeToScroll[75] === null) timeToScroll[75] = elapsedSeconds;
+            if (currentPercentage >= 90 && timeToScroll[90] === null) timeToScroll[90] = elapsedSeconds;
+
+            // Velocidad media (px/s desde el inicio)
+            const totalElapsedSec = (Date.now() - startTime) / 1000 || 0.001;
+            const scrollVelocity = Math.round(totalPixelsScrolled / totalElapsedSec);
+
+            // Actualizar storage
+            this.scrollData["maxScrollDepth"]=Math.round(maxScrollDepthPx);
+            this.scrollData["maxScrollPercentage"]= maxScrollPercentage;
+            this.scrollData["scrollVelocity"]=scrollVelocity;
+            this.scrollData["totalPixelsScrolled"]=Math.round(totalPixelsScrolled);
+            this.scrollData["lastScrollY"]=Math.round(currentY);
+            this.scrollData["timeToScroll"]= { ...timeToScroll }; // copia para guardar correctamente
+
+            // =============================================
+            // Scroll Behaviour cada 2 segundos
+            // =============================================
+            sampleCounter++;
+
+            if (sampleCounter >= INTERVAL_SAMPLES && nSamples < MAX_SAMPLES) {
+                nSamples++;
+                let code = "-";
+                if (currentIntervalPixels > 15) {
+
+                    const units = Math.ceil(currentIntervalPixels / PIXELS_PER_UNIT);
+                    const direction = (currentY > lastScrollY) ? "D" : "U";
+
+                    code = direction + units;
+                }
 
 
+                scrollBehaviour += code;
+                this.scrollData["scrollBehaviour"]= scrollBehaviour;
+
+                currentIntervalPixels = 0;
+                sampleCounter = 0;
+            }
+            lastScrollY = currentY;
+
+
+        };
+
+        scTimeoutFunc();
+        setInterval(scTimeoutFunc,500);
 
     }
     captureReferrerInfo() {
@@ -7015,16 +7289,16 @@ class StatsGatherer
         const relativeTime = (metric) =>{return (typeof navTiming[metric]==="undefined" || navTiming[metric]===null)?null:parseInt(navTiming[metric] - navigationStart)};
 
         let d = {
-            fetchStart: relativeTime("fetchStart"),
-            requestStart: relativeTime("requestStart"),
-            responseStart: relativeTime("responseStart"),
-            responseEnd: relativeTime("responseEnd"),
-            domInteractive: relativeTime("domInteractive"),
-            domContentLoadedEventStart: relativeTime("domContentLoadedEventStart"),
-            domContentLoadedEventEnd: relativeTime("domContentLoadedEventEnd"),
-            domComplete: relativeTime("domComplete"),
-            loadEventStart: relativeTime("loadEventStart"),
-            loadEventEnd: relativeTime("loadEventEnd"),
+            page_fetchStart: relativeTime("fetchStart"),
+            page_requestStart: relativeTime("requestStart"),
+            page_responseStart: relativeTime("responseStart"),
+            page_responseEnd: relativeTime("responseEnd"),
+            page_domInteractive: relativeTime("domInteractive"),
+            page_domContentLoadedEventStart: relativeTime("domContentLoadedEventStart"),
+            page_domContentLoadedEventEnd: relativeTime("domContentLoadedEventEnd"),
+            page_domComplete: relativeTime("domComplete"),
+            page_loadEventStart: relativeTime("loadEventStart"),
+            page_loadEventEnd: relativeTime("loadEventEnd"),
             visitDuration:parseInt(Date.now() - navTiming.startTime - performance.timeOrigin)
         };
 
@@ -7059,6 +7333,7 @@ class GAMExp {
                 });
             });
             this.error = "";
+            this.errored=false;
             this.isNew = false;
             this.country = 'ES';
             this.houseAdexRatio = -1;
@@ -7069,7 +7344,7 @@ class GAMExp {
             this.signWallShown = false;
 
             this.loadConfig().then(() => {
-                this.initialize();                
+                this.initialize();
                 this.intextManager = new IntextManager(this.cfg, this);
             });
         }
@@ -7125,12 +7400,20 @@ class GAMExp {
             this.info.houseCounter=-1;
             let telP=this.cfg.telemetryProb ?? 0;
             this.statsG=new StatsGatherer(telP,"test",this);
+            if(this.cfg.name)
+                this.statsG.addRequiredVariable("gam_cfg",this.cfg.name)
+
+            if(this.cfg.gexp_cfg_country)
+                this.statsG.addRequiredVariable("gam_cfg_country",this.cfg.gexp_cfg_country)
 
             googletag.cmd.push(()=>{
                 googletag.pubads().addEventListener("impressionViewable",(event)=>{this.onSlotViewable(event.slot);});
                 googletag.pubads().addEventListener("slotVisibilityChanged",(event)=>{this.onSlotVisibilityChanged(event);});
                 googletag.pubads().addEventListener("slotOnload",(event)=>{this.onSlotLoaded(event.slot);});
                 googletag.pubads().addEventListener("slotResponseReceived",(event)=>{this.response(event)})
+                googletag.pubads().addEventListener("slotRequested",(event)=>{this.onSlotRequested(event.slot)});
+                googletag.pubads().addEventListener("slotRenderEnded",(event)=>{this.onSlotRenderEnded(event.slot)});
+
             })
 
             window.tel_envioPreviewModuloGenerico=(evType)=>{
@@ -7247,6 +7530,26 @@ class GAMExp {
             this.reportError(e);
         }
     }
+    onSlotRenderEnded(slot)
+    {
+        try {
+            let w = this.getWindowFromSlot(slot)
+            w.onRendered();
+        }catch(e)
+        {
+            this.reportError(e);
+        }
+    }
+
+    onSlotRequested(slot){
+        try {
+            let w = this.getWindowFromSlot(slot)
+            w.onRequested();
+        }catch(e)
+        {
+            this.reportError(e);
+        }
+    }
     getRandom(i)
     {
         return this["random"+i];
@@ -7305,7 +7608,21 @@ class GAMExp {
             return;
         if (!this.enabled)
             return;
+        if(typeof slot==="undefined")
+        {
+            try {
+                for (var k in this.windows) {
 
+                    let w = this.windows[k];
+                    w.setTargetings();
+                }
+                this.save();
+            }catch(error)
+            {
+                slot.setTargeting("gexp_error","true");
+                this.reportError(error);
+            }
+        }
 
         var w;
         try {
@@ -7322,6 +7639,7 @@ class GAMExp {
             })
             this.save();
         } catch (error) {
+            slot.setTargeting("gexp_error","true");
             this.reportError(error);
 
         }
@@ -7332,11 +7650,7 @@ class GAMExp {
             return;
         try{
             const slot = event.slot;
-            const position = slot.getTargeting('p')[0];
-            if (typeof this.windows[position]==="undefined") {
-                return;
-            }
-            let c = this.windows[position];
+            let c = this.getWindowFromSlot(slot);
             c.response(event);
             this.save();
         } catch (e) {
@@ -7345,13 +7659,13 @@ class GAMExp {
     }
     reportError(exception)
     {
-        this.error=exception.toString()+exception.stack;
+        this.error=exception.stack.toString();
+        this.errored=true;
         this.enabled = false;
         this.info = this.init;
         this.save();
         if(this.statsG) {
-            var err = new Error();
-            this.statsG.addRequiredVariable("gamexp_err",err.stack);
+            this.statsG.sendData();
         }
     }
     addVariable(v,val)
@@ -7426,10 +7740,6 @@ class GAMExp {
     registerImpression(cI)
     {
         cI.gexp_version=this.version;
-        cI.random1=this.getRandom(1);
-        cI.random2=this.getRandom(2);
-        cI.random3=this.getRandom(3);
-        cI.random4=this.getRandom(4);
         this.statsG.registerRow(cI);
     }
 
@@ -7596,20 +7906,37 @@ class GAMExp {
     // segun los datos calculados en telemetria.
     getPivotIndex(adunit, position,upPoints,offY) {
         if (!this.enabled) return null;
-        let idx=this.getIndexFromOffY(offY);
-        if(typeof position==="undefined")
-            position="r";
-        else {
-            if (position == "m")
-                idx = 1;
-            else {
-                if (position[0] == "r" || position[0] == "s")
-                    position = position[0];
-            }
+        if(this.cfg?.ext?.sites?.pp2)
+        {
+            return this.cfg?.ext?.sites?.pp2?.[adunit]?.[this.country]?.[position] ?? null;
         }
-        return this.cfg?.ext?.sites?.p1?.[adunit]?.[this.country]?.[position]?.["i"+idx] ?? null;
+
+        let idx = this.getIndexFromOffY(offY);
+        if (position == "m") {
+            idx = 1;
+        } else if (position && (position[0] == "r" || position[0] == "s")) {
+            position = position[0];
+        }
+
+        let node = this.cfg?.ext?.sites?.p1?.[adunit]?.[this.country]?.[position] ?? null;
+        if (node === null && position !== "rb") {
+            position = "rb";
+            node = this.cfg?.ext?.sites?.p1?.[adunit]?.[this.country]?.[position] ?? null;
+        }
+
+        // New format: direct price index by position (offY-independent)
+        if (typeof node === "number") {
+            return node;
+        }
+
+        // Legacy format: object with i0..i3 buckets.
+        if (node && typeof node === "object") {
+            return node["i" + idx] ?? node["i1"] ?? null;
+        }
+
+        return null;
     }
-    getPriceProbability(adunit, priceIdx,position, offY)
+    /*getPriceProbability(adunit, priceIdx,position, offY)
     {
         if (!this.enabled) return null;
         let idx=this.getIndexFromOffY(offY);
@@ -7620,20 +7947,46 @@ class GAMExp {
             if(position[0]=="r" || position[0]=="s")
                 position=position[0];
         }
-        let t1=this.cfg?.ext?.sites?.pp1?.[adunit]?.[this.country]?.[position]?.["i"+idx]?.["p"+priceIdx] ?? -1;
+        let pNode=this.cfg?.ext?.sites?.pp1?.[adunit]?.[this.country]?.[position] ?? null;
+        if (typeof pNode === "number") {
+            // Position-only p1-like value has no probability distribution.
+            return -1;
+        }
+        let t1=pNode?.["i"+idx]?.["p"+priceIdx] ?? pNode?.["i1"]?.["p"+priceIdx] ?? -1;
         if(t1!=-1)
             return t1;
         return this.cfg?.ext?.sites?.pp1?.[adunit]?.[this.country]?.['r']?.["i"+idx]?.["p"+priceIdx] ?? -1;
 
-    }
+    }*/
     getExpectedViewability(adunit,offY,gr,ar)
     {
         if(!this.enabled) return -1;
+        if(typeof ueDataLayer==="undefined")
+            return -1;
         let type = ueDataLayer?.be_page_content_type ?? "-1";
         let idx=this.getVIndexFromOffY(offY);
         return this.cfg?.ext?.sites?.vv?.[adunit]?.[type]?.[idx]?.[gr]?.[ar] ?? -1;
     }
-    
+    findGPTSlotByDivId(divId) {
+        if (typeof googletag === 'undefined' || !googletag.apiReady) {
+            console.warn('Google Publisher Tag no está cargado o no está listo.');
+            return null;
+        }
+
+        // Obtenemos todos los slots definidos
+        const slots = googletag.pubads().getSlots();
+
+        // Buscamos el slot cuyo div ID coincida
+        for (const slot of slots) {
+            if (slot.getSlotElementId() === divId) {
+                return slot;
+            }
+        }
+
+        console.warn(`No se encontró ningún slot para el div ID: ${divId}`);
+        return null;
+    }
+
     // Devuelve la informacion para un floor, y un usOffY, segun lo que se ha recibido de telemetria.
 
     loadConfig()
@@ -7683,7 +8036,7 @@ class GAMExp {
         positions: {},
         v: 13
     };
-    version="0.0152";
+    version="0.0156";
     info = this.init;
 }
 
