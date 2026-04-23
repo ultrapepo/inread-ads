@@ -4970,8 +4970,13 @@ class RandomStrategy extends WindowArray {
           const adUnitPath = this.getVideoAdUnitPath();
           const videoId = this.node.videoId;
           const pageUrl = this.node.scopedContext?.pageUrl || window.location.href;
+          const intextPositionCode =
+            this.node.id || (videoId ? videoId.replace(/-video$/, "") : "") || "gexp-intext";
 
-          let custParts = ["intext=true"];
+          let custParts = ["intext=true", `p=${encodeURIComponent(intextPositionCode)}`];
+          logIntext(`[Intext:Waterfall:${this.node.id}] video_gam_position_targeting_applied`, {
+            p: intextPositionCode,
+          });
           if (this.node.navIndex) {
               custParts.push(`gexp-intext-navcont=${encodeURIComponent(this.node.navIndex)}`);
           }
