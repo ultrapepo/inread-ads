@@ -3066,6 +3066,329 @@ class RandomStrategy extends WindowArray {
           return totalHeight;
         }
 
+        getSlotTargetingMapSafe(slot = null) {
+          const targetSlot = slot || this.slot;
+          if (!targetSlot || typeof targetSlot.getTargetingKeys !== "function") return {};
+          const targeting = {};
+          try {
+            targetSlot.getTargetingKeys().forEach((key) => {
+              const values = targetSlot.getTargeting(key);
+              if (!values || values.length === 0) return;
+              targeting[key] = values.length === 1 ? values[0] : values.map(String);
+            });
+          } catch (e) {}
+          return targeting;
+        }
+
+        resolveVideoRequestTargeting() {
+          const gexp = this.manager?.gexp;
+          const sourceLabels = [];
+          const mergedTargeting = {};
+          const collect = (map, sourceLabel) => {
+            if (!map || typeof map !== "object") return;
+            let used = false;
+            Object.entries(map).forEach(([rawKey, rawValue]) => {
+              if (rawValue === undefined || rawValue === null) return;
+              const key = String(rawKey || "").trim();
+              if (!key) return;
+              let value = rawValue;
+              if (Array.isArray(value)) value = value.length === 1 ? value[0] : value.join(",");
+              if (value === undefined || value === null || value === "") return;
+              mergedTargeting[key] = String(value);
+              used = true;
+            });
+            if (used) sourceLabels.push(sourceLabel);
+          };
+
+          collect(this.manager?.getPageCustomTargeting?.(this.scopedContext), "manager.getPageCustomTargeting");
+          collect(this.scopedContext?.targeting, "scopedContext.targeting");
+          collect(this.getSlotTargetingMapSafe(this.slot), "display_slot_targeting");
+
+          const fallbackTargeting = {};
+          try {
+            fallbackTargeting.random1 = gexp?.getRandom?.(1);
+            fallbackTargeting.random2 = gexp?.getRandom?.(2);
+            fallbackTargeting.tlm = gexp?.statsG?.telp ? "1" : "0";
+            fallbackTargeting.tlm_id = gexp?.statsG?.telId || "";
+            fallbackTargeting.nvis =
+              gexp?.statsG?.dailyStorageInstance?.get?.("nVisits") || "0";
+          } catch (e) {}
+
+          const finalTargeting = {
+            intext: "true",
+            p: this.id || "gexp-intext",
+          };
+          if (this.navIndex) {
+            finalTargeting["gexp-intext-navcont"] = String(this.navIndex);
+          }
+
+          ["random1", "random2", "tlm", "tlm_id", "nvis"].forEach((key) => {
+            const preferredValue = mergedTargeting[key];
+            const fallbackValue = fallbackTargeting[key];
+            if (preferredValue !== undefined && preferredValue !== null && preferredValue !== "") {
+              finalTargeting[key] = String(preferredValue);
+            } else if (fallbackValue !== undefined && fallbackValue !== null && fallbackValue !== "") {
+              finalTargeting[key] = String(fallbackValue);
+            }
+          });
+
+          const targetingSource =
+            sourceLabels.length > 0
+              ? sourceLabels.join(" -> ")
+              : "gexp_runtime_fallback";
+
+          logIntext(`[Intext:Auction:${this.id}] intext_video_request_targeting_source`, {
+            targetingSource,
+            scopedContextPageUrl: this.scopedContext?.pageUrl || null,
+            slotAttached: Boolean(this.slot),
+          });
+          logIntext(`[Intext:Auction:${this.id}] intext_video_request_targeting_final`, finalTargeting);
+
+          return {
+            targeting: finalTargeting,
+            targetingSource,
+          };
+        }
+
+        getDisplayHeightFloor(currentEl = null) {
+          const nodeLockedHeight = parseInt(this.lockedHeight, 10) || 0;
+          const datasetLockedHeight = parseInt(currentEl?.dataset?.lockedHeight, 10) || 0;
+          return Math.max(nodeLockedHeight, datasetLockedHeight);
+        }
+
+        applyDisplayWrapperHeight(currentEl, contentHeight, {
+          logReason = "",
+          source = "unknown",
+          allowCompression = false,
+        } = {}) {
+          if (!currentEl) {
+            return { contentHeight: 0, totalHeight: 0, lockedFloor: 0 };
+          }
+
+          const lockedFloor = this.getDisplayHeightFloor(currentEl);
+          let numericHeight = parseInt(contentHeight, 10) || 0;
+          if (!(numericHeight > 0)) {
+            numericHeight =
+              parseInt(currentEl?.dataset?.gexpIntextContentHeight, 10) ||
+              lockedFloor ||
+              360;
+          }
+
+          if (!allowCompression && lockedFloor > 0 && numericHeight < lockedFloor) {
+            logIntext(
+              `[Intext:Display:${this.id}] display_height_compression_rejected - attempted_height=${numericHeight}, locked_height=${lockedFloor}, source=${source}`,
+            );
+            numericHeight = lockedFloor;
+          }
+
+          if (numericHeight === 600) {
+            this.markDisplayHeightLock(600, currentEl);
+          }
+
+          const totalHeight = this.getDisplayWrapperTotalHeight(numericHeight, logReason);
+          currentEl.style.height = totalHeight + "px";
+          currentEl.style.minHeight = totalHeight + "px";
+          currentEl.dataset.gexpIntextContentHeight = String(numericHeight);
+          currentEl.dataset.gexpIntextTotalHeight = String(totalHeight);
+          currentEl.dataset.wrapperChromeHeight = String(this.getWrapperChromeHeight());
+
+          const persistedLock = Math.max(
+            lockedFloor,
+            parseInt(currentEl?.dataset?.lockedHeight, 10) || 0,
+            this.lockedHeight || 0,
+          );
+          if (persistedLock > 0) {
+            currentEl.dataset.lockedHeight = String(persistedLock);
+          }
+
+          logIntext(
+            `[Intext:Display:${this.id}] display_height_state_applied - source=${source}, content_height=${numericHeight}, total_height=${totalHeight}, locked_height=${persistedLock || 0}`,
+          );
+
+          return {
+            contentHeight: numericHeight,
+            totalHeight,
+            lockedFloor: persistedLock || 0,
+          };
+        }
+
+        clearDisplayLayoutGuard() {
+          if (this._displayLayoutObserver) {
+            this._displayLayoutObserver.disconnect();
+            this._displayLayoutObserver = null;
+          }
+          if (Array.isArray(this._displayLayoutTimers)) {
+            this._displayLayoutTimers.forEach((timerId) => clearTimeout(timerId));
+          }
+          this._displayLayoutTimers = [];
+        }
+
+        applyDisplayRenderLayout(currentEl, {
+          gamWidth = 0,
+          gamHeight = 0,
+          actualHeight = 0,
+          reason = "unknown",
+          skipGuardRefresh = false,
+        } = {}) {
+          if (!currentEl) return null;
+          const slotEl = currentEl;
+          let scaleTarget = slotEl.querySelector('div[id^="google_ads_iframe"]') || slotEl.querySelector("iframe");
+          if (!scaleTarget && slotEl.children.length > 1) {
+            scaleTarget = slotEl.lastElementChild;
+          }
+          if (!scaleTarget) scaleTarget = slotEl;
+
+          const measuredHeight = parseInt(actualHeight, 10) || parseInt(gamHeight, 10) || 0;
+          if (measuredHeight === 600 || parseInt(gamHeight, 10) === 600) {
+            this.markDisplayHeightLock(600, slotEl);
+          }
+
+          this._isApplyingDisplayLayout = true;
+          try {
+            if (parseInt(gamWidth, 10) === 960 && parseInt(gamHeight, 10) === 540) {
+              const computedStyle = window.getComputedStyle(slotEl);
+              const paddingX =
+                parseFloat(computedStyle.paddingLeft || 0) +
+                parseFloat(computedStyle.paddingRight || 0);
+              const availableWidth = Math.max(
+                (slotEl.clientWidth || this.container.getElement().clientWidth || 320) - paddingX,
+                1,
+              );
+              const scaleFactor = Math.min(1, availableWidth / 960);
+              const proportionalHeight = Math.ceil(540 * scaleFactor);
+              const heightState = this.applyDisplayWrapperHeight(slotEl, proportionalHeight, {
+                source: reason,
+              });
+
+              scaleTarget.style.position = "static";
+              scaleTarget.style.top = "";
+              scaleTarget.style.left = "";
+              scaleTarget.style.right = "";
+              scaleTarget.style.margin = "0 auto";
+              scaleTarget.style.alignSelf = "center";
+              scaleTarget.style.transformOrigin = "top center";
+              scaleTarget.style.transform = `scale(${scaleFactor})`;
+              scaleTarget.style.width = "960px";
+              scaleTarget.style.height = "540px";
+              scaleTarget.style.maxWidth = "none";
+
+              slotEl.style.overflow = "hidden";
+              slotEl.style.display = "flex";
+              slotEl.style.justifyContent = "center";
+              slotEl.style.alignItems = "flex-start";
+
+              logIntext(
+                `[Intext:Display:${this.id}] display_960x540_centered - source=${reason}, scale_factor=${scaleFactor.toFixed(4)}, content_height=${heightState.contentHeight}, total_height=${heightState.totalHeight}`,
+              );
+            } else {
+              const isTallDisplay = measuredHeight === 600 || this.getDisplayHeightFloor(slotEl) === 600;
+              const heightState = this.applyDisplayWrapperHeight(slotEl, measuredHeight || 360, {
+                logReason: isTallDisplay ? "display_300x600_visual_height_adjusted" : "",
+                source: reason,
+              });
+
+              slotEl.style.overflow = "";
+              slotEl.style.display = "block";
+              slotEl.style.justifyContent = "";
+              slotEl.style.alignItems = "";
+
+              scaleTarget.style.transform = "";
+              scaleTarget.style.transformOrigin = "";
+              scaleTarget.style.width = "";
+              scaleTarget.style.height = "";
+              scaleTarget.style.maxWidth = "";
+
+              if (measuredHeight > 0 && measuredHeight < (heightState.lockedFloor || 360)) {
+                scaleTarget.style.position = "sticky";
+                scaleTarget.style.top = "60px";
+                scaleTarget.style.margin = "0 auto";
+                scaleTarget.style.alignSelf = "flex-start";
+              } else {
+                scaleTarget.style.position = "static";
+                scaleTarget.style.top = "";
+                scaleTarget.style.margin = "0 auto";
+                scaleTarget.style.alignSelf = "";
+              }
+            }
+
+            this._displayRenderState = {
+              slotElementId: slotEl.id,
+              gamWidth: parseInt(gamWidth, 10) || 0,
+              gamHeight: parseInt(gamHeight, 10) || 0,
+              actualHeight: measuredHeight || parseInt(slotEl?.dataset?.gexpIntextContentHeight, 10) || 0,
+            };
+          } finally {
+            this._isApplyingDisplayLayout = false;
+          }
+
+          if (!skipGuardRefresh) {
+            this.ensureDisplayLayoutGuard(slotEl);
+          }
+          return this._displayRenderState;
+        }
+
+        ensureDisplayLayoutGuard(slotEl) {
+          if (!slotEl) return;
+
+          const shouldResetGuard =
+            !this._displayLayoutGuardEl || this._displayLayoutGuardEl !== slotEl;
+          if (shouldResetGuard) {
+            this.clearDisplayLayoutGuard();
+            this._displayLayoutGuardEl = slotEl;
+          } else if (Array.isArray(this._displayLayoutTimers)) {
+            this._displayLayoutTimers.forEach((timerId) => clearTimeout(timerId));
+            this._displayLayoutTimers = [];
+          }
+
+          if (!this._displayLayoutObserver && typeof MutationObserver !== "undefined") {
+            this._displayLayoutObserver = new MutationObserver(() => {
+              if (this._isApplyingDisplayLayout) return;
+              const state = this._displayRenderState;
+              if (!state || state.slotElementId !== slotEl.id) return;
+              const expectedTotalHeight =
+                parseInt(slotEl.dataset.gexpIntextTotalHeight, 10) || 0;
+              const currentInlineHeight = parseInt(slotEl.style.height, 10) || 0;
+              const currentDisplay = slotEl.style.display || "";
+              const expectedDisplay =
+                state.gamWidth === 960 && state.gamHeight === 540 ? "flex" : "block";
+              const needsHeightRepair =
+                expectedTotalHeight > 0 &&
+                currentInlineHeight > 0 &&
+                currentInlineHeight < expectedTotalHeight;
+              const needsDisplayRepair =
+                expectedDisplay === "flex" && currentDisplay !== "flex";
+
+              if (!needsHeightRepair && !needsDisplayRepair) return;
+
+              logIntext(
+                `[Intext:Display:${this.id}] display_layout_guard_reapply - attempted_height=${currentInlineHeight || 0}, expected_total_height=${expectedTotalHeight || 0}, attempted_display=${currentDisplay || "unset"}`,
+              );
+              requestAnimationFrame(() => {
+                this.applyDisplayRenderLayout(slotEl, {
+                  ...state,
+                  reason: "display_layout_guard_reapply",
+                  skipGuardRefresh: true,
+                });
+              });
+            });
+            this._displayLayoutObserver.observe(slotEl, {
+              attributes: true,
+              attributeFilter: ["style"],
+            });
+          }
+
+          this._displayLayoutTimers = [0, 300, 900, 1800, 3200, 5200].map((delayMs) =>
+            setTimeout(() => {
+              if (!this._displayRenderState || this._displayLayoutGuardEl !== slotEl) return;
+              this.applyDisplayRenderLayout(slotEl, {
+                ...this._displayRenderState,
+                reason: `display_layout_post_guard_${delayMs}ms`,
+                skipGuardRefresh: true,
+              });
+            }, delayMs),
+          );
+        }
+
         initialize() {
           this.wa = new WindowArray(
             this.id,
@@ -3194,13 +3517,6 @@ class RandomStrategy extends WindowArray {
                   
                   const slotDoc = document.getElementById(this.id);
                   if (slotDoc && event.size) {
-                    const parentWidth = this.container.getElement().clientWidth;
-                    let scaleTarget = slotDoc.querySelector('div[id^="google_ads_iframe"]') || slotDoc.querySelector('iframe');
-                    if (!scaleTarget && slotDoc.children.length > 1) {
-                        scaleTarget = slotDoc.lastElementChild;
-                    }
-                    if (!scaleTarget) scaleTarget = slotDoc;
-
                     const gamWidth = event.size ? event.size[0] : 0;
                     const gamHeight = event.size ? event.size[1] : 0;
                     const isRefresh1x1 = event.size && event.size[0] === 1 && event.size[1] === 1;
@@ -3212,62 +3528,12 @@ class RandomStrategy extends WindowArray {
                     if (actualHeight === 600) {
                         this.markDisplayHeightLock(600, slotDoc);
                     }
-
-                    if (gamWidth === 960 && gamHeight === 540) {
-                        const computedStyle = window.getComputedStyle(slotDoc);
-                        const paddingX = parseFloat(computedStyle.paddingLeft || 0) + parseFloat(computedStyle.paddingRight || 0);
-                        const availableWidth = (slotDoc.clientWidth || this.container.getElement().clientWidth || 320) - paddingX; 
-                        const scaleFactor = availableWidth / gamWidth;   
-                        const proportionalHeight = gamHeight * scaleFactor; 
-
-                        scaleTarget.style.position = "static";
-                        scaleTarget.style.margin = "0 auto";
-                        
-                        scaleTarget.style.transformOrigin = 'top center';
-                        scaleTarget.style.transform = `scale(${scaleFactor})`;
-                        scaleTarget.style.width = `${gamWidth}px`;
-                        scaleTarget.style.height = `${gamHeight}px`;
-
-                        slotDoc.style.overflow = 'hidden';
-                        slotDoc.style.display = 'flex';
-                        slotDoc.style.justifyContent = 'center';
-                        slotDoc.style.alignItems = 'flex-start';
-                        
-                        const finalHeight = Math.max((this.lockedHeight || 0), proportionalHeight);
-                        const totalWrapperHeight = this.getDisplayWrapperTotalHeight(finalHeight);
-              
-                        slotDoc.style.minHeight = totalWrapperHeight + "px";
-                        slotDoc.style.height = totalWrapperHeight + "px";
-
-                    } else {
-                        slotDoc.style.overflow = '';
-                        slotDoc.style.display = 'block';
-                        slotDoc.style.justifyContent = '';
-                        slotDoc.style.alignItems = '';
-                        
-                        scaleTarget.style.transform = '';
-                        scaleTarget.style.width = '';
-                        scaleTarget.style.height = '';
-
-                        if (this.lockedHeight) {
-                            const totalWrapperHeight = this.getDisplayWrapperTotalHeight(
-                              this.lockedHeight,
-                              this.lockedHeight === 600 ? "display_300x600_visual_height_adjusted" : "",
-                            );
-                            slotDoc.style.minHeight = totalWrapperHeight + "px";
-                            slotDoc.style.height = totalWrapperHeight + "px";
-                        }
-
-                        if (actualHeight > 0 && actualHeight < (this.lockedHeight || 360)) {
-                            scaleTarget.style.position = "sticky";
-                            scaleTarget.style.top = "60px";
-                            scaleTarget.style.margin = "0 auto";
-                            scaleTarget.style.alignSelf = "flex-start";
-                        } else {
-                            scaleTarget.style.position = "static";
-                            scaleTarget.style.margin = "0 auto";
-                        }
-                    }
+                    this.applyDisplayRenderLayout(slotDoc, {
+                      gamWidth,
+                      gamHeight,
+                      actualHeight,
+                      reason: "display_slotRenderEnded",
+                    });
                   }
                 });
               }
@@ -3387,76 +3653,19 @@ class RandomStrategy extends WindowArray {
            this.recordTelemetry("fill", { slotId: this.id, size: event.size });
 
            if (slotDoc) {
-              slotDoc.classList.add("is-open");
+             slotDoc.classList.add("is-open");
               slotDoc.style.display = "block";
               slotDoc.style.opacity = "1";
               slotDoc.style.margin = "";
               slotDoc.style.padding = "";
-
-             if (this.lockedHeight) {
-                 const totalWrapperHeight = this.getDisplayWrapperTotalHeight(
-                   this.lockedHeight,
-                   this.lockedHeight === 600 ? "display_300x600_visual_height_adjusted" : "",
-                 );
-                 slotDoc.style.minHeight = totalWrapperHeight + "px";
-                 slotDoc.style.height = totalWrapperHeight + "px"; 
-                 slotDoc.dataset.lockedHeight = String(this.lockedHeight);
-             } else {
-                 slotDoc.style.minHeight = "360px";
-                 if (!slotDoc.style.height) slotDoc.style.height = "360px";
-             }
-
-             let scaleTarget = slotDoc.querySelector('div[id^="google_ads_iframe"]') || slotDoc.querySelector("iframe") || slotDoc.lastElementChild || slotDoc;
-          
              const gamWidth = event.size ? event.size[0] : 0;
              const gamHeight = event.size ? event.size[1] : 0;
-
-             if (gamWidth === 960 && gamHeight === 540) {
-                const computedStyle = window.getComputedStyle(slotDoc);
-                const paddingX = parseFloat(computedStyle.paddingLeft || 0) + parseFloat(computedStyle.paddingRight || 0);
-                const availableWidth = (slotDoc.clientWidth || this.container.getElement().clientWidth || 320) - paddingX; 
-                const scaleFactor = availableWidth / gamWidth;   
-                const proportionalHeight = gamHeight * scaleFactor; 
-
-                scaleTarget.style.position = "static";
-                scaleTarget.style.margin = "0 auto";
-                
-                scaleTarget.style.transformOrigin = 'top center';
-                scaleTarget.style.transform = `scale(${scaleFactor})`;
-                scaleTarget.style.width = `${gamWidth}px`;
-                scaleTarget.style.height = `${gamHeight}px`;
-
-                slotDoc.style.overflow = 'hidden';
-                slotDoc.style.display = 'flex';
-                slotDoc.style.justifyContent = 'center';
-                slotDoc.style.alignItems = 'flex-start';
-                
-                const finalHeight = Math.max((this.lockedHeight || 0), proportionalHeight);
-                const totalWrapperHeight = this.getDisplayWrapperTotalHeight(finalHeight);
-                
-                slotDoc.style.minHeight = totalWrapperHeight + "px";
-                slotDoc.style.height = totalWrapperHeight + "px";
-
-             } else {
-                slotDoc.style.overflow = '';
-                slotDoc.style.display = 'block';
-                slotDoc.style.justifyContent = '';
-                slotDoc.style.alignItems = '';
-                
-                scaleTarget.style.transform = '';
-                scaleTarget.style.width = '';
-                scaleTarget.style.height = '';
-
-                if (actualCreativeHeight > 0 && actualCreativeHeight < (this.lockedHeight || 360)) {
-                    scaleTarget.style.position = "sticky";
-                    scaleTarget.style.top = "60px";
-                    scaleTarget.style.margin = "0 auto";
-                    scaleTarget.style.alignSelf = "flex-start";
-                } else {
-                  scaleTarget.style.position = "static";
-                  scaleTarget.style.margin = "0 auto";
-                }
-             }
+             this.applyDisplayRenderLayout(slotDoc, {
+               gamWidth,
+               gamHeight,
+               actualHeight: actualCreativeHeight,
+               reason: "display_showDisplay",
+             });
 
              setTimeout(() => {
                 if (slotDoc) slotDoc.style.transition = "";
@@ -3568,13 +3777,11 @@ class RandomStrategy extends WindowArray {
              }
 
              const newWrapper = this.manager.createWrapperNode(this.id, "display");
-             const totalWrapperHeight = this.getDisplayWrapperTotalHeight(
-               preservedHeight,
-               preservedHeight === 600 ? "display_300x600_visual_height_adjusted" : "",
-             );
-             newWrapper.style.height = totalWrapperHeight + "px";
-             newWrapper.style.minHeight = totalWrapperHeight + "px";
-             newWrapper.dataset.lockedHeight = String(preservedHeight);
+             this.applyDisplayWrapperHeight(newWrapper, preservedHeight, {
+               logReason:
+                 preservedHeight === 600 ? "display_300x600_visual_height_adjusted" : "",
+               source: "destroyDisplayForRetry",
+             });
              newWrapper.classList.add("is-open");
              newWrapper.style.opacity = "1";
              newWrapper.style.display = "block";
@@ -3784,20 +3991,21 @@ class RandomStrategy extends WindowArray {
           if (displayInDom) {
             displayEl.classList.add("is-open");
             displayEl.style.display = "block";
-            const totalWrapperHeight = this.getDisplayWrapperTotalHeight(
-              this.lockedHeight || 360,
-              this.lockedHeight === 600 ? "display_300x600_visual_height_adjusted" : "",
-            );
-            displayEl.style.height = totalWrapperHeight + "px";
-            displayEl.style.minHeight = totalWrapperHeight + "px";
+            this.applyDisplayWrapperHeight(displayEl, this.lockedHeight || 360, {
+              logReason:
+                this.lockedHeight === 600 ? "display_300x600_visual_height_adjusted" : "",
+              source: "closeAll_display_container",
+            });
             displayEl.style.opacity = "1";
             if (videoInDom) this.videoContainer.close({ destroy: false });
           } else if (videoInDom) {
             videoEl.classList.add("is-open");
             videoEl.style.display = "block";
-            const totalWrapperHeight = this.getDisplayWrapperTotalHeight(this.lockedHeight || 360);
-            videoEl.style.height = totalWrapperHeight + "px";
-            videoEl.style.minHeight = totalWrapperHeight + "px";
+            this.applyDisplayWrapperHeight(videoEl, this.lockedHeight || 360, {
+              logReason:
+                this.lockedHeight === 600 ? "display_300x600_visual_height_adjusted" : "",
+              source: "closeAll_video_container",
+            });
             videoEl.style.opacity = "1";
             logIntext(`[Intext:Slot:${this.id}] ⬜ Keeping VIDEO container open (display was destroyed)`);
           } else {
@@ -3826,6 +4034,7 @@ class RandomStrategy extends WindowArray {
 
         resetNode() {
           this.state = "idle";
+          this.clearDisplayLayoutGuard();
           if (this.slot) {
             googletag.cmd.push(() => googletag.destroySlots([this.slot]));
           }
@@ -4047,10 +4256,11 @@ class RandomStrategy extends WindowArray {
                 logIntext(
                   `[Intext:Display:${this.node.id}] display_refresh_preserved_height - height=${preservedHeight}`,
                 );
-                const totalWrapperHeight = this.node.getDisplayWrapperTotalHeight(preservedHeight);
-                videoEl.style.height = totalWrapperHeight + "px";
-                videoEl.style.minHeight = totalWrapperHeight + "px";
-                videoEl.dataset.lockedHeight = String(preservedHeight);
+                this.node.applyDisplayWrapperHeight(videoEl, preservedHeight, {
+                  logReason:
+                    preservedHeight === 600 ? "display_300x600_visual_height_adjusted" : "",
+                  source: "refresh_prepare_video_container",
+                });
                 videoEl.classList.add("is-open");
                 videoEl.style.display = "block";
                 videoEl.style.opacity = "1";
@@ -4078,16 +4288,14 @@ class RandomStrategy extends WindowArray {
               const activeEl = this.container.getElement();
               if (activeEl) {
                   const preservedHeight = this.node.getPreservedRefreshHeight(activeEl);
-                  logIntext(
-                    `[Intext:Display:${this.node.id}] display_refresh_preserved_height - height=${preservedHeight}`,
-                  );
-                  const totalWrapperHeight = this.node.getDisplayWrapperTotalHeight(
-                    preservedHeight,
-                    preservedHeight === 600 ? "display_300x600_visual_height_adjusted" : "",
-                  );
-                  activeEl.style.height = totalWrapperHeight + "px";
-                  activeEl.style.minHeight = totalWrapperHeight + "px";
-                  activeEl.dataset.lockedHeight = String(preservedHeight);
+                logIntext(
+                  `[Intext:Display:${this.node.id}] display_refresh_preserved_height - height=${preservedHeight}`,
+                );
+                  this.node.applyDisplayWrapperHeight(activeEl, preservedHeight, {
+                    logReason:
+                      preservedHeight === 600 ? "display_300x600_visual_height_adjusted" : "",
+                    source: "refresh_prepare_display_container",
+                  });
                   activeEl.classList.add("is-open");
                   activeEl.style.display = "block";
                   activeEl.style.opacity = "1";
@@ -4700,7 +4908,9 @@ class RandomStrategy extends WindowArray {
 
             const vContainerEl = this.node.videoContainer.getElement();
             const isOpen = vContainerEl && vContainerEl.classList.contains("is-open");
-            const vHeight = isOpen ? (vContainerEl.offsetHeight || 360) : (this.node.lockedHeight || 360);            
+            const preservedDisplayHeight = isOpen
+              ? this.node.getPreservedRefreshHeight(vContainerEl)
+              : (this.node.lockedHeight || 360);
             
             if (isOpen) {
                // 2. We MUST prepare the Display container BEFORE destroying the Video container
@@ -4708,8 +4918,11 @@ class RandomStrategy extends WindowArray {
                const dEl = this.node.container.getElement();
                if (dEl) {
                  dEl.style.transition = "none";
-                 dEl.style.height = vHeight + "px";
-                 dEl.style.minHeight = vHeight + "px";
+                 this.node.applyDisplayWrapperHeight(dEl, preservedDisplayHeight, {
+                   logReason:
+                     preservedDisplayHeight === 600 ? "display_300x600_visual_height_adjusted" : "",
+                   source: "video_failure_restore_display",
+                 });
                  dEl.style.opacity = "1";
                  dEl.style.display = "block";
                  dEl.classList.add("is-open");
@@ -4972,14 +5185,16 @@ class RandomStrategy extends WindowArray {
           const pageUrl = this.node.scopedContext?.pageUrl || window.location.href;
           const intextPositionCode =
             this.node.id || (videoId ? videoId.replace(/-video$/, "") : "") || "gexp-intext";
+          const resolvedVideoTargeting = this.node.resolveVideoRequestTargeting();
 
-          let custParts = ["intext=true", `p=${encodeURIComponent(intextPositionCode)}`];
+          let custParts = [];
+          Object.entries(resolvedVideoTargeting.targeting).forEach(([key, value]) => {
+            custParts.push(`${encodeURIComponent(key)}=${encodeURIComponent(value)}`);
+          });
           logIntext(`[Intext:Waterfall:${this.node.id}] video_gam_position_targeting_applied`, {
             p: intextPositionCode,
+            targetingSource: resolvedVideoTargeting.targetingSource,
           });
-          if (this.node.navIndex) {
-              custParts.push(`gexp-intext-navcont=${encodeURIComponent(this.node.navIndex)}`);
-          }
 
           if (window.pbjs && this._lastVideoBid) {
             const bid = this._lastVideoBid;
@@ -5060,19 +5275,6 @@ class RandomStrategy extends WindowArray {
                 );
               });
             }
-          }
-
-          try {
-            const gexp = this.gexp;
-            custParts.push(`random1=${gexp.getRandom(1)}`);
-            custParts.push(`random2=${gexp.getRandom(2)}`);
-            custParts.push(`tlm=${gexp.statsG?.telp ? "1" : "0"}`);
-            custParts.push(`tlm_id=${gexp.statsG?.telId || ""}`);
-            const nvis =
-              gexp.statsG?.dailyStorageInstance?.get("nVisits") || "0";
-            custParts.push(`nvis=${nvis}`);
-          } catch (e) {
-            /* ignore */
           }
 
           const custParams = custParts.join("&");
