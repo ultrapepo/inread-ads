@@ -309,21 +309,44 @@ let cfg={
                 "video": {
                     "enabled": true,
                     "playerSize": [640, 360],
-                    "context": "instream",
-                    "plcmt": 1,
-                    "placement": 1,
-                    "mimes": [
-                        "video/mp4",
-                        "application/javascript"
-                    ],
-                    "protocols": [2, 3, 5, 6, 7],
-                    "linearity": 1,
-                    "api": [1, 2],
-                    "battr": [13, 14],
-                    "skippable": true,
-                    "maxduration": 30,
-                    "minduration": 1,
-                    "playbackmethod": [6]
+                    "variantSelection": {
+                        "key": "random1",
+                        "values": {
+                            "5": "instream",
+                            "6": "outstream"
+                        },
+                        "fallback": "instream"
+                    },
+                    "profiles": {
+                        "instream": {
+                            "context": "instream",
+                            "plcmt": 1,
+                            "placement": 1,
+                            "mimes": ["video/mp4", "application/javascript"],
+                            "protocols": [2, 3, 5, 6, 7],
+                            "linearity": 1,
+                            "api": [1, 2],
+                            "battr": [13, 14],
+                            "skippable": true,
+                            "maxduration": 30,
+                            "minduration": 1,
+                            "playbackmethod": [6]
+                        },
+                        "outstream": {
+                            "context": "outstream",
+                            "plcmt": 1,
+                            "placement": 1,
+                            "mimes": ["video/mp4", "application/javascript"],
+                            "protocols": [2, 3, 5, 6, 7],
+                            "linearity": 1,
+                            "api": [1, 2],
+                            "battr": [13, 14],
+                            "skippable": true,
+                            "maxduration": 30,
+                            "minduration": 1,
+                            "playbackmethod": [6]
+                        }
+                    }
                 },
                 "slots": {
                     "enabled": true,
@@ -1025,21 +1048,44 @@ let cfg={
                     "prepareTimeoutMs": 25000,
                     "imaTimeoutMs": 30000,
                     "playerSize": [640, 360],
-                    "context": "instream",
-                    "plcmt": 1,
-                    "placement": 1,
-                    "mimes": [
-                        "video/mp4",
-                        "application/javascript"
-                    ],
-                    "protocols": [2, 3, 5, 6, 7],
-                    "linearity": 1,
-                    "api": [1, 2],
-                    "battr": [13, 14],
-                    "skippable": true,
-                    "maxduration": 30,
-                    "minduration": 1,
-                    "playbackmethod": [6]
+                    "variantSelection": {
+                        "key": "random1",
+                        "values": {
+                            "5": "instream",
+                            "6": "outstream"
+                        },
+                        "fallback": "instream"
+                    },
+                    "profiles": {
+                        "instream": {
+                            "context": "instream",
+                            "plcmt": 1,
+                            "placement": 1,
+                            "mimes": ["video/mp4", "application/javascript"],
+                            "protocols": [2, 3, 5, 6, 7],
+                            "linearity": 1,
+                            "api": [1, 2],
+                            "battr": [13, 14],
+                            "skippable": true,
+                            "maxduration": 30,
+                            "minduration": 1,
+                            "playbackmethod": [6]
+                        },
+                        "outstream": {
+                            "context": "outstream",
+                            "plcmt": 1,
+                            "placement": 1,
+                            "mimes": ["video/mp4", "application/javascript"],
+                            "protocols": [2, 3, 5, 6, 7],
+                            "linearity": 1,
+                            "api": [1, 2],
+                            "battr": [13, 14],
+                            "skippable": true,
+                            "maxduration": 30,
+                            "minduration": 1,
+                            "playbackmethod": [6]
+                        }
+                    }
                 },
                 "prebid": {
                     "timeoutMs": 1500,

@@ -5109,7 +5109,7 @@ class RandomStrategy extends WindowArray {
 
         getTAMVideoConfiguration() {
           if (this.config.tam?.enabled === false) return null;
-          const videoConfig = this.config.video;
+          const videoConfig = this.resolveIntextVideoConfig();
           if (!videoConfig || !videoConfig.enabled) return null;
 
           const slotId = this.node.videoId;
@@ -5131,6 +5131,181 @@ class RandomStrategy extends WindowArray {
           };
         }
 
+        normalizeIntextTargetingValue(value) {
+          if (Array.isArray(value)) {
+            if (value.length === 0) return null;
+            return String(value[0]);
+          }
+          if (value === undefined || value === null || value === "") return null;
+          return String(value);
+        }
+
+        resolveIntextVideoVariant() {
+          const videoConfig = this.config?.video || {};
+          const selection = videoConfig.variantSelection || {};
+          const selectionKey = selection.key || "random1";
+          const selectionMap = selection.values || {};
+          const fallbackVariant = selection.fallback || "instream";
+          const slotCode = this.node?.id || this.node?.videoId || "gexp-intext";
+
+          const candidateSources = [
+            {
+              label: "scopedContext.targeting",
+              map: this.node?.scopedContext?.targeting || null,
+            },
+            {
+              label: "manager.getPageCustomTargeting",
+              map: this.node?.manager?.getPageCustomTargeting?.(this.node?.scopedContext) || null,
+            },
+            {
+              label: "slot_targeting",
+              map: this.node?.getSlotTargetingMapSafe?.(this.node?.slot) || null,
+            },
+          ];
+
+          let resolvedValue = null;
+          let resolvedSource = null;
+          for (const source of candidateSources) {
+            const candidateValue = this.normalizeIntextTargetingValue(source.map?.[selectionKey]);
+            if (candidateValue == null) continue;
+            resolvedValue = candidateValue;
+            resolvedSource = source.label;
+            break;
+          }
+
+          if (resolvedValue == null) {
+            try {
+              if (selectionKey === "random1") {
+                resolvedValue = this.gexp?.getRandom?.(1) != null
+                  ? String(this.gexp.getRandom(1))
+                  : null;
+                resolvedSource = "gexp_runtime_fallback";
+              }
+            } catch (e) {}
+          }
+
+          const variantName = selectionMap[String(resolvedValue)] || fallbackVariant;
+
+          logIntext(`[Intext:Video:${slotCode}] intext_video_variant_resolution_source`, {
+            nodeId: this.node?.id || null,
+            slotCode,
+            key: selectionKey,
+            detectedValue: resolvedValue,
+            source: resolvedSource || "unresolved",
+            scopedContextPageUrl: this.node?.scopedContext?.pageUrl || null,
+          });
+          logIntext(`[Intext:Video:${slotCode}] intext_video_variant_resolved`, {
+            nodeId: this.node?.id || null,
+            slotCode,
+            key: selectionKey,
+            random1: selectionKey === "random1" ? resolvedValue : this.normalizeIntextTargetingValue(this.node?.scopedContext?.targeting?.random1),
+            detectedValue: resolvedValue,
+            variant: variantName,
+            fallback: fallbackVariant,
+          });
+
+          return {
+            key: selectionKey,
+            value: resolvedValue,
+            variant: variantName,
+            source: resolvedSource || "unresolved",
+            fallback: fallbackVariant,
+          };
+        }
+
+        resolveIntextVideoConfig() {
+          const videoConfig = this.config?.video;
+          if (!videoConfig || videoConfig.enabled === false) return videoConfig || null;
+
+          const slotCode = this.node?.id || this.node?.videoId || "gexp-intext";
+          const variantState = this.resolveIntextVideoVariant();
+          const profiles = videoConfig.profiles || {};
+          const commonVideoConfig = Object.keys(videoConfig).reduce((acc, key) => {
+            if (key === "profiles" || key === "variantSelection") return acc;
+            acc[key] = videoConfig[key];
+            return acc;
+          }, {});
+
+          let profileName = variantState.variant || "instream";
+          let profileConfig = profiles[profileName] || null;
+
+          if (!profileConfig && profiles[variantState.fallback]) {
+            warnIntext(`[Intext:Video:${slotCode}] intext_video_profile_missing_variant_fallback`, {
+              nodeId: this.node?.id || null,
+              requestedVariant: profileName,
+              fallbackVariant: variantState.fallback,
+            });
+            profileName = variantState.fallback;
+            profileConfig = profiles[profileName];
+          }
+
+          if (!profileConfig && Object.keys(profiles).length > 0) {
+            const firstProfileName = Object.keys(profiles)[0];
+            warnIntext(`[Intext:Video:${slotCode}] intext_video_profile_missing_config_fallback_first_profile`, {
+              nodeId: this.node?.id || null,
+              requestedVariant: profileName,
+              fallbackVariant: firstProfileName,
+            });
+            profileName = firstProfileName;
+            profileConfig = profiles[firstProfileName];
+          }
+
+          if (!profileConfig) {
+            profileName = "instream";
+            profileConfig = commonVideoConfig;
+          }
+
+          if (profileConfig?.plcmt == null && commonVideoConfig?.plcmt != null) {
+            warnIntext(`[Intext:Video:${slotCode}] intext_video_profile_plcmt_fallback_common`, {
+              nodeId: this.node?.id || null,
+              variant: profileName,
+              plcmt: commonVideoConfig.plcmt,
+            });
+          }
+          if (profileConfig?.placement == null && commonVideoConfig?.placement != null) {
+            warnIntext(`[Intext:Video:${slotCode}] intext_video_profile_placement_fallback_common`, {
+              nodeId: this.node?.id || null,
+              variant: profileName,
+              placement: commonVideoConfig.placement,
+            });
+          }
+
+          const mergedProfileConfig = IntextManager.deepMerge(commonVideoConfig, profileConfig || {});
+          if (mergedProfileConfig.plcmt == null) {
+            warnIntext(`[Intext:Video:${slotCode}] intext_video_profile_plcmt_fallback_default`, {
+              nodeId: this.node?.id || null,
+              variant: profileName,
+              fallbackPlcmt: 1,
+            });
+            mergedProfileConfig.plcmt = 1;
+          }
+          if (mergedProfileConfig.placement == null) {
+            warnIntext(`[Intext:Video:${slotCode}] intext_video_profile_placement_fallback_default`, {
+              nodeId: this.node?.id || null,
+              variant: profileName,
+              fallbackPlacement: 1,
+            });
+            mergedProfileConfig.placement = 1;
+          }
+          mergedProfileConfig._variant = profileName;
+          mergedProfileConfig._variantKey = variantState.key;
+          mergedProfileConfig._variantValue = variantState.value;
+          mergedProfileConfig._variantSource = variantState.source;
+
+          logIntext(`[Intext:Video:${slotCode}] intext_video_profile_applied`, {
+            nodeId: this.node?.id || null,
+            slotCode,
+            random1: variantState.key === "random1" ? variantState.value : null,
+            variant: profileName,
+            context: mergedProfileConfig.context || null,
+            plcmt: mergedProfileConfig.plcmt ?? null,
+            placement: mergedProfileConfig.placement ?? null,
+            source: variantState.source,
+          });
+
+          return mergedProfileConfig;
+        }
+
         getPrebidMultiFormatConfig() {
           const code = this.getPrebidCode();
           const mode = this._effectiveMode;
@@ -5150,7 +5325,7 @@ class RandomStrategy extends WindowArray {
           }
 
           if (mode === "auto" || mode === "video_only") {
-            const vc = this.config.video;
+            const vc = this.resolveIntextVideoConfig();
             if (vc?.enabled) {
               mediaTypes.video = {
                 context: vc.context || "instream",
@@ -5158,8 +5333,8 @@ class RandomStrategy extends WindowArray {
                 mimes: vc.mimes || ["video/mp4", "application/javascript"],
                 protocols: vc.protocols || [2, 3, 5, 6, 7],
                 playbackmethod: vc.playbackmethod || [6],
-                plcmt: vc.plcmt || 1,
-                placement: vc.placement || 1,
+                plcmt: vc.plcmt,
+                placement: vc.placement,
                 linearity: vc.linearity || 1,
                 api: vc.api || [1, 2],
                 maxduration: vc.maxduration || 30,
@@ -5336,9 +5511,17 @@ class RandomStrategy extends WindowArray {
           const adUnitPath = this.getVideoAdUnitPath();
           const videoId = this.node.videoId;
           const pageUrl = this.node.scopedContext?.pageUrl || window.location.href;
+          const resolvedVideoConfig = this.resolveIntextVideoConfig() || {};
           const intextPositionCode =
             this.node.id || (videoId ? videoId.replace(/-video$/, "") : "") || "gexp-intext";
           const resolvedVideoTargeting = this.node.resolveVideoRequestTargeting();
+          const playerSize = Array.isArray(resolvedVideoConfig.playerSize) && resolvedVideoConfig.playerSize.length === 2
+            ? resolvedVideoConfig.playerSize
+            : [640, 360];
+          const gamSize = `${playerSize[0]}x${playerSize[1]}`;
+          const gamPlcmt = resolvedVideoConfig.plcmt != null
+            ? String(resolvedVideoConfig.plcmt)
+            : "1";
 
           let custParts = [];
           Object.entries(resolvedVideoTargeting.targeting).forEach(([key, value]) => {
@@ -5435,13 +5618,13 @@ class RandomStrategy extends WindowArray {
           const params = new URLSearchParams({
             iu: `/${networkId}/${adUnitPath}`,
             vpos: "preroll",
-            sz: "640x360",
+            sz: gamSize,
             gdfp_req: "1",
             env: "vp",
             output: "xml_vast4",
             unviewed_position_start: "1",
             ad_rule: "0",
-            plcmt: "1",
+            plcmt: gamPlcmt,
             vpmute: "1",
             vpa: "auto",
             url: pageUrl,
