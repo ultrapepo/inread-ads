@@ -331,8 +331,8 @@ let cfg={
                         },
                         "outstream": {
                             "context": "outstream",
-                            "plcmt": 1,
-                            "placement": 1,
+                            "plcmt": 2,
+                            "placement": 3,
                             "mimes": ["video/mp4", "application/javascript"],
                             "protocols": [2, 3, 5, 6, 7],
                             "linearity": 1,
@@ -1070,8 +1070,8 @@ let cfg={
                         },
                         "outstream": {
                             "context": "outstream",
-                            "plcmt": 1,
-                            "placement": 1,
+                            "plcmt": 2,
+                            "placement": 3,
                             "mimes": ["video/mp4", "application/javascript"],
                             "protocols": [2, 3, 5, 6, 7],
                             "linearity": 1,

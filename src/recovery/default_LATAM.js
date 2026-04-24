@@ -1,12 +1,12 @@
-
 let cfg={
+    "name":"LATAM",
     "enabled":true,
     "defaultP":1,
     "houseTm":30000,
     "maxHReload":1,
     "telemetryProb":4,
     "pList": [0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5, 0.6, 0.75, 1, 1.25, 1.5, 1.75, 2, 2.25, 2.5, 2.75, 3, 3.25, 3.5, 3.75, 4],
-    "adexIds" : [2559776610],
+    "adexIds" : [4539205383],
     "houseIds" :[5688947279, 5355378473, 45125937, 5632467105, 4633770194, 5170458185, 4591133191,
         50339097,
         51641577,
@@ -15,9 +15,6 @@ let cfg={
         4815141041,
         5672511518,
         5744792553],
-
-
-
     "prebidIds":[
         "5359233312",
         "4406227815",
@@ -37,25 +34,25 @@ let cfg={
     "reloadCampaignIds":[2559776610, 483876297, 3038846356, 2098434238, 494913417, 494827977, 2106449176, 2108387998, 2106441352, 2106520950, 2106523863, 2667870692, 2668441436, 2668163671, 2668164637],
     "houseLineItems":[],
     "positions":{
-        "r":{"p":7,"mu":4,"rv":1,"nbb":2,"st":1,"ub":7,"ppbo":0.1,"ppbd":2,"hl":20,"hr":{"tim":15000,"ov":false,"mr":1},"ar":{"tim":null,"ov":true,"pbtim":2000,"mr":1,"mintim":5000},"rqpbtim":2000,"tl":true},
-        "rb":{"p":6,"mu":3,"rv":1,"nbb":2,"st":1,"ub":7,"ppbo":0.1,"ppbd":2,"hl":20,"hr":{"tim":15000,"ov":false,"mr":1},"ar":{"tim":null,"ov":true,"pbtim":2000,"mr":1,"mintim":5000},"rqpbtim":2000,"tl":true},
-        "rc":{"p":5,"rv":0,"nbb":2,"st":1,"ub":7,"ppbo":0.05,"ppbd":2,"hl":20,"hr":{"tim":15000,"ov":false,"mr":1},"ar":{"tim":null,"ov":true,"pbtim":2000,"mr":1,"mintim":5000},"rqpbtim":2000,"tl":true},
-        "rd":{"p":3,"rv":0,"nbb":2,"st":2,"ub":7,"ppbo":0.05,"ppbd":2,"hl":20,"hr":{"tim":15000,"ov":false,"mr":1},"ar":{"tim":null,"ov":true,"pbtim":2000,"mr":1,"mintim":5000},"rqpbtim":2000,"tl":true},
+        "r":{"p":7,"mu":4,"rv":1,"nbb":2,"st":1,"ub":7,"ppbo":0.1,"ppbd":2,"hl":20,"hr":{"tim":15000,"ov":false,"mr":1},"ar":{"tim":null,"ov":true,"pbtim":2000,"mr":1,"mintim":28000},"tl":true},
+        "rb":{"p":6,"mu":3,"rv":1,"nbb":2,"st":1,"ub":7,"ppbo":0.1,"ppbd":2,"hl":20,"hr":{"tim":15000,"ov":false,"mr":1},"ar":{"tim":null,"ov":true,"pbtim":2000,"mr":1,"mintim":28000},"tl":true},
+        "rc":{"p":5,"rv":0,"nbb":2,"st":1,"ub":7,"ppbo":0.05,"ppbd":2,"hl":20,"hr":{"tim":15000,"ov":false,"mr":1},"ar":{"tim":null,"ov":true,"pbtim":2000,"mr":1,"mintim":28000},"tl":true},
+        "rd":{"p":3,"rv":0,"nbb":2,"st":2,"ub":7,"ppbo":0.05,"ppbd":2,"hl":20,"hr":{"tim":15000,"ov":false,"mr":1},"ar":{"tim":null,"ov":true,"pbtim":2000,"mr":1,"mintim":28000},"tl":true},
         "re":{"p":3,"rv":0,"st":1,"tl":true},
         "rf":{"p":3,"rv":0,"st":1,"tl":true},
         "rg":{"p":3,"rv":0,"st":1,"tl":true},
-        "r-pnc":{"p":4,"rv":1},
+        "r-pnc":{"p":4,"rv":1,"tl":true},
         "rb-pnc":{"p":4,"rv":1},
-        "r-nata":{"p":4,"rv":1},
+        "r-nata":{"p":4,"rv":1,"tl":true},
         "r-nata-pnc":{"p":4,"rv":1},
         "m":{"p":10,"mp":0,"rv":1,"tl":true,"st":1},
         "mb":{"p":10,"rv":1,"tl":true},
-        "m-pnc":{"p":4,"rv":1},
+        "m-pnc":{"p":4,"rv":1,"tl":true},
         "si":{"p":4,"rv":1},
         "sd":{"p":4,"rv":1},
         "c990x50_320x50":{"p":1,"rv":1},
-        "c990x50_320x53":{"p":1,"rv":1},
-        "c990x50_320x53b":{"p":1,"rv":1},
+        "c990x50_320x53c":{"p":1,"rv":1,"tl":true},
+        "c990x50_320x53d":{"p":1,"rv":1,"tl":true},
         "gexp-intext": {
             "p": 4,
             "mu": 3,
@@ -112,7 +109,7 @@ let cfg={
             "rqpbtim": 2000,
             "tl": true
         },
-                "gexp-inimage": {
+        "gexp-inimage": {
             "p": 4,
             "mu": 3,
             "md": 2,
@@ -224,9 +221,9 @@ let cfg={
             "rqpbtim": 2000,
             "tl": true
         },
-        "default":{"p":4,"mu":4,"md":2,"rv":0,"nbb":2,"st":1,"ub":7,"ppbo":0.05,"ppbd":2,"hl":20,"mp":0,"hr":null,"ar":null,"rqpbtim":2000,"tl":false}
+        "default":{"p":4,"mu":4,"md":2,"rv":0,"nbb":2,"st":1,"ub":7,"ppbo":0.05,"ppbd":2,"hl":20,"mp":0,"hr":null,"ar":null,"tl":false}
     },
-    "intextSites": {
+        "intextSites": {
         "default": {
             "general": {
                 "debug": false,
@@ -309,44 +306,21 @@ let cfg={
                 "video": {
                     "enabled": true,
                     "playerSize": [640, 360],
-                    "variantSelection": {
-                        "key": "random1",
-                        "values": {
-                            "5": "instream",
-                            "6": "outstream"
-                        },
-                        "fallback": "instream"
-                    },
-                    "profiles": {
-                        "instream": {
-                            "context": "instream",
-                            "plcmt": 1,
-                            "placement": 1,
-                            "mimes": ["video/mp4", "application/javascript"],
-                            "protocols": [2, 3, 5, 6, 7],
-                            "linearity": 1,
-                            "api": [1, 2],
-                            "battr": [13, 14],
-                            "skippable": true,
-                            "maxduration": 30,
-                            "minduration": 1,
-                            "playbackmethod": [6]
-                        },
-                        "outstream": {
-                            "context": "outstream",
-                            "plcmt": 2,
-                            "placement": 3,
-                            "mimes": ["video/mp4", "application/javascript"],
-                            "protocols": [2, 3, 5, 6, 7],
-                            "linearity": 1,
-                            "api": [1, 2],
-                            "battr": [13, 14],
-                            "skippable": true,
-                            "maxduration": 30,
-                            "minduration": 1,
-                            "playbackmethod": [6]
-                        }
-                    }
+                    "context": "instream",
+                    "plcmt": 1,
+                    "placement": 1,
+                    "mimes": [
+                        "video/mp4",
+                        "application/javascript"
+                    ],
+                    "protocols": [2, 3, 5, 6, 7],
+                    "linearity": 1,
+                    "api": [1, 2],
+                    "battr": [13, 14],
+                    "skippable": true,
+                    "maxduration": 30,
+                    "minduration": 1,
+                    "playbackmethod": [6]
                 },
                 "slots": {
                     "enabled": true,
@@ -1048,44 +1022,21 @@ let cfg={
                     "prepareTimeoutMs": 25000,
                     "imaTimeoutMs": 30000,
                     "playerSize": [640, 360],
-                    "variantSelection": {
-                        "key": "random1",
-                        "values": {
-                            "5": "instream",
-                            "6": "outstream"
-                        },
-                        "fallback": "instream"
-                    },
-                    "profiles": {
-                        "instream": {
-                            "context": "instream",
-                            "plcmt": 1,
-                            "placement": 1,
-                            "mimes": ["video/mp4", "application/javascript"],
-                            "protocols": [2, 3, 5, 6, 7],
-                            "linearity": 1,
-                            "api": [1, 2],
-                            "battr": [13, 14],
-                            "skippable": true,
-                            "maxduration": 30,
-                            "minduration": 1,
-                            "playbackmethod": [6]
-                        },
-                        "outstream": {
-                            "context": "outstream",
-                            "plcmt": 2,
-                            "placement": 3,
-                            "mimes": ["video/mp4", "application/javascript"],
-                            "protocols": [2, 3, 5, 6, 7],
-                            "linearity": 1,
-                            "api": [1, 2],
-                            "battr": [13, 14],
-                            "skippable": true,
-                            "maxduration": 30,
-                            "minduration": 1,
-                            "playbackmethod": [6]
-                        }
-                    }
+                    "context": "instream",
+                    "plcmt": 1,
+                    "placement": 1,
+                    "mimes": [
+                        "video/mp4",
+                        "application/javascript"
+                    ],
+                    "protocols": [2, 3, 5, 6, 7],
+                    "linearity": 1,
+                    "api": [1, 2],
+                    "battr": [13, 14],
+                    "skippable": true,
+                    "maxduration": 30,
+                    "minduration": 1,
+                    "playbackmethod": [6]
                 },
                 "prebid": {
                     "timeoutMs": 1500,
