@@ -3150,6 +3150,162 @@ class RandomStrategy extends WindowArray {
           };
         }
 
+        getDisplayRequestTargetingKeysToClear(slot = null) {
+          const keys = new Set([
+            "p",
+            "intext",
+            "random1",
+            "random2",
+            "random3",
+            "random4",
+            "tlm",
+            "tlm_id",
+            "nvis",
+            "aut",
+            "h",
+            "gexp_floor",
+            "gexp-intext-navcont",
+            "hb_pb",
+            "hb_bidder",
+            "hb_format",
+            "hb_adid",
+          ]);
+
+          const currentTargeting = this.getSlotTargetingMapSafe(slot);
+          Object.keys(currentTargeting).forEach((key) => {
+            if (String(key).startsWith("hb_")) keys.add(String(key));
+          });
+
+          return Array.from(keys);
+        }
+
+        clearDisplayRequestTargeting(slot = null, logLabel = "display_request_targeting_cleared_keys") {
+          const targetSlot = slot || this.slot;
+          if (!targetSlot || typeof targetSlot.clearTargeting !== "function") return [];
+
+          const keysToClear = this.getDisplayRequestTargetingKeysToClear(targetSlot);
+          keysToClear.forEach((key) => {
+            try {
+              targetSlot.clearTargeting(key);
+            } catch (e) {}
+          });
+
+          logIntext(`[Intext:Display:${this.id}] ${logLabel}`, keysToClear);
+          return keysToClear;
+        }
+
+        resolveDisplayRequestTargeting(slotTargetingOverride = null) {
+          const gexp = this.manager?.gexp;
+          const sourceLabels = [];
+          const mergedTargeting = {};
+          const collect = (map, sourceLabel) => {
+            if (!map || typeof map !== "object") return;
+            let used = false;
+            Object.entries(map).forEach(([rawKey, rawValue]) => {
+              if (rawValue === undefined || rawValue === null) return;
+              const key = String(rawKey || "").trim();
+              if (!key) return;
+              if (Object.prototype.hasOwnProperty.call(mergedTargeting, key)) return;
+              let value = rawValue;
+              if (Array.isArray(value)) value = value.length === 1 ? value[0] : value.join(",");
+              if (value === undefined || value === null || value === "") return;
+              mergedTargeting[key] = String(value);
+              used = true;
+            });
+            if (used) sourceLabels.push(sourceLabel);
+          };
+
+          collect(this.scopedContext?.targeting, "scopedContext.targeting");
+          collect(this.manager?.getPageCustomTargeting?.(this.scopedContext), "manager.getPageCustomTargeting");
+          collect(slotTargetingOverride || this.getSlotTargetingMapSafe(this.slot), "slot_targeting");
+
+          const fallbackTargeting = {};
+          try {
+            fallbackTargeting.random1 = gexp?.getRandom?.(1);
+            fallbackTargeting.random2 = gexp?.getRandom?.(2);
+            fallbackTargeting.random3 = gexp?.getRandom?.(3);
+            fallbackTargeting.random4 = gexp?.getRandom?.(4);
+            fallbackTargeting.tlm = gexp?.statsG?.telp ? "1" : "0";
+            fallbackTargeting.tlm_id = gexp?.statsG?.telId || "";
+            fallbackTargeting.nvis =
+              gexp?.statsG?.dailyStorageInstance?.get?.("nVisits") || "0";
+            fallbackTargeting.aut =
+              typeof gexp?.getUserType === "function" ? String(gexp.getUserType()) : null;
+            fallbackTargeting.h = document.hidden ? "1" : "0";
+          } catch (e) {}
+
+          const finalTargeting = {
+            p: this.id || "gexp-intext",
+            intext: "true",
+          };
+          if (this.navIndex) {
+            finalTargeting["gexp-intext-navcont"] = String(this.navIndex);
+          }
+
+          [
+            "random1",
+            "random2",
+            "random3",
+            "random4",
+            "tlm",
+            "tlm_id",
+            "nvis",
+            "aut",
+            "h",
+            "gexp_floor",
+          ].forEach((key) => {
+            const preferredValue = mergedTargeting[key];
+            const fallbackValue = fallbackTargeting[key];
+            if (preferredValue !== undefined && preferredValue !== null && preferredValue !== "") {
+              finalTargeting[key] = String(preferredValue);
+            } else if (fallbackValue !== undefined && fallbackValue !== null && fallbackValue !== "") {
+              finalTargeting[key] = String(fallbackValue);
+            }
+          });
+
+          const targetingSource =
+            sourceLabels.length > 0
+              ? sourceLabels.join(" -> ")
+              : "gexp_runtime_fallback";
+
+          logIntext(`[Intext:Display:${this.id}] display_request_targeting_source`, {
+            targetingSource,
+            scopedContextPageUrl: this.scopedContext?.pageUrl || null,
+            slotAttached: Boolean(this.slot),
+          });
+          logIntext(`[Intext:Display:${this.id}] display_request_targeting_final`, finalTargeting);
+
+          return {
+            targeting: finalTargeting,
+            targetingSource,
+          };
+        }
+
+        applyDisplayRequestTargeting(slot, targetingMap = {}) {
+          if (!slot || typeof slot.setTargeting !== "function") return;
+          Object.entries(targetingMap).forEach(([key, value]) => {
+            if (value === undefined || value === null || value === "") return;
+            slot.setTargeting(key, String(value));
+          });
+        }
+
+        applyDisplayBidTargeting(slot, bidResponse) {
+          if (!slot || !window.pbjs || !bidResponse) return;
+          const pb = bidResponse.pbCg || bidResponse.pbAg || bidResponse.pbHg || String(bidResponse.cpm);
+          slot.setTargeting("hb_pb", pb);
+          slot.setTargeting("hb_bidder", bidResponse.bidderCode);
+          slot.setTargeting("hb_format", "banner");
+          if (bidResponse.adId) {
+            slot.setTargeting("hb_adid", bidResponse.adId);
+          }
+
+          const aliasKey = bidResponse.bidderCode.length > 20
+            ? bidResponse.bidderCode.substring(0, 20)
+            : bidResponse.bidderCode;
+          slot.setTargeting(`hb_pb_${aliasKey}`, pb);
+          slot.setTargeting(`hb_bidder_${aliasKey}`, bidResponse.bidderCode);
+        }
+
         getDisplayHeightFloor(currentEl = null) {
           const nodeLockedHeight = parseInt(this.lockedHeight, 10) || 0;
           const datasetLockedHeight = parseInt(currentEl?.dataset?.lockedHeight, 10) || 0;
@@ -3445,26 +3601,10 @@ class RandomStrategy extends WindowArray {
                 this.slot.addService(googletag.pubads());
               }
 
-              this.slot.clearTargeting();
-              this.slot.setTargeting("p", [this.id]);
-              this.slot.setTargeting("intext", "true");
-              if (this.navIndex) {
-                  this.slot.setTargeting("gexp-intext-navcont", String(this.navIndex));
-              }
-              
-              if (window.pbjs && bidResponse) {
-                  let pb = bidResponse.pbCg || bidResponse.pbAg || bidResponse.pbHg || String(bidResponse.cpm);
-                  this.slot.setTargeting("hb_pb", pb);
-                  this.slot.setTargeting("hb_bidder", bidResponse.bidderCode);
-                  this.slot.setTargeting("hb_format", "banner");
-                  if (bidResponse.adId) {
-                      this.slot.setTargeting("hb_adid", bidResponse.adId);
-                  }
-                  
-                  const aliasKey = bidResponse.bidderCode.length > 20 ? bidResponse.bidderCode.substring(0, 20) : bidResponse.bidderCode;
-                  this.slot.setTargeting(`hb_pb_${aliasKey}`, pb);
-                  this.slot.setTargeting(`hb_bidder_${aliasKey}`, bidResponse.bidderCode);
-              }
+              const preRequestDisplayTargeting = this.resolveDisplayRequestTargeting();
+              this.clearDisplayRequestTargeting(this.slot);
+              this.applyDisplayRequestTargeting(this.slot, preRequestDisplayTargeting.targeting);
+              this.applyDisplayBidTargeting(this.slot, bidResponse);
               if (window.apstag && window.apstag.targetingKeys) {
                 const tamKeys = window.apstag.targetingKeys();
                 if (tamKeys && tamKeys[this.id]) {
@@ -3489,6 +3629,19 @@ class RandomStrategy extends WindowArray {
               // -----------------------------------------------
 
               this.manager.gexp.request(this.slot);
+              const postCoreSlotTargeting = this.getSlotTargetingMapSafe(this.slot);
+              const finalDisplayTargeting = this.resolveDisplayRequestTargeting(postCoreSlotTargeting);
+              this.clearDisplayRequestTargeting(this.slot, "display_request_targeting_cleared_keys_post_core");
+              this.applyDisplayRequestTargeting(this.slot, finalDisplayTargeting.targeting);
+              this.applyDisplayBidTargeting(this.slot, bidResponse);
+              if (window.apstag && window.apstag.targetingKeys) {
+                const tamKeys = window.apstag.targetingKeys();
+                if (tamKeys && tamKeys[this.id]) {
+                  Object.entries(tamKeys[this.id]).forEach(([k, v]) => {
+                    this.slot.setTargeting(k, v);
+                  });
+                }
+              }
 
               const initialRenderHandler = (event) => {
                 if (event.slot !== this.slot) return;
