@@ -1454,6 +1454,69 @@
           });
         }
 
+        getDisplayStandardContentHeight() {
+          return 345;
+        }
+
+        getDisplayExpandedContentHeight() {
+          return 600;
+        }
+
+        getDisplayEffectiveLock(currentEl = null) {
+          const nodeLockedHeight = parseInt(this.lockedHeight, 10) || 0;
+          const datasetLockedHeight = parseInt(currentEl?.dataset?.lockedHeight, 10) || 0;
+          return Math.max(nodeLockedHeight, datasetLockedHeight) >= this.getDisplayExpandedContentHeight()
+            ? this.getDisplayExpandedContentHeight()
+            : this.getDisplayStandardContentHeight();
+        }
+
+        normalizeDisplayContentHeight(contentHeight, currentEl = null, source = "unknown") {
+          const standardHeight = this.getDisplayStandardContentHeight();
+          const expandedHeight = this.getDisplayExpandedContentHeight();
+          const persistedLock = Math.max(
+            parseInt(this.lockedHeight, 10) || 0,
+            parseInt(currentEl?.dataset?.lockedHeight, 10) || 0,
+          );
+          const previousHeight = parseInt(currentEl?.dataset?.gexpIntextContentHeight, 10) || 0;
+          const requestedHeight =
+            parseInt(contentHeight, 10) ||
+            previousHeight ||
+            (persistedLock >= expandedHeight ? expandedHeight : standardHeight);
+
+          if (persistedLock >= expandedHeight || requestedHeight >= expandedHeight) {
+            if (requestedHeight < expandedHeight) {
+              logIntext(
+                `[Intext:Display:${this.id}] display_height_compression_rejected_600 - attempted_height=${requestedHeight}, min_height=${expandedHeight}, source=${source}`,
+              );
+            }
+            return {
+              contentHeight: expandedHeight,
+              effectiveLock: expandedHeight,
+              persistedLock: expandedHeight,
+              requestedHeight,
+            };
+          }
+
+          if (requestedHeight !== standardHeight) {
+            if (requestedHeight < standardHeight) {
+              logIntext(
+                `[Intext:Display:${this.id}] display_height_compression_rejected_standard - attempted_height=${requestedHeight}, min_height=${standardHeight}, source=${source}`,
+              );
+            } else {
+              logIntext(
+                `[Intext:Display:${this.id}] display_height_base_standard_enforced - attempted_height=${requestedHeight}, base_height=${standardHeight}, source=${source}`,
+              );
+            }
+          }
+
+          return {
+            contentHeight: standardHeight,
+            effectiveLock: standardHeight,
+            persistedLock: 0,
+            requestedHeight,
+          };
+        }
+
         getPreservedRefreshHeight(currentEl) {
           const nodeLockedHeight = parseInt(this.lockedHeight, 10) || 0;
           const datasetLockedHeight = parseInt(currentEl?.dataset?.lockedHeight, 10) || 0;
@@ -1463,8 +1526,8 @@
             ? Math.max(rawOffsetHeight - chromeHeight, 0)
             : rawOffsetHeight;
 
-          let preservedHeight = 360;
-          let lockSource = "default_360";
+          let preservedHeight = this.getDisplayStandardContentHeight();
+          let lockSource = "default_345";
 
           if (nodeLockedHeight > 0) {
             preservedHeight = nodeLockedHeight;
@@ -1477,16 +1540,22 @@
             lockSource = "currentEl.offsetHeight";
           }
 
-          if (nodeLockedHeight === 600 || datasetLockedHeight === 600) {
-            if (preservedHeight < 600) {
+          const normalizedState = this.normalizeDisplayContentHeight(
+            preservedHeight,
+            currentEl,
+            `getPreservedRefreshHeight:${lockSource}`,
+          );
+          preservedHeight = normalizedState.contentHeight;
+
+          if (normalizedState.persistedLock === 600) {
+            if (preservedHeight < this.getDisplayExpandedContentHeight()) {
               logIntext(`[Intext:Display:${this.id}] display_height_lock_restored_600`);
             }
-            preservedHeight = Math.max(preservedHeight, 600);
-            this.lockedHeight = 600;
+            this.markDisplayHeightLock(600, currentEl);
           }
 
           logIntext(
-            `[Intext:Display:${this.id}] display_refresh_lock_source - source=${lockSource}, height=${preservedHeight}`,
+            `[Intext:Display:${this.id}] display_refresh_lock_source - source=${lockSource}, height=${preservedHeight}, effective_lock=${normalizedState.effectiveLock}`,
           );
 
           return preservedHeight;
@@ -1752,9 +1821,7 @@
         }
 
         getDisplayHeightFloor(currentEl = null) {
-          const nodeLockedHeight = parseInt(this.lockedHeight, 10) || 0;
-          const datasetLockedHeight = parseInt(currentEl?.dataset?.lockedHeight, 10) || 0;
-          return Math.max(nodeLockedHeight, datasetLockedHeight);
+          return this.getDisplayEffectiveLock(currentEl);
         }
 
         applyDisplayWrapperHeight(currentEl, contentHeight, {
@@ -1766,23 +1833,15 @@
             return { contentHeight: 0, totalHeight: 0, lockedFloor: 0 };
           }
 
-          const lockedFloor = this.getDisplayHeightFloor(currentEl);
-          let numericHeight = parseInt(contentHeight, 10) || 0;
-          if (!(numericHeight > 0)) {
-            numericHeight =
-              parseInt(currentEl?.dataset?.gexpIntextContentHeight, 10) ||
-              lockedFloor ||
-              360;
-          }
+          const normalizedState = this.normalizeDisplayContentHeight(contentHeight, currentEl, source);
+          let numericHeight = normalizedState.contentHeight;
+          const lockedFloor = normalizedState.effectiveLock;
 
-          if (!allowCompression && lockedFloor > 0 && numericHeight < lockedFloor) {
-            logIntext(
-              `[Intext:Display:${this.id}] display_height_compression_rejected - attempted_height=${numericHeight}, locked_height=${lockedFloor}, source=${source}`,
-            );
+          if (!allowCompression && numericHeight < lockedFloor) {
             numericHeight = lockedFloor;
           }
 
-          if (numericHeight === 600) {
+          if (numericHeight === this.getDisplayExpandedContentHeight()) {
             this.markDisplayHeightLock(600, currentEl);
           }
 
@@ -1794,22 +1853,23 @@
           currentEl.dataset.wrapperChromeHeight = String(this.getWrapperChromeHeight());
 
           const persistedLock = Math.max(
-            lockedFloor,
             parseInt(currentEl?.dataset?.lockedHeight, 10) || 0,
             this.lockedHeight || 0,
           );
-          if (persistedLock > 0) {
+          if (persistedLock >= this.getDisplayExpandedContentHeight()) {
             currentEl.dataset.lockedHeight = String(persistedLock);
+          } else if (currentEl.dataset.lockedHeight && parseInt(currentEl.dataset.lockedHeight, 10) < this.getDisplayExpandedContentHeight()) {
+            delete currentEl.dataset.lockedHeight;
           }
 
           logIntext(
-            `[Intext:Display:${this.id}] display_height_state_applied - source=${source}, content_height=${numericHeight}, total_height=${totalHeight}, locked_height=${persistedLock || 0}`,
+            `[Intext:Display:${this.id}] display_height_state_applied - source=${source}, content_height=${numericHeight}, total_height=${totalHeight}, locked_height=${Math.max(persistedLock || 0, lockedFloor)}`,
           );
 
           return {
             contentHeight: numericHeight,
             totalHeight,
-            lockedFloor: persistedLock || 0,
+            lockedFloor: Math.max(persistedLock || 0, lockedFloor),
           };
         }
 
@@ -1847,6 +1907,7 @@
           this._isApplyingDisplayLayout = true;
           try {
             if (parseInt(gamWidth, 10) === 960 && parseInt(gamHeight, 10) === 540) {
+              const targetContentHeight = this.getDisplayEffectiveLock(slotEl);
               const computedStyle = window.getComputedStyle(slotEl);
               const paddingX =
                 parseFloat(computedStyle.paddingLeft || 0) +
@@ -1855,9 +1916,8 @@
                 (slotEl.clientWidth || this.container.getElement().clientWidth || 320) - paddingX,
                 1,
               );
-              const scaleFactor = Math.min(1, availableWidth / 960);
-              const proportionalHeight = Math.ceil(540 * scaleFactor);
-              const heightState = this.applyDisplayWrapperHeight(slotEl, proportionalHeight, {
+              const scaleFactor = Math.min(1, availableWidth / 960, targetContentHeight / 540);
+              const heightState = this.applyDisplayWrapperHeight(slotEl, targetContentHeight, {
                 source: reason,
               });
 
@@ -1882,8 +1942,10 @@
                 `[Intext:Display:${this.id}] display_960x540_centered - source=${reason}, scale_factor=${scaleFactor.toFixed(4)}, content_height=${heightState.contentHeight}, total_height=${heightState.totalHeight}`,
               );
             } else {
-              const isTallDisplay = measuredHeight === 600 || this.getDisplayHeightFloor(slotEl) === 600;
-              const heightState = this.applyDisplayWrapperHeight(slotEl, measuredHeight || 360, {
+              const isTallDisplay =
+                measuredHeight === this.getDisplayExpandedContentHeight() ||
+                this.getDisplayHeightFloor(slotEl) === this.getDisplayExpandedContentHeight();
+              const heightState = this.applyDisplayWrapperHeight(slotEl, measuredHeight || this.getDisplayStandardContentHeight(), {
                 logReason: isTallDisplay ? "display_300x600_visual_height_adjusted" : "",
                 source: reason,
               });
@@ -1899,7 +1961,7 @@
               scaleTarget.style.height = "";
               scaleTarget.style.maxWidth = "";
 
-              if (measuredHeight > 0 && measuredHeight < (heightState.lockedFloor || 360)) {
+              if (measuredHeight > 0 && measuredHeight < (heightState.lockedFloor || this.getDisplayStandardContentHeight())) {
                 scaleTarget.style.position = "sticky";
                 scaleTarget.style.top = "60px";
                 scaleTarget.style.margin = "0 auto";
@@ -2589,7 +2651,7 @@
           if (displayInDom) {
             displayEl.classList.add("is-open");
             displayEl.style.display = "block";
-            this.applyDisplayWrapperHeight(displayEl, this.lockedHeight || 360, {
+            this.applyDisplayWrapperHeight(displayEl, this.lockedHeight || this.getDisplayStandardContentHeight(), {
               logReason:
                 this.lockedHeight === 600 ? "display_300x600_visual_height_adjusted" : "",
               source: "closeAll_display_container",
@@ -2599,7 +2661,7 @@
           } else if (videoInDom) {
             videoEl.classList.add("is-open");
             videoEl.style.display = "block";
-            this.applyDisplayWrapperHeight(videoEl, this.lockedHeight || 360, {
+            this.applyDisplayWrapperHeight(videoEl, this.lockedHeight || this.getDisplayStandardContentHeight(), {
               logReason:
                 this.lockedHeight === 600 ? "display_300x600_visual_height_adjusted" : "",
               source: "closeAll_video_container",
@@ -2979,20 +3041,57 @@
           this.decideWinner();
         }
 
+        waitForPbjsAvailability(configuration) {
+          const waitMs = this.config.prebid?.pbjsAvailabilityWaitMs ?? 1200;
+          const intervalMs = this.config.prebid?.pbjsAvailabilityRetryMs ?? 150;
+          const startedAt = Date.now();
+          let attempt = 0;
+
+          const isReady = () =>
+            typeof window.pbjs !== "undefined" &&
+            typeof window.pbjs.requestBids === "function" &&
+            window.pbjs.que &&
+            typeof window.pbjs.que.push === "function";
+
+          if (isReady()) return Promise.resolve(true);
+
+          logIntext(
+            `[Intext:Prebid:${this.node.id}] prebid_pbjs_wait_start - code=${configuration.code}, wait_ms=${waitMs}, retry_ms=${intervalMs}`,
+          );
+
+          return new Promise((resolve) => {
+            const retry = () => {
+              if (isReady()) {
+                logIntext(
+                  `[Intext:Prebid:${this.node.id}] prebid_pbjs_wait_ready - code=${configuration.code}, elapsed_ms=${Date.now() - startedAt}, attempts=${attempt}`,
+                );
+                resolve(true);
+                return;
+              }
+
+              const elapsedMs = Date.now() - startedAt;
+              if (elapsedMs >= waitMs) {
+                logIntext(
+                  `[Intext:Prebid:${this.node.id}] prebid_pbjs_wait_timeout - code=${configuration.code}, elapsed_ms=${elapsedMs}, attempts=${attempt}`,
+                );
+                resolve(false);
+                return;
+              }
+
+              attempt += 1;
+              logIntext(
+                `[Intext:Prebid:${this.node.id}] prebid_pbjs_wait_retry - code=${configuration.code}, attempt=${attempt}, elapsed_ms=${elapsedMs}`,
+              );
+              setTimeout(retry, intervalMs);
+            };
+
+            setTimeout(retry, intervalMs);
+          });
+        }
+
         executePrebid(configuration) {
           return new Promise((resolve) => {
-            if (
-              typeof window.pbjs === "undefined" ||
-              typeof window.pbjs.requestBids === "undefined"
-            ) {
-              logIntext(
-                `[Intext:Slot:${this.node.id}]   Prebid [${configuration.code}]: pbjs not available`,
-              );
-              resolve(null);
-              return;
-            }
-
-            window.pbjs.que.push(() => {
+            const runPrebid = () => window.pbjs.que.push(() => {
               try {
               this.registerPrebidAdUnit(configuration);
               this.applyIntextDisplayFloorToPrebid(configuration);
@@ -3123,6 +3222,17 @@
                 logIntext(`[Intext:Prebid] ❌ Exception in pbjs.que — skipping Prebid:`, e);
                 resolve(null);
               }
+            });
+
+            this.waitForPbjsAvailability(configuration).then((isAvailable) => {
+              if (!isAvailable) {
+                logIntext(
+                  `[Intext:Slot:${this.node.id}]   Prebid [${configuration.code}]: pbjs not available after wait`,
+                );
+                resolve(null);
+                return;
+              }
+              runPrebid();
             });
           });
         }
@@ -3508,7 +3618,7 @@
             const isOpen = vContainerEl && vContainerEl.classList.contains("is-open");
             const preservedDisplayHeight = isOpen
               ? this.node.getPreservedRefreshHeight(vContainerEl)
-              : (this.node.lockedHeight || 360);
+              : (this.node.lockedHeight || this.node.getDisplayStandardContentHeight());
             
             if (isOpen) {
                // 2. We MUST prepare the Display container BEFORE destroying the Video container
@@ -4892,7 +5002,7 @@
               }
               this.hideSpinner();
               const el = this.node.videoContainer.getElement();
-              this.node.videoContainer.open(this.node.lockedHeight || 360);
+              this.node.videoContainer.open(this.node.lockedHeight || this.node.getDisplayStandardContentHeight());
               if (el) {
                 el.classList.add("video-started");
                 el.style.opacity = "1";

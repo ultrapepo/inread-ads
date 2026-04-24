@@ -3033,9 +3033,10 @@ class RandomStrategy extends WindowArray {
             parseInt(currentEl?.dataset?.lockedHeight, 10) || 0,
           );
           const previousHeight = parseInt(currentEl?.dataset?.gexpIntextContentHeight, 10) || 0;
+          const rawRequestedHeight = parseInt(contentHeight, 10) || 0;
           const requestedHeight =
-            parseInt(contentHeight, 10) ||
-            previousHeight ||
+            rawRequestedHeight ||
+            (previousHeight === expandedHeight ? previousHeight : 0) ||
             (persistedLock >= expandedHeight ? expandedHeight : standardHeight);
 
           if (persistedLock >= expandedHeight || requestedHeight >= expandedHeight) {
@@ -3057,11 +3058,17 @@ class RandomStrategy extends WindowArray {
               logIntext(
                 `[Intext:Display:${this.id}] display_height_compression_rejected_standard - attempted_height=${requestedHeight}, min_height=${standardHeight}, source=${source}`,
               );
+              logIntext(
+                `[Intext:Display:${this.id}] display_height_compression_rejected_to_standard - attempted_height=${requestedHeight}, standard_height=${standardHeight}, source=${source}`,
+              );
             } else {
               logIntext(
                 `[Intext:Display:${this.id}] display_height_base_standard_enforced - attempted_height=${requestedHeight}, base_height=${standardHeight}, source=${source}`,
               );
             }
+            logIntext(
+              `[Intext:Display:${this.id}] display_height_normalized_to_standard - attempted_height=${requestedHeight}, content_height=${standardHeight}, total_height=${standardHeight + this.getWrapperChromeHeight()}, source=${source}`,
+            );
           }
 
           return {
@@ -3084,15 +3091,19 @@ class RandomStrategy extends WindowArray {
           let preservedHeight = this.getDisplayStandardContentHeight();
           let lockSource = "default_345";
 
-          if (nodeLockedHeight > 0) {
+          if (nodeLockedHeight >= this.getDisplayExpandedContentHeight()) {
             preservedHeight = nodeLockedHeight;
             lockSource = "this.node.lockedHeight";
-          } else if (datasetLockedHeight > 0) {
+          } else if (datasetLockedHeight >= this.getDisplayExpandedContentHeight()) {
             preservedHeight = datasetLockedHeight;
             lockSource = "el.dataset.lockedHeight";
-          } else if (currentOffsetHeight > 0) {
+          } else if (currentOffsetHeight >= this.getDisplayExpandedContentHeight()) {
             preservedHeight = currentOffsetHeight;
             lockSource = "currentEl.offsetHeight";
+          } else if (currentOffsetHeight > 0 && currentOffsetHeight < this.getDisplayStandardContentHeight()) {
+            logIntext(
+              `[Intext:Display:${this.id}] display_height_compression_rejected_to_standard - attempted_height=${currentOffsetHeight}, standard_height=${this.getDisplayStandardContentHeight()}, source=getPreservedRefreshHeight:currentEl.offsetHeight`,
+            );
           }
 
           const normalizedState = this.normalizeDisplayContentHeight(
@@ -3389,7 +3400,9 @@ class RandomStrategy extends WindowArray {
           }
 
           const normalizedState = this.normalizeDisplayContentHeight(contentHeight, currentEl, source);
-          let numericHeight = normalizedState.contentHeight;
+          let numericHeight = normalizedState.effectiveLock >= this.getDisplayExpandedContentHeight()
+            ? this.getDisplayExpandedContentHeight()
+            : this.getDisplayStandardContentHeight();
           const lockedFloor = normalizedState.effectiveLock;
 
           if (!allowCompression && numericHeight < lockedFloor) {
@@ -5381,21 +5394,24 @@ class RandomStrategy extends WindowArray {
           }
 
           const mergedProfileConfig = IntextManager.deepMerge(commonVideoConfig, profileConfig || {});
+          const isOutstreamProfile = String(mergedProfileConfig.context || "").toLowerCase() === "outstream";
           if (mergedProfileConfig.plcmt == null) {
+            const fallbackPlcmt = isOutstreamProfile ? 4 : 1;
             warnIntext(`[Intext:Video:${slotCode}] intext_video_profile_plcmt_fallback_default`, {
               nodeId: this.node?.id || null,
               variant: profileName,
-              fallbackPlcmt: 1,
+              fallbackPlcmt,
             });
-            mergedProfileConfig.plcmt = 1;
+            mergedProfileConfig.plcmt = fallbackPlcmt;
           }
           if (mergedProfileConfig.placement == null) {
+            const fallbackPlacement = isOutstreamProfile ? 3 : 1;
             warnIntext(`[Intext:Video:${slotCode}] intext_video_profile_placement_fallback_default`, {
               nodeId: this.node?.id || null,
               variant: profileName,
-              fallbackPlacement: 1,
+              fallbackPlacement,
             });
-            mergedProfileConfig.placement = 1;
+            mergedProfileConfig.placement = fallbackPlacement;
           }
           mergedProfileConfig._variant = profileName;
           mergedProfileConfig._variantKey = variantState.key;
@@ -5416,11 +5432,135 @@ class RandomStrategy extends WindowArray {
           return mergedProfileConfig;
         }
 
+        normalizeVideoPlayerSize(inputSize) {
+          let width = null;
+          let height = null;
+
+          if (Array.isArray(inputSize) && Array.isArray(inputSize[0])) {
+            width = Number(inputSize[0][0]);
+            height = Number(inputSize[0][1]);
+          } else if (Array.isArray(inputSize)) {
+            width = Number(inputSize[0]);
+            height = Number(inputSize[1]);
+          } else if (inputSize && typeof inputSize === "object") {
+            width = Number(inputSize.width);
+            height = Number(inputSize.height);
+          }
+
+          if (!Number.isFinite(width) || width <= 0) width = 640;
+          if (!Number.isFinite(height) || height <= 0) height = 360;
+
+          return {
+            playerSize: [width, height],
+            width,
+            height,
+          };
+        }
+
+        buildIntextOutstreamAU(videoConfig, adUnitCode) {
+          const configuredOutstreamAU =
+            videoConfig?.outstreamAU ||
+            videoConfig?.pubmaticOutstreamAU ||
+            videoConfig?.pubmatic?.outstreamAU ||
+            null;
+          if (configuredOutstreamAU) return String(configuredOutstreamAU);
+
+          const path = this.getVideoAdUnitPath?.() || "";
+          const normalizedPath = String(path || "")
+            .split("/")
+            .filter(Boolean)
+            .join("_");
+          return normalizedPath || String(adUnitCode || this.node?.id || "gexp-intext");
+        }
+
+        enhanceIntextVideoBidders(videoBidders, videoConfig, videoMediaType, adUnitCode) {
+          const isOutstream = String(videoMediaType?.context || "").toLowerCase() === "outstream";
+          const normalizedPlayerSize = this.normalizeVideoPlayerSize(videoMediaType?.playerSize);
+          const enhancedBidders = [];
+
+          (videoBidders || []).forEach((bid) => {
+            if (!bid || typeof bid !== "object" || !bid.bidder) {
+              logIntext(`[Intext:Prebid:${this.node.id}] intext_video_bidder_disabled_invalid_config`, {
+                bidder: bid?.bidder || null,
+                reason: "missing_bidder_config",
+              });
+              return;
+            }
+
+            const bidderName = String(bid.bidder).toLowerCase();
+            const params = { ...(bid.params || {}) };
+
+            if (bidderName === "rubicon_video" || bidderName === "rubicon") {
+              if (params.playerWidth == null) params.playerWidth = normalizedPlayerSize.width;
+              if (params.playerHeight == null) params.playerHeight = normalizedPlayerSize.height;
+            }
+
+            if ((bidderName === "pubmatic_video" || bidderName === "pubmatic") && isOutstream) {
+              if (!params.publisherId) {
+                logIntext(`[Intext:Prebid:${this.node.id}] intext_video_bidder_disabled_invalid_config`, {
+                  bidder: bid.bidder,
+                  reason: "pubmatic_missing_publisherId",
+                });
+                return;
+              }
+              if (!params.outstreamAU) {
+                params.outstreamAU = this.buildIntextOutstreamAU(videoConfig, adUnitCode);
+                logIntext(`[Intext:Prebid:${this.node.id}] pubmatic_outstreamAU_applied`, {
+                  bidder: bid.bidder,
+                  outstreamAU: params.outstreamAU,
+                  reason: "required_for_pubmatic_outstream",
+                });
+              }
+            }
+
+            enhancedBidders.push({
+              ...bid,
+              params,
+            });
+          });
+
+          return enhancedBidders;
+        }
+
+        logIntextPrebidVideoConfiguration(videoMediaType, videoBidders) {
+          const requiredFields = [
+            "context",
+            "playerSize",
+            "mimes",
+            "protocols",
+            "playbackmethod",
+            "plcmt",
+            "placement",
+            "linearity",
+            "api",
+            "minduration",
+            "maxduration",
+            "startdelay",
+          ];
+          const bidders = (videoBidders || []).map((bid) => ({
+            bidder: bid?.bidder || null,
+            params: bid?.params || {},
+          }));
+
+          logIntext(`[Intext:Prebid:${this.node.id}] intext_prebid_video_media_types`, videoMediaType);
+          logIntext(`[Intext:Prebid:${this.node.id}] intext_prebid_video_bidders`, bidders);
+
+          requiredFields.forEach((field) => {
+            if (videoMediaType?.[field] == null) {
+              warnIntext(`[Intext:Prebid:${this.node.id}] intext_prebid_video_missing_field`, {
+                field,
+                bidders: bidders.map((bid) => bid.bidder),
+              });
+            }
+          });
+        }
+
         getPrebidMultiFormatConfig() {
           const code = this.getPrebidCode();
           const mode = this._effectiveMode;
           const mediaTypes = {};
           let allBids = [];
+          let videoMediaType = null;
 
           // Banner (if mode allows display)
           if (mode === "auto" || mode === "display_only") {
@@ -5437,9 +5577,10 @@ class RandomStrategy extends WindowArray {
           if (mode === "auto" || mode === "video_only") {
             const vc = this.resolveIntextVideoConfig();
             if (vc?.enabled) {
-              mediaTypes.video = {
+              const normalizedPlayerSize = this.normalizeVideoPlayerSize(vc.playerSize || [640, 360]);
+              videoMediaType = {
                 context: vc.context || "instream",
-                playerSize: vc.playerSize || [640, 360],
+                playerSize: normalizedPlayerSize.playerSize,
                 mimes: vc.mimes || ["video/mp4", "application/javascript"],
                 protocols: vc.protocols || [2, 3, 5, 6, 7],
                 playbackmethod: vc.playbackmethod || [6],
@@ -5449,6 +5590,7 @@ class RandomStrategy extends WindowArray {
                 api: vc.api || [1, 2],
                 maxduration: vc.maxduration || 30,
                 minduration: vc.minduration || 1,
+                startdelay: vc.startdelay != null ? vc.startdelay : 0,
                 ...(vc.battr ? { battr: vc.battr } : {}),
                 ...(vc.skippable != null ? { skippable: vc.skippable } : {}),
                 ...(vc.skip != null
@@ -5459,6 +5601,7 @@ class RandomStrategy extends WindowArray {
                       ? { skip: 0 }
                       : {}),
               };
+              mediaTypes.video = videoMediaType;
               const networkId = this.node.scopedContext?.networkId || this.node.manager.networkId;
               const prebidNetworks = this.config.prebid?.networks || {};
               const targetNetwork = prebidNetworks[networkId] || prebidNetworks.default || {};
@@ -5471,7 +5614,9 @@ class RandomStrategy extends WindowArray {
                   `[Intext:Prebid] ⚠️ excludedVideoBidders active: [${excludedVideoList.join(", ")}] — filtered ${(targetNetwork.videoBidders || []).length - filteredVideoBidders.length} bidder(s)`
                 );
               }
-              allBids = allBids.concat(filteredVideoBidders);
+              const effectiveVideoBidders = this.enhanceIntextVideoBidders(filteredVideoBidders, vc, videoMediaType, code);
+              allBids = allBids.concat(effectiveVideoBidders);
+              this.logIntextPrebidVideoConfiguration(videoMediaType, effectiveVideoBidders);
             }
           }
 
@@ -5481,11 +5626,11 @@ class RandomStrategy extends WindowArray {
             code,
             mediaTypes,
             bids: allBids,
-            ortb2Imp: this.buildOrtb2Imp(code),
+            ortb2Imp: this.buildOrtb2Imp(code, null, videoMediaType),
           };
         }
 
-        buildOrtb2Imp(adUnitCode, adUnitPathOverride) {
+        buildOrtb2Imp(adUnitCode, adUnitPathOverride, videoMediaType = null) {
           const networkId =
             this.node.scopedContext?.networkId ||
             this.node.manager.networkId ||
@@ -5499,7 +5644,7 @@ class RandomStrategy extends WindowArray {
           const fullAdSlot = `/${networkId}/${adUnitPath}`;
           const pbadslot = `${fullAdSlot}#${adUnitCode}`;
 
-          return {
+          const imp = {
             ext: {
               data: {
                 adserver: {
@@ -5510,6 +5655,28 @@ class RandomStrategy extends WindowArray {
               gpid: pbadslot,
             },
           };
+
+          if (videoMediaType) {
+            const normalizedPlayerSize = this.normalizeVideoPlayerSize(videoMediaType.playerSize);
+            imp.video = {
+              w: normalizedPlayerSize.width,
+              h: normalizedPlayerSize.height,
+              mimes: videoMediaType.mimes,
+              protocols: videoMediaType.protocols,
+              playbackmethod: videoMediaType.playbackmethod,
+              plcmt: videoMediaType.plcmt,
+              placement: videoMediaType.placement,
+              linearity: videoMediaType.linearity,
+              api: videoMediaType.api,
+              minduration: videoMediaType.minduration,
+              maxduration: videoMediaType.maxduration,
+              startdelay: videoMediaType.startdelay,
+              ...(videoMediaType.battr ? { battr: videoMediaType.battr } : {}),
+              ...(videoMediaType.skip != null ? { skip: videoMediaType.skip } : {}),
+            };
+          }
+
+          return imp;
         }
 
         getTAMConfiguration() {
