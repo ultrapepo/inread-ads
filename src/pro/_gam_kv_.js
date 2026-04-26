@@ -3478,7 +3478,10 @@ class RandomStrategy extends WindowArray {
           const isConfiguredStandardSize = configuredStandardSizes.some(
             (size) => size[0] === recoveredWidth && size[1] === recoveredHeight,
           );
-          const isStandardVisualSize = recoveredWidth > 0 && recoveredHeight === standardHeight;
+          const isConfiguredStandardWidth = configuredStandardSizes.some(
+            (size) => size[0] === recoveredWidth,
+          );
+          const isStandardVisualSize = isConfiguredStandardWidth && recoveredHeight === standardHeight;
 
           if (recoveredWidth === 960 && recoveredHeight === 540) {
             logIntext(`[Intext:Display:${this.id}] display_render_size_recovered_from_1x1`, {
