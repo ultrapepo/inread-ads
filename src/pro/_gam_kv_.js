@@ -3452,6 +3452,109 @@ class RandomStrategy extends WindowArray {
           this._displayLayoutTimers = [];
         }
 
+        resolveDisplayRenderSizeFromEvent(event, source = "unknown") {
+          const gamWidth = event?.size ? parseInt(event.size[0], 10) || 0 : 0;
+          const gamHeight = event?.size ? parseInt(event.size[1], 10) || 0 : 0;
+          const is1x1 = gamWidth === 1 && gamHeight === 1;
+
+          if (!is1x1) {
+            return {
+              gamWidth,
+              gamHeight,
+              actualHeight: gamHeight,
+              recovered: false,
+              layout: "event_size",
+            };
+          }
+
+          const bid = this.waterfall?._lastDisplayBid || null;
+          const recoveredWidth = parseInt(bid?.width ?? bid?.w, 10) || 0;
+          const recoveredHeight = parseInt(bid?.height ?? bid?.h, 10) || 0;
+          const standardHeight = this.getDisplayStandardContentHeight();
+          const configuredStandardSizes = (this.config.display?.sizes || [[300, 250], [336, 280], [320, 100], [320, 50]])
+            .filter((size) => Array.isArray(size) && size.length >= 2)
+            .map((size) => [parseInt(size[0], 10) || 0, parseInt(size[1], 10) || 0])
+            .filter((size) => size[0] > 0 && size[1] > 0 && size[1] <= standardHeight);
+          const isConfiguredStandardSize = configuredStandardSizes.some(
+            (size) => size[0] === recoveredWidth && size[1] === recoveredHeight,
+          );
+          const isStandardVisualSize = recoveredWidth > 0 && recoveredHeight === standardHeight;
+
+          if (recoveredWidth === 960 && recoveredHeight === 540) {
+            logIntext(`[Intext:Display:${this.id}] display_render_size_recovered_from_1x1`, {
+              source,
+              width: recoveredWidth,
+              height: recoveredHeight,
+            });
+            logIntext(`[Intext:Display:${this.id}] display_1x1_special_layout_960x540_applied`);
+            return {
+              gamWidth: 960,
+              gamHeight: 540,
+              actualHeight: 540,
+              recovered: true,
+              layout: "960x540",
+            };
+          }
+
+          if (recoveredWidth === 300 && recoveredHeight === 600) {
+            logIntext(`[Intext:Display:${this.id}] display_render_size_recovered_from_1x1`, {
+              source,
+              width: recoveredWidth,
+              height: recoveredHeight,
+            });
+            logIntext(`[Intext:Display:${this.id}] display_1x1_expanded_layout_300x600_applied`);
+            return {
+              gamWidth: 300,
+              gamHeight: 600,
+              actualHeight: 600,
+              recovered: true,
+              layout: "300x600",
+            };
+          }
+
+          if (isConfiguredStandardSize || isStandardVisualSize) {
+            logIntext(`[Intext:Display:${this.id}] display_render_size_recovered_from_1x1`, {
+              source,
+              width: recoveredWidth,
+              height: recoveredHeight,
+              normalizedTo: standardHeight,
+            });
+            logIntext(`[Intext:Display:${this.id}] display_render_size_fallback_standard`, {
+              source,
+              reason: "standard_visual_size",
+              width: recoveredWidth,
+              height: recoveredHeight,
+            });
+            return {
+              gamWidth: 0,
+              gamHeight: standardHeight,
+              actualHeight: standardHeight,
+              recovered: true,
+              layout: "standard",
+            };
+          }
+
+          if (recoveredWidth || recoveredHeight) {
+            logIntext(`[Intext:Display:${this.id}] display_render_size_whitelist_rejected`, {
+              source,
+              width: recoveredWidth,
+              height: recoveredHeight,
+            });
+          }
+          logIntext(`[Intext:Display:${this.id}] display_render_size_fallback_standard`, {
+            source,
+            reason: "missing_or_untrusted_size",
+          });
+
+          return {
+            gamWidth: 0,
+            gamHeight: standardHeight,
+            actualHeight: standardHeight,
+            recovered: false,
+            layout: "standard",
+          };
+        }
+
         applyDisplayRenderLayout(currentEl, {
           gamWidth = 0,
           gamHeight = 0,
@@ -3745,21 +3848,14 @@ class RandomStrategy extends WindowArray {
                   
                   const slotDoc = document.getElementById(this.id);
                   if (slotDoc && event.size) {
-                    const gamWidth = event.size ? event.size[0] : 0;
-                    const gamHeight = event.size ? event.size[1] : 0;
-                    const isRefresh1x1 = event.size && event.size[0] === 1 && event.size[1] === 1;
-
-                    let actualHeight = gamHeight;
-                    if (isRefresh1x1 && this.waterfall?._lastDisplayBid) {
-                        actualHeight = parseInt(this.waterfall._lastDisplayBid.height, 10) || 0;
-                    }
-                    if (actualHeight === 600) {
+                    const renderSize = this.resolveDisplayRenderSizeFromEvent(event, "display_slotRenderEnded");
+                    if (renderSize.actualHeight === 600) {
                         this.markDisplayHeightLock(600, slotDoc);
                     }
                     this.applyDisplayRenderLayout(slotDoc, {
-                      gamWidth,
-                      gamHeight,
-                      actualHeight,
+                      gamWidth: renderSize.gamWidth,
+                      gamHeight: renderSize.gamHeight,
+                      actualHeight: renderSize.actualHeight,
                       reason: "display_slotRenderEnded",
                     });
                   }
@@ -3851,11 +3947,8 @@ class RandomStrategy extends WindowArray {
             .querySelector(".gexp-intext-loader");
           if (videoLoader) videoLoader.style.display = "none";
 
-           const gamCreativeHeight = event?.size ? event.size[1] : 0;
-           let actualCreativeHeight = gamCreativeHeight;
-           if (is1x1 && this.waterfall?._lastDisplayBid) {
-             actualCreativeHeight = parseInt(this.waterfall._lastDisplayBid.height, 10) || 0;
-           }
+           const renderSize = this.resolveDisplayRenderSizeFromEvent(event, "display_showDisplay");
+           const actualCreativeHeight = renderSize.actualHeight;
            if (actualCreativeHeight === 600) {
                this.markDisplayHeightLock(600, this.container.getElement());
            }
@@ -3886,11 +3979,9 @@ class RandomStrategy extends WindowArray {
               slotDoc.style.opacity = "1";
               slotDoc.style.margin = "";
               slotDoc.style.padding = "";
-             const gamWidth = event.size ? event.size[0] : 0;
-             const gamHeight = event.size ? event.size[1] : 0;
              this.applyDisplayRenderLayout(slotDoc, {
-               gamWidth,
-               gamHeight,
+               gamWidth: renderSize.gamWidth,
+               gamHeight: renderSize.gamHeight,
                actualHeight: actualCreativeHeight,
                reason: "display_showDisplay",
              });
