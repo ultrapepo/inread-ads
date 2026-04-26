@@ -3936,6 +3936,19 @@ class RandomStrategy extends WindowArray {
                 }
               }
 
+              const beforeRefreshSnapshot = this.getDisplayGamRequestTargetingFinal(this.slot);
+              logIntext(`[Intext:Display:${this.id}] display_before_refresh_targeting_snapshot`, {
+              final: beforeRefreshSnapshot,
+              rawRandom1: this.slot.getTargeting("random1"),
+              rawRandom2: this.slot.getTargeting("random2"),
+              rawRandom3: this.slot.getTargeting("random3"),
+              rawRandom4: this.slot.getTargeting("random4"),
+              rawHbPb: this.slot.getTargeting("hb_pb"),
+              rawHbBidder: this.slot.getTargeting("hb_bidder"),
+              rawHbFormat: this.slot.getTargeting("hb_format"),
+              rawHbAdid: this.slot.getTargeting("hb_adid"),
+            });
+
               if (slotEl && !slotEl.hasAttribute("data-gpt-displayed")) {
                 googletag.display(this.id);
                 slotEl.setAttribute("data-gpt-displayed", "true");
@@ -6061,8 +6074,7 @@ class RandomStrategy extends WindowArray {
             googletag.cmd.push(() => {
               const gptSlots = googletag.pubads().getSlots();
               gptSlots.forEach(slot => {
-                if (slot.getSlotElementId() === configuration.code ||
-                    slot.getSlotElementId()?.startsWith('gexp-intext')) {
+                if (slot.getSlotElementId() === configuration.code && typeof slot.getTargetingMap === "function") {
                   const tMap = slot.getTargetingMap();
                   Object.keys(tMap).forEach(key => {
                     if (key.startsWith('hb_')) {
