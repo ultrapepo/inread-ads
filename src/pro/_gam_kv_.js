@@ -1,3 +1,101 @@
+function gexpNormalizeSlotTargetingValue(value) {
+    if (Array.isArray(value)) return value.map((item) => String(item));
+    return String(value);
+}
+
+function gexpSetSlotTargeting(slot, key, value) {
+    if (!slot || value === undefined || value === null || value === "") return;
+    const normalizedKey = String(key);
+    const normalizedValue = gexpNormalizeSlotTargetingValue(value);
+    if (typeof slot.setConfig === "function") {
+        slot.setConfig({ targeting: { [normalizedKey]: normalizedValue } });
+    } else if (typeof slot.setTargeting === "function") {
+        slot.setTargeting(normalizedKey, normalizedValue);
+    }
+}
+
+function gexpClearSlotTargeting(slot, key) {
+    if (!slot) return;
+    const normalizedKey = String(key);
+    if (typeof slot.setConfig === "function") {
+        slot.setConfig({ targeting: { [normalizedKey]: null } });
+    } else if (typeof slot.clearTargeting === "function") {
+        slot.clearTargeting(normalizedKey);
+    }
+}
+
+function gexpUpdateSlotTargetingFromMap(slot, targetingMap = {}) {
+    if (!slot || !targetingMap || typeof targetingMap !== "object") return;
+    if (typeof slot.setConfig === "function") {
+        const targeting = {};
+        Object.entries(targetingMap).forEach(([key, value]) => {
+            if (value === undefined || value === null || value === "") return;
+            targeting[String(key)] = gexpNormalizeSlotTargetingValue(value);
+        });
+        if (Object.keys(targeting).length > 0) {
+            slot.setConfig({ targeting });
+        }
+    } else {
+        Object.entries(targetingMap).forEach(([key, value]) => {
+            gexpSetSlotTargeting(slot, key, value);
+        });
+    }
+}
+
+function gexpGetSlotTargetingMap(slot, preferConfig = false) {
+    if (!slot) return {};
+    const normalizeMap = (map) => {
+        const targeting = {};
+        if (!map || typeof map !== "object") return targeting;
+        Object.entries(map).forEach(([key, value]) => {
+            if (value === undefined || value === null) return;
+            if (Array.isArray(value)) {
+                if (value.length === 0) return;
+                targeting[key] = value.length === 1 ? String(value[0]) : value.map(String);
+                return;
+            }
+            targeting[key] = String(value);
+        });
+        return targeting;
+    };
+
+    if (preferConfig && typeof slot.getConfig === "function") {
+        try {
+            const configuredTargeting = slot.getConfig("targeting");
+            const targeting = normalizeMap(configuredTargeting);
+            if (Object.keys(targeting).length > 0) return targeting;
+        } catch (e) {}
+    }
+
+    try {
+        if (typeof slot.getTargetingMap === "function") {
+            const targeting = normalizeMap(slot.getTargetingMap());
+            if (Object.keys(targeting).length > 0) return targeting;
+        }
+    } catch (e) {}
+
+    try {
+        if (typeof slot.getTargetingKeys === "function" && typeof slot.getTargeting === "function") {
+            const targeting = {};
+            slot.getTargetingKeys().forEach((key) => {
+                const values = slot.getTargeting(key);
+                if (!values || values.length === 0) return;
+                targeting[key] = values.length === 1 ? String(values[0]) : values.map(String);
+            });
+            return targeting;
+        }
+    } catch (e) {}
+
+    return {};
+}
+
+function gexpGetSlotTargetingValue(slot, key) {
+    const targeting = gexpGetSlotTargetingMap(slot, true);
+    const value = targeting[key];
+    if (Array.isArray(value)) return value[0];
+    return value;
+}
+
 class WindowArray {
     static _gam_mapaps = '#####k0zk#a0hs#9u1hcn08w#e718gx0qo#5h1q8ti4g#ydj403im8#pnjlsgidc#u0jcwqiv4#lajuowr28#qgs1s6rk0#hqsjkjrb4#m3saotrsw#ddssgq96o#6aa6809og#xkao0d9fk#1xaf4n9xc#t7awwydj4#mieio8e0w#dsf0glds0#i5erkve9s#9ff9crvnk#2bwn41w5c#tlx4wevwg#xyww0owe8#p8xdsv4lc#uf5kw5534#lp62oi4u8#q25tss5c0#hc6bkomps#a8npcyn7k#1io74bmyo#5vny8lngg#x5og06rk##2j7r4979c#tt88wm70g#y6800w7i8#pg8hssow0#icpvk2pds#9mqdcfp4w#dzq4gppmo#59qm8vxts#afytc5ybk#1pzb4iy2o#62z28sykg#xczk0pfy8#q9gxszgg0#hjhfkcg74#lwh6omgow#d6hogxkao#6hla87ksg#xrls0kkjk#24lj4ul1c#tem0wr2f4#mb3eo12ww#dl3wge2o0#hy3nko35s#9845cubcw#eeccg4buo#5ocu8hbls#a1clcrc3k#1bd34nthc#u7ugwxtz4#lhuyoatq8#puupsku80#h4v7klds##jmdc#9lvk#jtmv4mlmo#o6mm8wm4g#fgn40t3i8#8d4hs3400#zn4zkg3r4#404qoq48w#va58gwcg0#0gdfk6cxs#rqdxcjcow#w3dogtd6o#nde68pukg#g9vk0zv28#7jw1scutc#bwvswmvb4#36waoxyww#whzwg7zeo#ns0e8kz5s#s505cuznk#jf0n4rh1c#cbi0w1hj4#3liioeha8#7yi9sohs0#z8irkupz4#4eqyo4qgw#vorgghq80#01r7krqps#rbrpco83k#k8934y8lc#bi9kwb8cg#fv9c0l8u8#759tss5c##cit4w8sn4#3stmolse8#85tdsvsw0#zftvksa9s#scb9c2ark#jmbr4faio#nzbi8pb0g#f9c00vj7k#kfk745jpc#bpkowijgg#g2kg0sjy8#7ckxsp1c0#092bkz1ts#rj2tcc1kw#vw2kgm22o#n6328x5og#gh6o07668#7r75sk5xc#c46wwu6f4#3e7eoqnsw#waosg0oao#nkpa8do1s#rxp1cnojk#j7pj4twqo#odxq83x8g#fny80gwzk#k0xz4qxhc#baygwnev4#47fuoxfcw#vhgcgaf40#zug3kkfls#r4glcsow##jtog#9t6o#etu68msxs#j6txcwtfk#aguf4tatc#3dbsw3bb4#uncaogb28#z0c1sqbk0#qacjkwjr4#vgkqo6k8w#mql8gjk00#r3kzktkhs#idlhcq1vk#ba2v402dc#2k3cwd24g#6x340n2m8#y73lsy680#ri77k86ps#is7pcl6gw#n57ggv6yo#ef7y8rocg#7bpc01ou8#ylptseolc#zey9sry0w#6igw0zgg##360ow2i2o#a9jb4iqrk#v99mom9ds#2regwqv40#mxwcg44jk#6b5s0amf4#jf28#wetc#4mxogw54w#136dcznr4#86ozkkruo#hbapsoagw#0ok5co0sg#kv20w8lc0#4fmkgf37k#pfcw0scn4#wivi8wydc#h3zls0gzk#o7i80gpog#978jkk8ao#cbxtsbegw#wifpconwg#fvp4wv5s0#p0av4dam8#w3thcd0xs#sk268gjk0#znksg43cw#kum807lz4#47vnk7cao#oedj4ph4w#vwidcvz0g#gw8ow98g0#nzrb4hq8##qoiyol0cg#xs1kw191c#irrwg4rnk#q9wqo9dds#agem8mmtc#tto1st4ow#f0phcdp8g#m483kdfk0#ikgsggy68#pnzeo229s#ysl4w5kw0#i5ukg5b7k#2ccg0rpj4#cyqrky7eo#xyh34bgu8#51zpcg2kg#hqcqonncw#l2sxs4ao0#jeku89fr4#mr11c8cu8#sz5s#97uo#my48wonb4#3djpctse8#omccg3o5c#tl9fkg4cg#wqeiosi68#47nr44ydc#jf8jkwkcg#6p4aoa8e8#a1khsksg0#q9ou8hdds#d69s01a8##u0bggv6dc#3dzi8btog#jm3uojegw#myk1sk5c0#v91q8paf4#agmio4pvk#wx9tsdiio#02ewwm6f4#whkw#4lxc#h24g#cbnk#oruo#ww74#b668#ju2o#smps#8268#d79c#w934#3tvk#kh6o#pm9s#ya68#ck5c#n474#0s8w#se80#8oow#0n4##fl6o#nwu8#9p8g#a2o0#un7k#2cxs#or9c#b37k#y8sg#2ayo#qj28#65ts#udxc#yg3k#5l34#x1c##ebcw#m134#';
     static pbFloorCfg = {
@@ -544,15 +642,15 @@ class WindowArray {
 
     clearTargetings() {
         for (var k in this.tKeys)
-            this.slot.clearTargeting(this.getkName(this.tKeys[k]));
+            gexpClearSlotTargeting(this.slot, this.getkName(this.tKeys[k]));
 
-        ["slOffy", "usOffY", "sj", "rndp", this.getkName('rfrsh')].map((i) => this.slot.clearTargeting(i));
+        ["slOffy", "usOffY", "sj", "rndp", this.getkName('rfrsh')].map((i) => gexpClearSlotTargeting(this.slot, i));
     }
 
     setTargetings() {
         let isTestRandom = (this.getRandom(1) == 19);
         this.newImpression();
-        let curTargeting = this.slot.getTargetingMap();
+        let curTargeting = gexpGetSlotTargetingMap(this.slot);
         let targetings = {};
         targetings.tlm_rid=this.cI.tlm_rid;
         if (curTargeting) {
@@ -694,17 +792,18 @@ class WindowArray {
         targetings["tlm_id"]=this.gexp.statsG.telId;
         targetings["nvis"]=this.gexp.statsG.dailyStorageInstance.get("nVisits")
 
-        this.slot.updateTargetingFromMap(targetings);
+        gexpUpdateSlotTargetingFromMap(this.slot, targetings);
 
-        let allT = this.slot.getTargetingMap();
+        let allT = gexpGetSlotTargetingMap(this.slot);
         let foundPremium=false;
         for (var k in allT) {
+            const targetingValue = Array.isArray(allT[k]) ? allT[k][0] : allT[k];
             if(k.includes("hb_pb")) {
                 try {
-                    this.cI[k] = parseFloat(allT[k][0]);
+                    this.cI[k] = parseFloat(targetingValue);
                 }catch(e){}
             }
-            this.cI[k] = allT[k][0];
+            this.cI[k] = targetingValue;
         }
         try {
             let pads=googletag.pubads();
@@ -731,7 +830,7 @@ class WindowArray {
         }catch(e){}
         if(this.prebidIndex > -1 && this.prebidValue >=1)
         {
-            this.slot.clearTargeting("r");
+            gexpClearSlotTargeting(this.slot, "r");
         }
         if (this.prebidFloor !== null)
             this.cI["prebidFloor"] = this.prebidFloor;
@@ -3148,16 +3247,12 @@ class RandomStrategy extends WindowArray {
 
         getSlotTargetingMapSafe(slot = null) {
           const targetSlot = slot || this.slot;
-          if (!targetSlot || typeof targetSlot.getTargetingKeys !== "function") return {};
-          const targeting = {};
-          try {
-            targetSlot.getTargetingKeys().forEach((key) => {
-              const values = targetSlot.getTargeting(key);
-              if (!values || values.length === 0) return;
-              targeting[key] = values.length === 1 ? values[0] : values.map(String);
-            });
-          } catch (e) {}
-          return targeting;
+          return gexpGetSlotTargetingMap(targetSlot, false);
+        }
+
+        getSlotTargetingMapForDisplayLog(slot = null) {
+          const targetSlot = slot || this.slot;
+          return gexpGetSlotTargetingMap(targetSlot, true);
         }
 
         resolveVideoRequestTargeting() {
@@ -3252,7 +3347,7 @@ class RandomStrategy extends WindowArray {
             "hb_adid",
           ]);
 
-          const currentTargeting = this.getSlotTargetingMapSafe(slot);
+          const currentTargeting = this.getSlotTargetingMapForDisplayLog(slot);
           Object.keys(currentTargeting).forEach((key) => {
             if (String(key).startsWith("hb_")) keys.add(String(key));
           });
@@ -3262,12 +3357,12 @@ class RandomStrategy extends WindowArray {
 
         clearDisplayRequestTargeting(slot = null, logLabel = "display_request_targeting_cleared_keys") {
           const targetSlot = slot || this.slot;
-          if (!targetSlot || typeof targetSlot.clearTargeting !== "function") return [];
+          if (!targetSlot) return [];
 
           const keysToClear = this.getDisplayRequestTargetingKeysToClear(targetSlot);
           keysToClear.forEach((key) => {
             try {
-              targetSlot.clearTargeting(key);
+              gexpClearSlotTargeting(targetSlot, key);
             } catch (e) {}
           });
 
@@ -3363,16 +3458,16 @@ class RandomStrategy extends WindowArray {
         }
 
         applyDisplayRequestTargeting(slot, targetingMap = {}) {
-          if (!slot || typeof slot.setTargeting !== "function") return;
+          if (!slot) return;
           Object.entries(targetingMap).forEach(([key, value]) => {
             if (value === undefined || value === null || value === "") return;
-            slot.setTargeting(key, String(value));
+            gexpSetSlotTargeting(slot, key, value);
           });
         }
 
         getDisplayGamRequestTargetingFinal(slot = null) {
           const targetSlot = slot || this.slot;
-          const targeting = this.getSlotTargetingMapSafe(targetSlot);
+          const targeting = this.getSlotTargetingMapForDisplayLog(targetSlot);
           const finalTargeting = {};
           [
             "p",
@@ -3399,18 +3494,18 @@ class RandomStrategy extends WindowArray {
         applyDisplayBidTargeting(slot, bidResponse) {
           if (!slot || !window.pbjs || !bidResponse) return;
           const pb = bidResponse.pbCg || bidResponse.pbAg || bidResponse.pbHg || String(bidResponse.cpm);
-          slot.setTargeting("hb_pb", pb);
-          slot.setTargeting("hb_bidder", bidResponse.bidderCode);
-          slot.setTargeting("hb_format", "banner");
+          gexpSetSlotTargeting(slot, "hb_pb", pb);
+          gexpSetSlotTargeting(slot, "hb_bidder", bidResponse.bidderCode);
+          gexpSetSlotTargeting(slot, "hb_format", "banner");
           if (bidResponse.adId) {
-            slot.setTargeting("hb_adid", bidResponse.adId);
+            gexpSetSlotTargeting(slot, "hb_adid", bidResponse.adId);
           }
 
           const aliasKey = bidResponse.bidderCode.length > 20
             ? bidResponse.bidderCode.substring(0, 20)
             : bidResponse.bidderCode;
-          slot.setTargeting(`hb_pb_${aliasKey}`, pb);
-          slot.setTargeting(`hb_bidder_${aliasKey}`, bidResponse.bidderCode);
+          gexpSetSlotTargeting(slot, `hb_pb_${aliasKey}`, pb);
+          gexpSetSlotTargeting(slot, `hb_bidder_${aliasKey}`, bidResponse.bidderCode);
         }
 
         getDisplayHeightFloor(currentEl = null) {
@@ -3817,7 +3912,7 @@ class RandomStrategy extends WindowArray {
                 const tamKeys = window.apstag.targetingKeys();
                 if (tamKeys && tamKeys[this.id]) {
                   Object.entries(tamKeys[this.id]).forEach(([k, v]) => {
-                    this.slot.setTargeting(k, v);
+                    gexpSetSlotTargeting(this.slot, k, v);
                   });
                 }
               }
@@ -3828,10 +3923,7 @@ class RandomStrategy extends WindowArray {
               }
 
               try {
-                  const targetMap = this.slot.getTargetingKeys().reduce((acc, key) => {
-                      acc[key] = this.slot.getTargeting(key);
-                      return acc;
-                  }, {});
+                  const targetMap = this.getSlotTargetingMapForDisplayLog(this.slot);
                   logIntext(`[Intext:Display:${this.id}] 📤 Launching GAM Display Request. Targeted keys:`, targetMap);
               } catch(e) {}
               // -----------------------------------------------
@@ -3846,7 +3938,7 @@ class RandomStrategy extends WindowArray {
                 const tamKeys = window.apstag.targetingKeys();
                 if (tamKeys && tamKeys[this.id]) {
                   Object.entries(tamKeys[this.id]).forEach(([k, v]) => {
-                    this.slot.setTargeting(k, v);
+                    gexpSetSlotTargeting(this.slot, k, v);
                   });
                 }
               }
@@ -8434,7 +8526,7 @@ class GAMExp {
     {
         if(typeof slot.__position!=="undefined")
             return this.windows[slot.__position];
-        let position = slot.getTargeting('p')[0];
+        let position = gexpGetSlotTargetingValue(slot, 'p');
         let w=this.getWindow(position);
         w.setSlot(slot);
         slot.__position=position;
@@ -8563,7 +8655,7 @@ class GAMExp {
                 this.save();
             }catch(error)
             {
-                slot.setTargeting("gexp_error","true");
+                gexpSetSlotTargeting(slot, "gexp_error", "true");
                 this.reportError(error);
             }
         }
@@ -8572,7 +8664,7 @@ class GAMExp {
         try {
             w=this.getWindowFromSlot(slot);
             w.setTargetings();
-            slot.updateTargetingFromMap({
+            gexpUpdateSlotTargetingFromMap(slot, {
                 random1:this.getRandom(1),
                 random2:this.getRandom(2),
                 random3:this.getRandom(3),
@@ -8583,7 +8675,7 @@ class GAMExp {
             })
             this.save();
         } catch (error) {
-            slot.setTargeting("gexp_error","true");
+            gexpSetSlotTargeting(slot, "gexp_error", "true");
             this.reportError(error);
 
         }
