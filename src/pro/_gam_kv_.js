@@ -2187,7 +2187,7 @@ class RandomStrategy extends WindowArray {
           const scopedContext = {
             networkId,
             adUnitPath,
-            targeting: { ...(pageTargeting || {}), ...(slotTargeting || {}) },
+            targeting: { ...(slotTargeting || {}), ...(pageTargeting || {}) },
             contentType,
             pageUrl,
             hostname,
@@ -3160,6 +3160,248 @@ class RandomStrategy extends WindowArray {
           return targeting;
         }
 
+        normalizeHbValue(value) {
+          if (Array.isArray(value)) value = value[0];
+          if (value === undefined || value === null || value === "") return null;
+          return String(value);
+        }
+
+        readIntextPageKv(key) {
+          const readFromMap = (map) => {
+            if (!map || typeof map !== "object") return null;
+            return this.normalizeHbValue(map[key]);
+          };
+
+          try {
+            const directSource = this.manager?.getPageCustomTargeting?.(key);
+            if (!directSource || typeof directSource !== "object") {
+              const directValue = this.normalizeHbValue(directSource);
+              if (directValue !== null) return { value: directValue, source: "manager.getPageCustomTargeting(key)" };
+            }
+          } catch (e) {}
+
+          try {
+            const managerTargeting = this.manager?.getPageCustomTargeting?.();
+            const value = readFromMap(managerTargeting);
+            if (value !== null) return { value, source: "manager.getPageCustomTargeting" };
+          } catch (e) {}
+
+          const managerPageTargeting = readFromMap(this.manager?.pageTargeting);
+          if (managerPageTargeting !== null) return { value: managerPageTargeting, source: "manager.pageTargeting" };
+
+          const scopedValue = readFromMap(this.scopedContext?.targeting);
+          if (scopedValue !== null) return { value: scopedValue, source: "scopedContext.targeting" };
+
+          try {
+            if (typeof googletag !== "undefined" && googletag.pubads) {
+              const pubads = googletag.pubads();
+              if (pubads && typeof pubads.getTargeting === "function") {
+                const value = this.normalizeHbValue(pubads.getTargeting(key));
+                if (value !== null) return { value, source: "googletag.pubads" };
+              }
+            }
+          } catch (e) {}
+
+          return { value: null, source: "fallback" };
+        }
+
+        getSlotTargetingValueSafe(slot, key) {
+          try {
+            if (slot && typeof slot.getTargeting === "function") {
+              return slot.getTargeting(key);
+            }
+          } catch (e) {}
+          return [];
+        }
+
+        restoreIntextRandomTargetingAfterGexpRequest(slot = null) {
+          const targetSlot = slot || this.slot;
+          if (!targetSlot || typeof targetSlot.setTargeting !== "function") return;
+
+          const targetWindowArray = this.manager?.gexp?.windows?.[this.id];
+          const restored = {};
+          const sources = {};
+          ["random1", "random2", "random3", "random4"].forEach((key) => {
+            const pageKv = this.readIntextPageKv(key);
+            if (pageKv.value === null || pageKv.value === undefined || pageKv.value === "") return;
+            restored[key] = String(pageKv.value);
+            sources[key] = pageKv.source;
+            targetSlot.setTargeting(key, restored[key]);
+
+            if (targetWindowArray && targetWindowArray.cI) {
+              targetWindowArray.cI[key] = restored[key];
+            }
+          });
+
+          logIntext(`[Intext:Display:${this.id}] display_random_restored_after_gexp_request`, {
+            random1: restored.random1 || null,
+            random2: restored.random2 || null,
+            random3: restored.random3 || null,
+            random4: restored.random4 || null,
+            source: Object.entries(sources).map(([key, source]) => `${key}:${source}`).join(","),
+            slotCode: this.id || null,
+          });
+        }
+
+        normalizeIntextBidderCodeForGam(bidderCode) {
+          const raw = this.normalizeHbValue(bidderCode);
+          if (!raw) return null;
+          return String(raw).replace(/_video$/, "");
+        }
+
+        sanitizeBidderSuffix(bidderCode) {
+          const normalizedBidderCode = this.normalizeIntextBidderCodeForGam(bidderCode);
+          const suffix = String(normalizedBidderCode || "").trim().replace(/[^\w]/g, "_");
+          return suffix ? suffix.substring(0, 20) : "";
+        }
+
+        getBidderSuffixFromBid(bid) {
+          const bidderCode =
+            this.normalizeHbValue(bid?.adserverTargeting?.hb_bidder) ||
+            this.normalizeHbValue(bid?.bidderCode);
+          return this.sanitizeBidderSuffix(bidderCode);
+        }
+
+        getBidSize(bid, defaultSize = null) {
+          const adserverSize = this.normalizeHbValue(bid?.adserverTargeting?.hb_size);
+          if (adserverSize) return adserverSize;
+
+          const width = bid?.width || bid?.w;
+          const height = bid?.height || bid?.h;
+          if (width && height) return `${width}x${height}`;
+
+          if (Array.isArray(defaultSize) && defaultSize.length === 2) {
+            return `${defaultSize[0]}x${defaultSize[1]}`;
+          }
+
+          return null;
+        }
+
+        collectHbTargetingFromBid(bid, options = {}) {
+          const isWinner = options.isWinner === true;
+          const mediaType = options.mediaType || bid?.mediaType || "banner";
+          const adserverTargeting = bid?.adserverTargeting || {};
+          const suffix = this.getBidderSuffixFromBid(bid);
+          const originalBidder =
+            this.normalizeHbValue(adserverTargeting.hb_bidder) ||
+            this.normalizeHbValue(bid?.bidderCode);
+          const rawOriginalSuffix = String(originalBidder || "").trim().replace(/[^\w]/g, "_").substring(0, 20);
+          const scoped = {};
+          const hbTargeting = {};
+          const scopedBases = [
+            "hb_pb",
+            "hb_bidder",
+            "hb_format",
+            "hb_adid",
+            "hb_size",
+            "hb_uuid",
+            "hb_cache_id",
+            "hb_cache_host",
+            "hb_cache_path",
+          ];
+          const isKnownScopedKey = (key) =>
+            scopedBases.some((base) => key.indexOf(`${base}_`) === 0);
+          const setIfPresent = (target, key, value, overwrite = false) => {
+            const normalized = this.normalizeHbValue(value);
+            if (normalized === null) return;
+            if (!overwrite && target[key] !== undefined && target[key] !== null && target[key] !== "") return;
+            target[key] = normalized;
+          };
+          const readScoped = (keyBase, fallback) =>
+            adserverTargeting[`${keyBase}_${suffix}`] ||
+            (rawOriginalSuffix ? adserverTargeting[`${keyBase}_${rawOriginalSuffix}`] : null) ||
+            fallback;
+
+          const generic = {};
+          Object.entries(adserverTargeting).forEach(([key, value]) => {
+            if (!String(key).startsWith("hb_")) return;
+            if (isKnownScopedKey(String(key))) return;
+            // Strip _video from any unknown generic keys (e.g. hb_deal_teads_video -> hb_deal_teads)
+            const normalizedKey = String(key).replace(/_video$/, "").replace(/_video_/, "_");
+            setIfPresent(generic, normalizedKey, value);
+          });
+
+          const pb =
+            generic.hb_pb ||
+            this.normalizeHbValue(bid?.pbCg) ||
+            this.normalizeHbValue(bid?.pbAg) ||
+            this.normalizeHbValue(bid?.pbHg) ||
+            this.normalizeHbValue(bid?.cpm);
+          const bidder = this.normalizeIntextBidderCodeForGam(generic.hb_bidder || bid?.bidderCode);
+          const format = generic.hb_format || (mediaType === "video" ? "video" : "banner");
+          const adId = generic.hb_adid || this.normalizeHbValue(bid?.adId);
+          const size = generic.hb_size || this.getBidSize(bid, options.defaultSize);
+
+          setIfPresent(generic, "hb_pb", pb);
+          setIfPresent(generic, "hb_bidder", bidder, true);
+          setIfPresent(generic, "hb_format", format);
+          setIfPresent(generic, "hb_adid", adId);
+          setIfPresent(generic, "hb_size", size);
+          setIfPresent(generic, "hb_uuid", bid?.videoCacheKey || bid?.cacheId || bid?.vastCacheKey);
+          setIfPresent(generic, "hb_cache_id", bid?.videoCacheKey || bid?.cacheId || bid?.vastCacheKey);
+          setIfPresent(generic, "hb_cache_host", bid?.hb_cache_host);
+          setIfPresent(generic, "hb_cache_path", bid?.hb_cache_path);
+
+          if (suffix) {
+            setIfPresent(scoped, `hb_pb_${suffix}`, readScoped("hb_pb", pb));
+            setIfPresent(scoped, `hb_bidder_${suffix}`, this.normalizeIntextBidderCodeForGam(readScoped("hb_bidder", bidder)));
+            setIfPresent(scoped, `hb_format_${suffix}`, readScoped("hb_format", format));
+            setIfPresent(scoped, `hb_adid_${suffix}`, readScoped("hb_adid", adId));
+            setIfPresent(scoped, `hb_size_${suffix}`, readScoped("hb_size", size));
+            setIfPresent(scoped, `hb_uuid_${suffix}`, readScoped("hb_uuid", generic.hb_uuid));
+            setIfPresent(scoped, `hb_cache_id_${suffix}`, readScoped("hb_cache_id", generic.hb_cache_id));
+            setIfPresent(scoped, `hb_cache_host_${suffix}`, readScoped("hb_cache_host", generic.hb_cache_host));
+            setIfPresent(scoped, `hb_cache_path_${suffix}`, readScoped("hb_cache_path", generic.hb_cache_path));
+          }
+
+          if (isWinner) {
+            Object.assign(hbTargeting, generic, scoped);
+          } else {
+            Object.assign(hbTargeting, scoped);
+          }
+
+          return {
+            hbTargeting,
+            bidderSuffix: suffix,
+            bidder,
+            pb,
+          };
+        }
+
+        collectHbTargetingFromCurrentBids(bids = [], winnerBid = null, options = {}) {
+          const hbTargeting = {};
+          const biddersIncluded = [];
+          const seen = new Set();
+          const winnerAdId = winnerBid?.adId || null;
+          const merge = (map) => {
+            Object.entries(map || {}).forEach(([key, value]) => {
+              if (value === undefined || value === null || value === "") return;
+              if (hbTargeting[key] !== undefined && hbTargeting[key] !== null && hbTargeting[key] !== "") return;
+              hbTargeting[key] = String(value);
+            });
+          };
+          const orderedBids = [
+            ...(winnerBid ? [winnerBid] : []),
+            ...(Array.isArray(bids) ? bids : []),
+          ].filter(Boolean);
+
+          orderedBids.forEach((bid) => {
+            const identity = bid.adId || bid.requestId || `${bid.bidderCode}:${bid.cpm}:${bid.mediaType}`;
+            if (identity && seen.has(identity)) return;
+            if (identity) seen.add(identity);
+
+            const isWinner = bid === winnerBid || (winnerAdId && bid.adId === winnerAdId);
+            const built = this.collectHbTargetingFromBid(bid, { ...options, isWinner });
+            merge(built.hbTargeting);
+            if (built.bidderSuffix) biddersIncluded.push(built.bidderSuffix);
+          });
+
+          return {
+            hbTargeting,
+            biddersIncluded: Array.from(new Set(biddersIncluded)),
+          };
+        }
+
         resolveVideoRequestTargeting() {
           const gexp = this.manager?.gexp;
           const sourceLabels = [];
@@ -3204,10 +3446,12 @@ class RandomStrategy extends WindowArray {
           }
 
           ["random1", "random2", "tag", "t", "tlm", "tlm_id", "nvis"].forEach((key) => {
-            const preferredValue = mergedTargeting[key];
+            const pageKv = key.indexOf("random") === 0 ? this.readIntextPageKv(key) : { value: null, source: null };
+            const preferredValue = pageKv.value !== null ? pageKv.value : mergedTargeting[key];
             const fallbackValue = fallbackTargeting[key];
             if (preferredValue !== undefined && preferredValue !== null && preferredValue !== "") {
               finalTargeting[key] = String(preferredValue);
+              if (pageKv.value !== null) sourceLabels.push(`${key}:${pageKv.source}`);
             } else if (fallbackValue !== undefined && fallbackValue !== null && fallbackValue !== "") {
               finalTargeting[key] = String(fallbackValue);
             }
@@ -3245,7 +3489,14 @@ class RandomStrategy extends WindowArray {
             "aut",
             "h",
             "gexp_floor",
+            "rndp",
+            "sj",
             "gexp-intext-navcont",
+            "gexp-intext-display",
+            "gexp-intext-refresh",
+            "gexp-intext-fallback",
+            "gexp-intext-is-refresh",
+            "gexp-intext-is-fallback",
             "hb_pb",
             "hb_bidder",
             "hb_format",
@@ -3263,6 +3514,13 @@ class RandomStrategy extends WindowArray {
         clearDisplayRequestTargeting(slot = null, logLabel = "display_request_targeting_cleared_keys") {
           const targetSlot = slot || this.slot;
           if (!targetSlot || typeof targetSlot.clearTargeting !== "function") return [];
+          if (typeof targetSlot.getSlotElementId === "function" && targetSlot.getSlotElementId() !== this.id) {
+            logIntext(`[Intext:Display:${this.id}] ${logLabel}_skipped_slot_mismatch`, {
+              targetSlotId: targetSlot.getSlotElementId(),
+              expectedSlotId: this.id,
+            });
+            return [];
+          }
 
           const keysToClear = this.getDisplayRequestTargetingKeysToClear(targetSlot);
           keysToClear.forEach((key) => {
@@ -3334,11 +3592,15 @@ class RandomStrategy extends WindowArray {
             "aut",
             "h",
             "gexp_floor",
+            "rndp",
+            "sj",
           ].forEach((key) => {
-            const preferredValue = mergedTargeting[key];
+            const pageKv = key.indexOf("random") === 0 ? this.readIntextPageKv(key) : { value: null, source: null };
+            const preferredValue = pageKv.value !== null ? pageKv.value : mergedTargeting[key];
             const fallbackValue = fallbackTargeting[key];
             if (preferredValue !== undefined && preferredValue !== null && preferredValue !== "") {
               finalTargeting[key] = String(preferredValue);
+              if (pageKv.value !== null) sourceLabels.push(`${key}:${pageKv.source}`);
             } else if (fallbackValue !== undefined && fallbackValue !== null && fallbackValue !== "") {
               finalTargeting[key] = String(fallbackValue);
             }
@@ -3396,21 +3658,78 @@ class RandomStrategy extends WindowArray {
           return finalTargeting;
         }
 
-        applyDisplayBidTargeting(slot, bidResponse) {
-          if (!slot || !window.pbjs || !bidResponse) return;
-          const pb = bidResponse.pbCg || bidResponse.pbAg || bidResponse.pbHg || String(bidResponse.cpm);
-          slot.setTargeting("hb_pb", pb);
-          slot.setTargeting("hb_bidder", bidResponse.bidderCode);
-          slot.setTargeting("hb_format", "banner");
-          if (bidResponse.adId) {
-            slot.setTargeting("hb_adid", bidResponse.adId);
+        pickHbTargeting(targetingMap = {}) {
+            const hbTargeting = {};
+
+            Object.entries(targetingMap || {}).forEach(([key, value]) => {
+                if (!String(key).startsWith("hb_")) return;
+                if (value === undefined || value === null || value === "") return;
+
+                hbTargeting[key] = value;
+            });
+
+            return hbTargeting;
+        }
+
+        applyDisplayBidTargeting(slot, bidResponse, bidResponses = null) {
+          if (!slot) return;
+          if (!bidResponse) {
+            logIntext(`[Intext:Display:${this.id}] display_hb_targeting_skipped_no_winner`, {
+              slotCode: this.id || null,
+            });
+            return;
           }
 
-          const aliasKey = bidResponse.bidderCode.length > 20
-            ? bidResponse.bidderCode.substring(0, 20)
-            : bidResponse.bidderCode;
-          slot.setTargeting(`hb_pb_${aliasKey}`, pb);
-          slot.setTargeting(`hb_bidder_${aliasKey}`, bidResponse.bidderCode);
+          if (bidResponse.cpm == null || !(Number(bidResponse.cpm) > 0)) {
+            logIntext(`[Intext:Display:${this.id}] display_hb_targeting_skipped_invalid_winner`, {
+              slotCode: this.id || null,
+              winnerBidder: bidResponse.bidderCode || null,
+              winnerCpm: bidResponse.cpm ?? null,
+            });
+            return;
+          }
+
+          const currentBids = Array.isArray(bidResponses)
+            ? bidResponses
+            : this.waterfall?._lastCurrentBannerBids || [bidResponse];
+          const currentAuctionId = this.waterfall?._currentAuctionId || null;
+          const validBids = currentBids.filter((bid) => {
+            if (!bid || bid.cpm == null || !(Number(bid.cpm) > 0)) return false;
+            if (currentAuctionId && bid.auctionId !== currentAuctionId) return false;
+            return true;
+          });
+
+          if (!validBids.length) {
+            logIntext(`[Intext:Display:${this.id}] display_hb_targeting_skipped_zero_valid_bids`, {
+              slotCode: this.id || null,
+              winnerBidder: bidResponse.bidderCode || null,
+            });
+            return;
+          }
+
+          const { hbTargeting, biddersIncluded } = this.collectHbTargetingFromCurrentBids(
+            validBids,
+            bidResponse,
+            { mediaType: "banner" },
+          );
+
+          if (!hbTargeting.hb_pb) {
+            logIntext(`[Intext:Display:${this.id}] display_hb_targeting_skipped_no_hb_pb`, {
+              slotCode: this.id || null,
+              winnerBidder: bidResponse.bidderCode || null,
+              biddersIncluded,
+              keys: Object.keys(hbTargeting),
+            });
+            return;
+          }
+
+          logIntext(`[Intext:Display:${this.id}] display_hb_targeting_built`, {
+            winnerBidder: hbTargeting.hb_bidder || bidResponse.bidderCode || null,
+            winnerPb: hbTargeting.hb_pb || null,
+            biddersIncluded,
+            keys: Object.keys(hbTargeting),
+          });
+          this.applyDisplayRequestTargeting(slot, hbTargeting);
         }
 
         getDisplayHeightFloor(currentEl = null) {
@@ -3759,6 +4078,13 @@ class RandomStrategy extends WindowArray {
             this.manager.gexp.cfg,
             this.manager.gexp,
           );
+          
+          // Block native GEXP core from auto-refreshing Intext slots. 
+          // Native refresh bypasses our waterfall, corrupts randoms, ignores video state, and injects empty HBs.
+          this.wa.refreshSlot = () => {
+            logIntext(`[Intext:Display:${this.id}] Blocked native GEXP refresh. Intext manages its own refresh lifecycle.`);
+          };
+          
           this.manager.gexp.windows[this.id] = this.wa;
 
           this.waterfall = new IntextWaterfall({
@@ -3812,7 +4138,6 @@ class RandomStrategy extends WindowArray {
               const preRequestDisplayTargeting = this.resolveDisplayRequestTargeting();
               this.clearDisplayRequestTargeting(this.slot);
               this.applyDisplayRequestTargeting(this.slot, preRequestDisplayTargeting.targeting);
-              this.applyDisplayBidTargeting(this.slot, bidResponse);
               if (window.apstag && window.apstag.targetingKeys) {
                 const tamKeys = window.apstag.targetingKeys();
                 if (tamKeys && tamKeys[this.id]) {
@@ -3837,11 +4162,30 @@ class RandomStrategy extends WindowArray {
               // -----------------------------------------------
 
               this.manager.gexp.request(this.slot);
+              this.restoreIntextRandomTargetingAfterGexpRequest(this.slot);
               const postCoreSlotTargeting = this.getSlotTargetingMapSafe(this.slot);
               const finalDisplayTargeting = this.resolveDisplayRequestTargeting(postCoreSlotTargeting);
+
+              const isRefresh = this.waterfall && (this.waterfall._cycleCount > 0 || this.waterfall.lastTrigger === "refresh");
+              const isFallback = this.waterfall && this.waterfall._displayRenderState?.isFallback === true;
+              
+              finalDisplayTargeting.targeting["gexp-intext"] = "true";
+              finalDisplayTargeting.targeting["gexp-intext-position"] = this.id;
+              finalDisplayTargeting.targeting["gexp-intext-display"] = "true";
+              finalDisplayTargeting.targeting["gexp-intext-is-refresh"] = isRefresh ? "true" : "false";
+              finalDisplayTargeting.targeting["gexp-intext-is-fallback"] = isFallback ? "true" : "false";
+
+              if (this.wa && this.wa.cI) {
+                this.wa.cI["gexp-intext"] = "true";
+                this.wa.cI["gexp-intext-position"] = this.id;
+                this.wa.cI["gexp-intext-display"] = "true";
+                this.wa.cI["gexp-intext-is-refresh"] = isRefresh ? "true" : "false";
+                this.wa.cI["gexp-intext-is-fallback"] = isFallback ? "true" : "false";
+              }
+
               this.clearDisplayRequestTargeting(this.slot, "display_request_targeting_cleared_keys_post_core");
               this.applyDisplayRequestTargeting(this.slot, finalDisplayTargeting.targeting);
-              this.applyDisplayBidTargeting(this.slot, bidResponse);
+              this.applyDisplayBidTargeting(this.slot, bidResponse, this.waterfall?._lastCurrentBannerBids);
               if (window.apstag && window.apstag.targetingKeys) {
                 const tamKeys = window.apstag.targetingKeys();
                 if (tamKeys && tamKeys[this.id]) {
@@ -3875,6 +4219,52 @@ class RandomStrategy extends WindowArray {
                 googletag.pubads().addEventListener("slotRenderEnded", (event) => {
                   if (event.slot !== this.slot) return;
                   if (this.state !== "display") return;
+                  
+                  if (event.campaignId) {
+                      this._lastRenderedCampaignId = String(event.campaignId);
+                      if (this.wa && this.wa.cI) {
+                          this.wa.cI.campaignId = String(event.campaignId);
+                      }
+                  }
+                  if (event.advertiserId) {
+                      this._lastRenderedAdvertiserId = String(event.advertiserId);
+                      if (this.wa && this.wa.cI) {
+                          this.wa.cI.advertiserId = String(event.advertiserId);
+                      }
+                  }
+
+                  // Granular Type Telemetry
+                  if (this.wa && this.wa.cI) {
+                      const gexp = this.manager?.gexp;
+                      const bid = this._lastDisplayBid;
+                      const campaignId = this._lastRenderedCampaignId;
+                      const advertiserId = this._lastRenderedAdvertiserId;
+                      let type = event.lineItemType ? event.lineItemType.toLowerCase() : "adserver";
+
+                      const tIds = this.config?.telemetryIds || {};
+                      const prebidIds = tIds.prebid || [];
+                      const amazonIds = tIds.amazon || [];
+                      const adexIds = tIds.adex || [];
+
+                      if (type === "ad_exchange" || adexIds.includes(campaignId) || gexp?.isAdex(campaignId, null, advertiserId)) type = "adex";
+                      else if (prebidIds.includes(advertiserId)) type = "prebid";
+                      else if (amazonIds.includes(advertiserId)) type = "amazon";
+                      else if (gexp?.isHouse(null, null, advertiserId)) type = "house";
+                      else if (gexp?.isReloadAllowed(campaignId, null, advertiserId)) type = "cpc";
+                      else if (bid && (type === "price_priority" || type === "ad_exchange")) {
+                          if (bid.source === "prebid") type = "prebid";
+                          else if (bid.source === "amazon") type = "amazon";
+                      }
+                      
+                      this.wa.cI["gexp-intext-type"] = type;
+                      logIntext(`[Intext:Display:${this.id}] Rendered type: ${type} (Adv:${advertiserId}, Camp:${campaignId})`);
+                      
+                      // Explicitly register again to ensure statsG has the post-render metadata
+                      if (this.manager?.gexp) {
+                          this.manager.gexp.registerImpression(this.wa.cI);
+                          logIntext(`[Intext:Display:${this.id}] 📤 Post-render telemetry updated`);
+                      }
+                  }
                   
                   const slotDoc = document.getElementById(this.id);
                   if (slotDoc && event.size) {
@@ -3936,23 +4326,29 @@ class RandomStrategy extends WindowArray {
                 }
               }
 
-              const beforeRefreshSnapshot = this.getDisplayGamRequestTargetingFinal(this.slot);
-              logIntext(`[Intext:Display:${this.id}] display_before_refresh_targeting_snapshot`, {
-              final: beforeRefreshSnapshot,
-              rawRandom1: this.slot.getTargeting("random1"),
-              rawRandom2: this.slot.getTargeting("random2"),
-              rawRandom3: this.slot.getTargeting("random3"),
-              rawRandom4: this.slot.getTargeting("random4"),
-              rawHbPb: this.slot.getTargeting("hb_pb"),
-              rawHbBidder: this.slot.getTargeting("hb_bidder"),
-              rawHbFormat: this.slot.getTargeting("hb_format"),
-              rawHbAdid: this.slot.getTargeting("hb_adid"),
-            });
-
               if (slotEl && !slotEl.hasAttribute("data-gpt-displayed")) {
                 googletag.display(this.id);
                 slotEl.setAttribute("data-gpt-displayed", "true");
               }
+
+              const beforeRefreshTargeting = this.getDisplayGamRequestTargetingFinal(this.slot);
+
+              logIntext(
+                `[Intext:Display:${this.id}] display_before_refresh_targeting_snapshot`,
+                {
+                  final: beforeRefreshTargeting,
+                  allHbTargeting: this.pickHbTargeting(this.getSlotTargetingMapSafe(this.slot)),
+                  rawRandom1: this.getSlotTargetingValueSafe(this.slot, "random1"),
+                  rawRandom2: this.getSlotTargetingValueSafe(this.slot, "random2"),
+                  rawRandom3: this.getSlotTargetingValueSafe(this.slot, "random3"),
+                  rawRandom4: this.getSlotTargetingValueSafe(this.slot, "random4"),
+                  rawHbPb: this.getSlotTargetingValueSafe(this.slot, "hb_pb"),
+                  rawHbBidder: this.getSlotTargetingValueSafe(this.slot, "hb_bidder"),
+                  rawHbFormat: this.getSlotTargetingValueSafe(this.slot, "hb_format"),
+                  rawHbAdid: this.getSlotTargetingValueSafe(this.slot, "hb_adid"),
+                },
+              );
+
               logIntext(
                 `[Intext:Display:${this.id}] display_gam_request_targeting_final`,
                 this.getDisplayGamRequestTargetingFinal(this.slot),
@@ -4033,15 +4429,15 @@ class RandomStrategy extends WindowArray {
                reason: "display_showDisplay",
              });
 
-             setTimeout(() => {
-                if (slotDoc) slotDoc.style.transition = "";
-             }, 50);
-          }
-           
-           this.videoContainer.close({ destroy: true });
-
-          this.scheduleWaterfallRetry();
-        }
+                  setTimeout(() => {
+                      if (slotDoc) slotDoc.style.transition = "";
+                  }, 50);
+              }
+               
+              this.videoContainer.close({ destroy: true });
+    
+              this.scheduleWaterfallRetry();
+            }
 
         scheduleWaterfallRetry() {
           const refreshCfg = this.config.refreshCycle;
@@ -4053,7 +4449,22 @@ class RandomStrategy extends WindowArray {
             return;
           }
 
-          const targetIntervalMs = refreshCfg.delayMs || 30000;
+          let targetIntervalMs = refreshCfg.delayMs || 30000;
+          
+          if (this._lastRenderedCampaignId || this._lastRenderedAdvertiserId) {
+              const gexp = this.manager?.gexp;
+              const campaignId = this._lastRenderedCampaignId ? parseInt(this._lastRenderedCampaignId, 10) : null;
+              const advertiserId = this._lastRenderedAdvertiserId ? parseInt(this._lastRenderedAdvertiserId, 10) : null;
+              
+              if (gexp?.isHouse(null, null, advertiserId)) {
+                  targetIntervalMs = refreshCfg.houseDelayMs || targetIntervalMs;
+              } else if (gexp?.isReloadAllowed(campaignId, null, advertiserId)) {
+                  targetIntervalMs = refreshCfg.cpcDelayMs || targetIntervalMs;
+              } else if (this.wa?.cI?.["gexp-intext-type"] === "adex") {
+                  targetIntervalMs = refreshCfg.adexDelayMs || targetIntervalMs;
+              }
+          }
+          
           logIntext(`[Intext:Display:${this.id}] ⏱️ Scheduling Waterfall Retry ${this._cycleCount}/${refreshCfg.maxCycles} (Requires ${targetIntervalMs}ms of VISIBLE time)`);
 
           if (this._visibilityTimer) {
@@ -4583,8 +4994,22 @@ class RandomStrategy extends WindowArray {
         }
         
         async startAuction(trigger) {
+          if (this.wa && this.wa.cI) {
+              this.wa.cI["gexp-intext-is-refresh"] = (trigger === "refresh" || this.node._cycleCount > 0) ? "true" : "false";
+              this.wa.cI["gexp-intext-is-fallback"] = (trigger === "fallback" || this._displayRenderState?.isFallback) ? "true" : "false";
+              logIntext(`[Intext:Auction:${this.node.id}] Status injected: refresh=${this.wa.cI["gexp-intext-is-refresh"]}, fallback=${this.wa.cI["gexp-intext-is-fallback"]}`);
+          }
           if (this.prebidStarted) return;
           this.prebidStarted = true;
+
+          // Cleanup: reset fallback state and clear targeting on new auctions
+          if (trigger !== "fallback") {
+              if (this._displayRenderState) this._displayRenderState.isFallback = false;
+          }
+          if (this.node.slot) {
+              this.node.clearDisplayRequestTargeting(this.node.slot, "auction_start_targeting_cleanup");
+          }
+
           this.lastTrigger = trigger;
           this._auctionStartAt = Date.now();
           clearTimeout(this.timer);
@@ -4798,6 +5223,7 @@ class RandomStrategy extends WindowArray {
         executePrebid(configuration) {
           return new Promise((resolve) => {
             const runPrebid = () => window.pbjs.que.push(() => {
+              let restoreVideoCacheConfig = null;
               try {
               this.registerPrebidAdUnit(configuration);
               this.applyIntextDisplayFloorToPrebid(configuration);
@@ -4827,6 +5253,10 @@ class RandomStrategy extends WindowArray {
                 if (finalizeTimer) {
                   clearTimeout(finalizeTimer);
                   finalizeTimer = null;
+                }
+                if (restoreVideoCacheConfig) {
+                  restoreVideoCacheConfig();
+                  restoreVideoCacheConfig = null;
                 }
 
                 const auctionId = resolveAuctionId(auctionIdParam);
@@ -4903,6 +5333,23 @@ class RandomStrategy extends WindowArray {
                 finalize("watchdog", true);
               }, watchdogMs);
 
+              const hasVideo = Boolean(configuration?.mediaTypes?.video);
+              if (hasVideo) {
+                const videoCacheProfile = this.resolveIntextVideoCacheProfile(configuration.code);
+
+                logIntext(`[Intext:Prebid:${configuration.code}] video_cache_profile_resolved`, {
+                  slotCode: videoCacheProfile.slotCode,
+                  random1: videoCacheProfile.random1,
+                  random2: videoCacheProfile.random2,
+                  mode: videoCacheProfile.mode,
+                  url: videoCacheProfile.url || null,
+                  ignoreBidderCacheKey: videoCacheProfile.ignoreBidderCacheKey,
+                  reason: videoCacheProfile.reason,
+                });
+
+                restoreVideoCacheConfig = this.applyIntextVideoCacheOverride(videoCacheProfile);
+              }
+
               window.pbjs.requestBids({
                 timeout: this.getPrebidTimeout(),
                 adUnitCodes: [configuration.code],
@@ -4925,6 +5372,10 @@ class RandomStrategy extends WindowArray {
                 },
               });
               } catch(e) {
+                if (restoreVideoCacheConfig) {
+                  restoreVideoCacheConfig();
+                  restoreVideoCacheConfig = null;
+                }
                 logIntext(`[Intext:Prebid] ❌ Exception in pbjs.que — skipping Prebid:`, e);
                 resolve(null);
               }
@@ -4998,6 +5449,8 @@ class RandomStrategy extends WindowArray {
 
           let displayBid = null;
           let videoBid = null;
+          let currentBannerBids = [];
+          let currentVideoBids = [];
 
           const cached = this._cachedBidsForDecision;
           this._cachedBidsForDecision = null; // consume immediately
@@ -5007,6 +5460,8 @@ class RandomStrategy extends WindowArray {
           if (isReuseMode) {
             const bannerBids = cached.banner.sort((a, b) => b.cpm - a.cpm);
             const videoBids = cached.video.sort((a, b) => b.cpm - a.cpm);
+            currentBannerBids = bannerBids;
+            currentVideoBids = videoBids;
             if (bannerBids.length > 0) { displayBid = bannerBids[0]; displayBid.source = "prebid_cached"; }
             if (videoBids.length > 0) { videoBid = videoBids[0]; videoBid.source = "prebid_cached"; }
             logIntext(
@@ -5019,8 +5474,9 @@ class RandomStrategy extends WindowArray {
 
             const seen = new Set();
             const uniqueBids = allBids.filter(b => {
-              if (seen.has(b.adId)) return false;
-              seen.add(b.adId);
+              const identity = b.adId || b.requestId || `${b.bidderCode}:${b.cpm}:${b.mediaType}:${b.auctionId || ""}`;
+              if (identity && seen.has(identity)) return false;
+              if (identity) seen.add(identity);
               return true;
             });
 
@@ -5064,6 +5520,9 @@ class RandomStrategy extends WindowArray {
               }
             }
 
+            currentBannerBids = bannerBids;
+            currentVideoBids = videoBids;
+
             if (bannerBids.length > 0) {
               displayBid = bannerBids[0];
               displayBid.source = cached && bannerBids[0] === (cached.banner || []).sort((a,b) => b.cpm - a.cpm)[0]
@@ -5091,12 +5550,16 @@ class RandomStrategy extends WindowArray {
 
           this._lastDisplayBid = displayBid;
           this._lastVideoBid = videoBid;
+          this._lastCurrentBannerBids = currentBannerBids;
+          this._lastCurrentVideoBids = currentVideoBids;
+          this.node._lastCurrentBannerBids = currentBannerBids;
+          this.node._lastCurrentVideoBids = currentVideoBids;
           if (!isReuseMode) {
             this._bidCache = {
               timestamp: Date.now(),
               auctionId: this._currentAuctionId,
-              bannerBids: displayBid ? [displayBid] : [],
-              videoBids: videoBid ? [videoBid] : [],
+              bannerBids: currentBannerBids || [],
+              videoBids: currentVideoBids || [],
             };
             logIntext(
               `[Intext:Slot:${this.node.id}] ├─ Bid Cache: saved ${displayBid ? 1 : 0} banner + ${videoBid ? 1 : 0} video bids`,
@@ -5224,6 +5687,14 @@ class RandomStrategy extends WindowArray {
             this.node.closeAll();
             return;
           }
+
+          if (winner === "video" && this.node.wa && this.node.wa.cI) {
+            this.node.wa.cI["gexp-intext-video-failed"] = "true";
+            logIntext(`[Intext:Slot:${this.node.id}] gexp-intext-video-failed=true injected into telemetry`);
+          }
+
+          if (!this._displayRenderState) this._displayRenderState = {};
+          this._displayRenderState.isFallback = true;
 
           logIntext(
             `%c[Intext:Slot:${this.node.id}:${this.node.id}] ═══ FALLBACK → ${loser.toUpperCase()} ═══`,
@@ -5947,6 +6418,11 @@ class RandomStrategy extends WindowArray {
             if (String(key).indexOf("hb_") === 0) return;
             addCustParam(key, value);
           });
+          
+          addCustParam("gexp-intext", "true");
+          addCustParam("gexp-intext-position", this.node.id);
+          addCustParam("intext", "true");
+          addCustParam("gexp-intext-video", "true");
           logIntext(`[Intext:Waterfall:${this.node.id}] video_gam_position_targeting_applied`, {
             p: intextPositionCode,
             targetingSource: resolvedVideoTargeting.targetingSource,
@@ -5954,10 +6430,30 @@ class RandomStrategy extends WindowArray {
 
           if (window.pbjs && this._lastVideoBid) {
             const bid = this._lastVideoBid;
-            if (bid.source && bid.source.includes("prebid")) {
+            if (bid.source && bid.source.includes("prebid") && bid.cpm != null && Number(bid.cpm) > 0) {
               const diagnostics = this.getIntextVideoBidDiagnostics(bid);
               const targeting = diagnostics.targeting;
-              const pb = targeting.hb_pb || bid.pbCg || bid.pbAg || bid.pbHg || String(bid.cpm);
+              const rawVideoBids = this._lastCurrentVideoBids || this.node?._lastCurrentVideoBids || [bid];
+              const currentAuctionId = this._currentAuctionId || null;
+              const validVideoBids = rawVideoBids.filter((videoBid) =>
+                videoBid &&
+                videoBid.cpm != null &&
+                Number(videoBid.cpm) > 0 &&
+                (!currentAuctionId || videoBid.auctionId === currentAuctionId)
+              );
+
+              if (!validVideoBids.length) {
+                logIntext(`[Intext:Video:${this.node.id}] video_hb_targeting_skipped_zero_valid_bids`, {
+                  slotCode: this.node.id || null,
+                  winnerBidder: bid.bidderCode || null,
+                });
+              } else {
+              const { hbTargeting, biddersIncluded } = this.node.collectHbTargetingFromCurrentBids(
+                validVideoBids,
+                bid,
+                { mediaType: "video", defaultSize: playerSize },
+              );
+              const pb = hbTargeting.hb_pb || targeting.hb_pb || bid.pbCg || bid.pbAg || bid.pbHg || String(bid.cpm);
 
               logIntext(`[Intext:Auction:${this.node.id}] intext_video_bid_targeting_detected`, {
                 bidderCode: bid.bidderCode || null,
@@ -5980,34 +6476,51 @@ class RandomStrategy extends WindowArray {
                 });
               }
 
-              addCustParam("hb_pb", pb);
-              addCustParam("hb_bidder", targeting.hb_bidder || bid.bidderCode);
-              addCustParam("hb_format", targeting.hb_format || "video");
-              addCustParam("hb_adid", targeting.hb_adid);
-              addCustParam("hb_uuid", targeting.hb_uuid);
-              addCustParam("hb_cache_id", targeting.hb_cache_id);
-              addCustParam("hb_cache_host", targeting.hb_cache_host);
-              addCustParam("hb_cache_path", targeting.hb_cache_path);
-
-              const bidderCode = String(bid.bidderCode || targeting.hb_bidder || "").trim();
-              if (bidderCode) {
-                const aliasKey = bidderCode.length > 20 ? bidderCode.substring(0, 20) : bidderCode;
-                addCustParam(`hb_pb_${aliasKey}`, pb);
-                addCustParam(`hb_bidder_${aliasKey}`, bidderCode);
-                addCustParam(`hb_format_${aliasKey}`, "video");
+              if (hbTargeting.hb_pb) {
+                Object.entries(hbTargeting).forEach(([key, value]) => addCustParam(key, value));
+              } else {
+                logIntext(`[Intext:Video:${this.node.id}] video_hb_targeting_skipped_no_hb_pb`, {
+                  slotCode: this.node.id || null,
+                  winnerBidder: bid.bidderCode || null,
+                  biddersIncluded,
+                  keys: Object.keys(hbTargeting),
+                });
               }
+
+              logIntext(`[Intext:Video:${this.node.id}] video_hb_targeting_built`, {
+                winnerBidder: hbTargeting.hb_bidder || targeting.hb_bidder || bid.bidderCode || null,
+                winnerPb: pb || null,
+                biddersIncluded,
+                keys: Object.keys(hbTargeting),
+              });
 
               logIntext(`[Intext:Auction:${this.node.id}] intext_video_gam_targeting_payload`, {
                 hb_pb: pb,
-                hb_bidder: targeting.hb_bidder || bid.bidderCode || null,
-                hb_format: targeting.hb_format || "video",
-                hb_adid: targeting.hb_adid || null,
-                hb_uuid: targeting.hb_uuid || null,
-                hb_cache_id: targeting.hb_cache_id || null,
-                hb_cache_host: targeting.hb_cache_host || null,
-                hb_cache_path: targeting.hb_cache_path || null,
+                hb_bidder: hbTargeting.hb_bidder || targeting.hb_bidder || bid.bidderCode || null,
+                hb_format: hbTargeting.hb_format || targeting.hb_format || "video",
+                hb_adid: hbTargeting.hb_adid || targeting.hb_adid || null,
+                hb_size: hbTargeting.hb_size || null,
+                hb_uuid: hbTargeting.hb_uuid || targeting.hb_uuid || null,
+                hb_cache_id: hbTargeting.hb_cache_id || targeting.hb_cache_id || null,
+                hb_cache_host: hbTargeting.hb_cache_host || targeting.hb_cache_host || null,
+                hb_cache_path: hbTargeting.hb_cache_path || targeting.hb_cache_path || null,
+              });
+              }
+            } else {
+              logIntext(`[Intext:Video:${this.node.id}] video_hb_targeting_skipped_invalid_winner`, {
+                slotCode: this.node.id || null,
+                winnerBidder: bid.bidderCode || null,
+                winnerCpm: bid.cpm ?? null,
+                source: bid.source || null,
               });
             }
+          } else if (this._lastVideoBid) {
+            logIntext(`[Intext:Video:${this.node.id}] video_hb_targeting_skipped_invalid_winner`, {
+              slotCode: this.node.id || null,
+              winnerBidder: this._lastVideoBid.bidderCode || null,
+              winnerCpm: this._lastVideoBid.cpm ?? null,
+              source: this._lastVideoBid.source || null,
+            });
           }
 
           if (window.apstag && window.apstag.targetingKeys) {
@@ -6017,6 +6530,25 @@ class RandomStrategy extends WindowArray {
                 const val = Array.isArray(v) ? v.join(",") : v;
                 addCustParam(k, val);
               });
+            }
+          }
+
+          if (this.node && this.node.wa) {
+            // Fix: Mock slot to avoid core crash when this.slot is null in video
+            if (!this.node.wa.slot) {
+                const videoAU = adUnitPath || this.getVideoAdUnitPath();
+                this.node.wa.slot = { getAdUnitPath: () => videoAU };
+            }
+            this.node.wa.newImpression();
+            
+            if (this.node.wa.cI) {
+                // Video only: gexp-intext-video (no refresh/fallback as per user request)
+                this.node.wa.cI["gexp-intext-video"] = "true";
+                this.node.wa.cI["gexp-intext-display"] = "false";
+                
+                Object.assign(this.node.wa.cI, custTargeting);
+                this.node.manager.gexp.registerImpression(this.node.wa.cI);
+                logIntext(`[Intext:Video:${this.node.id}] video_telemetry_registered`, { keys: Object.keys(custTargeting) });
             }
           }
 
@@ -6135,6 +6667,175 @@ class RandomStrategy extends WindowArray {
         getPrebidTimeout() {
           const configuredTimeout = Number(this.config?.prebid?.timeoutMs);
           return configuredTimeout > 0 ? configuredTimeout : 1500;
+        }
+
+        getIntextPageTargetingValue(key) {
+          const readValue = (source) => {
+            if (source === undefined || source === null || source === "") return null;
+            if (typeof source === "object") {
+              const value = source[key];
+              return value === undefined || value === null || value === "" ? null : value;
+            }
+            return source;
+          };
+
+          const manager = this.node?.manager;
+          const sources = [
+            () => manager?.getPageCustomTargeting?.(key),
+            () => manager?.getPageCustomTargeting?.(),
+            () => manager?.pageTargeting,
+            () => this.node?.scopedContext?.targeting,
+          ];
+
+          for (const getSource of sources) {
+            try {
+              const value = readValue(getSource());
+              if (value !== null) return Array.isArray(value) ? value[0] : value;
+            } catch (e) {}
+          }
+
+          return "";
+        }
+
+        resolveIntextVideoCacheProfile(slotCode) {
+          const cfg =
+            this.config?.prebidVideoCache ||
+            this.config?.prebid?.videoCache ||
+            this.node?.manager?.config?.prebidVideoCache ||
+            this.node?.manager?.config?.prebid?.videoCache;
+
+          if (!cfg || !cfg.variants) {
+            return { mode: "default", reason: "no_config", slotCode };
+          }
+
+          const key1 = cfg.key1 || "random1";
+          const key2 = cfg.key2 || "random2";
+          const random1 = String(this.getIntextPageTargetingValue(key1) ?? "");
+          const random2 = String(this.getIntextPageTargetingValue(key2) ?? "");
+          const enabledRandom1 = (cfg.enabledRandom1 || ["5", "6"]).map(String);
+
+          if (!enabledRandom1.includes(random1)) {
+            return {
+              mode: "default",
+              reason: "random1_not_enabled",
+              slotCode,
+              random1,
+              random2,
+            };
+          }
+
+          const variant = cfg.variants[random2];
+
+          if (!variant || variant.mode !== "custom" || !variant.url) {
+            return {
+              mode: "default",
+              reason: variant ? "variant_default" : "random2_no_variant",
+              slotCode,
+              random1,
+              random2,
+            };
+          }
+
+          return {
+            mode: "custom",
+            slotCode,
+            random1,
+            random2,
+            url: variant.url,
+            ignoreBidderCacheKey: variant.ignoreBidderCacheKey === true,
+            reason: "matched_custom",
+          };
+        }
+
+        getCurrentPrebidCacheConfig() {
+          try {
+            if (window.pbjs && typeof window.pbjs.getConfig === "function") {
+              return window.pbjs.getConfig("cache") || {};
+            }
+          } catch (e) {}
+          return {};
+        }
+
+        applyIntextVideoCacheOverride(profile) {
+          const pbjs = window.pbjs;
+
+          if (!pbjs || typeof pbjs.setConfig !== "function") {
+            return () => {};
+          }
+
+          if (!profile || profile.mode !== "custom" || !profile.url) {
+            return () => {};
+          }
+
+          const previousCache = this.getCurrentPrebidCacheConfig();
+          const nextCache = {
+            ...previousCache,
+            url: profile.url,
+            ignoreBidderCacheKey: profile.ignoreBidderCacheKey,
+          };
+
+          logIntext(`[Intext:Prebid:${profile.slotCode}] video_cache_override_apply`, {
+            slotCode: profile.slotCode,
+            random1: profile.random1,
+            random2: profile.random2,
+            mode: profile.mode,
+            url: profile.url,
+            ignoreBidderCacheKey: profile.ignoreBidderCacheKey,
+            previousUrl: previousCache?.url || null,
+            reason: profile.reason,
+          });
+
+          try {
+            pbjs.setConfig({ cache: nextCache });
+          } catch (err) {
+            logIntext(`[Intext:Prebid:${profile.slotCode}] video_cache_override_apply_failed`, {
+              slotCode: profile.slotCode,
+              random1: profile.random1,
+              random2: profile.random2,
+              mode: profile.mode,
+              url: profile.url,
+              ignoreBidderCacheKey: profile.ignoreBidderCacheKey,
+              previousUrl: previousCache?.url || null,
+              reason: profile.reason,
+              error: err?.message || String(err),
+            });
+            return () => {};
+          }
+
+          let restored = false;
+
+          return () => {
+            if (restored) return;
+            restored = true;
+
+            try {
+              pbjs.setConfig({ cache: previousCache });
+
+              logIntext(`[Intext:Prebid:${profile.slotCode}] video_cache_override_restore`, {
+                slotCode: profile.slotCode,
+                random1: profile.random1,
+                random2: profile.random2,
+                mode: profile.mode,
+                url: profile.url,
+                ignoreBidderCacheKey: profile.ignoreBidderCacheKey,
+                previousUrl: previousCache?.url || null,
+                restoredUrl: previousCache?.url || null,
+                reason: profile.reason,
+              });
+            } catch (err) {
+              logIntext(`[Intext:Prebid:${profile.slotCode}] video_cache_override_restore_failed`, {
+                slotCode: profile.slotCode,
+                random1: profile.random1,
+                random2: profile.random2,
+                mode: profile.mode,
+                url: profile.url,
+                ignoreBidderCacheKey: profile.ignoreBidderCacheKey,
+                previousUrl: previousCache?.url || null,
+                reason: profile.reason,
+                error: err?.message || String(err),
+              });
+            }
+          };
         }
 
         isIntextBannerFloorKey(floorKey) {
@@ -7064,8 +7765,20 @@ class RandomStrategy extends WindowArray {
                 markTerminal("adserror");
               }
 
-              if (errCode === 901 || errCode === 400 || errCode === 1009) {
-                logIntext(`[Intext:Video:IMA] Error previo al primer frame, manteniendo fallo silencioso.`);
+              if (this.node && this.node.wa && this.node.wa.cI) {
+                  this.node.wa.cI["gexp-intext-video-error-code"] = errCode;
+                  this.node.wa.cI["gexp-intext-video-error-msg"] = errMsg;
+                  
+                  // Track IDs if available even on error
+                  const ad = imaErr?.getAd?.() || evt?.getAd?.() || this.player?.ima?.getAdsManager?.()?.getCurrentAd();
+                  if (ad) {
+                      this.node.wa.cI.campaignId = ad.getAdId();
+                      this.node.wa.cI.advertiserId = ad.getAdvertiserName();
+                  }
+
+                  if (this.node.manager?.gexp) {
+                      this.node.manager.gexp.registerImpression(this.node.wa.cI);
+                  }
               }
             });
 
@@ -7074,11 +7787,43 @@ class RandomStrategy extends WindowArray {
                 `[Intext:Video:IMA] 📤 ads-request — IMA processing ad request`,
               ),
             );
-            this.player.on("ads-load", () =>
-              logIntext(
-                `[Intext:Video:IMA] 📥 ads-load — VAST response parsed by IMA`,
-              ),
-            );
+            this.player.on("ads-load", (evt) => {
+                logIntext(
+                  `[Intext:Video:IMA] 📥 ads-load — VAST response parsed by IMA`,
+                );
+                const ad = evt?.data?.ad;
+                if (ad && this.node && this.node.wa && this.node.wa.cI) {
+                    this.node.wa.cI.campaignId = ad.getAdId();
+                    this.node.wa.cI.advertiserId = ad.getAdvertiserName();
+                    
+                    // Video Type Telemetry
+                    const gexp = this.node.manager?.gexp;
+                    const rawType = typeof ad.getLineItemType === "function" ? ad.getLineItemType() : null;
+                    let type = rawType ? rawType.toLowerCase() : "adserver";
+                    
+                    const tIds = this.node.config?.telemetryIds || {};
+                    const adexIds = tIds.adex || [];
+
+                    if (type === "ad_exchange" || adexIds.includes(ad.getAdId()) || gexp?.isAdex(ad.getAdId(), null, null)) {
+                        type = "adex";
+                    } else if (type === "price_priority") {
+                        // Correlation only if GAM confirms it's a price priority line
+                        if (this._lastVideoBid && this._lastVideoBid.source === "prebid") type = "prebid";
+                        else if (this._lastVideoBid && this._lastVideoBid.source === "amazon") type = "amazon";
+                    } else if (gexp?.isHouse(null, null, ad.getAdvertiserName())) {
+                        type = "house";
+                    }
+
+                    this.node.wa.cI["gexp-intext-type"] = type;
+                    logIntext(`[Intext:Video:IMA] Video ad loaded: ${ad.getAdvertiserName()} (${ad.getAdId()}) type: ${type}`);
+                    
+                    // Explicitly register again to ensure statsG has the post-load metadata
+                    if (this.node.manager?.gexp) {
+                        this.node.manager.gexp.registerImpression(this.node.wa.cI);
+                        logIntext(`[Intext:Video:${this.node.id}] 📤 Post-load video telemetry updated`);
+                    }
+                }
+            });
             this.player.on("nopreroll", () => {
               logIntext(
                 `[Intext:Video:IMA] 📭 nopreroll — IMA says no preroll available`,

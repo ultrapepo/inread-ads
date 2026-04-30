@@ -348,6 +348,49 @@ let cfg={
                         }
                     }
                 },
+                "prebidVideoCache": {
+                    "key1": "random1",
+                    "key2": "random2",
+                    "enabledRandom1": ["5", "6"],
+                    "variants": {
+                        "1": {
+                            "mode": "custom",
+                            "url": "https://prebid.unidadeditorial.es/cache",
+                            "ignoreBidderCacheKey": false
+                        },
+                        "2": {
+                            "mode": "custom",
+                            "url": "https://prebid.unidadeditorial.es/cache",
+                            "ignoreBidderCacheKey": false
+                        },
+                        "3": {
+                            "mode": "custom",
+                            "url": "https://prebid.unidadeditorial.es/cache",
+                            "ignoreBidderCacheKey": false
+                        },
+                        "4": {
+                            "mode": "custom",
+                            "url": "https://prebid.unidadeditorial.es/cache",
+                            "ignoreBidderCacheKey": false
+                        },
+                        "5": {
+                            "mode": "custom",
+                            "url": "https://prebid.unidadeditorial.es/cache",
+                            "ignoreBidderCacheKey": false
+                        },
+                        "6": {
+                            "mode": "custom",
+                            "url": "https://prebid.unidadeditorial.es/cache",
+                            "ignoreBidderCacheKey": false
+                            
+                        },
+                        "7": {
+                            "mode": "custom",
+                            "url": "https://prebid.unidadeditorial.es/cache",
+                            "ignoreBidderCacheKey": false
+                        }
+                    }
+                },
                 "slots": {
                     "enabled": true,
                     "maxSlots": 2,
@@ -361,11 +404,37 @@ let cfg={
                 "refreshCycle": {
                     "enabled": true,
                     "delayMs": 5000,
+                    "houseDelayMs": 2000,
+                    "cpcDelayMs": 2000,
+                    "adexDelayMs": 3500,
                     "maxCycles": 2,
                     "mode": "display_only",
                     "bidStrategy": "fresh",
                     "bidMaxAgeMs": 30000
                 },
+                "telemetryIds": {
+          "prebid": [
+                    "83488497",
+                    "4402193934",
+                    "5907488782",
+                    "5823135725",
+                    "5619844792",
+                    "5180398781",
+                    "5354911588",
+                    "4406227815",
+                    "83522457",
+                    "5907334980",
+                    "5359233312",
+                    "4402208836"
+          ],
+          "amazon": [
+                    "55409457"
+          ],
+          "adex": [
+                    "2559776610",
+                    "2466799184"
+          ]
+},
                 "slotOverrides": {
                     "0": {
                         "decision": {
@@ -590,6 +659,9 @@ let cfg={
                         "refreshCycle": {
                             "enabled": true,
                             "delayMs": 3000,
+                    "houseDelayMs": 2000,
+                    "cpcDelayMs": 2000,
+                    "adexDelayMs": 3500,
                             "maxCycles": 2,
                             "mode": "display_only",
                             "bidStrategy": "fresh"
@@ -648,6 +720,9 @@ let cfg={
                         "refreshCycle": {
                             "enabled": true,
                             "delayMs": 3000,
+                    "houseDelayMs": 2000,
+                    "cpcDelayMs": 2000,
+                    "adexDelayMs": 3500,
                             "maxCycles": 2,
                             "mode": "display_only",
                             "bidStrategy": "fresh"
@@ -769,6 +844,9 @@ let cfg={
                 "refreshCycle": {
                     "enabled": true,
                     "delayMs": 5000,
+                    "houseDelayMs": 2000,
+                    "cpcDelayMs": 2000,
+                    "adexDelayMs": 3500,
                     "maxCycles": 2,
                     "bidStrategy": "fresh",
                     "bidMaxAgeMs": 30000
@@ -928,6 +1006,9 @@ let cfg={
                         "refreshCycle": {
                             "enabled": true,
                             "delayMs": 3000,
+                    "houseDelayMs": 2000,
+                    "cpcDelayMs": 2000,
+                    "adexDelayMs": 3500,
                             "maxCycles": 2,
                             "bidStrategy": "fresh"
                         }

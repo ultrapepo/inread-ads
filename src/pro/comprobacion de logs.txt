@@ -1,0 +1,433 @@
+ INTEXT  [IntextManager] AdUnit resolved: exp2/valencia/n (source: gpt_slot(div-gpt-ad-valencia_n_f_69ef40c5468aeb1d4e8b4599))
+_gam_kv_.js:1  INTEXT  [IntextManager] Network: Unidad Editorial (99071977)
+_gam_kv_.js:1  INTEXT  [IntextManager] Detected content type: "noticia"
+_gam_kv_.js:1  INTEXT  [IntextManager] scoped_rule_block_resolved - hostname=expansion.com, has_general=true, has_site_specific=false
+_gam_kv_.js:1  INTEXT  [IntextManager] scoped_rule_block_resolved - hostname=expansion.com, has_general=true, has_site_specific=true
+_gam_kv_.js:1  INTEXT  [IntextManager] ✅ ALLOWED by inclusions.keyValues — key "random1" has allowed value "6"
+_gam_kv_.js:1  INTEXT  [IntextPlacementEngine] 🔍 DOM Discovery
+_gam_kv_.js:1  INTEXT  ✅ Article body found: ".ue-c-article__body" <div class=​"ue-c-article__body" data-section=​"articleBody" bis_skin_checked=​"1">​…​</div>​
+_gam_kv_.js:1  INTEXT  [IntextPlacementEngine] 📋 Elements — selector: "p"
+_gam_kv_.js:1  INTEXT  Total found:  8
+_gam_kv_.js:1  INTEXT  Valid (after filtering): 8
+_gam_kv_.js:1  INTEXT  First valid element: <p class=​"ue-c-article__paragraph">​…​</p>​
+_gam_kv_.js:1  INTEXT  Last valid element:  <p class=​"ue-c-article__paragraph">​…​</p>​
+_gam_kv_.js:1  INTEXT  [IntextPlacementEngine] 📌 Evaluating 2 placement rule(s)
+_gam_kv_.js:1  INTEXT  ✅ Slot 0: after element[1] → "Según sus datos, la Comunidad Valenciana lidera este fenómen…" <p class=​"ue-c-article__paragraph">​…​</p>​
+_gam_kv_.js:1  INTEXT  ✅ Slot 1: after element[4] → "Los analistas explican que están venciendo muchos contratos …" <p class=​"ue-c-article__paragraph">​…​</p>​
+_gam_kv_.js:1  INTEXT  [IntextPlacementEngine] ✅ 2 placement(s) resolved
+_gam_kv_.js:1  INTEXT  [IntextManager] Slot 0: applied overrides {decision: {…}}
+_gam_kv_.js:1  INTEXT  [IntextManager] Slot 0: ENABLED (mode: auto, threshold: default, maxCycles: default)
+_gam_kv_.js:1  INTEXT  [IntextManager] Slot 1: applied overrides {decision: {…}}
+_gam_kv_.js:1  INTEXT  [IntextManager] Slot 1: ENABLED (mode: display_only, threshold: default, maxCycles: default)
+_gam_kv_.js:1  INTEXT  [IntextManager:NavContinua] 👁️ MutationObserver started
+_gam_kv_.js:1  INTEXT  [Intext:Slot:gexp-intext:gexp-intext] ═══ AUCTION START ═══
+_gam_kv_.js:1  INTEXT  [Intext:Slot:gexp-intext] ├─ Trigger:  intersection
+_gam_kv_.js:1  INTEXT  [Intext:Slot:gexp-intext] ├─ Mode:     auto
+_gam_kv_.js:1  INTEXT  [Intext:Prebid] Configured bidder aliases via pbjs.aliasBidder {rubicon_video: 'rubicon', appnexus_video: 'appnexus', criteo_video: 'criteo', pubmatic_video: 'pubmatic', equativ_video: 'equativ', …}
+_gam_kv_.js:1  INTEXT  [Intext:Video:gexp-intext] intext_video_variant_resolution_source {nodeId: 'gexp-intext', slotCode: 'gexp-intext', key: 'random1', detectedValue: '6', source: 'manager.getPageCustomTargeting', …}
+_gam_kv_.js:1  INTEXT  [Intext:Video:gexp-intext] intext_video_variant_resolved {nodeId: 'gexp-intext', slotCode: 'gexp-intext', key: 'random1', random1: '6', detectedValue: '6', …}
+_gam_kv_.js:1  INTEXT  [Intext:Video:gexp-intext] intext_video_profile_applied {nodeId: 'gexp-intext', slotCode: 'gexp-intext', random1: '6', variant: 'outstream', context: 'outstream', …}
+_gam_kv_.js:1  INTEXT  [Intext:Prebid:gexp-intext] pubmatic_outstreamAU_applied {bidder: 'pubmatic_video', outstreamAU: 'exp2_valencia_video-intext', reason: 'required_for_pubmatic_outstream'}
+_gam_kv_.js:1  INTEXT  [Intext:Prebid:gexp-intext] intext_prebid_video_media_types {context: 'outstream', playerSize: Array(2), mimes: Array(2), protocols: Array(5), playbackmethod: Array(1), …}
+_gam_kv_.js:1  INTEXT  [Intext:Prebid:gexp-intext] intext_prebid_video_bidders (8) [{…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}]
+_gam_kv_.js:1  INTEXT  [Intext:Slot:gexp-intext] ├─ Prebid MultiFormat: requesting (code: gexp-intext, 18 bidders, types: banner+video)
+_gam_kv_.js:1  INTEXT  [Intext:Slot:gexp-intext] └─ 1 Prebid request(s)...
+_gam_kv_.js:1  INTEXT  [Intext:Prebid:gexp-intext] display_prebid_floor_write_candidate {code: 'gexp-intext', floorKey: 'gexp-intext|banner', candidate: 0.3, source: 'initial', mediaType: 'banner'}
+_gam_kv_.js:1  INTEXT  [Intext:Prebid:gexp-intext] display_prebid_floor_core_detected - source=windowarray, data={"currency":"USD","schema":{"delimiter":"|","fields":["adUnitCode","mediaType"]},"values":{}}
+_gam_kv_.js:1  INTEXT  [Intext:Prebid:gexp-intext] display_prebid_floor_state_snapshot {code: 'gexp-intext', floorKey: 'gexp-intext|banner', values: {…}}
+_gam_kv_.js:1  INTEXT  [Intext:Prebid:gexp-intext] display_prebid_floor_setconfig_payload - key=gexp-intext|banner, floor=0.3, payload={"floors":{"data":{"currency":"USD","schema":{"delimiter":"|","fields":["adUnitCode","mediaType"]},"values":{"gexp-intext|banner":0.3}}}}
+_gam_kv_.js:1  INTEXT  [Intext:Prebid:gexp-intext] display_prebid_floor_write_committed {code: 'gexp-intext', floorKey: 'gexp-intext|banner', floor: 0.3}
+_gam_kv_.js:1  INTEXT  [Intext:Prebid:gexp-intext] display_prebid_floor_config_after_set - key=gexp-intext|banner, floor=0.3, accepted=accepted, config={"data":{"currency":"USD","schema":{"delimiter":"|","fields":["adUnitCode","mediaType"]},"values":{"gexp-intext|banner":0.3},"floorsSchemaVersion":1}}
+_gam_kv_.js:1  INTEXT  [Intext:Prebid:gexp-intext] display_prebid_floor_initial_applied - key=gexp-intext|banner, gexp_floor=0.3
+_gam_kv_.js:1  INTEXT  [Intext:Prebid:gexp-intext] prebid_watchdog_armed - ms=3700 code=gexp-intext
+_gam_kv_.js:1  INTEXT  [Intext:Prebid:gexp-intext] video_cache_profile_resolved {slotCode: 'gexp-intext', random1: '6', random2: '2', mode: 'custom', url: 'https://prebid.unidadeditorial.es/cache', …}
+_gam_kv_.js:1  INTEXT  [Intext:Prebid:gexp-intext] video_cache_override_apply {slotCode: 'gexp-intext', random1: '6', random2: '2', mode: 'custom', url: 'https://prebid.unidadeditorial.es/cache', …}
+s2s-web.js:1 GFK: VMS privacy settings:, {
+  "version": "2",
+  "source": "sensic-sdk-web",
+  "id": {
+    "instanceid": "17773873754259625BECA1E6F0E9A27B31AD0424E7C6D210B4EE449A",
+    "sui_1pc": "17742666097586FA223D863D2EDD4021B01EE3F50017EEA3B61EA915",
+    "sui_fc": "1776681990139977EFC115C4FB8B41B4AD6D0630C216B000E3F52CB0",
+    "sui_3pc": "1776177877431F985FB5F7F7B1FD3BE3B0F2CA9E906680A1E6285533"
+  },
+  "privacy": {
+    "providedOptin": true,
+    "tcString": "CQhKNAAQhKNAAAHABBENCWFsAP_gAAAAAAAAMKtR_G__bXlr-bb36btkeYxf9_hr7sQxBgbJk24FzLvW7JwH32E7NAzatqYKmRIAu3TBIQNlHJDURUCgKIgVrzDMaE2U4TtKJ6BkiFMZQ2tYCFxvm4tjWQCY4vr_5ld9mR-t7dr82dzy26hnv3a9fuS1UJCdIYetDfv8ZBOT-9IE9-x8v4v4_MbpEm-eS1n_tGtp4jd6YvP_dBmxt-Tyff7Pn__rl_e7X__e_n3zv8oXX77_____f_-7___2b_-___7__-C9kCkAHAAzQDPgHSASqAmUBfoDIQGjAOfAdsA-0B-wEBgIIgQUAjSBHoCRAEkgJKASjAmHBP0E_oKCAoKBRYCjgFHwKpgVgArIBW0CvoFhALVgW8AuABdcC7QF3gL2ADEoAMAAQYVKQAYAAgwqOgAwABBhUhABgACDCoSADAAEGFS0AGAAIMKg.IMKtR_G__bXlv-bb36btkeYxf9_hr7sQxBgbJs24FzLvW7JwH32E7NEzatqYKmRIAu3TBIQNtHJjURUChKIgVrzDMaE2U4TtKJ-BkiHMZY2tYCFxvm4tjWQCZ4vr_5ld9mT-t7dr-2dzy27hnv3a9fuS1UJidKYetHfv8ZBOT-_IU9_x-_4v4_MbpEm-eS1v_tWtt43d64vP_dJuxt-Tyff7____73_e7X__e__33_-qXf_7_____________f________-A.f_wAAAAAAAAA"
+  },
+  "tracking": true
+}
+_gam_kv_.js:1  INTEXT  [Intext:Slot:gexp-intext-2:gexp-intext-2] ═══ AUCTION START ═══
+_gam_kv_.js:1  INTEXT  [Intext:Slot:gexp-intext-2] ├─ Trigger:  timer
+_gam_kv_.js:1  INTEXT  [Intext:Slot:gexp-intext-2] ├─ Mode:     display_only
+_gam_kv_.js:1  INTEXT  [Intext:Prebid] Configured bidder aliases via pbjs.aliasBidder {rubicon_video: 'rubicon', appnexus_video: 'appnexus', criteo_video: 'criteo', pubmatic_video: 'pubmatic', equativ_video: 'equativ', …}
+_gam_kv_.js:1  INTEXT  [Intext:Slot:gexp-intext-2] ├─ Prebid MultiFormat: requesting (code: gexp-intext-2, 10 bidders, types: banner)
+_gam_kv_.js:1  INTEXT  [Intext:Slot:gexp-intext-2] └─ 1 Prebid request(s)...
+_gam_kv_.js:1  INTEXT  [Intext:Prebid:gexp-intext-2] display_prebid_floor_write_candidate {code: 'gexp-intext-2', floorKey: 'gexp-intext-2|banner', candidate: 0.3, source: 'initial', mediaType: 'banner'}
+_gam_kv_.js:1  INTEXT  [Intext:Prebid:gexp-intext-2] display_prebid_floor_core_detected - source=pbjs, data={"currency":"USD","schema":{"delimiter":"|","fields":["adUnitCode","mediaType"]},"values":{"gexp-intext|banner":0.3},"floorsSchemaVersion":1}
+_gam_kv_.js:1  INTEXT  [Intext:Prebid:gexp-intext-2] display_prebid_floor_state_snapshot {code: 'gexp-intext-2', floorKey: 'gexp-intext-2|banner', values: {…}}
+_gam_kv_.js:1  INTEXT  [Intext:Prebid:gexp-intext-2] display_prebid_floor_setconfig_payload - key=gexp-intext-2|banner, floor=0.3, payload={"floors":{"data":{"currency":"USD","schema":{"delimiter":"|","fields":["adUnitCode","mediaType"]},"values":{"gexp-intext|banner":0.3,"gexp-intext-2|banner":0.3},"floorsSchemaVersion":1}}}
+_gam_kv_.js:1  INTEXT  [Intext:Prebid:gexp-intext-2] display_prebid_floor_write_committed {code: 'gexp-intext-2', floorKey: 'gexp-intext-2|banner', floor: 0.3}
+_gam_kv_.js:1  INTEXT  [Intext:Prebid:gexp-intext-2] display_prebid_floor_config_after_set - key=gexp-intext-2|banner, floor=0.3, accepted=accepted, config={"data":{"currency":"USD","schema":{"delimiter":"|","fields":["adUnitCode","mediaType"]},"values":{"gexp-intext|banner":0.3,"gexp-intext-2|banner":0.3},"floorsSchemaVersion":1}}
+_gam_kv_.js:1  INTEXT  [Intext:Prebid:gexp-intext-2] display_prebid_floor_initial_applied - key=gexp-intext-2|banner, gexp_floor=0.3
+_gam_kv_.js:1  INTEXT  [Intext:Prebid:gexp-intext-2] prebid_watchdog_armed - ms=3700 code=gexp-intext-2
+69ef40c5468aeb1d4e8b4599.html?gexpIntextDebug=true:3 GFC status: no bloqueada
+_gam_kv_.js:1  INTEXT  [Intext:Prebid:gexp-intext] prebid_callback_arrived_before_watchdog - code=gexp-intext
+_gam_kv_.js:1  INTEXT  [Intext:Prebid:gexp-intext] video_cache_override_restore {slotCode: 'gexp-intext', random1: '6', random2: '2', mode: 'custom', url: 'https://prebid.unidadeditorial.es/cache', …}
+_gam_kv_.js:1  INTEXT  [Intext:Slot:gexp-intext]   Prebid [gexp-intext] auction=60c6d659: 0 bid responses (0 banner, 0 video)
+_gam_kv_.js:1  INTEXT  [Intext:Slot:gexp-intext]     └─ No bid responses received
+_gam_kv_.js:1  INTEXT  [Intext:Slot:gexp-intext] ├─ Bid Cache: saved 0 banner + 0 video bids
+_gam_kv_.js:1  INTEXT  [Intext:Slot:gexp-intext:gexp-intext] ═══ PREBID COMPLETE ═══
+_gam_kv_.js:1  INTEXT  [Intext:Slot:gexp-intext] ├─ Display CPM: (no bid)
+_gam_kv_.js:1  INTEXT  [Intext:Slot:gexp-intext] ├─ Video CPM:   (no bid)
+_gam_kv_.js:1  INTEXT  [Intext:Slot:gexp-intext] ├─ Min CPM:     $1.00
+_gam_kv_.js:1  INTEXT  [Intext:Slot:gexp-intext] └─ Priority:    video
+_gam_kv_.js:1  INTEXT  [Intext:Slot:gexp-intext:gexp-intext] ═══ DECISION (mode: auto) ═══
+_gam_kv_.js:1  INTEXT  [Intext:Slot:gexp-intext] ├─ Rule: NEITHER above min → priority=video → VIDEO
+_gam_kv_.js:1  INTEXT  [Intext:Slot:gexp-intext:gexp-intext] ═══ WINNER: VIDEO ═══
+_gam_kv_.js:1  INTEXT  [Intext:Slot:gexp-intext:gexp-intext] ═══ REQUEST PHASE: VIDEO ═══
+_gam_kv_.js:1  INTEXT  [Intext:Slot:gexp-intext] ├─ Winner:   video
+_gam_kv_.js:1  INTEXT  [Intext:Slot:gexp-intext] ├─ Fallback: display
+_gam_kv_.js:1  INTEXT  [Intext:Video:gexp-intext-video] timing auction_to_request_winner_video=1682ms trigger=intersection
+_gam_kv_.js:1  INTEXT  [Intext:Video:gexp-intext] intext_video_variant_resolution_source {nodeId: 'gexp-intext', slotCode: 'gexp-intext', key: 'random1', detectedValue: '6', source: 'manager.getPageCustomTargeting', …}
+_gam_kv_.js:1  INTEXT  [Intext:Video:gexp-intext] intext_video_variant_resolved {nodeId: 'gexp-intext', slotCode: 'gexp-intext', key: 'random1', random1: '6', detectedValue: '6', …}
+_gam_kv_.js:1  INTEXT  [Intext:Video:gexp-intext] intext_video_profile_applied {nodeId: 'gexp-intext', slotCode: 'gexp-intext', random1: '6', variant: 'outstream', context: 'outstream', …}
+_gam_kv_.js:1  INTEXT  [Intext:Slot:gexp-intext] ├─ TAM Video: requesting...
+_gam_kv_.js:1  INTEXT  [Intext:Prebid:gexp-intext-2] prebid_callback_arrived_before_watchdog - code=gexp-intext-2
+_gam_kv_.js:1  INTEXT  [Intext:Slot:gexp-intext-2]   Prebid [gexp-intext-2] auction=53141db3: 1 bid responses (1 banner, 0 video)
+_gam_kv_.js:1  INTEXT  [Intext:Slot:gexp-intext-2]     ├─ Best Banner: $1.45 from ttd
+_gam_kv_.js:1  INTEXT  [Intext:Slot:gexp-intext-2]     │  └─ ttd: $1.45 (banner)
+_gam_kv_.js:1  INTEXT  [Intext:Slot:gexp-intext-2] ├─ Bid Cache: saved 1 banner + 0 video bids
+_gam_kv_.js:1  INTEXT  [Intext:Slot:gexp-intext-2:gexp-intext-2] ═══ PREBID COMPLETE ═══
+_gam_kv_.js:1  INTEXT  [Intext:Slot:gexp-intext-2] ├─ Display CPM: $1.45 from ttd
+_gam_kv_.js:1  INTEXT  [Intext:Slot:gexp-intext-2] ├─ Video CPM:   (no bid)
+_gam_kv_.js:1  INTEXT  [Intext:Slot:gexp-intext-2] ├─ Min CPM:     $1.00
+_gam_kv_.js:1  INTEXT  [Intext:Slot:gexp-intext-2] └─ Priority:    video
+_gam_kv_.js:1  INTEXT  [Intext:Slot:gexp-intext-2:gexp-intext-2] ═══ DECISION (mode: display_only) ═══
+_gam_kv_.js:1  INTEXT  [Intext:Slot:gexp-intext-2] ├─ Rule: mode=display_only → DISPLAY (no fallback)
+_gam_kv_.js:1  INTEXT  [Intext:Slot:gexp-intext-2:gexp-intext-2] ═══ WINNER: DISPLAY ═══
+_gam_kv_.js:1  INTEXT  [Intext:Slot:gexp-intext-2:gexp-intext-2] ═══ REQUEST PHASE: DISPLAY ═══
+_gam_kv_.js:1  INTEXT  [Intext:Slot:gexp-intext-2] ├─ Winner:   display
+_gam_kv_.js:1  INTEXT  [Intext:Slot:gexp-intext-2] ├─ Fallback: NONE (forced mode)
+_gam_kv_.js:1  INTEXT  [Intext:Slot:gexp-intext-2] ├─ TAM Display: requesting...
+amp-inabox.js:127 Powered by AMP ⚡ HTML – Version 2603032146000 https://www.expansion.com/valencia/2026/04/27/69ef40c5468aeb1d4e8b4599.html
+_gam_kv_.js:1  INTEXT  [Intext:Slot:gexp-intext]   TAM: no bids
+_gam_kv_.js:1  INTEXT  [Intext:Slot:gexp-intext] ├─ TAM Video: done
+_gam_kv_.js:1  INTEXT  [Intext:Video:gexp-intext] intext_video_variant_resolution_source {nodeId: 'gexp-intext', slotCode: 'gexp-intext', key: 'random1', detectedValue: '6', source: 'manager.getPageCustomTargeting', …}
+_gam_kv_.js:1  INTEXT  [Intext:Video:gexp-intext] intext_video_variant_resolved {nodeId: 'gexp-intext', slotCode: 'gexp-intext', key: 'random1', random1: '6', detectedValue: '6', …}
+_gam_kv_.js:1  INTEXT  [Intext:Video:gexp-intext] intext_video_profile_applied {nodeId: 'gexp-intext', slotCode: 'gexp-intext', random1: '6', variant: 'outstream', context: 'outstream', …}
+_gam_kv_.js:1  INTEXT  [Intext:Auction:gexp-intext] intext_video_request_targeting_source {targetingSource: 'manager.getPageCustomTargeting -> random1:manager.…rgeting -> random2:manager.getPageCustomTargeting', scopedContextPageUrl: null, slotAttached: false}scopedContextPageUrl: nullslotAttached: falsetargetingSource: "manager.getPageCustomTargeting -> random1:manager.getPageCustomTargeting -> random2:manager.getPageCustomTargeting"[[Prototype]]: Object
+_gam_kv_.js:1  INTEXT  [Intext:Auction:gexp-intext] intext_video_request_targeting_final {intext: 'true', p: 'gexp-intext', random1: '6', random2: '2', tag: 'valencia,inmobiliario,mercado-inmobiliario,alquiler,vivienda', …}
+_gam_kv_.js:1  INTEXT  [Intext:Waterfall:gexp-intext] video_gam_position_targeting_applied {p: 'gexp-intext', targetingSource: 'manager.getPageCustomTargeting -> random1:manager.…rgeting -> random2:manager.getPageCustomTargeting'}
+_gam_kv_.js:1  INTEXT  [Intext:Auction:gexp-intext] intext_video_gam_request_targeting_final {intext: 'true', p: 'gexp-intext', random1: '6', random2: '2', tag: 'valencia,inmobiliario,mercado-inmobiliario,alquiler,vivienda', …}
+_gam_kv_.js:1  INTEXT  [Intext:Waterfall:gexp-intext] GAM video tag built. iu=/99071977/exp2/valencia/video-intext, cust_params: intext=true&p=gexp-intext&random1=6&random2=2&tag=valencia%2Cinmobiliario%2Cmercado-inmobiliario%2Calquiler%2Cvivienda&t=default&tlm=0&tlm_id=9299e1ff-0e24-4cd1-8877-60968c3b4c9b&nvis=55
+_gam_kv_.js:1  INTEXT  [Intext:Slot:gexp-intext] ├─ GAM Video: building player...
+_gam_kv_.js:1  INTEXT  [Intext:Slot:gexp-intext-2]   TAM: 1 bid(s) received
+_gam_kv_.js:1  INTEXT  [Intext:Slot:gexp-intext-2] ├─ TAM Display: done
+_gam_kv_.js:1  INTEXT  [Intext:Slot:gexp-intext-2] ├─ GAM Display: requesting GPT slot...
+_gam_kv_.js:1  INTEXT  [Intext:Display:gexp-intext-2] 🔍 Asking GAM for display. AdUnit: /99071977/exp2/valencia/n, Sizes: (5) [Array(2), Array(2), Array(2), Array(2), Array(2)]
+_gam_kv_.js:1  INTEXT  [Intext:Display:gexp-intext-2] Prebid bid: $1.4475 from ttd
+_gam_kv_.js:1  INTEXT  [Intext:Display:gexp-intext-2] display_request_targeting_source {targetingSource: 'manager.getPageCustomTargeting -> random1:manager.…rgeting -> random4:manager.getPageCustomTargeting', scopedContextPageUrl: null, slotAttached: true}
+_gam_kv_.js:1  INTEXT  [Intext:Display:gexp-intext-2] display_request_targeting_final {p: 'gexp-intext-2', intext: 'true', random1: '6', random2: '2', random3: '17', …}
+_gam_kv_.js:1  INTEXT  [Intext:Display:gexp-intext-2] display_request_targeting_cleared_keys (19) ['p', 'intext', 'random1', 'random2', 'random3', 'random4', 'tlm', 'tlm_id', 'nvis', 'aut', 'h', 'gexp_floor', 'rndp', 'sj', 'gexp-intext-navcont', 'hb_pb', 'hb_bidder', 'hb_format', 'hb_adid']0: "p"1: "intext"2: "random1"3: "random2"4: "random3"5: "random4"6: "tlm"7: "tlm_id"8: "nvis"9: "aut"10: "h"11: "gexp_floor"12: "rndp"13: "sj"14: "gexp-intext-navcont"15: "hb_pb"16: "hb_bidder"17: "hb_format"18: "hb_adid"length: 19[[Prototype]]: Array(0)
+_gam_kv_.js:1  INTEXT  [Intext:Display:gexp-intext-2] 📤 Launching GAM Display Request. Targeted keys: {p: Array(1), intext: Array(1), random1: Array(1), random2: Array(1), random3: Array(1), …}
+_gam_kv_.js:1  INTEXT  [Intext:Display:gexp-intext-2] display_random_restored_after_gexp_request {random1: '6', random2: '2', random3: '17', random4: '14', source: 'random1:manager.getPageCustomTargeting,random2:man…mTargeting,random4:manager.getPageCustomTargeting', …}random1: "6"random2: "2"random3: "17"random4: "14"slotCode: "gexp-intext-2"source: "random1:manager.getPageCustomTargeting,random2:manager.getPageCustomTargeting,random3:manager.getPageCustomTargeting,random4:manager.getPageCustomTargeting"[[Prototype]]: Object
+_gam_kv_.js:1  INTEXT  [Intext:Display:gexp-intext-2] display_request_targeting_source {targetingSource: 'manager.getPageCustomTargeting -> slot_targeting -…rgeting -> random4:manager.getPageCustomTargeting', scopedContextPageUrl: null, slotAttached: true}
+_gam_kv_.js:1  INTEXT  [Intext:Display:gexp-intext-2] display_request_targeting_final {p: 'gexp-intext-2', intext: 'true', random1: '6', random2: '2', random3: '17', …}
+_gam_kv_.js:1  INTEXT  [Intext:Display:gexp-intext-2] display_request_targeting_cleared_keys_post_core (19) ['p', 'intext', 'random1', 'random2', 'random3', 'random4', 'tlm', 'tlm_id', 'nvis', 'aut', 'h', 'gexp_floor', 'rndp', 'sj', 'gexp-intext-navcont', 'hb_pb', 'hb_bidder', 'hb_format', 'hb_adid']0: "p"1: "intext"2: "random1"3: "random2"4: "random3"5: "random4"6: "tlm"7: "tlm_id"8: "nvis"9: "aut"10: "h"11: "gexp_floor"12: "rndp"13: "sj"14: "gexp-intext-navcont"15: "hb_pb"16: "hb_bidder"17: "hb_format"18: "hb_adid"length: 19[[Prototype]]: Array(0)
+_gam_kv_.js:1  INTEXT  [Intext:Display:gexp-intext-2] display_hb_targeting_built {winnerBidder: 'ttd', winnerPb: '1.44', biddersIncluded: Array(1), keys: Array(13)}
+_gam_kv_.js:1  INTEXT  [Intext:Display:gexp-intext-2] Calling googletag.display + refresh
+_gam_kv_.js:1  INTEXT  [Intext:Display:gexp-intext-2] display_before_refresh_targeting_snapshot {final: {…}, allHbTargeting: {…}, rawRandom1: Array(1), rawRandom2: Array(1), rawRandom3: Array(1), …}
+_gam_kv_.js:1  INTEXT  [Intext:Display:gexp-intext-2] display_gam_request_targeting_final {p: 'gexp-intext-2', intext: 'true', random1: '6', random2: '2', random3: '17', …}
+_gam_kv_.js:1  INTEXT  [Intext:Display:gexp-intext-2] initial slotRenderEnded — isEmpty: false, size: [1,1], is1x1: true, hasContent: true
+_gam_kv_.js:1  INTEXT  [Intext:Slot:gexp-intext-2] ├─ GAM Display: FILL ✅ (size: [1,1])
+_gam_kv_.js:1  INTEXT  [Intext:Slot:gexp-intext-2] ✅ DISPLAY delivered successfully
+_gam_kv_.js:1  INTEXT  [Intext:Video:gexp-intext-video] timing trigger=intersection auction_to_request_winner_video=1682ms
+_gam_kv_.js:1  INTEXT  [Intext:Video:gexp-intext-video] 🎬 VIDEO WON — building player
+_gam_kv_.js:1  INTEXT  [Intext:Video:IMA] 🎬 Full VAST tag URL:
+https://securepubads.g.doubleclick.net/gampad/ads?iu=%2F99071977%2Fexp2%2Fvalencia%2Fvideo-intext&vpos=preroll&sz=640x360&gdfp_req=1&env=vp&output=xml_vast4&unviewed_position_start=1&ad_rule=0&plcmt=2&vpmute=1&vpa=auto&url=https%3A%2F%2Fwww.expansion.com%2Fvalencia%2F2026%2F04%2F27%2F69ef40c5468aeb1d4e8b4599.html&description_url=https%3A%2F%2Fwww.expansion.com%2Fvalencia%2F2026%2F04%2F27%2F69ef40c5468aeb1d4e8b4599.html&correlator=1777387379739&cust_params=intext%3Dtrue%26p%3Dgexp-intext%26random1%3D6%26random2%3D2%26tag%3Dvalencia%252Cinmobiliario%252Cmercado-inmobiliario%252Calquiler%252Cvivienda%26t%3Ddefault%26tlm%3D0%26tlm_id%3D9299e1ff-0e24-4cd1-8877-60968c3b4c9b%26nvis%3D55
+_gam_kv_.js:1  INTEXT  [Intext:Video:IMA] 🔧 Player ready — initializing IMA plugin...
+_gam_kv_.js:1  INTEXT  [Intext:Video:IMA] ✔ IMA plugin initialized
+_gam_kv_.js:1  INTEXT  [Intext:Video:IMA] ✔ AdDisplayContainer initialized
+_gam_kv_.js:1  INTEXT  [Intext:Video:IMA] ▶ player.play() called
+video.min.js:12 VIDEOJS: ADS: Using playMiddleware to block content playback
+video.min.js:12 VIDEOJS: ADS: Play call to Tech was terminated.
+video.min.js:12 VIDEOJS: ADS: Received play event (BeforePreroll)
+video.min.js:12 VIDEOJS: ADS: BeforePreroll -> Preroll
+_gam_kv_.js:1  INTEXT  [Intext:Video:IMA] 📤 ads-request — IMA processing ad request
+_gam_kv_.js:1  INTEXT  [Intext:VideoJS] Ignored expected dummy source MEDIA_ERR_SRC_NOT_SUPPORTED
+video.min.js:12 VIDEOJS: ADS: Received adsready event (Preroll)
+video.min.js:12 VIDEOJS: ADS: Triggered readyforpreroll event (Preroll)
+_gam_kv_.js:1  INTEXT  [Intext:Video:IMA] 🎯 readyforpreroll — anuncio preparado.
+_gam_kv_.js:1  INTEXT  [Intext:Video:IMA] readyforpreroll: anuncio preparado, contenedor oculto hasta playback real.
+_gam_kv_.js:1  INTEXT  [Intext:Video:IMA] 🎯 readyforpreroll — player ready for ad playback
+video.min.js:12 VIDEOJS: ADS: Starting ad break
+_gam_kv_.js:1  INTEXT  [Intext:Video:IMA] ✅ adstart — Arrancando...
+_gam_kv_.js:1  INTEXT  [Intext:Video:gexp-intext-video-1777387389227-y7mh5umabmq] timing request_winner_video_to_adstart=14027ms trigger=intersection
+_gam_kv_.js:1  INTEXT  [Intext:Video:IMA] ad_media_element_found - selector=.ima-ad-container video currentTime=0
+_gam_kv_.js:1  INTEXT  [Intext:Video:IMA] ad_media_loadeddata
+_gam_kv_.js:1  INTEXT  [Intext:Video:IMA] ad_media_canplay
+_gam_kv_.js:1  INTEXT  [Intext:Video:IMA] ad_media_playing
+_gam_kv_.js:1  INTEXT  [Intext:Video:gexp-intext-video-1777387389227-y7mh5umabmq] timing adstart_to_reveal=599ms source=media_playing trigger=intersection
+_gam_kv_.js:1  INTEXT  [Intext:Video:IMA] reveal_from_media_playing
+_gam_kv_.js:1  INTEXT  [Intext:Video:gexp-intext-video] ✅ Video ad is playing — revealing container
+_gam_kv_.js:1  INTEXT  [Intext:Slot:gexp-intext] ├─ GAM Video: FILL ✅ — playing
+_gam_kv_.js:1  INTEXT  [Intext:Slot:gexp-intext] ✅ VIDEO delivered successfully
+_gam_kv_.js:1  INTEXT  [Intext:Display:gexp-intext-2] display_render_size_recovered_from_1x1 {source: 'display_showDisplay', width: 300, height: 600}
+_gam_kv_.js:1  INTEXT  [Intext:Display:gexp-intext-2] display_1x1_expanded_layout_300x600_applied
+_gam_kv_.js:1  INTEXT  [Intext:Display:gexp-intext-2] display_height_lock_set_600
+_gam_kv_.js:1  INTEXT  [Intext:Display:gexp-intext-2] display_300x600_visual_height_adjusted - content_height=600, total_height=615
+_gam_kv_.js:1  INTEXT  [Intext:Display:gexp-intext-2] display_wrapper_total_height_applied - content_height=600, total_height=615
+_gam_kv_.js:1  INTEXT  [Intext:Display:gexp-intext-2] display_height_state_applied - source=display_showDisplay, content_height=600, total_height=615, locked_height=600
+_gam_kv_.js:1  INTEXT  [Intext:Display:gexp-intext-2] ⏱️ Scheduling Waterfall Retry 1/2 (Requires 5000ms of VISIBLE time)
+_gam_kv_.js:1  INTEXT  [Intext:Display:gexp-intext-2] display_300x600_visual_height_adjusted - content_height=600, total_height=615
+_gam_kv_.js:1  INTEXT  [Intext:Display:gexp-intext-2] display_wrapper_total_height_applied - content_height=600, total_height=615
+_gam_kv_.js:1  INTEXT  [Intext:Display:gexp-intext-2] display_height_state_applied - source=display_layout_post_guard_0ms, content_height=600, total_height=615, locked_height=600
+_gam_kv_.js:1  INTEXT  [Intext:Display:gexp-intext-2] display_300x600_visual_height_adjusted - content_height=600, total_height=615
+_gam_kv_.js:1  INTEXT  [Intext:Display:gexp-intext-2] display_wrapper_total_height_applied - content_height=600, total_height=615
+_gam_kv_.js:1  INTEXT  [Intext:Display:gexp-intext-2] display_height_state_applied - source=display_layout_post_guard_300ms, content_height=600, total_height=615, locked_height=600
+_gam_kv_.js:1  INTEXT  [Intext:Display:gexp-intext-2] display_300x600_visual_height_adjusted - content_height=600, total_height=615
+_gam_kv_.js:1  INTEXT  [Intext:Display:gexp-intext-2] display_wrapper_total_height_applied - content_height=600, total_height=615
+_gam_kv_.js:1  INTEXT  [Intext:Display:gexp-intext-2] display_height_state_applied - source=display_layout_post_guard_900ms, content_height=600, total_height=615, locked_height=600
+_gam_kv_.js:1  INTEXT  [Intext:Display:gexp-intext-2] display_300x600_visual_height_adjusted - content_height=600, total_height=615
+_gam_kv_.js:1  INTEXT  [Intext:Display:gexp-intext-2] display_wrapper_total_height_applied - content_height=600, total_height=615
+_gam_kv_.js:1  INTEXT  [Intext:Display:gexp-intext-2] display_height_state_applied - source=display_layout_post_guard_1800ms, content_height=600, total_height=615, locked_height=600
+_gam_kv_.js:1  INTEXT  [Intext:Display:gexp-intext-2] display_300x600_visual_height_adjusted - content_height=600, total_height=615
+_gam_kv_.js:1  INTEXT  [Intext:Display:gexp-intext-2] display_wrapper_total_height_applied - content_height=600, total_height=615
+_gam_kv_.js:1  INTEXT  [Intext:Display:gexp-intext-2] display_height_state_applied - source=display_layout_post_guard_3200ms, content_height=600, total_height=615, locked_height=600
+_gam_kv_.js:1  INTEXT  [Intext:Display:gexp-intext-2] display_300x600_visual_height_adjusted - content_height=600, total_height=615
+_gam_kv_.js:1  INTEXT  [Intext:Display:gexp-intext-2] display_wrapper_total_height_applied - content_height=600, total_height=615
+_gam_kv_.js:1  INTEXT  [Intext:Display:gexp-intext-2] display_height_state_applied - source=display_layout_post_guard_5200ms, content_height=600, total_height=615, locked_height=600
+video.min.js:12 VIDEOJS: ADS: Ending ad break
+_gam_kv_.js:1  INTEXT  [Intext:VideoPlayer:gexp-intext-video-1777387389227-y7mh5umabmq] Ad playback ended
+_gam_kv_.js:1  INTEXT  [Intext:Video:gexp-intext-video] 🔄 Video playback ended
+_gam_kv_.js:1  INTEXT  [Intext:Video:gexp-intext-video] ⏱️ Scheduling Video Refresh 1/2 (Requires 0ms of VISIBLE time)
+_gam_kv_.js:1  🔄 INTEXT  [Intext:Video:gexp-intext-video] 🔄 Visible time reached (0ms) -> Starting refresh cycle 1/2 (mode: display_only)
+_gam_kv_.js:1  INTEXT  [Intext:Display:gexp-intext] display_refresh_lock_source - source=default_345, height=345, effective_lock=345
+_gam_kv_.js:1  INTEXT  [Intext:Display:gexp-intext] display_refresh_preserved_height - height=345
+_gam_kv_.js:1  INTEXT  [Intext:Display:gexp-intext] display_wrapper_total_height_applied - content_height=345, total_height=360
+_gam_kv_.js:1  INTEXT  [Intext:Display:gexp-intext] display_height_state_applied - source=refresh_prepare_video_container, content_height=345, total_height=360, locked_height=345
+_gam_kv_.js:1  INTEXT  [Intext:Slot:gexp-intext:gexp-intext] ═══ AUCTION START ═══
+_gam_kv_.js:1  INTEXT  [Intext:Slot:gexp-intext] ├─ Trigger:  refresh
+_gam_kv_.js:1  🔄 INTEXT  [Intext:Slot:gexp-intext] ├─ Mode:     display_only (refresh cycle)
+_gam_kv_.js:1  INTEXT  [Intext:Slot:gexp-intext] ├─ Bid Strategy: FRESH (new auction)
+_gam_kv_.js:1  INTEXT  [Intext:Slot:gexp-intext] ├─ Prebid MultiFormat: requesting (code: gexp-intext, 10 bidders, types: banner)
+_gam_kv_.js:1  INTEXT  [Intext:Slot:gexp-intext] └─ 1 Prebid request(s)...
+_gam_kv_.js:1  INTEXT  [Intext:Prebid:gexp-intext] display_prebid_floor_write_candidate {code: 'gexp-intext', floorKey: 'gexp-intext|banner', candidate: 0.3, source: 'initial', mediaType: 'banner'}
+_gam_kv_.js:1  INTEXT  [Intext:Prebid:gexp-intext] display_prebid_floor_core_detected - source=pbjs, data={"currency":"USD","schema":{"delimiter":"|","fields":["adUnitCode","mediaType"]},"values":{"gexp-intext|banner":0.3,"gexp-intext-2|banner":0.3},"floorsSchemaVersion":1}
+_gam_kv_.js:1  INTEXT  [Intext:Prebid:gexp-intext] display_prebid_floor_state_snapshot {code: 'gexp-intext', floorKey: 'gexp-intext|banner', values: {…}}
+_gam_kv_.js:1  INTEXT  [Intext:Prebid:gexp-intext] display_prebid_floor_setconfig_payload - key=gexp-intext|banner, floor=0.3, payload={"floors":{"data":{"currency":"USD","schema":{"delimiter":"|","fields":["adUnitCode","mediaType"]},"values":{"gexp-intext|banner":0.3,"gexp-intext-2|banner":0.3},"floorsSchemaVersion":1}}}
+_gam_kv_.js:1  INTEXT  [Intext:Prebid:gexp-intext] display_prebid_floor_write_committed {code: 'gexp-intext', floorKey: 'gexp-intext|banner', floor: 0.3}
+_gam_kv_.js:1  INTEXT  [Intext:Prebid:gexp-intext] display_prebid_floor_config_after_set - key=gexp-intext|banner, floor=0.3, accepted=accepted, config={"data":{"currency":"USD","schema":{"delimiter":"|","fields":["adUnitCode","mediaType"]},"values":{"gexp-intext|banner":0.3,"gexp-intext-2|banner":0.3},"floorsSchemaVersion":1}}
+_gam_kv_.js:1  INTEXT  [Intext:Prebid:gexp-intext] display_prebid_floor_initial_applied - key=gexp-intext|banner, gexp_floor=0.3
+_gam_kv_.js:1  INTEXT  [Intext:Prebid:gexp-intext] prebid_watchdog_armed - ms=3700 code=gexp-intext
+_gam_kv_.js:1  INTEXT  [Intext:Prebid:gexp-intext] prebid_callback_arrived_before_watchdog - code=gexp-intext
+_gam_kv_.js:1  INTEXT  [Intext:Slot:gexp-intext]   Prebid [gexp-intext] auction=55c2ec6b: 0 bid responses (0 banner, 0 video)
+_gam_kv_.js:1  INTEXT  [Intext:Slot:gexp-intext]     └─ No bid responses received
+_gam_kv_.js:1  INTEXT  [Intext:Slot:gexp-intext] ├─ Bid Cache: saved 0 banner + 0 video bids
+_gam_kv_.js:1  INTEXT  [Intext:Slot:gexp-intext:gexp-intext] ═══ PREBID COMPLETE ═══
+_gam_kv_.js:1  INTEXT  [Intext:Slot:gexp-intext] ├─ Display CPM: (no bid)
+_gam_kv_.js:1  INTEXT  [Intext:Slot:gexp-intext] ├─ Video CPM:   (no bid)
+_gam_kv_.js:1  INTEXT  [Intext:Slot:gexp-intext] ├─ Min CPM:     $1.00
+_gam_kv_.js:1  INTEXT  [Intext:Slot:gexp-intext] └─ Priority:    video
+_gam_kv_.js:1  INTEXT  [Intext:Slot:gexp-intext:gexp-intext] ═══ DECISION (mode: display_only) ═══
+_gam_kv_.js:1  INTEXT  [Intext:Slot:gexp-intext] ├─ Rule: mode=display_only → DISPLAY (no fallback)
+_gam_kv_.js:1  INTEXT  [Intext:Slot:gexp-intext:gexp-intext] ═══ WINNER: DISPLAY ═══
+_gam_kv_.js:1  INTEXT  [Intext:Slot:gexp-intext:gexp-intext] ═══ REQUEST PHASE: DISPLAY ═══
+_gam_kv_.js:1  INTEXT  [Intext:Slot:gexp-intext] ├─ Winner:   display
+_gam_kv_.js:1  INTEXT  [Intext:Slot:gexp-intext] ├─ Fallback: NONE (forced mode)
+_gam_kv_.js:1  INTEXT  [Intext:Slot:gexp-intext] ├─ TAM Display: requesting...
+_gam_kv_.js:1  INTEXT  [Intext:Slot:gexp-intext]   TAM: 1 bid(s) received
+_gam_kv_.js:1  INTEXT  [Intext:Slot:gexp-intext] ├─ TAM Display: done
+_gam_kv_.js:1  INTEXT  [Intext:Slot:gexp-intext] ├─ GAM Display: requesting GPT slot...
+_gam_kv_.js:1  INTEXT  [Intext:Display:gexp-intext] 🔍 Asking GAM for display. AdUnit: /99071977/exp2/valencia/n, Sizes: (5) [Array(2), Array(2), Array(2), Array(2), Array(2)]
+_gam_kv_.js:1  INTEXT  [Intext:Display:gexp-intext] display_request_targeting_source {targetingSource: 'manager.getPageCustomTargeting -> random1:manager.…rgeting -> random4:manager.getPageCustomTargeting', scopedContextPageUrl: null, slotAttached: true}
+_gam_kv_.js:1  INTEXT  [Intext:Display:gexp-intext] display_request_targeting_final {p: 'gexp-intext', intext: 'true', random1: '6', random2: '2', random3: '17', …}
+_gam_kv_.js:1  INTEXT  [Intext:Display:gexp-intext] display_request_targeting_cleared_keys (19) ['p', 'intext', 'random1', 'random2', 'random3', 'random4', 'tlm', 'tlm_id', 'nvis', 'aut', 'h', 'gexp_floor', 'rndp', 'sj', 'gexp-intext-navcont', 'hb_pb', 'hb_bidder', 'hb_format', 'hb_adid']0: "p"1: "intext"2: "random1"3: "random2"4: "random3"5: "random4"6: "tlm"7: "tlm_id"8: "nvis"9: "aut"10: "h"11: "gexp_floor"12: "rndp"13: "sj"14: "gexp-intext-navcont"15: "hb_pb"16: "hb_bidder"17: "hb_format"18: "hb_adid"length: 19[[Prototype]]: Array(0)
+_gam_kv_.js:1  INTEXT  [Intext:Display:gexp-intext] 📤 Launching GAM Display Request. Targeted keys: {p: Array(1), intext: Array(1), random1: Array(1), random2: Array(1), random3: Array(1), …}
+_gam_kv_.js:1  INTEXT  [Intext:Display:gexp-intext] display_random_restored_after_gexp_request {random1: '6', random2: '2', random3: '17', random4: '14', source: 'random1:manager.getPageCustomTargeting,random2:man…mTargeting,random4:manager.getPageCustomTargeting', …}random1: "6"random2: "2"random3: "17"random4: "14"slotCode: "gexp-intext"source: "random1:manager.getPageCustomTargeting,random2:manager.getPageCustomTargeting,random3:manager.getPageCustomTargeting,random4:manager.getPageCustomTargeting"[[Prototype]]: Object
+_gam_kv_.js:1  INTEXT  [Intext:Display:gexp-intext] display_request_targeting_source {targetingSource: 'manager.getPageCustomTargeting -> slot_targeting -…rgeting -> random4:manager.getPageCustomTargeting', scopedContextPageUrl: null, slotAttached: true}
+_gam_kv_.js:1  INTEXT  [Intext:Display:gexp-intext] display_request_targeting_final {p: 'gexp-intext', intext: 'true', random1: '6', random2: '2', random3: '17', …}
+_gam_kv_.js:1  INTEXT  [Intext:Display:gexp-intext] display_request_targeting_cleared_keys_post_core (19) ['p', 'intext', 'random1', 'random2', 'random3', 'random4', 'tlm', 'tlm_id', 'nvis', 'aut', 'h', 'gexp_floor', 'rndp', 'sj', 'gexp-intext-navcont', 'hb_pb', 'hb_bidder', 'hb_format', 'hb_adid']0: "p"1: "intext"2: "random1"3: "random2"4: "random3"5: "random4"6: "tlm"7: "tlm_id"8: "nvis"9: "aut"10: "h"11: "gexp_floor"12: "rndp"13: "sj"14: "gexp-intext-navcont"15: "hb_pb"16: "hb_bidder"17: "hb_format"18: "hb_adid"length: 19[[Prototype]]: Array(0)
+_gam_kv_.js:1  INTEXT  [Intext:Display:gexp-intext] display_hb_targeting_skipped_no_winner {slotCode: 'gexp-intext'}
+_gam_kv_.js:1  INTEXT  [Intext:Display:gexp-intext] Calling googletag.display + refresh
+_gam_kv_.js:1  INTEXT  [Intext:Display:gexp-intext] ⚠️ DOM element missing, recreating wrapper...
+_gam_kv_.js:1  INTEXT  [Intext:Display:gexp-intext] display_before_refresh_targeting_snapshot {final: {…}, allHbTargeting: {…}, rawRandom1: Array(1), rawRandom2: Array(1), rawRandom3: Array(1), …}
+_gam_kv_.js:1  INTEXT  [Intext:Display:gexp-intext] display_gam_request_targeting_final {p: 'gexp-intext', intext: 'true', random1: '6', random2: '2', random3: '17', …}
+_gam_kv_.js:1  INTEXT  [Intext:Display:gexp-intext] initial slotRenderEnded — isEmpty: false, size: [300,600], is1x1: false, hasContent: true
+_gam_kv_.js:1  INTEXT  [Intext:Slot:gexp-intext] ├─ GAM Display: FILL ✅ (size: [300,600])
+_gam_kv_.js:1  INTEXT  [Intext:Slot:gexp-intext] ✅ DISPLAY delivered successfully
+_gam_kv_.js:1  INTEXT  [Intext:Display:gexp-intext] display_height_lock_set_600
+_gam_kv_.js:1  INTEXT  [Intext:Display:gexp-intext] display_300x600_visual_height_adjusted - content_height=600, total_height=615
+_gam_kv_.js:1  INTEXT  [Intext:Display:gexp-intext] display_wrapper_total_height_applied - content_height=600, total_height=615
+_gam_kv_.js:1  INTEXT  [Intext:Display:gexp-intext] display_height_state_applied - source=display_showDisplay, content_height=600, total_height=615, locked_height=600
+_gam_kv_.js:1  🔄 INTEXT  [Intext:Display:gexp-intext] Max refresh cycles reached (2/2).
+VM20340 amp4ads-v0.mjs:2 Powered by AMP ⚡ HTML – Version 2603032146000 https://www.expansion.com/valencia/2026/04/27/69ef40c5468aeb1d4e8b4599.html
+_gam_kv_.js:1  INTEXT  [Intext:Display:gexp-intext] display_300x600_visual_height_adjusted - content_height=600, total_height=615
+_gam_kv_.js:1  INTEXT  [Intext:Display:gexp-intext] display_wrapper_total_height_applied - content_height=600, total_height=615
+_gam_kv_.js:1  INTEXT  [Intext:Display:gexp-intext] display_height_state_applied - source=display_layout_post_guard_0ms, content_height=600, total_height=615, locked_height=600
+_gam_kv_.js:1  INTEXT  [Intext:Display:gexp-intext] display_300x600_visual_height_adjusted - content_height=600, total_height=615
+_gam_kv_.js:1  INTEXT  [Intext:Display:gexp-intext] display_wrapper_total_height_applied - content_height=600, total_height=615
+_gam_kv_.js:1  INTEXT  [Intext:Display:gexp-intext] display_height_state_applied - source=display_layout_post_guard_300ms, content_height=600, total_height=615, locked_height=600
+_gam_kv_.js:1  INTEXT  [Intext:Display:gexp-intext] display_300x600_visual_height_adjusted - content_height=600, total_height=615
+_gam_kv_.js:1  INTEXT  [Intext:Display:gexp-intext] display_wrapper_total_height_applied - content_height=600, total_height=615
+_gam_kv_.js:1  INTEXT  [Intext:Display:gexp-intext] display_height_state_applied - source=display_layout_post_guard_900ms, content_height=600, total_height=615, locked_height=600
+_gam_kv_.js:1  INTEXT  [Intext:Display:gexp-intext] display_300x600_visual_height_adjusted - content_height=600, total_height=615
+_gam_kv_.js:1  INTEXT  [Intext:Display:gexp-intext] display_wrapper_total_height_applied - content_height=600, total_height=615
+_gam_kv_.js:1  INTEXT  [Intext:Display:gexp-intext] display_height_state_applied - source=display_layout_post_guard_1800ms, content_height=600, total_height=615, locked_height=600
+_gam_kv_.js:1  INTEXT  [Intext:Display:gexp-intext] display_300x600_visual_height_adjusted - content_height=600, total_height=615
+_gam_kv_.js:1  INTEXT  [Intext:Display:gexp-intext] display_wrapper_total_height_applied - content_height=600, total_height=615
+_gam_kv_.js:1  INTEXT  [Intext:Display:gexp-intext] display_height_state_applied - source=display_layout_post_guard_3200ms, content_height=600, total_height=615, locked_height=600
+_gam_kv_.js:1  INTEXT  [Intext:Display:gexp-intext] display_300x600_visual_height_adjusted - content_height=600, total_height=615
+_gam_kv_.js:1  INTEXT  [Intext:Display:gexp-intext] display_wrapper_total_height_applied - content_height=600, total_height=615
+_gam_kv_.js:1  INTEXT  [Intext:Display:gexp-intext] display_height_state_applied - source=display_layout_post_guard_5200ms, content_height=600, total_height=615, locked_height=600
+_gam_kv_.js:1  INTEXT  [Intext:Display:gexp-intext] display_300x600_visual_height_adjusted - content_height=600, total_height=615
+_gam_kv_.js:1  INTEXT  [Intext:Display:gexp-intext] display_wrapper_total_height_applied - content_height=600, total_height=615
+_gam_kv_.js:1  INTEXT  [Intext:Display:gexp-intext] display_height_state_applied - source=display_slotRenderEnded, content_height=600, total_height=615, locked_height=600
+VM20481 amp4ads-v0.mjs:2 Powered by AMP ⚡ HTML – Version 2603032146000 https://www.expansion.com/valencia/2026/04/27/69ef40c5468aeb1d4e8b4599.html
+_gam_kv_.js:1  INTEXT  [Intext:Display:gexp-intext] display_300x600_visual_height_adjusted - content_height=600, total_height=615
+_gam_kv_.js:1  INTEXT  [Intext:Display:gexp-intext] display_wrapper_total_height_applied - content_height=600, total_height=615
+_gam_kv_.js:1  INTEXT  [Intext:Display:gexp-intext] display_height_state_applied - source=display_layout_post_guard_0ms, content_height=600, total_height=615, locked_height=600
+_gam_kv_.js:1  INTEXT  [Intext:Display:gexp-intext] display_300x600_visual_height_adjusted - content_height=600, total_height=615
+_gam_kv_.js:1  INTEXT  [Intext:Display:gexp-intext] display_wrapper_total_height_applied - content_height=600, total_height=615
+_gam_kv_.js:1  INTEXT  [Intext:Display:gexp-intext] display_height_state_applied - source=display_layout_post_guard_300ms, content_height=600, total_height=615, locked_height=600
+_gam_kv_.js:1  INTEXT  [Intext:Display:gexp-intext] display_300x600_visual_height_adjusted - content_height=600, total_height=615
+_gam_kv_.js:1  INTEXT  [Intext:Display:gexp-intext] display_wrapper_total_height_applied - content_height=600, total_height=615
+_gam_kv_.js:1  INTEXT  [Intext:Display:gexp-intext] display_height_state_applied - source=display_layout_post_guard_900ms, content_height=600, total_height=615, locked_height=600
+_gam_kv_.js:1  INTEXT  [Intext:Display:gexp-intext] display_300x600_visual_height_adjusted - content_height=600, total_height=615
+_gam_kv_.js:1  INTEXT  [Intext:Display:gexp-intext] display_wrapper_total_height_applied - content_height=600, total_height=615
+_gam_kv_.js:1  INTEXT  [Intext:Display:gexp-intext] display_height_state_applied - source=display_layout_post_guard_1800ms, content_height=600, total_height=615, locked_height=600
+_gam_kv_.js:1  INTEXT  [Intext:Display:gexp-intext] display_300x600_visual_height_adjusted - content_height=600, total_height=615
+_gam_kv_.js:1  INTEXT  [Intext:Display:gexp-intext] display_wrapper_total_height_applied - content_height=600, total_height=615
+_gam_kv_.js:1  INTEXT  [Intext:Display:gexp-intext] display_height_state_applied - source=display_layout_post_guard_3200ms, content_height=600, total_height=615, locked_height=600
+_gam_kv_.js:1  INTEXT  [Intext:Display:gexp-intext] display_300x600_visual_height_adjusted - content_height=600, total_height=615
+_gam_kv_.js:1  INTEXT  [Intext:Display:gexp-intext] display_wrapper_total_height_applied - content_height=600, total_height=615
+_gam_kv_.js:1  INTEXT  [Intext:Display:gexp-intext] display_height_state_applied - source=display_layout_post_guard_5200ms, content_height=600, total_height=615, locked_height=600
+_gam_kv_.js:1  INTEXT  [Intext:Display:gexp-intext] display_300x600_visual_height_adjusted - content_height=600, total_height=615
+_gam_kv_.js:1  INTEXT  [Intext:Display:gexp-intext] display_wrapper_total_height_applied - content_height=600, total_height=615
+_gam_kv_.js:1  INTEXT  [Intext:Display:gexp-intext] display_height_state_applied - source=display_slotRenderEnded, content_height=600, total_height=615, locked_height=600
+_gam_kv_.js:1  INTEXT  [Intext:Display:gexp-intext] display_300x600_visual_height_adjusted - content_height=600, total_height=615
+_gam_kv_.js:1  INTEXT  [Intext:Display:gexp-intext] display_wrapper_total_height_applied - content_height=600, total_height=615
+_gam_kv_.js:1  INTEXT  [Intext:Display:gexp-intext] display_height_state_applied - source=display_layout_post_guard_0ms, content_height=600, total_height=615, locked_height=600
+amp-inabox.js:127 Powered by AMP ⚡ HTML – Version 2603032146000 https://www.expansion.com/valencia/2026/04/27/69ef40c5468aeb1d4e8b4599.html
+_gam_kv_.js:1  INTEXT  [Intext:Display:gexp-intext] display_300x600_visual_height_adjusted - content_height=600, total_height=615
+_gam_kv_.js:1  INTEXT  [Intext:Display:gexp-intext] display_wrapper_total_height_applied - content_height=600, total_height=615
+_gam_kv_.js:1  INTEXT  [Intext:Display:gexp-intext] display_height_state_applied - source=display_layout_post_guard_300ms, content_height=600, total_height=615, locked_height=600
+_gam_kv_.js:1  INTEXT  [Intext:Display:gexp-intext] display_300x600_visual_height_adjusted - content_height=600, total_height=615
+_gam_kv_.js:1  INTEXT  [Intext:Display:gexp-intext] display_wrapper_total_height_applied - content_height=600, total_height=615
+_gam_kv_.js:1  INTEXT  [Intext:Display:gexp-intext] display_height_state_applied - source=display_layout_post_guard_900ms, content_height=600, total_height=615, locked_height=600
+_gam_kv_.js:1  INTEXT  [Intext:Display:gexp-intext] display_300x600_visual_height_adjusted - content_height=600, total_height=615
+_gam_kv_.js:1  INTEXT  [Intext:Display:gexp-intext] display_wrapper_total_height_applied - content_height=600, total_height=615
+_gam_kv_.js:1  INTEXT  [Intext:Display:gexp-intext] display_height_state_applied - source=display_layout_post_guard_1800ms, content_height=600, total_height=615, locked_height=600
+_gam_kv_.js:1  INTEXT  [Intext:Display:gexp-intext] display_300x600_visual_height_adjusted - content_height=600, total_height=615
+_gam_kv_.js:1  INTEXT  [Intext:Display:gexp-intext] display_wrapper_total_height_applied - content_height=600, total_height=615
+_gam_kv_.js:1  INTEXT  [Intext:Display:gexp-intext] display_height_state_applied - source=display_layout_post_guard_3200ms, content_height=600, total_height=615, locked_height=600
+_gam_kv_.js:1  INTEXT  [Intext:Display:gexp-intext] display_300x600_visual_height_adjusted - content_height=600, total_height=615
+_gam_kv_.js:1  INTEXT  [Intext:Display:gexp-intext] display_wrapper_total_height_applied - content_height=600, total_height=615
+_gam_kv_.js:1  INTEXT  [Intext:Display:gexp-intext] display_height_state_applied - source=display_layout_post_guard_5200ms, content_height=600, total_height=615, locked_height=600
+_gam_kv_.js:1  INTEXT  [Intext:Display:gexp-intext-2] 🔄 Visible time reached (5000ms) -> Retrying Waterfall
+_gam_kv_.js:1  INTEXT  [Intext:Display:gexp-intext-2] display_refresh_lock_source - source=this.node.lockedHeight, height=600, effective_lock=600
+_gam_kv_.js:1  INTEXT  [Intext:Display:gexp-intext-2] display_refresh_preserved_height - height=600
+_gam_kv_.js:1  INTEXT  [Intext:Display:gexp-intext-2] display_300x600_visual_height_adjusted - content_height=600, total_height=615
+_gam_kv_.js:1  INTEXT  [Intext:Display:gexp-intext-2] display_wrapper_total_height_applied - content_height=600, total_height=615
+_gam_kv_.js:1  INTEXT  [Intext:Display:gexp-intext-2] display_height_state_applied - source=destroyDisplayForRetry, content_height=600, total_height=615, locked_height=600
+_gam_kv_.js:1  INTEXT  [Intext:Display:gexp-intext-2] display_refresh_lock_source - source=this.node.lockedHeight, height=600, effective_lock=600
+_gam_kv_.js:1  INTEXT  [Intext:Display:gexp-intext-2] display_refresh_preserved_height - height=600
+_gam_kv_.js:1  INTEXT  [Intext:Display:gexp-intext-2] display_300x600_visual_height_adjusted - content_height=600, total_height=615
+_gam_kv_.js:1  INTEXT  [Intext:Display:gexp-intext-2] display_wrapper_total_height_applied - content_height=600, total_height=615
+_gam_kv_.js:1  INTEXT  [Intext:Display:gexp-intext-2] display_height_state_applied - source=refresh_prepare_display_container, content_height=600, total_height=615, locked_height=600
+_gam_kv_.js:1  INTEXT  [Intext:Slot:gexp-intext-2:gexp-intext-2] ═══ AUCTION START ═══
+_gam_kv_.js:1  INTEXT  [Intext:Slot:gexp-intext-2] ├─ Trigger:  refresh
+_gam_kv_.js:1  🔄 INTEXT  [Intext:Slot:gexp-intext-2] ├─ Mode:     display_only (refresh cycle)
+_gam_kv_.js:1  INTEXT  [Intext:Slot:gexp-intext-2] ├─ Bid Strategy: FRESH (new auction)
+_gam_kv_.js:1  INTEXT  [Intext:Slot:gexp-intext-2] ├─ Prebid MultiFormat: requesting (code: gexp-intext-2, 10 bidders, types: banner)
+_gam_kv_.js:1  INTEXT  [Intext:Slot:gexp-intext-2] └─ 1 Prebid request(s)...
+_gam_kv_.js:1  INTEXT  [Intext:Prebid:gexp-intext-2] display_prebid_floor_write_candidate {code: 'gexp-intext-2', floorKey: 'gexp-intext-2|banner', candidate: 0.25, source: 'effectivePrice', mediaType: 'banner'}
+_gam_kv_.js:1  INTEXT  [Intext:Prebid:gexp-intext-2] display_prebid_floor_core_detected - source=pbjs, data={"currency":"USD","schema":{"delimiter":"|","fields":["adUnitCode","mediaType"]},"values":{"gexp-intext|banner":0.1,"gexp-intext-2|banner":0.3},"floorsSchemaVersion":1}
+_gam_kv_.js:1  INTEXT  [Intext:Prebid:gexp-intext-2] display_prebid_floor_state_snapshot {code: 'gexp-intext-2', floorKey: 'gexp-intext-2|banner', values: {…}}
+_gam_kv_.js:1  INTEXT  [Intext:Prebid:gexp-intext-2] display_prebid_floor_setconfig_payload - key=gexp-intext-2|banner, floor=0.25, payload={"floors":{"data":{"currency":"USD","schema":{"delimiter":"|","fields":["adUnitCode","mediaType"]},"values":{"gexp-intext|banner":0.1,"gexp-intext-2|banner":0.25},"floorsSchemaVersion":1}}}
+_gam_kv_.js:1  INTEXT  [Intext:Prebid:gexp-intext-2] display_prebid_floor_write_committed {code: 'gexp-intext-2', floorKey: 'gexp-intext-2|banner', floor: 0.25}
+_gam_kv_.js:1  INTEXT  [Intext:Prebid:gexp-intext-2] display_prebid_floor_config_after_set - key=gexp-intext-2|banner, floor=0.25, accepted=accepted, config={"data":{"currency":"USD","schema":{"delimiter":"|","fields":["adUnitCode","mediaType"]},"values":{"gexp-intext|banner":0.1,"gexp-intext-2|banner":0.25},"floorsSchemaVersion":1}}
+_gam_kv_.js:1  INTEXT  [Intext:Prebid:gexp-intext-2] display_prebid_floor_applied - key=gexp-intext-2|banner, gexp_floor=0.25
+_gam_kv_.js:1  INTEXT  [Intext:Prebid:gexp-intext-2] prebid_watchdog_armed - ms=3700 code=gexp-intext-2
+_gam_kv_.js:1  INTEXT  [Intext:Prebid:gexp-intext-2] prebid_callback_arrived_before_watchdog - code=gexp-intext-2
+_gam_kv_.js:1  INTEXT  [Intext:Slot:gexp-intext-2]   Prebid [gexp-intext-2] auction=e04ec8c6: 0 bid responses (0 banner, 0 video)
+_gam_kv_.js:1  INTEXT  [Intext:Slot:gexp-intext-2]     └─ No bid responses received
+_gam_kv_.js:1  INTEXT  [Intext:Slot:gexp-intext-2] ├─ Bid filtering: 1 total, 1 stale (from previous auctions), 0 current
+_gam_kv_.js:1  INTEXT  [Intext:Slot:gexp-intext-2] ├─ Bid Cache: saved 0 banner + 0 video bids
+_gam_kv_.js:1  INTEXT  [Intext:Slot:gexp-intext-2:gexp-intext-2] ═══ PREBID COMPLETE ═══
+_gam_kv_.js:1  INTEXT  [Intext:Slot:gexp-intext-2] ├─ Display CPM: (no bid)
+_gam_kv_.js:1  INTEXT  [Intext:Slot:gexp-intext-2] ├─ Video CPM:   (no bid)
+_gam_kv_.js:1  INTEXT  [Intext:Slot:gexp-intext-2] ├─ Min CPM:     $1.00
+_gam_kv_.js:1  INTEXT  [Intext:Slot:gexp-intext-2] └─ Priority:    video
+_gam_kv_.js:1  INTEXT  [Intext:Slot:gexp-intext-2:gexp-intext-2] ═══ DECISION (mode: display_only) ═══
+_gam_kv_.js:1  INTEXT  [Intext:Slot:gexp-intext-2] ├─ Rule: mode=display_only → DISPLAY (no fallback)
+_gam_kv_.js:1  INTEXT  [Intext:Slot:gexp-intext-2:gexp-intext-2] ═══ WINNER: DISPLAY ═══
+_gam_kv_.js:1  INTEXT  [Intext:Slot:gexp-intext-2:gexp-intext-2] ═══ REQUEST PHASE: DISPLAY ═══
+_gam_kv_.js:1  INTEXT  [Intext:Slot:gexp-intext-2] ├─ Winner:   display
+_gam_kv_.js:1  INTEXT  [Intext:Slot:gexp-intext-2] ├─ Fallback: NONE (forced mode)
+_gam_kv_.js:1  INTEXT  [Intext:Slot:gexp-intext-2] ├─ TAM Display: requesting...
+_gam_kv_.js:1  INTEXT  [Intext:Slot:gexp-intext-2]   TAM: 1 bid(s) received
+_gam_kv_.js:1  INTEXT  [Intext:Slot:gexp-intext-2] ├─ TAM Display: done
+_gam_kv_.js:1  INTEXT  [Intext:Slot:gexp-intext-2] ├─ GAM Display: requesting GPT slot...
+_gam_kv_.js:1  INTEXT  [Intext:Display:gexp-intext-2] 🔍 Asking GAM for display. AdUnit: /99071977/exp2/valencia/n, Sizes: (5) [Array(2), Array(2), Array(2), Array(2), Array(2)]
+_gam_kv_.js:1  INTEXT  [Intext:Display:gexp-intext-2] display_request_targeting_source {targetingSource: 'manager.getPageCustomTargeting -> random1:manager.…rgeting -> random4:manager.getPageCustomTargeting', scopedContextPageUrl: null, slotAttached: true}
+_gam_kv_.js:1  INTEXT  [Intext:Display:gexp-intext-2] display_request_targeting_final {p: 'gexp-intext-2', intext: 'true', random1: '6', random2: '2', random3: '17', …}
+_gam_kv_.js:1  INTEXT  [Intext:Display:gexp-intext-2] display_request_targeting_cleared_keys (19) ['p', 'intext', 'random1', 'random2', 'random3', 'random4', 'tlm', 'tlm_id', 'nvis', 'aut', 'h', 'gexp_floor', 'rndp', 'sj', 'gexp-intext-navcont', 'hb_pb', 'hb_bidder', 'hb_format', 'hb_adid']0: "p"1: "intext"2: "random1"3: "random2"4: "random3"5: "random4"6: "tlm"7: "tlm_id"8: "nvis"9: "aut"10: "h"11: "gexp_floor"12: "rndp"13: "sj"14: "gexp-intext-navcont"15: "hb_pb"16: "hb_bidder"17: "hb_format"18: "hb_adid"length: 19[[Prototype]]: Array(0)
+_gam_kv_.js:1  INTEXT  [Intext:Display:gexp-intext-2] 📤 Launching GAM Display Request. Targeted keys: {p: Array(1), intext: Array(1), random1: Array(1), random2: Array(1), random3: Array(1), …}
+_gam_kv_.js:1  INTEXT  [Intext:Display:gexp-intext-2] display_random_restored_after_gexp_request {random1: '6', random2: '2', random3: '17', random4: '14', source: 'random1:manager.getPageCustomTargeting,random2:man…mTargeting,random4:manager.getPageCustomTargeting', …}random1: "6"random2: "2"random3: "17"random4: "14"slotCode: "gexp-intext-2"source: "random1:manager.getPageCustomTargeting,random2:manager.getPageCustomTargeting,random3:manager.getPageCustomTargeting,random4:manager.getPageCustomTargeting"[[Prototype]]: Object
+_gam_kv_.js:1  INTEXT  [Intext:Display:gexp-intext-2] display_request_targeting_source {targetingSource: 'manager.getPageCustomTargeting -> slot_targeting -…rgeting -> random4:manager.getPageCustomTargeting', scopedContextPageUrl: null, slotAttached: true}
+_gam_kv_.js:1  INTEXT  [Intext:Display:gexp-intext-2] display_request_targeting_final {p: 'gexp-intext-2', intext: 'true', random1: '6', random2: '2', random3: '17', …}
+_gam_kv_.js:1  INTEXT  [Intext:Display:gexp-intext-2] display_request_targeting_cleared_keys_post_core (19) ['p', 'intext', 'random1', 'random2', 'random3', 'random4', 'tlm', 'tlm_id', 'nvis', 'aut', 'h', 'gexp_floor', 'rndp', 'sj', 'gexp-intext-navcont', 'hb_pb', 'hb_bidder', 'hb_format', 'hb_adid']0: "p"1: "intext"2: "random1"3: "random2"4: "random3"5: "random4"6: "tlm"7: "tlm_id"8: "nvis"9: "aut"10: "h"11: "gexp_floor"12: "rndp"13: "sj"14: "gexp-intext-navcont"15: "hb_pb"16: "hb_bidder"17: "hb_format"18: "hb_adid"length: 19[[Prototype]]: Array(0)
+_gam_kv_.js:1  INTEXT  [Intext:Display:gexp-intext-2] display_hb_targeting_skipped_no_winner {slotCode: 'gexp-intext-2'}
+_gam_kv_.js:1  INTEXT  [Intext:Display:gexp-intext-2] Calling googletag.display + refresh
+_gam_kv_.js:1  INTEXT  [Intext:Display:gexp-intext-2] display_before_refresh_targeting_snapshot {final: {…}, allHbTargeting: {…}, rawRandom1: Array(1), rawRandom2: Array(1), rawRandom3: Array(1), …}
+_gam_kv_.js:1  INTEXT  [Intext:Display:gexp-intext-2] display_gam_request_targeting_final {p: 'gexp-intext-2', intext: 'true', random1: '6', random2: '2', random3: '17', …}
+_gam_kv_.js:1  INTEXT  [Intext:Display:gexp-intext-2] initial slotRenderEnded — isEmpty: false, size: [300,600], is1x1: false, hasContent: true
+_gam_kv_.js:1  INTEXT  [Intext:Slot:gexp-intext-2] ├─ GAM Display: FILL ✅ (size: [300,600])
+_gam_kv_.js:1  INTEXT  [Intext:Slot:gexp-intext-2] ✅ DISPLAY delivered successfully
+_gam_kv_.js:1  INTEXT  [Intext:Display:gexp-intext-2] display_300x600_visual_height_adjusted - content_height=600, total_height=615
+_gam_kv_.js:1  INTEXT  [Intext:Display:gexp-intext-2] display_wrapper_total_height_applied - content_height=600, total_height=615
+_gam_kv_.js:1  INTEXT  [Intext:Display:gexp-intext-2] display_height_state_applied - source=display_showDisplay, content_height=600, total_height=615, locked_height=600
+_gam_kv_.js:1  🔄 INTEXT  [Intext:Display:gexp-intext-2] Max refresh cycles reached (2/2).
+VM22018 amp4ads-v0.mjs:2 Powered by AMP ⚡ HTML – Version 2603032146000 https://www.expansion.com/valencia/2026/04/27/69ef40c5468aeb1d4e8b4599.html
+_gam_kv_.js:1  INTEXT  [Intext:Display:gexp-intext-2] display_300x600_visual_height_adjusted - content_height=600, total_height=615
+_gam_kv_.js:1  INTEXT  [Intext:Display:gexp-intext-2] display_wrapper_total_height_applied - content_height=600, total_height=615
+_gam_kv_.js:1  INTEXT  [Intext:Display:gexp-intext-2] display_height_state_applied - source=display_layout_post_guard_0ms, content_height=600, total_height=615, locked_height=600
+_gam_kv_.js:1  INTEXT  [Intext:Display:gexp-intext-2] display_300x600_visual_height_adjusted - content_height=600, total_height=615
+_gam_kv_.js:1  INTEXT  [Intext:Display:gexp-intext-2] display_wrapper_total_height_applied - content_height=600, total_height=615
+_gam_kv_.js:1  INTEXT  [Intext:Display:gexp-intext-2] display_height_state_applied - source=display_layout_post_guard_300ms, content_height=600, total_height=615, locked_height=600
+_gam_kv_.js:1  INTEXT  [Intext:Display:gexp-intext-2] display_300x600_visual_height_adjusted - content_height=600, total_height=615
+_gam_kv_.js:1  INTEXT  [Intext:Display:gexp-intext-2] display_wrapper_total_height_applied - content_height=600, total_height=615
+_gam_kv_.js:1  INTEXT  [Intext:Display:gexp-intext-2] display_height_state_applied - source=display_layout_post_guard_900ms, content_height=600, total_height=615, locked_height=600
+_gam_kv_.js:1  INTEXT  [Intext:Display:gexp-intext-2] display_300x600_visual_height_adjusted - content_height=600, total_height=615
+_gam_kv_.js:1  INTEXT  [Intext:Display:gexp-intext-2] display_wrapper_total_height_applied - content_height=600, total_height=615
+_gam_kv_.js:1  INTEXT  [Intext:Display:gexp-intext-2] display_height_state_applied - source=display_layout_post_guard_1800ms, content_height=600, total_height=615, locked_height=600
+_gam_kv_.js:1  INTEXT  [Intext:Display:gexp-intext-2] display_300x600_visual_height_adjusted - content_height=600, total_height=615
+_gam_kv_.js:1  INTEXT  [Intext:Display:gexp-intext-2] display_wrapper_total_height_applied - content_height=600, total_height=615
+_gam_kv_.js:1  INTEXT  [Intext:Display:gexp-intext-2] display_height_state_applied - source=display_layout_post_guard_3200ms, content_height=600, total_height=615, locked_height=600
+_gam_kv_.js:1  INTEXT  [Intext:Display:gexp-intext-2] display_300x600_visual_height_adjusted - content_height=600, total_height=615
+_gam_kv_.js:1  INTEXT  [Intext:Display:gexp-intext-2] display_wrapper_total_height_applied - content_height=600, total_height=615
+_gam_kv_.js:1  INTEXT  [Intext:Display:gexp-intext-2] display_height_state_applied - source=display_layout_post_guard_5200ms, content_height=600, total_height=615, locked_height=600
+_gam_kv_.js:1  INTEXT  [Intext:Display:gexp-intext-2] display_300x600_visual_height_adjusted - content_height=600, total_height=615
+_gam_kv_.js:1  INTEXT  [Intext:Display:gexp-intext-2] display_wrapper_total_height_applied - content_height=600, total_height=615
+_gam_kv_.js:1  INTEXT  [Intext:Display:gexp-intext-2] display_height_state_applied - source=display_slotRenderEnded, content_height=600, total_height=615, locked_height=600
+amp-inabox.js:127 Powered by AMP ⚡ HTML – Version 2603032146000 https://www.expansion.com/valencia/2026/04/27/69ef40c5468aeb1d4e8b4599.html
+_gam_kv_.js:1  INTEXT  [Intext:Display:gexp-intext-2] display_300x600_visual_height_adjusted - content_height=600, total_height=615
+_gam_kv_.js:1  INTEXT  [Intext:Display:gexp-intext-2] display_wrapper_total_height_applied - content_height=600, total_height=615
+_gam_kv_.js:1  INTEXT  [Intext:Display:gexp-intext-2] display_height_state_applied - source=display_layout_post_guard_0ms, content_height=600, total_height=615, locked_height=600
+_gam_kv_.js:1  INTEXT  [Intext:Display:gexp-intext-2] display_300x600_visual_height_adjusted - content_height=600, total_height=615
+_gam_kv_.js:1  INTEXT  [Intext:Display:gexp-intext-2] display_wrapper_total_height_applied - content_height=600, total_height=615
+_gam_kv_.js:1  INTEXT  [Intext:Display:gexp-intext-2] display_height_state_applied - source=display_layout_post_guard_300ms, content_height=600, total_height=615, locked_height=600
+_gam_kv_.js:1  INTEXT  [Intext:Display:gexp-intext-2] display_300x600_visual_height_adjusted - content_height=600, total_height=615
+_gam_kv_.js:1  INTEXT  [Intext:Display:gexp-intext-2] display_wrapper_total_height_applied - content_height=600, total_height=615
+_gam_kv_.js:1  INTEXT  [Intext:Display:gexp-intext-2] display_height_state_applied - source=display_layout_post_guard_900ms, content_height=600, total_height=615, locked_height=600
+_gam_kv_.js:1  INTEXT  [Intext:Display:gexp-intext-2] display_300x600_visual_height_adjusted - content_height=600, total_height=615
+_gam_kv_.js:1  INTEXT  [Intext:Display:gexp-intext-2] display_wrapper_total_height_applied - content_height=600, total_height=615
+_gam_kv_.js:1  INTEXT  [Intext:Display:gexp-intext-2] display_height_state_applied - source=display_layout_post_guard_1800ms, content_height=600, total_height=615, locked_height=600
+_gam_kv_.js:1  INTEXT  [Intext:Display:gexp-intext-2] display_300x600_visual_height_adjusted - content_height=600, total_height=615
+_gam_kv_.js:1  INTEXT  [Intext:Display:gexp-intext-2] display_wrapper_total_height_applied - content_height=600, total_height=615
+_gam_kv_.js:1  INTEXT  [Intext:Display:gexp-intext-2] display_height_state_applied - source=display_layout_post_guard_3200ms, content_height=600, total_height=615, locked_height=600
+_gam_kv_.js:1  INTEXT  [Intext:Display:gexp-intext-2] display_300x600_visual_height_adjusted - content_height=600, total_height=615
+_gam_kv_.js:1  INTEXT  [Intext:Display:gexp-intext-2] display_wrapper_total_height_applied - content_height=600, total_height=615
+_gam_kv_.js:1  INTEXT  [Intext:Display:gexp-intext-2] display_height_state_applied - source=display_layout_post_guard_5200ms, content_height=600, total_height=615, locked_height=600

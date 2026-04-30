@@ -36,11 +36,10 @@
     ],
     "houseIds": [
         5744742627,
-        4633770194,
         45125937,
-        51641577,
         81003777,
-        50339097,
+        4633770194,
+        51641577,
         4815141041
     ],
     "prebidIds": [
@@ -68,11 +67,10 @@
         4402208836,
         5354911588,
         5744742627,
-        4633770194,
         45125937,
-        51641577,
         81003777,
-        50339097,
+        4633770194,
+        51641577,
         4815141041
     ],
     "reloadCampaignIds": [
@@ -601,27 +599,39 @@
                 "debug": false,
                 "domainFilter": {
                     "enabled": true,
-                    "allowedDomains": ["telva", "expansion", "elmundo"],
+                    "allowedDomains": [
+                        "telva",
+                        "expansion",
+                        "elmundo"
+                    ],
                     "dataLayerObj": "ueDataLayer",
                     "dataLayerProp": "be_page_domain"
                 },
                 "inclusions": {
-                    "keyValues": {                        
-                    },
+                    "keyValues": [],
                     "sites": {
                         "telva.com": {
                             "keyValues": {
-                                "random1": ["5", "6"]
+                                "random1": [
+                                    "5",
+                                    "6"
+                                ]
                             }
                         },
                         "expansion.com": {
                             "keyValues": {
-                                "random1": ["5", "6"]
+                                "random1": [
+                                    "5",
+                                    "6"
+                                ]
                             }
                         },
                         "elmundo.es": {
                             "keyValues": {
-                                "random1": ["5", "6"]
+                                "random1": [
+                                    "5",
+                                    "6"
+                                ]
                             }
                         }
                     }
@@ -640,8 +650,14 @@
                 },
                 "rules": {
                     "placements": [
-                        [2, 1],
-                        [5, 1]
+                        [
+                            2,
+                            1
+                        ],
+                        [
+                            5,
+                            1
+                        ]
                     ],
                     "allowMultiple": true,
                     "minCharacters": 50,
@@ -663,16 +679,34 @@
                 "display": {
                     "adUnitPath": "telva/belleza/n",
                     "sizes": [
-                        [300, 250],
-                        [300, 300],
-                        [320, 100],
-                        [300, 600],
-                        [960, 540]
+                        [
+                            300,
+                            250
+                        ],
+                        [
+                            300,
+                            300
+                        ],
+                        [
+                            320,
+                            100
+                        ],
+                        [
+                            300,
+                            600
+                        ],
+                        [
+                            960,
+                            540
+                        ]
                     ]
                 },
                 "video": {
                     "enabled": true,
-                    "playerSize": [640, 360],
+                    "playerSize": [
+                        640,
+                        360
+                    ],
                     "variantSelection": {
                         "key": "random1",
                         "values": {
@@ -686,40 +720,122 @@
                             "context": "instream",
                             "plcmt": 1,
                             "placement": 1,
-                            "mimes": ["video/mp4", "application/javascript"],
-                            "protocols": [2, 3, 5, 6, 7],
+                            "mimes": [
+                                "video/mp4",
+                                "application/javascript"
+                            ],
+                            "protocols": [
+                                2,
+                                3,
+                                5,
+                                6,
+                                7
+                            ],
                             "linearity": 1,
-                            "api": [1, 2],
-                            "battr": [13, 14],
+                            "api": [
+                                1,
+                                2
+                            ],
+                            "battr": [
+                                13,
+                                14
+                            ],
                             "skippable": true,
                             "maxduration": 30,
                             "minduration": 1,
-                            "playbackmethod": [6]
+                            "playbackmethod": [
+                                6
+                            ]
                         },
                         "outstream": {
                             "context": "outstream",
                             "plcmt": 2,
                             "placement": 3,
-                            "mimes": ["video/mp4", "application/javascript"],
-                            "protocols": [2, 3, 5, 6, 7],
+                            "mimes": [
+                                "video/mp4",
+                                "application/javascript"
+                            ],
+                            "protocols": [
+                                2,
+                                3,
+                                5,
+                                6,
+                                7
+                            ],
                             "linearity": 1,
-                            "api": [1, 2],
-                            "battr": [13, 14],
+                            "api": [
+                                1,
+                                2
+                            ],
+                            "battr": [
+                                13,
+                                14
+                            ],
                             "skippable": true,
                             "maxduration": 30,
                             "minduration": 1,
-                            "playbackmethod": [6]
+                            "playbackmethod": [
+                                6
+                            ]
+                        }
+                    }
+                },
+                "prebidVideoCache": {
+                    "key1": "random1",
+                    "key2": "random2",
+                    "enabledRandom1": [
+                        "5",
+                        "6"
+                    ],
+                    "variants": {
+                        "1": {
+                            "mode": "custom",
+                            "url": "https://prebid.unidadeditorial.es/cache",
+                            "ignoreBidderCacheKey": false
+                        },
+                        "2": {
+                            "mode": "custom",
+                            "url": "https://prebid.unidadeditorial.es/cache",
+                            "ignoreBidderCacheKey": false
+                        },
+                        "3": {
+                            "mode": "custom",
+                            "url": "https://prebid.unidadeditorial.es/cache",
+                            "ignoreBidderCacheKey": false
+                        },
+                        "4": {
+                            "mode": "custom",
+                            "url": "https://prebid.unidadeditorial.es/cache",
+                            "ignoreBidderCacheKey": false
+                        },
+                        "5": {
+                            "mode": "custom",
+                            "url": "https://prebid.unidadeditorial.es/cache",
+                            "ignoreBidderCacheKey": false
+                        },
+                        "6": {
+                            "mode": "custom",
+                            "url": "https://prebid.unidadeditorial.es/cache",
+                            "ignoreBidderCacheKey": false
+                        },
+                        "7": {
+                            "mode": "custom",
+                            "url": "https://prebid.unidadeditorial.es/cache",
+                            "ignoreBidderCacheKey": false
                         }
                     }
                 },
                 "slots": {
                     "enabled": true,
                     "maxSlots": 2,
-                    "enabledSlots": [0, 1]
+                    "enabledSlots": [
+                        0,
+                        1
+                    ]
                 },
                 "decision": {
                     "mode": "auto",
-                    "minCpm": 1.0,
+                    "minCpm": 1,
                     "priorityBelowMin": "video"
                 },
                 "refreshCycle": {
@@ -728,20 +844,46 @@
                     "maxCycles": 2,
                     "mode": "display_only",
                     "bidStrategy": "fresh",
-                    "bidMaxAgeMs": 30000
+                    "bidMaxAgeMs": 30000,
+                    "houseDelayMs": 2000,
+                    "cpcDelayMs": 2000,
+                    "adexDelayMs": 3500
                 },
-                "slotOverrides": {
-                    "0": {
+                "telemetryIds": {
+                        "prebid": [
+                                    "83488497",
+                                    "4402193934",
+                                    "5907488782",
+                                    "5823135725",
+                                    "5619844792",
+                                    "5180398781",
+                                    "5354911588",
+                                    "4406227815",
+                                    "83522457",
+                                    "5907334980",
+                                    "5359233312",
+                                    "4402208836"
+                        ],
+                        "amazon": [
+                                    "55409457"
+                        ],
+                        "adex": [
+                                    "2559776610",
+                                    "2466799184"
+                        ]
+                },
+                "slotOverrides": [
+                    {
                         "decision": {
                             "mode": "auto"
                         }
                     },
-                    "1": {
+                    {
                         "decision": {
                             "mode": "display_only"
                         }
                     }
-                },
+                ],
                 "prebid": {
                     "timeoutMs": 2000,
                     "graceMs": 200,
@@ -896,7 +1038,7 @@
                             ]
                         },
                         "21626337071": {
-                            "aliases": {},
+                            "aliases": [],
                             "bidders": [
                                 {
                                     "bidder": "appnexus",
@@ -934,9 +1076,18 @@
                         },
                         "rules": {
                             "placements": [
-                                [8, 1],
-                                [16, 1],
-                                [24, 1]
+                                [
+                                    8,
+                                    1
+                                ],
+                                [
+                                    16,
+                                    1
+                                ],
+                                [
+                                    24,
+                                    1
+                                ]
                             ],
                             "allowMultiple": true,
                             "minCharacters": 0
@@ -944,19 +1095,26 @@
                         "slots": {
                             "enabled": true,
                             "maxSlots": 3,
-                            "enabledSlots": [0, 1, 2]
+                            "enabledSlots": [
+                                0,
+                                1,
+                                2
+                            ]
                         },
                         "decision": {
                             "mode": "auto",
-                            "minCpm": 1.0,
+                            "minCpm": 1,
                             "priorityBelowMin": "video"
                         },
                         "refreshCycle": {
                             "enabled": true,
-                            "delayMs": 3000,
+                            "delayMs": 5000,
                             "maxCycles": 2,
                             "mode": "display_only",
-                            "bidStrategy": "fresh"
+                            "bidStrategy": "fresh",
+                            "houseDelayMs": 2000,
+                            "cpcDelayMs": 2000,
+                            "adexDelayMs": 3500
                         },
                         "slotOverrides": {
                             "1": {
@@ -973,7 +1131,7 @@
                         "exclusions": {
                             "disableAll": false,
                             "adUnitPaths": [],
-                            "keyValues": {},
+                            "keyValues": [],
                             "disableSlots": {
                                 "always": [],
                                 "rules": []
@@ -985,9 +1143,15 @@
                     "disableAll": false,
                     "adUnitPaths": [],
                     "keyValues": {
-                        "newsid": [""],
-                        "tag": ["bloqueo-publi"],
-                        "t": [""]
+                        "newsid": [
+                            ""
+                        ],
+                        "tag": [
+                            "bloqueo-publi"
+                        ],
+                        "t": [
+                            ""
+                        ]
                     },
                     "disableSlots": {
                         "always": [],
@@ -1002,11 +1166,13 @@
                         "slots": {
                             "enabled": true,
                             "maxSlots": 1,
-                            "enabledSlots": [0]
+                            "enabledSlots": [
+                                0
+                            ]
                         },
                         "decision": {
                             "mode": "display_only",
-                            "minCpm": 1.0,
+                            "minCpm": 1,
                             "priorityBelowMin": "display"
                         },
                         "refreshCycle": {
@@ -1014,14 +1180,17 @@
                             "delayMs": 3000,
                             "maxCycles": 2,
                             "mode": "display_only",
-                            "bidStrategy": "fresh"
+                            "bidStrategy": "fresh",
+                            "houseDelayMs": 2000,
+                            "cpcDelayMs": 2000,
+                            "adexDelayMs": 3500
                         },
-                        "slotOverrides": {}
+                        "slotOverrides": []
                     },
                     "exclusions": {
                         "disableAll": false,
                         "adUnitPaths": [],
-                        "keyValues": {},
+                        "keyValues": [],
                         "disableSlots": {
                             "always": [],
                             "rules": []
@@ -1044,18 +1213,42 @@
                     "then": {
                         "display": {
                             "sizes": [
-                                [300, 250],
-                                [300, 300],
-                                [336, 280],
-                                [320, 100],
-                                [320, 50],
-                                [300, 600]
+                                [
+                                    300,
+                                    250
+                                ],
+                                [
+                                    300,
+                                    300
+                                ],
+                                [
+                                    336,
+                                    280
+                                ],
+                                [
+                                    320,
+                                    100
+                                ],
+                                [
+                                    320,
+                                    50
+                                ],
+                                [
+                                    300,
+                                    600
+                                ]
                             ]
                         },
                         "rules": {
                             "placements": [
-                                [2, 1],
-                                [5, 1]
+                                [
+                                    2,
+                                    1
+                                ],
+                                [
+                                    5,
+                                    1
+                                ]
                             ]
                         }
                     }
@@ -1130,7 +1323,7 @@
                     "maxDelayMs": 1500
                 },
                 "display": {
-                    "adUnitPath": "telva\/belleza\/n",
+                    "adUnitPath": "telva/belleza/n",
                     "sizes": [
                         [
                             300,
@@ -1159,7 +1352,10 @@
                     "delayMs": 5000,
                     "maxCycles": 2,
                     "bidStrategy": "fresh",
-                    "bidMaxAgeMs": 30000
+                    "bidMaxAgeMs": 30000,
+                    "houseDelayMs": 2000,
+                    "cpcDelayMs": 2000,
+                    "adexDelayMs": 3500
                 },
                 "prebid": {
                     "timeoutMs": 1500,
@@ -1196,7 +1392,7 @@
                                         "pageId": 648549,
                                         "formatId": 40859,
                                         "siteId": 99913,
-                                        "domain": "https:\/\/prg.smartadserver.com"
+                                        "domain": "https://prg.smartadserver.com"
                                     }
                                 },
                                 {
@@ -1328,7 +1524,10 @@
                             "enabled": true,
                             "delayMs": 3000,
                             "maxCycles": 2,
-                            "bidStrategy": "fresh"
+                            "bidStrategy": "fresh",
+                            "houseDelayMs": 2000,
+                            "cpcDelayMs": 2000,
+                            "adexDelayMs": 3500
                         }
                     },
                     "exclusions": {
@@ -1457,7 +1656,7 @@
                     "priorityBelowMin": "only_video"
                 },
                 "display": {
-                    "adUnitPath": "telva\/belleza\/n",
+                    "adUnitPath": "telva/belleza/n",
                     "sizes": [
                         [
                             300,
@@ -1486,7 +1685,10 @@
                     "allowDirectVastFallback": false,
                     "prepareTimeoutMs": 25000,
                     "imaTimeoutMs": 30000,
-                    "playerSize": [640, 360],
+                    "playerSize": [
+                        640,
+                        360
+                    ],
                     "variantSelection": {
                         "key": "random1",
                         "values": {
@@ -1500,29 +1702,63 @@
                             "context": "instream",
                             "plcmt": 1,
                             "placement": 1,
-                            "mimes": ["video/mp4", "application/javascript"],
-                            "protocols": [2, 3, 5, 6, 7],
+                            "mimes": [
+                                "video/mp4",
+                                "application/javascript"
+                            ],
+                            "protocols": [
+                                2,
+                                3,
+                                5,
+                                6,
+                                7
+                            ],
                             "linearity": 1,
-                            "api": [1, 2],
-                            "battr": [13, 14],
+                            "api": [
+                                1,
+                                2
+                            ],
+                            "battr": [
+                                13,
+                                14
+                            ],
                             "skippable": true,
                             "maxduration": 30,
                             "minduration": 1,
-                            "playbackmethod": [6]
+                            "playbackmethod": [
+                                6
+                            ]
                         },
                         "outstream": {
                             "context": "outstream",
                             "plcmt": 2,
                             "placement": 3,
-                            "mimes": ["video/mp4", "application/javascript"],
-                            "protocols": [2, 3, 5, 6, 7],
+                            "mimes": [
+                                "video/mp4",
+                                "application/javascript"
+                            ],
+                            "protocols": [
+                                2,
+                                3,
+                                5,
+                                6,
+                                7
+                            ],
                             "linearity": 1,
-                            "api": [1, 2],
-                            "battr": [13, 14],
+                            "api": [
+                                1,
+                                2
+                            ],
+                            "battr": [
+                                13,
+                                14
+                            ],
                             "skippable": true,
                             "maxduration": 30,
                             "minduration": 1,
-                            "playbackmethod": [6]
+                            "playbackmethod": [
+                                6
+                            ]
                         }
                     }
                 },
@@ -1569,7 +1805,7 @@
                                         "pageId": 648549,
                                         "formatId": 40859,
                                         "siteId": 99913,
-                                        "domain": "https:\/\/prg.smartadserver.com"
+                                        "domain": "https://prg.smartadserver.com"
                                     }
                                 },
                                 {
@@ -1676,7 +1912,7 @@
                                         "siteId": "99913",
                                         "pageId": "648549",
                                         "formatId": "40183",
-                                        "domain": "\/\/prg.smartadserver.com"
+                                        "domain": "//prg.smartadserver.com"
                                     }
                                 },
                                 {
@@ -1772,37 +2008,42 @@
                     "ES": {
                         "c990x50_320x53c": {
                             "i1": 1,
-                            "i3": 1
-                        },
-                        "c990x50_320x53d": {
-                            "i2": 2
-                        },
-                        "m": [],
-                        "r": {
-                            "i1": 4,
-                            "i2": 1,
-                            "i3": 1
-                        },
-                        "s": {
-                            "i0": 2,
-                            "i1": 1
-                        }
-                    },
-                    "US": {
-                        "m": [],
-                        "r": {
-                            "i2": 4,
-                            "i3": 4
-                        },
-                        "s": [],
-                        "c990x50_320x53c": [],
-                        "c990x50_320x53d": []
-                    },
-                    "FR": {
-                        "c990x50_320x53c": {
                             "i3": 2
                         },
                         "c990x50_320x53d": [],
+                        "gexp-intext-2": [],
+                        "m": {
+                            "i1": 1
+                        },
+                        "r": {
+                            "i1": 1,
+                            "i3": 1,
+                            "i2": 1
+                        },
+                        "s": {
+                            "i0": 4,
+                            "i1": 4
+                        }
+                    },
+                    "FR": {
+                        "c990x50_320x53c": {
+                            "i3": 1
+                        },
+                        "m": {
+                            "i1": 1
+                        },
+                        "r": {
+                            "i1": 1,
+                            "i2": 0,
+                            "i3": 1
+                        },
+                        "s": {
+                            "i0": 0,
+                            "i1": 4
+                        },
+                        "c990x50_320x53d": []
+                    },
+                    "US": {
                         "m": [],
                         "r": {
                             "i1": 1,
@@ -1810,51 +2051,60 @@
                             "i3": 1
                         },
                         "s": {
-                            "i0": 4,
-                            "i1": 1
-                        }
+                            "i1": 0
+                        },
+                        "c990x50_320x53c": [],
+                        "c990x50_320x53d": []
                     },
                     "DE": {
                         "c990x50_320x53c": {
                             "i3": 2
                         },
-                        "c990x50_320x53d": [],
-                        "m": [],
+                        "m": {
+                            "i1": 0
+                        },
                         "r": {
                             "i1": 1,
-                            "i2": 1,
+                            "i2": 2,
                             "i3": 1
                         },
                         "s": {
                             "i0": 3,
-                            "i1": 3
-                        }
-                    },
-                    "GB": {
-                        "m": [],
-                        "r": {
-                            "i2": 5
+                            "i1": 2
                         },
-                        "s": {
-                            "i0": 0,
-                            "i1": 1
-                        },
-                        "c990x50_320x53c": [],
-                        "c990x50_320x53d": []
+                        "c990x50_320x53d": [],
+                        "gexp-intext-2": []
                     },
-                    "MA": {
+                    "PT": {
                         "c990x50_320x53c": {
-                            "i3": 3
+                            "i3": 2
                         },
                         "m": {
                             "i1": 0
                         },
                         "r": {
-                            "i3": 2
+                            "i1": 1,
+                            "i2": 1,
+                            "i3": 3
                         },
                         "s": {
-                            "i1": 0
-                        }
+                            "i0": 0,
+                            "i1": 3
+                        },
+                        "c990x50_320x53d": []
+                    },
+                    "GB": {
+                        "m": {
+                            "i0": 1,
+                            "i1": 3
+                        },
+                        "r": [],
+                        "s": {
+                            "i0": 0,
+                            "i1": 8
+                        },
+                        "c990x50_320x53c": [],
+                        "c990x50_320x53d": []
                     },
                     "CH": {
                         "c990x50_320x53c": {
@@ -1869,45 +2119,23 @@
                         },
                         "c990x50_320x53d": []
                     },
-                    "SG": {
-                        "c990x50_320x53c": [],
-                        "m": [],
-                        "r": [],
-                        "s": [],
-                        "c990x50_320x53d": []
-                    },
-                    "PT": {
-                        "c990x50_320x53c": [],
-                        "m": {
-                            "i1": 5
-                        },
-                        "r": {
-                            "i1": 1,
-                            "i3": 1
-                        },
-                        "s": {
-                            "i1": 1
-                        },
-                        "c990x50_320x53d": []
-                    },
-                    "NL": {
+                    "MA": {
                         "c990x50_320x53c": {
-                            "i3": 0
+                            "i3": 3
                         },
                         "m": [],
                         "r": {
-                            "i3": 1
+                            "i3": 2
                         },
                         "s": {
-                            "i1": 4
+                            "i0": 3,
+                            "i1": 0
                         },
                         "c990x50_320x53d": []
                     },
                     "IT": {
-                        "c990x50_320x53c": [],
-                        "c990x50_320x53d": [],
                         "m": {
-                            "i1": 2
+                            "i1": 1
                         },
                         "r": {
                             "i1": 1,
@@ -1915,139 +2143,150 @@
                             "i3": 2
                         },
                         "s": {
-                            "i1": 0
-                        }
+                            "i0": 0,
+                            "i1": 2
+                        },
+                        "c990x50_320x53c": [],
+                        "c990x50_320x53d": []
                     },
-                    "BE": {
+                    "NL": {
+                        "c990x50_320x53c": [],
+                        "c990x50_320x53d": [],
+                        "m": [],
                         "r": {
+                            "i2": 1,
                             "i3": 1
                         },
                         "s": {
-                            "i1": 8
-                        },
-                        "c990x50_320x53c": {
-                            "i3": 0
-                        },
-                        "c990x50_320x53d": [],
-                        "m": []
+                            "i1": 4
+                        }
                     },
-                    "CA": {
-                        "r": [],
+                    "BE": {
+                        "c990x50_320x53c": [],
+                        "m": [],
+                        "r": {
+                            "i3": 2
+                        },
+                        "s": {
+                            "i1": 0
+                        },
+                        "c990x50_320x53d": []
+                    },
+                    "IE": {
+                        "c990x50_320x53c": [],
+                        "c990x50_320x53d": [],
+                        "m": [],
+                        "r": {
+                            "i3": 2
+                        },
+                        "s": {
+                            "i1": 3
+                        }
+                    },
+                    "AD": {
+                        "c990x50_320x53c": {
+                            "i3": 3
+                        },
+                        "m": {
+                            "i1": 5
+                        },
+                        "r": {
+                            "i3": 2
+                        },
+                        "s": {
+                            "i1": 3
+                        },
+                        "c990x50_320x53d": []
+                    },
+                    "SE": {
+                        "c990x50_320x53c": {
+                            "i3": 3
+                        },
+                        "m": [],
+                        "r": {
+                            "i3": 2
+                        },
                         "s": {
                             "i1": 3,
                             "i0": 3
                         },
-                        "c990x50_320x53c": [],
-                        "c990x50_320x53d": [],
-                        "gexp-intext-2": [],
-                        "m": []
-                    },
-                    "AU": {
-                        "m": [],
-                        "c990x50_320x53c": {
-                            "i3": 3
-                        },
-                        "c990x50_320x53d": [],
-                        "r": {
-                            "i3": 2
-                        },
-                        "s": {
-                            "i1": 3
-                        }
-                    },
-                    "IE": {
-                        "c990x50_320x53c": {
-                            "i3": 3
-                        },
-                        "m": [],
-                        "r": {
-                            "i3": 2
-                        },
-                        "s": {
-                            "i1": 3
-                        },
                         "c990x50_320x53d": []
-                    },
-                    "AD": {
-                        "c990x50_320x53c": [],
-                        "m": {
-                            "i1": 0
-                        },
-                        "r": {
-                            "i1": 0,
-                            "i2": 0,
-                            "i3": 1
-                        },
-                        "s": {
-                            "i1": 1
-                        }
-                    },
-                    "SE": {
-                        "m": [],
-                        "r": {
-                            "i3": 2
-                        },
-                        "s": {
-                            "i0": 0,
-                            "i1": 3
-                        },
-                        "c990x50_320x53c": {
-                            "i3": 3
-                        },
-                        "c990x50_320x53d": []
-                    },
-                    "ZA": {
-                        "m": [],
-                        "r": [],
-                        "s": [],
-                        "c990x50_320x53c": []
-                    },
-                    "JP": {
-                        "c990x50_320x53c": [],
-                        "c990x50_320x53d": [],
-                        "m": [],
-                        "r": {
-                            "i3": 2
-                        },
-                        "s": {
-                            "i1": 0
-                        }
-                    },
-                    "NG": {
-                        "c990x50_320x53c": [],
-                        "m": [],
-                        "r": [],
-                        "s": []
                     },
                     "PL": {
                         "c990x50_320x53c": [],
                         "m": [],
-                        "r": {
-                            "i3": 2
-                        },
-                        "s": []
+                        "r": [],
+                        "s": {
+                            "i1": 3
+                        }
+                    },
+                    "LU": {
+                        "r": [],
+                        "c990x50_320x53c": [],
+                        "c990x50_320x53d": [],
+                        "m": [],
+                        "s": {
+                            "i1": 3
+                        }
                     },
                     "RO": {
                         "c990x50_320x53c": [],
                         "c990x50_320x53d": [],
                         "m": [],
+                        "r": [],
+                        "s": {
+                            "i1": 3
+                        }
+                    },
+                    "AT": {
+                        "c990x50_320x53c": [],
+                        "m": [],
                         "r": {
                             "i3": 2
                         },
                         "s": {
-                            "i0": 3,
                             "i1": 3
                         }
                     },
                     "NO": {
                         "c990x50_320x53c": [],
                         "m": [],
-                        "r": {
-                            "i3": 2
-                        },
+                        "r": [],
                         "s": {
                             "i1": 3
                         }
+                    },
+                    "SG": {
+                        "m": [],
+                        "r": [],
+                        "s": [],
+                        "c990x50_320x53c": [],
+                        "c990x50_320x53d": []
+                    },
+                    "CA": {
+                        "m": [],
+                        "r": [],
+                        "s": {
+                            "i0": 3,
+                            "i1": 3
+                        },
+                        "c990x50_320x53c": [],
+                        "gexp-intext-2": []
+                    },
+                    "JP": {
+                        "c990x50_320x53c": [],
+                        "m": [],
+                        "r": [],
+                        "s": {
+                            "i1": 3
+                        },
+                        "c990x50_320x53d": []
+                    },
+                    "CN": {
+                        "c990x50_320x53c": [],
+                        "m": [],
+                        "r": [],
+                        "s": []
                     }
                 }
             },
@@ -2055,214 +2294,214 @@
                 "mc2": {
                     "BE": {
                         "m": 5,
-                        "r": 5,
+                        "r": 6,
                         "rb": 4,
-                        "r-nata": 1,
-                        "rc": 3,
+                        "rc": 0,
                         "sd": 6,
-                        "si": 6,
-                        "c990x50_320x53c": 4,
-                        "rd": 3,
-                        "re": 4
-                    },
-                    "DE": {
-                        "c990x50_320x53c": 2,
-                        "r-nata": 1,
-                        "sd": 4,
                         "si": 8,
+                        "c990x50_320x53c": 4,
+                        "c990x50_320x53d": 4,
+                        "r-nata": 6,
+                        "rd": 4,
+                        "re": 6
+                    },
+                    "CH": {
+                        "c990x50_320x53c": 2,
                         "m": 5,
-                        "r": 5,
-                        "rb": 5,
-                        "rc": 2,
-                        "rd": 1,
-                        "re": 1
+                        "r": 4,
+                        "rb": 0,
+                        "rc": 0,
+                        "rd": 4,
+                        "sd": 4,
+                        "si": 6,
+                        "r-nata": 6,
+                        "re": 3
                     },
                     "ES": {
-                        "c990x50_320x53c": 1,
-                        "c990x50_320x53d": 2,
-                        "m": 2,
-                        "r": 4,
-                        "r-nata": 4,
+                        "c990x50_320x53c": 2,
+                        "c990x50_320x53d": 4,
+                        "gexp-intext-2": 2,
+                        "m": 3,
+                        "r": 9,
+                        "r-nata": 3,
+                        "rb": 1,
+                        "rc": 4,
+                        "rd": 4,
+                        "re": 6,
+                        "sd": 4,
+                        "si": 4,
+                        "r-pnc": 4
+                    },
+                    "GB": {
+                        "sd": 4,
+                        "si": 8,
+                        "m": 0,
+                        "rb": 2,
+                        "rc": 2,
+                        "r": 8,
+                        "c990x50_320x53c": 3,
+                        "r-nata": 6,
+                        "rd": 6
+                    },
+                    "PT": {
+                        "c990x50_320x53c": 3,
+                        "m": 6,
+                        "r": 1,
+                        "rc": 2,
+                        "rd": 4,
+                        "sd": 6,
+                        "si": 8,
+                        "rb": 0,
+                        "r-nata": 6,
+                        "re": 6
+                    },
+                    "DE": {
+                        "c990x50_320x53c": 4,
+                        "m": 6,
+                        "r": 2,
                         "rb": 2,
                         "rc": 2,
                         "rd": 2,
-                        "re": 6,
-                        "sd": 1,
-                        "si": 1,
-                        "r-pnc": 4
-                    },
-                    "IT": {
-                        "m": 2,
-                        "r": 0,
-                        "rb": 6,
-                        "sd": 6,
-                        "si": 6,
-                        "c990x50_320x53c": 4,
-                        "r-nata": 2,
-                        "rc": 2,
-                        "rd": 1,
-                        "re": 1
-                    },
-                    "US": {
-                        "m": 8,
-                        "r": 8,
-                        "r-nata": 4,
-                        "rb": 4,
-                        "rc": 1,
-                        "c990x50_320x53c": 4,
-                        "rd": 4,
-                        "sd": 4,
-                        "si": 4
-                    },
-                    "CH": {
-                        "m": 5,
-                        "r": 6,
-                        "r-nata": 1,
-                        "rb": 6,
-                        "rc": 2,
-                        "sd": 6,
-                        "si": 4,
-                        "c990x50_320x53c": 2,
-                        "rd": 2
+                        "sd": 2,
+                        "si": 11,
+                        "c990x50_320x53d": 4,
+                        "r-nata": 6,
+                        "re": 2
                     },
                     "FR": {
                         "c990x50_320x53c": 2,
-                        "rc": 2,
-                        "sd": 2,
-                        "si": 6,
-                        "m": 5,
-                        "r": 5,
+                        "m": 4,
+                        "r": 0,
                         "rb": 0,
-                        "rd": 3,
-                        "c990x50_320x53d": 4,
-                        "r-nata": 1,
-                        "re": 3
-                    },
-                    "GB": {
-                        "m": 5,
-                        "r": 5,
-                        "sd": 4,
-                        "si": 8,
-                        "rb": 6,
-                        "rc": 3,
-                        "c990x50_320x53c": 4,
-                        "r-nata": 2,
-                        "rd": 1
-                    },
-                    "PT": {
-                        "c990x50_320x53c": 4,
+                        "rc": 2,
                         "rd": 2,
-                        "sd": 6,
-                        "si": 6,
-                        "m": 5,
-                        "r": 5,
-                        "rc": 2,
-                        "rb": 0,
+                        "sd": 4,
+                        "si": 4,
                         "c990x50_320x53d": 4,
-                        "r-nata": 1,
-                        "re": 1
+                        "r-nata": 6,
+                        "re": 6
                     },
                     "NL": {
                         "c990x50_320x53c": 4,
-                        "m": 5,
-                        "rb": 0,
-                        "rd": 4,
                         "sd": 6,
                         "si": 4,
-                        "r": 5,
                         "c990x50_320x53d": 4,
-                        "r-nata": 3,
-                        "rc": 2
+                        "m": 1,
+                        "rb": 1,
+                        "rc": 4,
+                        "rd": 4,
+                        "r": 0,
+                        "r-nata": 2,
+                        "r-pnc": 1
+                    },
+                    "IT": {
+                        "m": 4,
+                        "r": 0,
+                        "rb": 2,
+                        "rd": 4,
+                        "re": 6,
+                        "sd": 4,
+                        "si": 1,
+                        "c990x50_320x53c": 4,
+                        "c990x50_320x53d": 4,
+                        "r-nata": 4,
+                        "rc": 0
+                    },
+                    "US": {
+                        "m": 11,
+                        "r": 11,
+                        "rb": 4,
+                        "si": 4,
+                        "r-nata": 4,
+                        "rc": 2,
+                        "sd": 4
                     }
                 },
                 "telva": {
                     "BE": {
-                        "m": 3,
-                        "r-nata": 1,
-                        "rb": 3,
-                        "sd": 6,
-                        "si": 1,
-                        "mb": 1,
-                        "r": 3,
-                        "rc": 4
+                        "m": 5,
+                        "rb": 11,
+                        "rc": 2,
+                        "sd": 8,
+                        "si": 8
                     },
-                    "DE": {
-                        "m": 6,
-                        "mb": 1,
-                        "r": 3,
-                        "r-nata": 1,
-                        "rb": 3,
-                        "rc": 1,
+                    "CH": {
+                        "m": 11,
+                        "r": 9,
                         "sd": 4,
-                        "si": 4
+                        "si": 8,
+                        "mb": 1,
+                        "r-nata": 6,
+                        "rb": 8
                     },
                     "ES": {
-                        "gexp-intext": 1,
-                        "gexp-intext-2": 3,
+                        "gexp-intext-2": 4,
                         "m": 6,
-                        "mb": 9,
-                        "r": 6,
+                        "mb": 8,
+                        "r": 13,
                         "r-nata": 2,
                         "rb": 4,
                         "rc": 4,
-                        "sd": 3,
-                        "si": 3
-                    },
-                    "IT": {
-                        "m": 6,
-                        "r": 2,
-                        "sd": 2,
-                        "si": 6,
-                        "r-nata": 2,
-                        "rb": 3
-                    },
-                    "US": {
-                        "m": 6,
-                        "r": 6,
-                        "r-nata": 2,
-                        "rb": 6
-                    },
-                    "CH": {
-                        "m": 6,
-                        "sd": 1,
-                        "r-nata": 1,
-                        "si": 4
-                    },
-                    "FR": {
-                        "m": 6,
-                        "r": 6,
-                        "rb": 6,
-                        "sd": 4,
+                        "sd": 6,
                         "si": 4,
-                        "r-nata": 1
+                        "gexp-intext": 11
                     },
                     "GB": {
-                        "r-nata": 2,
                         "sd": 4,
                         "si": 4,
-                        "m": 1,
-                        "mb": 1,
-                        "r": 3,
-                        "rb": 3,
-                        "rc": 1
+                        "r-nata": 6,
+                        "rb": 8,
+                        "m": 9,
+                        "r": 8
                     },
                     "PT": {
-                        "sd": 2,
-                        "si": 4,
                         "m": 6,
                         "mb": 9,
                         "r": 6,
-                        "r-nata": 1,
                         "rb": 6,
-                        "rc": 1
+                        "rc": 2,
+                        "sd": 3,
+                        "si": 3,
+                        "gexp-intext": 1,
+                        "r-nata": 6
+                    },
+                    "DE": {
+                        "m": 5,
+                        "rb": 2,
+                        "sd": 4,
+                        "si": 4,
+                        "r": 11,
+                        "r-nata": 6,
+                        "rc": 2
+                    },
+                    "FR": {
+                        "r": 11,
+                        "sd": 4,
+                        "si": 4,
+                        "m": 6,
+                        "r-nata": 6,
+                        "rb": 11,
+                        "rc": 6
                     },
                     "NL": {
-                        "m": 3,
-                        "r": 3,
-                        "rb": 3,
-                        "sd": 4,
-                        "si": 6,
-                        "rc": 1
+                        "sd": 6,
+                        "si": 4,
+                        "m": 8,
+                        "r": 15
+                    },
+                    "IT": {
+                        "m": 9,
+                        "r": 8,
+                        "sd": 3,
+                        "si": 3
+                    },
+                    "US": {
+                        "m": 6,
+                        "mb": 1,
+                        "r": 6,
+                        "r-nata": 4,
+                        "rb": 6,
+                        "rc": 11
                     }
                 }
             },
@@ -2271,27 +2510,7 @@
                     "portada": [
                         {
                             "f": {
-                                "f": 5
-                            }
-                        },
-                        {
-                            "f": {
-                                "f": 40
-                            }
-                        },
-                        {
-                            "f": {
                                 "f": 20
-                            }
-                        },
-                        {
-                            "f": {
-                                "f": 0
-                            }
-                        },
-                        {
-                            "f": {
-                                "f": 0
                             }
                         },
                         {
@@ -2301,44 +2520,22 @@
                         },
                         {
                             "f": {
-                                "f": 15,
-                                "t": 100
+                                "f": 60
                             }
                         },
                         {
                             "f": {
-                                "f": 35,
-                                "t": 70
-                            },
-                            "t": {
-                                "t": 100
+                                "f": 0
                             }
                         },
                         {
                             "f": {
-                                "f": 100,
-                                "t": 85
-                            },
-                            "t": {
-                                "t": 80
+                                "f": 20
                             }
                         },
                         {
                             "f": {
-                                "f": 55,
-                                "t": 100
-                            },
-                            "t": {
-                                "t": 60
-                            }
-                        },
-                        {
-                            "f": {
-                                "f": 70,
-                                "t": 75
-                            },
-                            "t": {
-                                "t": 65
+                                "f": 15
                             }
                         },
                         {
@@ -2348,12 +2545,71 @@
                         },
                         {
                             "f": {
-                                "f": 25
+                                "f": 30,
+                                "t": 50
+                            },
+                            "t": {
+                                "t": 100
                             }
                         },
                         {
                             "f": {
-                                "f": 35
+                                "f": 50,
+                                "t": 85
+                            },
+                            "t": {
+                                "t": 60
+                            }
+                        },
+                        {
+                            "f": {
+                                "f": 75,
+                                "t": 100
+                            },
+                            "t": {
+                                "t": 100
+                            }
+                        },
+                        {
+                            "f": {
+                                "f": 60,
+                                "t": 100
+                            },
+                            "t": {
+                                "t": 85
+                            }
+                        },
+                        {
+                            "f": {
+                                "f": 65
+                            },
+                            "t": {
+                                "t": 100
+                            }
+                        },
+                        {
+                            "f": {
+                                "f": 30
+                            }
+                        },
+                        {
+                            "f": {
+                                "f": 30
+                            }
+                        },
+                        {
+                            "f": {
+                                "f": 55
+                            }
+                        },
+                        {
+                            "f": {
+                                "f": 50
+                            }
+                        },
+                        {
+                            "f": {
+                                "f": 15
                             }
                         },
                         {
@@ -2368,22 +2624,7 @@
                         },
                         {
                             "f": {
-                                "f": 10
-                            }
-                        },
-                        {
-                            "f": {
                                 "f": 5
-                            }
-                        },
-                        {
-                            "f": {
-                                "f": 5
-                            }
-                        },
-                        {
-                            "f": {
-                                "f": 0
                             }
                         },
                         {
@@ -2403,19 +2644,19 @@
                                 "f": 0
                             }
                         },
-                        "2": {
+                        "3": {
                             "f": {
-                                "f": 65
+                                "f": 0
                             }
                         },
                         "4": {
                             "f": {
-                                "f": 10
+                                "f": 50
                             }
                         },
                         "5": {
                             "f": {
-                                "f": 0
+                                "f": 5
                             }
                         },
                         "6": {
@@ -2425,148 +2666,149 @@
                         },
                         "7": {
                             "f": {
-                                "f": 55,
-                                "t": 50
+                                "f": 50,
+                                "t": 100
                             },
                             "t": {
-                                "t": 100
+                                "t": 50
                             }
                         },
                         "8": {
                             "f": {
-                                "f": 80,
-                                "t": 50
-                            },
-                            "t": {
-                                "t": 100
-                            }
-                        },
-                        "9": {
-                            "f": {
-                                "f": 75,
-                                "t": 50
-                            }
-                        },
-                        "10": {
-                            "f": {
-                                "f": 75,
+                                "f": 85,
                                 "t": 65
                             },
                             "t": {
                                 "t": 100
                             }
                         },
-                        "11": {
+                        "9": {
                             "f": {
-                                "f": 65,
+                                "f": 85,
                                 "t": 100
                             },
                             "t": {
-                                "t": 100
+                                "t": 65
                             }
                         },
-                        "12": {
+                        "10": {
                             "f": {
-                                "f": 40
-                            }
-                        },
-                        "13": {
-                            "f": {
-                                "f": 50
-                            }
-                        },
-                        "14": {
-                            "f": {
-                                "f": 45
-                            }
-                        },
-                        "15": {
-                            "f": {
-                                "f": 50
-                            }
-                        },
-                        "16": {
-                            "f": {
-                                "f": 35
-                            }
-                        },
-                        "17": {
-                            "f": {
-                                "f": 25
-                            }
-                        },
-                        "18": {
-                            "f": {
-                                "f": 20
-                            }
-                        },
-                        "19": {
-                            "f": {
-                                "f": 10
-                            }
-                        },
-                        "20": {
-                            "f": {
-                                "f": 15
-                            }
-                        }
-                    },
-                    "portadilla": {
-                        "0": {
-                            "f": {
-                                "f": 10
-                            }
-                        },
-                        "6": {
-                            "f": {
-                                "f": 30
-                            }
-                        },
-                        "7": {
-                            "f": {
-                                "f": 35,
+                                "f": 20,
                                 "t": 50
                             },
                             "t": {
                                 "t": 100
                             }
                         },
-                        "8": {
-                            "f": {
-                                "f": 65,
-                                "t": 100
-                            },
-                            "t": {
-                                "t": 100
-                            }
-                        },
-                        "9": {
-                            "f": {
-                                "f": 100
-                            }
-                        },
-                        "10": {
-                            "f": {
-                                "f": 45,
-                                "t": 100
-                            },
-                            "t": {
-                                "t": 100
-                            }
-                        },
                         "11": {
                             "f": {
-                                "f": 35
+                                "f": 50,
+                                "t": 0
                             }
                         },
                         "12": {
                             "f": {
-                                "f": 45
+                                "f": 40
+                            },
+                            "t": {
+                                "t": 100
                             }
                         },
                         "13": {
                             "f": {
+                                "f": 60
+                            }
+                        },
+                        "14": {
+                            "f": {
                                 "f": 25
+                            }
+                        },
+                        "15": {
+                            "f": {
+                                "f": 20
+                            }
+                        },
+                        "16": {
+                            "f": {
+                                "f": 30
+                            }
+                        },
+                        "17": {
+                            "f": {
+                                "f": 35
+                            }
+                        },
+                        "18": {
+                            "f": {
+                                "f": 20,
+                                "t": 0
+                            }
+                        },
+                        "19": {
+                            "f": {
+                                "f": 10,
+                                "t": 0
+                            }
+                        },
+                        "20": {
+                            "f": {
+                                "f": 10,
+                                "t": 0
+                            }
+                        }
+                    },
+                    "portadilla": {
+                        "0": {
+                            "f": {
+                                "f": 0
+                            }
+                        },
+                        "1": {
+                            "f": {
+                                "f": 0
+                            }
+                        },
+                        "6": {
+                            "f": {
+                                "f": 10
+                            }
+                        },
+                        "7": {
+                            "f": {
+                                "f": 10,
+                                "t": 100
+                            }
+                        },
+                        "8": {
+                            "f": {
+                                "f": 55
+                            }
+                        },
+                        "9": {
+                            "f": {
+                                "f": 100,
+                                "t": 100
+                            }
+                        },
+                        "10": {
+                            "f": {
+                                "f": 35
+                            }
+                        },
+                        "11": {
+                            "f": {
+                                "f": 10
+                            }
+                        },
+                        "12": {
+                            "f": {
+                                "f": 0
+                            }
+                        },
+                        "13": {
+                            "f": {
+                                "f": 60
                             }
                         },
                         "14": {
@@ -2575,6 +2817,11 @@
                             }
                         },
                         "15": {
+                            "f": {
+                                "f": 0
+                            }
+                        },
+                        "16": {
                             "f": {
                                 "f": 0
                             }
@@ -2606,40 +2853,51 @@
                                 "f": 0
                             }
                         },
-                        "4": {
+                        "2": {
                             "f": {
                                 "f": 0
                             }
                         },
+                        "3": {
+                            "f": {
+                                "f": 0
+                            }
+                        },
+                        "4": {
+                            "f": {
+                                "f": 50
+                            }
+                        },
                         "5": {
-                            "f": {
-                                "f": 30
-                            }
-                        },
-                        "6": {
-                            "f": {
-                                "f": 60,
-                                "t": 100
-                            }
-                        },
-                        "7": {
-                            "f": {
-                                "f": 55,
-                                "t": 100
-                            }
-                        },
-                        "8": {
-                            "f": {
-                                "f": 90,
-                                "t": 50
-                            }
-                        },
-                        "9": {
                             "f": {
                                 "f": 100
                             }
                         },
-                        "20": {
+                        "6": {
+                            "f": {
+                                "f": 40
+                            }
+                        },
+                        "7": {
+                            "f": {
+                                "f": 60
+                            },
+                            "t": {
+                                "t": 0
+                            }
+                        },
+                        "8": {
+                            "f": {
+                                "f": 80
+                            }
+                        },
+                        "9": {
+                            "f": {
+                                "f": 50,
+                                "t": 0
+                            }
+                        },
+                        "15": {
                             "f": {
                                 "f": 0
                             }
@@ -2648,54 +2906,54 @@
                     "portadilla-nc": {
                         "0": {
                             "f": {
-                                "f": 0
+                                "f": 50
                             }
                         },
-                        "2": {
+                        "1": {
                             "f": {
                                 "f": 0
                             }
                         },
-                        "4": {
+                        "3": {
                             "f": {
-                                "f": 65
+                                "f": 0
                             }
                         },
-                        "5": {
+                        "6": {
                             "f": {
                                 "f": 0
                             }
                         },
                         "7": {
                             "f": {
-                                "f": 50,
+                                "f": 30,
+                                "t": 100
+                            },
+                            "t": {
                                 "t": 100
                             }
                         },
                         "8": {
                             "f": {
                                 "f": 100,
-                                "t": 100
+                                "t": 65
                             },
                             "t": {
-                                "t": 50
+                                "t": 100
                             }
                         },
                         "9": {
-                            "f": {
-                                "t": 100
-                            },
-                            "t": {
-                                "t": 65
-                            }
-                        },
-                        "10": {
                             "f": {
                                 "f": 50,
                                 "t": 100
                             },
                             "t": {
-                                "t": 0
+                                "t": 100
+                            }
+                        },
+                        "10": {
+                            "f": {
+                                "f": 75
                             }
                         },
                         "11": {
@@ -2705,22 +2963,7 @@
                         },
                         "12": {
                             "f": {
-                                "f": 100
-                            }
-                        },
-                        "14": {
-                            "f": {
-                                "f": 80
-                            }
-                        },
-                        "15": {
-                            "f": {
-                                "f": 100
-                            }
-                        },
-                        "16": {
-                            "f": {
-                                "f": 100
+                                "f": 65
                             }
                         },
                         "17": {
@@ -2733,140 +2976,140 @@
                                 "f": 100
                             }
                         },
-                        "20": {
-                            "f": {
-                                "f": 60
-                            }
-                        }
-                    },
-                    "directo": {
-                        "7": {
-                            "f": {
-                                "f": 40
-                            }
-                        },
-                        "8": {
-                            "f": {
-                                "t": 0
-                            }
-                        },
-                        "9": {
-                            "f": {
-                                "f": 0
-                            }
-                        },
-                        "10": {
-                            "f": {
-                                "f": 100
-                            }
-                        },
-                        "13": {
-                            "f": {
-                                "f": 100
-                            }
-                        },
-                        "16": {
+                        "19": {
                             "f": {
                                 "f": 0
                             }
                         },
                         "20": {
                             "f": {
-                                "f": 0
+                                "f": 100
                             }
                         }
                     },
                     "resultados": {
-                        "6": {
-                            "f": {
-                                "t": 100
-                            }
-                        },
                         "7": {
                             "f": {
-                                "f": 60
+                                "f": 55
                             }
                         },
                         "8": {
                             "f": {
-                                "f": 50
-                            }
-                        },
-                        "20": {
-                            "f": {
-                                "f": 100
+                                "f": 65
                             }
                         }
                     },
-                    "album": {
-                        "7": {
-                            "f": {
-                                "f": 0
-                            }
-                        }
-                    }
+                    "album": []
                 },
-                "p_mc2": {
-                    "portadilla": {
+                "telva": {
+                    "noticia": {
                         "0": {
                             "f": {
                                 "f": 0
                             }
                         },
-                        "10": {
+                        "2": {
                             "f": {
                                 "f": 50
+                            }
+                        },
+                        "4": {
+                            "f": {
+                                "f": 0
+                            }
+                        },
+                        "6": {
+                            "f": {
+                                "f": 5,
+                                "t": 0
+                            }
+                        },
+                        "7": {
+                            "f": {
+                                "f": 40,
+                                "t": 50
+                            },
+                            "t": {
+                                "t": 50
+                            }
+                        },
+                        "8": {
+                            "f": {
+                                "t": 100
+                            },
+                            "t": {
+                                "t": 80
+                            }
+                        },
+                        "9": {
+                            "f": {
+                                "t": 50
+                            }
+                        },
+                        "10": {
+                            "f": {
+                                "f": 100,
+                                "t": 100
+                            },
+                            "t": {
+                                "t": 75
                             }
                         },
                         "11": {
                             "f": {
-                                "f": 0
+                                "f": 85
                             }
                         },
                         "12": {
                             "f": {
-                                "f": 0
+                                "f": 90
                             }
                         },
                         "13": {
                             "f": {
-                                "f": 50
+                                "f": 100
                             }
                         },
                         "14": {
                             "f": {
-                                "f": 0
+                                "f": 50
                             }
                         },
                         "15": {
                             "f": {
-                                "f": 0
+                                "f": 50
                             }
                         },
-                        "17": {
+                        "16": {
                             "f": {
-                                "f": 0
+                                "f": 80
                             }
                         },
                         "18": {
                             "f": {
                                 "f": 0
+                            }
+                        },
+                        "19": {
+                            "f": {
+                                "f": 0
+                            }
+                        },
+                        "20": {
+                            "f": {
+                                "f": 30
                             }
                         }
                     },
-                    "noticia": {
-                        "18": {
-                            "f": {
-                                "f": 0
-                            }
-                        }
-                    }
-                },
-                "telva": {
-                    "noticia": [
+                    "portada": [
                         {
                             "f": {
-                                "f": 25
+                                "f": 20
+                            }
+                        },
+                        {
+                            "f": {
+                                "f": 20
                             }
                         },
                         {
@@ -2877,6 +3120,42 @@
                         {
                             "f": {
                                 "f": 0
+                            }
+                        },
+                        {
+                            "f": {
+                                "f": 0
+                            }
+                        },
+                        {
+                            "f": {
+                                "f": 35
+                            }
+                        },
+                        {
+                            "f": {
+                                "f": 40
+                            }
+                        },
+                        {
+                            "f": {
+                                "f": 100
+                            }
+                        },
+                        {
+                            "f": {
+                                "f": 40,
+                                "t": 100
+                            }
+                        },
+                        {
+                            "f": {
+                                "f": 40
+                            }
+                        },
+                        {
+                            "f": {
+                                "f": 40
                             }
                         },
                         {
@@ -2886,144 +3165,64 @@
                         },
                         {
                             "f": {
-                                "f": 20
+                                "f": 40
                             }
                         },
                         {
-                            "f": {
-                                "f": 10
-                            }
-                        },
-                        {
-                            "f": {
-                                "f": 10
-                            },
-                            "t": {
-                                "t": 0
-                            }
-                        },
-                        {
-                            "f": {
-                                "f": 35,
-                                "t": 50
-                            },
-                            "t": {
-                                "t": 0
-                            }
-                        },
-                        {
-                            "f": {
-                                "f": 100,
-                                "t": 75
-                            },
-                            "t": {
-                                "t": 50
-                            }
-                        },
-                        {
-                            "f": {
-                                "f": 100,
-                                "t": 30
-                            }
-                        },
-                        {
-                            "f": {
-                                "f": 100
-                            },
-                            "t": {
-                                "t": 0
-                            }
-                        },
-                        {
-                            "f": {
-                                "f": 100
-                            }
-                        },
-                        {
-                            "f": {
-                                "f": 100
-                            }
-                        },
-                        {
-                            "f": {
-                                "f": 100
-                            }
-                        },
-                        {
-                            "f": {
-                                "f": 75
-                            }
-                        },
-                        {
-                            "f": {
-                                "f": 100
-                            }
-                        },
-                        {
-                            "f": {
-                                "f": 100
-                            }
-                        },
-                        {
-                            "f": {
-                                "f": 0
-                            }
-                        },
-                        {
-                            "f": {
-                                "f": 20
-                            }
-                        },
-                        {
-                            "f": {
-                                "f": 0
-                            }
-                        },
-                        {
-                            "f": {
-                                "f": 20
-                            }
-                        }
-                    ],
-                    "portada": {
-                        "0": {
-                            "f": {
-                                "f": 0
-                            }
-                        },
-                        "1": {
-                            "f": {
-                                "f": 0
-                            }
-                        },
-                        "2": {
-                            "f": {
-                                "f": 0
-                            }
-                        },
-                        "3": {
-                            "f": {
-                                "f": 65
-                            }
-                        },
-                        "4": {
-                            "f": {
-                                "f": 0
-                            }
-                        },
-                        "5": {
-                            "f": {
-                                "f": 25
-                            }
-                        },
-                        "6": {
                             "f": {
                                 "f": 40
                             }
                         },
+                        {
+                            "f": {
+                                "f": 15
+                            }
+                        },
+                        {
+                            "f": {
+                                "f": 15
+                            }
+                        },
+                        {
+                            "f": {
+                                "f": 25
+                            }
+                        },
+                        {
+                            "f": {
+                                "f": 15
+                            }
+                        },
+                        {
+                            "f": {
+                                "f": 15
+                            }
+                        },
+                        {
+                            "f": {
+                                "f": 5
+                            }
+                        },
+                        {
+                            "f": {
+                                "f": 5
+                            }
+                        }
+                    ],
+                    "album": {
+                        "5": {
+                            "f": {
+                                "f": 100
+                            }
+                        },
+                        "6": {
+                            "f": {
+                                "f": 65
+                            }
+                        },
                         "7": {
                             "f": {
-                                "f": 30
+                                "f": 85
                             },
                             "t": {
                                 "t": 100
@@ -3031,79 +3230,7 @@
                         },
                         "8": {
                             "f": {
-                                "f": 35
-                            },
-                            "t": {
-                                "t": 75
-                            }
-                        },
-                        "9": {
-                            "f": {
                                 "f": 100
-                            }
-                        },
-                        "10": {
-                            "f": {
-                                "f": 80
-                            },
-                            "t": {
-                                "t": 100
-                            }
-                        },
-                        "11": {
-                            "f": {
-                                "f": 100
-                            },
-                            "t": {
-                                "t": 100
-                            }
-                        },
-                        "12": {
-                            "f": {
-                                "f": 65
-                            }
-                        },
-                        "13": {
-                            "f": {
-                                "f": 65
-                            }
-                        },
-                        "14": {
-                            "f": {
-                                "f": 100
-                            }
-                        },
-                        "15": {
-                            "f": {
-                                "f": 0
-                            }
-                        },
-                        "18": {
-                            "f": {
-                                "f": 30
-                            }
-                        },
-                        "19": {
-                            "f": {
-                                "f": 20
-                            }
-                        },
-                        "20": {
-                            "f": {
-                                "f": 0
-                            }
-                        }
-                    },
-                    "album": {
-                        "6": {
-                            "f": {
-                                "f": 100
-                            }
-                        },
-                        "7": {
-                            "f": {
-                                "f": 85,
-                                "t": 100
                             }
                         },
                         "9": {
@@ -3113,27 +3240,64 @@
                         }
                     },
                     "portadilla": {
-                        "0": {
+                        "2": {
                             "f": {
-                                "f": 0
-                            }
-                        },
-                        "3": {
-                            "f": {
-                                "f": 100
+                                "f": 30
                             }
                         },
                         "4": {
+                            "f": {
+                                "f": 20
+                            }
+                        },
+                        "6": {
                             "f": {
                                 "f": 0
                             }
                         },
                         "7": {
                             "f": {
-                                "f": 100
+                                "f": 65,
+                                "t": 0
+                            }
+                        },
+                        "8": {
+                            "f": {
+                                "f": 0
+                            }
+                        },
+                        "9": {
+                            "f": {
+                                "f": 60
                             }
                         },
                         "10": {
+                            "f": {
+                                "f": 50,
+                                "t": 100
+                            }
+                        },
+                        "12": {
+                            "f": {
+                                "f": 40
+                            }
+                        },
+                        "14": {
+                            "f": {
+                                "f": 0
+                            }
+                        },
+                        "15": {
+                            "f": {
+                                "f": 0
+                            }
+                        },
+                        "16": {
+                            "f": {
+                                "f": 0
+                            }
+                        },
+                        "17": {
                             "f": {
                                 "f": 0
                             }
@@ -3143,13 +3307,16 @@
                                 "f": 0
                             }
                         }
-                    }
-                },
-                "mc-mx": {
-                    "noticia": {
-                        "4": {
+                    },
+                    "videoct-vertical": {
+                        "0": {
                             "f": {
                                 "f": 0
+                            }
+                        },
+                        "4": {
+                            "f": {
+                                "f": 30
                             }
                         },
                         "5": {
@@ -3159,17 +3326,31 @@
                         },
                         "7": {
                             "f": {
-                                "f": 50
+                                "f": 75
+                            }
+                        }
+                    },
+                    "album-vertical": {
+                        "8": {
+                            "f": {
+                                "t": 100
+                            },
+                            "t": {
+                                "t": 100
+                            }
+                        }
+                    }
+                },
+                "mc-mx": {
+                    "noticia": {
+                        "0": {
+                            "f": {
+                                "f": 0
                             }
                         },
-                        "9": {
+                        "7": {
                             "f": {
                                 "f": 100
-                            }
-                        },
-                        "10": {
-                            "f": {
-                                "f": 65
                             }
                         },
                         "11": {
@@ -3177,26 +3358,41 @@
                                 "f": 100
                             }
                         },
-                        "14": {
-                            "f": {
-                                "f": 100
-                            }
-                        },
-                        "15": {
-                            "f": {
-                                "f": 100
-                            }
-                        },
                         "16": {
                             "f": {
+                                "f": 0
+                            }
+                        },
+                        "17": {
+                            "f": {
                                 "f": 100
+                            }
+                        },
+                        "18": {
+                            "f": {
+                                "f": 50
                             }
                         }
                     },
                     "portada": {
+                        "6": {
+                            "f": {
+                                "f": 0
+                            }
+                        },
                         "7": {
                             "f": {
-                                "f": 35
+                                "f": 0
+                            }
+                        },
+                        "11": {
+                            "f": {
+                                "f": 100
+                            }
+                        },
+                        "12": {
+                            "f": {
+                                "f": 50
                             }
                         },
                         "14": {
@@ -3212,11 +3408,6 @@
                             }
                         },
                         "9": {
-                            "f": {
-                                "f": 0
-                            }
-                        },
-                        "12": {
                             "f": {
                                 "f": 0
                             }
@@ -3227,7 +3418,7 @@
                     "noticia": {
                         "7": {
                             "f": {
-                                "f": 85
+                                "f": 60
                             }
                         },
                         "9": {
@@ -3235,54 +3426,101 @@
                                 "f": 100
                             }
                         },
+                        "19": {
+                            "f": {
+                                "f": 30
+                            }
+                        },
                         "20": {
                             "f": {
-                                "f": 50
+                                "f": 0
+                            }
+                        }
+                    },
+                    "portadilla": {
+                        "7": {
+                            "f": {
+                                "f": 100
+                            }
+                        },
+                        "10": {
+                            "f": {
+                                "f": 100
+                            }
+                        },
+                        "14": {
+                            "f": {
+                                "f": 0
+                            }
+                        },
+                        "16": {
+                            "f": {
+                                "f": 0
+                            }
+                        },
+                        "17": {
+                            "f": {
+                                "f": 0
                             }
                         }
                     }
                 },
                 "mc-usa2": {
                     "noticia": {
-                        "2": {
+                        "0": {
+                            "f": {
+                                "f": 0
+                            }
+                        },
+                        "3": {
+                            "f": {
+                                "f": 0
+                            }
+                        },
+                        "4": {
                             "f": {
                                 "f": 0
                             }
                         },
                         "6": {
                             "f": {
-                                "f": 10
+                                "f": 0
                             }
                         },
                         "7": {
                             "f": {
-                                "f": 80
-                            }
-                        },
-                        "8": {
-                            "f": {
-                                "f": 65,
-                                "t": 100
+                                "f": 35
                             }
                         },
                         "9": {
                             "f": {
-                                "f": 75
+                                "f": 50
                             }
                         },
-                        "12": {
+                        "10": {
+                            "f": {
+                                "f": 100
+                            },
                             "t": {
                                 "t": 100
                             }
                         },
-                        "13": {
+                        "11": {
                             "f": {
                                 "f": 50
+                            },
+                            "t": {
+                                "t": 0
+                            }
+                        },
+                        "13": {
+                            "f": {
+                                "f": 100
                             }
                         },
                         "14": {
                             "f": {
-                                "f": 0
+                                "f": 50
                             }
                         },
                         "15": {
@@ -3292,12 +3530,12 @@
                         },
                         "16": {
                             "f": {
-                                "f": 50
+                                "f": 30
                             }
                         },
                         "17": {
                             "f": {
-                                "f": 0
+                                "f": 100
                             },
                             "t": {
                                 "t": 100
@@ -3305,7 +3543,7 @@
                         },
                         "18": {
                             "f": {
-                                "f": 100
+                                "f": 0
                             },
                             "t": {
                                 "t": 0
@@ -3323,47 +3561,12 @@
                         }
                     },
                     "portada": {
-                        "6": {
-                            "f": {
-                                "f": 50
-                            }
-                        },
                         "7": {
-                            "f": {
-                                "f": 30
-                            }
-                        },
-                        "8": {
-                            "f": {
-                                "t": 100
-                            }
-                        },
-                        "10": {
-                            "t": {
-                                "t": 100
-                            }
-                        },
-                        "12": {
-                            "f": {
-                                "f": 100
-                            }
-                        },
-                        "13": {
                             "f": {
                                 "f": 0
                             }
                         },
                         "14": {
-                            "f": {
-                                "f": 25
-                            }
-                        },
-                        "15": {
-                            "f": {
-                                "f": 0
-                            }
-                        },
-                        "16": {
                             "f": {
                                 "f": 0
                             }
@@ -3384,43 +3587,21 @@
                             }
                         }
                     },
-                    "opinion": {
+                    "portadilla": {
                         "7": {
                             "f": {
-                                "f": 10
-                            }
-                        },
-                        "8": {
-                            "f": {
-                                "f": 100
-                            }
-                        },
-                        "15": {
-                            "f": {
-                                "f": 0
-                            },
-                            "t": {
-                                "t": 100
-                            }
-                        },
-                        "16": {
-                            "f": {
                                 "f": 0
                             }
                         },
-                        "17": {
+                        "20": {
                             "f": {
                                 "f": 0
-                            },
-                            "t": {
-                                "t": 0
                             }
                         }
-                    },
-                    "portadilla-nc": []
+                    }
                 }
             }
         }
-    }
+    },
+    "config_version": "69f1de15ba349"
 }
-
