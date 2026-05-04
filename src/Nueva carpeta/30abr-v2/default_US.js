@@ -1,12 +1,12 @@
+
 let cfg={
-    "name":"LATAM",
     "enabled":true,
     "defaultP":1,
     "houseTm":30000,
     "maxHReload":1,
     "telemetryProb":4,
     "pList": [0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5, 0.6, 0.75, 1, 1.25, 1.5, 1.75, 2, 2.25, 2.5, 2.75, 3, 3.25, 3.5, 3.75, 4],
-    "adexIds" : [4539205383],
+    "adexIds" : [2559776610],
     "houseIds" :[5688947279, 5355378473, 45125937, 5632467105, 4633770194, 5170458185, 4591133191,
         50339097,
         51641577,
@@ -15,6 +15,9 @@ let cfg={
         4815141041,
         5672511518,
         5744792553],
+
+
+
     "prebidIds":[
         "5359233312",
         "4406227815",
@@ -34,25 +37,25 @@ let cfg={
     "reloadCampaignIds":[2559776610, 483876297, 3038846356, 2098434238, 494913417, 494827977, 2106449176, 2108387998, 2106441352, 2106520950, 2106523863, 2667870692, 2668441436, 2668163671, 2668164637],
     "houseLineItems":[],
     "positions":{
-        "r":{"p":7,"mu":4,"rv":1,"nbb":2,"st":1,"ub":7,"ppbo":0.1,"ppbd":2,"hl":20,"hr":{"tim":15000,"ov":false,"mr":1},"ar":{"tim":null,"ov":true,"pbtim":2000,"mr":1,"mintim":28000},"tl":true},
-        "rb":{"p":6,"mu":3,"rv":1,"nbb":2,"st":1,"ub":7,"ppbo":0.1,"ppbd":2,"hl":20,"hr":{"tim":15000,"ov":false,"mr":1},"ar":{"tim":null,"ov":true,"pbtim":2000,"mr":1,"mintim":28000},"tl":true},
-        "rc":{"p":5,"rv":0,"nbb":2,"st":1,"ub":7,"ppbo":0.05,"ppbd":2,"hl":20,"hr":{"tim":15000,"ov":false,"mr":1},"ar":{"tim":null,"ov":true,"pbtim":2000,"mr":1,"mintim":28000},"tl":true},
-        "rd":{"p":3,"rv":0,"nbb":2,"st":2,"ub":7,"ppbo":0.05,"ppbd":2,"hl":20,"hr":{"tim":15000,"ov":false,"mr":1},"ar":{"tim":null,"ov":true,"pbtim":2000,"mr":1,"mintim":28000},"tl":true},
+        "r":{"p":7,"mu":4,"rv":1,"nbb":2,"st":1,"ub":7,"ppbo":0.1,"ppbd":2,"hl":20,"hr":{"tim":15000,"ov":false,"mr":1},"ar":{"tim":null,"ov":true,"pbtim":2000,"mr":1,"mintim":5000},"rqpbtim":2000,"tl":true},
+        "rb":{"p":6,"mu":3,"rv":1,"nbb":2,"st":1,"ub":7,"ppbo":0.1,"ppbd":2,"hl":20,"hr":{"tim":15000,"ov":false,"mr":1},"ar":{"tim":null,"ov":true,"pbtim":2000,"mr":1,"mintim":5000},"rqpbtim":2000,"tl":true},
+        "rc":{"p":5,"rv":0,"nbb":2,"st":1,"ub":7,"ppbo":0.05,"ppbd":2,"hl":20,"hr":{"tim":15000,"ov":false,"mr":1},"ar":{"tim":null,"ov":true,"pbtim":2000,"mr":1,"mintim":5000},"rqpbtim":2000,"tl":true},
+        "rd":{"p":3,"rv":0,"nbb":2,"st":2,"ub":7,"ppbo":0.05,"ppbd":2,"hl":20,"hr":{"tim":15000,"ov":false,"mr":1},"ar":{"tim":null,"ov":true,"pbtim":2000,"mr":1,"mintim":5000},"rqpbtim":2000,"tl":true},
         "re":{"p":3,"rv":0,"st":1,"tl":true},
         "rf":{"p":3,"rv":0,"st":1,"tl":true},
         "rg":{"p":3,"rv":0,"st":1,"tl":true},
-        "r-pnc":{"p":4,"rv":1,"tl":true},
+        "r-pnc":{"p":4,"rv":1},
         "rb-pnc":{"p":4,"rv":1},
-        "r-nata":{"p":4,"rv":1,"tl":true},
+        "r-nata":{"p":4,"rv":1},
         "r-nata-pnc":{"p":4,"rv":1},
         "m":{"p":10,"mp":0,"rv":1,"tl":true,"st":1},
         "mb":{"p":10,"rv":1,"tl":true},
-        "m-pnc":{"p":4,"rv":1,"tl":true},
+        "m-pnc":{"p":4,"rv":1},
         "si":{"p":4,"rv":1},
         "sd":{"p":4,"rv":1},
         "c990x50_320x50":{"p":1,"rv":1},
-        "c990x50_320x53c":{"p":1,"rv":1,"tl":true},
-        "c990x50_320x53d":{"p":1,"rv":1,"tl":true},
+        "c990x50_320x53":{"p":1,"rv":1},
+        "c990x50_320x53b":{"p":1,"rv":1},
         "gexp-intext": {
             "p": 4,
             "mu": 3,
@@ -109,7 +112,7 @@ let cfg={
             "rqpbtim": 2000,
             "tl": true
         },
-        "gexp-inimage": {
+                "gexp-inimage": {
             "p": 4,
             "mu": 3,
             "md": 2,
@@ -221,9 +224,9 @@ let cfg={
             "rqpbtim": 2000,
             "tl": true
         },
-        "default":{"p":4,"mu":4,"md":2,"rv":0,"nbb":2,"st":1,"ub":7,"ppbo":0.05,"ppbd":2,"hl":20,"mp":0,"hr":null,"ar":null,"tl":false}
+        "default":{"p":4,"mu":4,"md":2,"rv":0,"nbb":2,"st":1,"ub":7,"ppbo":0.05,"ppbd":2,"hl":20,"mp":0,"hr":null,"ar":null,"rqpbtim":2000,"tl":false}
     },
-        "intextSites": {
+    "intextSites": {
         "default": {
             "general": {
                 "debug": false,
@@ -366,7 +369,7 @@ let cfg={
                             "mode": "default"
                         },
                         "6": {
-                            "mode": "default"
+                            "mode": "default"                            
                         },
                         "7": {
                             "mode": "default"
@@ -392,44 +395,31 @@ let cfg={
                     "maxCycles": 3,
                     "mode": "display_only",
                     "bidStrategy": "fresh",
-                    "bidMaxAgeMs": 30000,
-                    "house1x1AutoRefresh": {
-                        "enabled": true,
-                        "delayMs": 100,
-                        "maxAttemptsPerCycle": 1,
-                        "maxAttemptsPerSlot": 2,
-                        "registerTelemetry": true,
-                        "requireHouse": true,
-                        "advertiserIds": [],
-                        "campaignIds": [],
-                        "lineItemIds": [
-                            "7234537665"
-                        ]
-                    }
+                    "bidMaxAgeMs": 30000
                 },
                 "telemetryIds": {
-          "prebid": [
-                    "83488497",
-                    "4402193934",
-                    "5907488782",
-                    "5823135725",
-                    "5619844792",
-                    "5180398781",
-                    "5354911588",
-                    "4406227815",
-                    "83522457",
-                    "5907334980",
-                    "5359233312",
-                    "4402208836"
-          ],
-          "amazon": [
-                    "55409457"
-          ],
-          "adex": [
-                    "2559776610",
-                    "2466799184"
-          ]
-},
+                        "prebid": [
+                                    "83488497",
+                                    "4402193934",
+                                    "5907488782",
+                                    "5823135725",
+                                    "5619844792",
+                                    "5180398781",
+                                    "5354911588",
+                                    "4406227815",
+                                    "83522457",
+                                    "5907334980",
+                                    "5359233312",
+                                    "4402208836"
+                        ],
+                        "amazon": [
+                                    "55409457"
+                        ],
+                        "adex": [
+                                    "2559776610",
+                                    "2466799184"
+                        ]
+                },
                 "slotOverrides": {
                     "0": {
                         "decision": {
@@ -659,20 +649,7 @@ let cfg={
                     "adexDelayMs": 3500,
                             "maxCycles": 2,
                             "mode": "display_only",
-                            "bidStrategy": "fresh",
-                            "house1x1AutoRefresh": {
-                                "enabled": true,
-                                "delayMs": 100,
-                                "maxAttemptsPerCycle": 1,
-                                "maxAttemptsPerSlot": 2,
-                                "registerTelemetry": true,
-                                "requireHouse": true,
-                                "advertiserIds": [],
-                                "campaignIds": [],
-                                "lineItemIds": [
-                                    "7234537665"
-                                ]
-                            }
+                            "bidStrategy": "fresh"
                         },
                         "slotOverrides": {
                             "1": {
@@ -701,15 +678,9 @@ let cfg={
                     "disableAll": false,
                     "adUnitPaths": [],
                     "keyValues": {
-                        "newsid": [
-                            ""
-                        ],
-                        "tag": [
-                            "bloqueo-publi"
-                        ],
-                        "t": [
-                            ""
-                        ]
+                        "newsid": [""],
+                        "tag": ["bloqueo-publi"],
+                        "t": [""]
                     },
                     "disableSlots": {
                         "always": [],
@@ -739,20 +710,7 @@ let cfg={
                     "adexDelayMs": 3500,
                             "maxCycles": 2,
                             "mode": "display_only",
-                            "bidStrategy": "fresh",
-                            "house1x1AutoRefresh": {
-                                "enabled": true,
-                                "delayMs": 100,
-                                "maxAttemptsPerCycle": 1,
-                                "maxAttemptsPerSlot": 2,
-                                "registerTelemetry": true,
-                                "requireHouse": true,
-                                "advertiserIds": [],
-                                "campaignIds": [],
-                                "lineItemIds": [
-                                    "7234537665"
-                                ]
-                            }
+                            "bidStrategy": "fresh"
                         },
                         "slotOverrides": {}
                     },

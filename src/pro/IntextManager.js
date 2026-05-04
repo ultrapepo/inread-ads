@@ -1437,6 +1437,19 @@
           this._coordinator = null;
           this.lockedHeight = 0;
           this._videoTiming = null;
+          this._intextTelemetryCycleId = 0;
+          this._intextTelemetryCycle = null;
+          this._pendingIntextTelemetry = {};
+          this._intextViewportObserver = null;
+          this._intextViewportObservedEl = null;
+          this._intextViewportEnterAt = null;
+          this._intextViewportVisibleMs = 0;
+          this._intextTelemetryCommittedForCycle = false;
+          this._intextTelemetryCommittedReasons = {};
+          this._intextTelemetryFinalCommitted = false;
+          this._lastImaAdDuration = null;
+          this._house1x1AutoRefreshAttemptsForCycle = 0;
+          this._house1x1AutoRefreshAttemptsPerSlot = 0;
         }
 
         markDisplayHeightLock(height, sourceEl = null) {
@@ -1611,6 +1624,385 @@
           return String(value);
         }
 
+        getIntextTelemetryElement() {
+          try {
+            const displayEl = this.container?.getElement?.() || null;
+            const videoEl = this.videoContainer?.getElement?.() || null;
+            if (this.state === "video") return videoEl || displayEl;
+            return displayEl || videoEl;
+          } catch (e) {
+            return null;
+          }
+        }
+
+        getIntextDistancePx() {
+          try {
+            const el = this.getIntextTelemetryElement();
+            if (!el || typeof el.getBoundingClientRect !== "function") return null;
+            const rect = el.getBoundingClientRect();
+            if (!rect) return null;
+            return Math.round(rect.top);
+          } catch (e) {
+            return null;
+          }
+        }
+
+        getDisplayCreativeSizeFromEvent(event) {
+          try {
+            const is1x1 = event?.size && event.size[0] === 1 && event.size[1] === 1;
+            if (event?.size && !is1x1) return `${event.size[0]}x${event.size[1]}`;
+            const renderSize = this.resolveDisplayRenderSizeFromEvent(event, "display_telemetry_size");
+            const width = renderSize.gamWidth || renderSize.actualWidth || 0;
+            const height = renderSize.actualHeight || renderSize.gamHeight || 0;
+            return `${width}x${height}`;
+          } catch (e) {
+            return null;
+          }
+        }
+
+        getHouse1x1AutoRefreshConfig() {
+          return this.config?.refreshCycle?.house1x1AutoRefresh || null;
+        }
+
+        getHouse1x1EventIdMatch(event, cfg) {
+          const asStrings = (values) => Array.isArray(values) ? values.map((value) => String(value)) : [];
+          const advertiserIds = asStrings(cfg?.advertiserIds);
+          const campaignIds = asStrings(cfg?.campaignIds);
+          const lineItemIds = asStrings(cfg?.lineItemIds);
+          const hasConfiguredIds = advertiserIds.length || campaignIds.length || lineItemIds.length;
+          const advertiserId = event?.advertiserId != null ? String(event.advertiserId) : "";
+          const campaignId = event?.campaignId != null ? String(event.campaignId) : "";
+          const lineItemId = event?.lineItemId != null ? String(event.lineItemId) : "";
+          const configuredMatch =
+            (advertiserId && advertiserIds.includes(advertiserId)) ||
+            (campaignId && campaignIds.includes(campaignId)) ||
+            (lineItemId && lineItemIds.includes(lineItemId));
+          return {
+            hasConfiguredIds: Boolean(hasConfiguredIds),
+            configuredMatch: Boolean(configuredMatch),
+            advertiserId,
+            campaignId,
+            lineItemId,
+          };
+        }
+
+        isHouse1x1EventMatch(event, cfg) {
+          if (!event || event.isEmpty === true) return false;
+          const idMatch = this.getHouse1x1EventIdMatch(event, cfg);
+
+          // With configured IDs, retry only on those IDs so Prebid or wrapper 1x1 creatives are not captured by size.
+          if (idMatch.hasConfiguredIds) return idMatch.configuredMatch;
+
+          const is1x1 = event.size && event.size[0] === 1 && event.size[1] === 1;
+          if (!is1x1) return false;
+
+          if (cfg?.requireHouse !== true) return true;
+
+          try {
+            return Boolean(this.manager?.gexp?.isHouse?.(null, null, idMatch.advertiserId || null));
+          } catch (e) {
+            return false;
+          }
+        }
+
+        isHouse1x1AutoRefreshCandidate(event) {
+          const cfg = this.getHouse1x1AutoRefreshConfig();
+          if (!cfg || cfg.enabled !== true) return false;
+          if (!this.isHouse1x1EventMatch(event, cfg)) return false;
+
+          const maxAttemptsPerCycle = Number(cfg.maxAttemptsPerCycle ?? 1);
+          const maxAttemptsPerSlot = Number(cfg.maxAttemptsPerSlot ?? 2);
+          if (maxAttemptsPerCycle >= 0 && this._house1x1AutoRefreshAttemptsForCycle >= maxAttemptsPerCycle) return false;
+          if (maxAttemptsPerSlot >= 0 && this._house1x1AutoRefreshAttemptsPerSlot >= maxAttemptsPerSlot) return false;
+          return true;
+        }
+
+        isHouse1x1AutoRefreshMaxReached(event) {
+          const cfg = this.getHouse1x1AutoRefreshConfig();
+          if (!cfg || cfg.enabled !== true) return false;
+          if (!this.isHouse1x1EventMatch(event, cfg)) return false;
+          const maxAttemptsPerCycle = Number(cfg.maxAttemptsPerCycle ?? 1);
+          const maxAttemptsPerSlot = Number(cfg.maxAttemptsPerSlot ?? 2);
+          return (
+            (maxAttemptsPerCycle >= 0 && this._house1x1AutoRefreshAttemptsForCycle >= maxAttemptsPerCycle) ||
+            (maxAttemptsPerSlot >= 0 && this._house1x1AutoRefreshAttemptsPerSlot >= maxAttemptsPerSlot)
+          );
+        }
+
+        handleHouse1x1MaxAttemptsReached(event) {
+          const creativeSize = this.getDisplayCreativeSizeFromEvent(event) || "unknown";
+          this.mergeIntextTelemetry({
+            "gexp-intext-type": "house",
+            "gexp-intext-creative-size": creativeSize,
+            "gexp-intext-house-1x1-refresh": "true",
+            "gexp-intext-house-1x1-max-attempts-reached": "true",
+            "gexp-intext-render-suppressed": "true",
+            "gexp-intext-technical-refresh-reason": "house-lineitem-sentinel",
+            advertiserId: event?.advertiserId,
+            campaignId: event?.campaignId,
+            lineItemId: event?.lineItemId,
+          });
+          this.flushIntextTelemetryToCI({ register: true, reason: "house-1x1-max-attempts" });
+          logIntext(`[Intext:Display:${this.id}] house_1x1_auto_refresh_max_attempts_reached`, {
+            attemptsForCycle: this._house1x1AutoRefreshAttemptsForCycle,
+            attemptsPerSlot: this._house1x1AutoRefreshAttemptsPerSlot,
+          });
+        }
+
+        handleHouse1x1AutoRefresh(event) {
+          const cfg = this.getHouse1x1AutoRefreshConfig();
+          if (!cfg || !this.waterfall) return false;
+
+          this._house1x1AutoRefreshAttemptsForCycle += 1;
+          this._house1x1AutoRefreshAttemptsPerSlot += 1;
+          const attempt = this._house1x1AutoRefreshAttemptsPerSlot;
+          const creativeSize = this.getDisplayCreativeSizeFromEvent(event) || "unknown";
+
+          this.mergeIntextTelemetry({
+            "gexp-intext-type": "house",
+            "gexp-intext-creative-size": creativeSize,
+            "gexp-intext-house-1x1-refresh": "true",
+            "gexp-intext-house-1x1-attempt": String(attempt),
+            "gexp-intext-house-1x1-max-attempts-reached": "false",
+            "gexp-intext-render-suppressed": "true",
+            "gexp-intext-technical-refresh-reason": "house-lineitem-sentinel",
+            advertiserId: event?.advertiserId,
+            campaignId: event?.campaignId,
+            lineItemId: event?.lineItemId,
+          });
+
+          if (cfg.registerTelemetry === true) {
+            this.flushIntextTelemetryToCI({ register: true, reason: "house-1x1-refresh" });
+          } else {
+            this.flushIntextTelemetryToCI();
+          }
+
+          const delayMs = Number(cfg.delayMs ?? 100);
+          logIntext(`[Intext:Display:${this.id}] house_1x1_auto_refresh_scheduled`, {
+            delayMs,
+            attempt,
+            maxAttemptsPerCycle: cfg.maxAttemptsPerCycle,
+            maxAttemptsPerSlot: cfg.maxAttemptsPerSlot,
+          });
+
+          this.destroyDisplayForRetry();
+          this.waterfall.prebidStarted = false;
+          setTimeout(() => {
+            try {
+              this.waterfall.startAuction("house-1x1-refresh");
+            } catch (err) {
+              warnIntext(`[Intext:Display:${this.id}] house_1x1_auto_refresh_failed`, err);
+            }
+          }, Math.max(0, delayMs));
+
+          return true;
+        }
+
+        getIntextInitPageMs() {
+          try {
+            const ref = this.manager?.gexp?.getTimeReference?.();
+            if (typeof ref !== "number" || !isFinite(ref)) return null;
+            const delta = Date.now() - ref;
+            return Number.isFinite(delta) && delta >= 0 ? Math.round(delta) : null;
+          } catch (e) {
+            return null;
+          }
+        }
+
+        clearIntextTelemetryCycleCI() {
+          if (!this.wa?.cI) return;
+          [
+            "gexp-intext-init-page-ms",
+            "gexp-intext-load-start-distance-px",
+            "gexp-intext-load-end-distance-px",
+            "gexp-intext-request-type",
+            "gexp-intext-creative-size",
+            "gexp-intext-video-viewport-exit-played-pct",
+            "gexp-intext-video-failed",
+            "gexp-intext-viewport-visible-ms",
+            "gexp-intext-ever-in-viewport",
+            "gexp-intext-house-1x1-refresh",
+            "gexp-intext-house-1x1-attempt",
+            "gexp-intext-house-1x1-max-attempts-reached",
+            "gexp-intext-render-suppressed",
+            "gexp-intext-is-technical-refresh",
+            "gexp-intext-technical-refresh-reason",
+          ].forEach((key) => {
+            try {
+              delete this.wa.cI[key];
+            } catch (e) {}
+          });
+        }
+
+        startIntextTelemetryCycle(trigger, extra = {}) {
+          this.teardownIntextViewportTelemetryObserver();
+          this._intextTelemetryCycleId += 1;
+          this._pendingIntextTelemetry = {};
+          this._intextViewportEnterAt = null;
+          this._intextViewportVisibleMs = 0;
+          this._intextTelemetryCommittedForCycle = false;
+          this._intextTelemetryCommittedReasons = {};
+          this._intextTelemetryFinalCommitted = false;
+          this._house1x1AutoRefreshAttemptsForCycle = 0;
+          this.clearIntextTelemetryCycleCI();
+
+          const cycle = {
+            "gexp-intext-cycle-id": String(this._intextTelemetryCycleId),
+            "gexp-intext-load-trigger": String(trigger || "unknown"),
+            "gexp-intext-is-refresh": trigger === "refresh" ? "true" : "false",
+            "gexp-intext-is-fallback": trigger === "fallback" ? "true" : "false",
+            "gexp-intext-ever-in-viewport": "false",
+            "gexp-intext-viewport-visible-ms": "0",
+          };
+          const initPageMs = this.getIntextInitPageMs();
+          const startDistance = this.getIntextDistancePx();
+          if (initPageMs !== null) cycle["gexp-intext-init-page-ms"] = String(initPageMs);
+          if (startDistance !== null) cycle["gexp-intext-load-start-distance-px"] = String(startDistance);
+          if (trigger === "house-1x1-refresh") {
+            cycle["gexp-intext-is-refresh"] = "false";
+            cycle["gexp-intext-is-technical-refresh"] = "true";
+            cycle["gexp-intext-technical-refresh-reason"] = "house-lineitem-sentinel";
+          }
+
+          this._intextTelemetryCycle = cycle;
+          this.mergeIntextTelemetry(extra);
+          this.setupIntextViewportTelemetryObserver();
+          this.flushIntextTelemetryToCI();
+        }
+
+        mergeIntextTelemetry(extra = {}, options = {}) {
+          try {
+            const clean = {};
+            Object.entries(extra || {}).forEach(([key, value]) => {
+              if (value === undefined || value === null || value === "") return;
+              clean[key] = String(value);
+            });
+
+            if (this._intextTelemetryCycle) {
+              Object.assign(this._intextTelemetryCycle, clean);
+            } else {
+              Object.assign(this._pendingIntextTelemetry, clean);
+            }
+
+            if (this.wa?.cI) {
+              Object.assign(this.wa.cI, this._intextTelemetryCycle || {}, this._pendingIntextTelemetry || {}, clean);
+            }
+
+            if (options.register === true) {
+              this.commitIntextTelemetry(options.reason || "manual");
+            }
+          } catch (e) {}
+        }
+
+        flushIntextTelemetryToCI(options = {}) {
+          try {
+            if (this.wa?.cI) {
+              Object.assign(this.wa.cI, this._intextTelemetryCycle || {}, this._pendingIntextTelemetry || {});
+            }
+            if (options.register === true) {
+              this.commitIntextTelemetry(options.reason || "manual");
+            }
+          } catch (e) {}
+        }
+
+        commitIntextTelemetry(reason = "manual") {
+          try {
+            if (!this._intextTelemetryCommittedReasons) this._intextTelemetryCommittedReasons = {};
+            if (this._intextTelemetryCommittedReasons[reason]) return;
+
+            const finalReasons = new Set([
+              "display-render-ended",
+              "video-rendered",
+              "video-error",
+              "no-fill",
+              "house-1x1-max-attempts",
+            ]);
+            const closeReasons = new Set(["close-all", "destroy"]);
+            const isFinalReason = finalReasons.has(reason);
+            if (isFinalReason && this._intextTelemetryFinalCommitted) return;
+            if (closeReasons.has(reason) && this._intextTelemetryFinalCommitted) return;
+            if (this._intextTelemetryCommittedForCycle && !isFinalReason && !closeReasons.has(reason)) return;
+            if (!this.wa?.cI || !this.manager?.gexp?.registerImpression) return;
+            this.flushIntextTelemetryToCI();
+            this.wa.cI["gexp-intext-telemetry-commit-reason"] = reason;
+            this.manager.gexp.registerImpression(this.wa.cI);
+            this._intextTelemetryCommittedForCycle = true;
+            this._intextTelemetryCommittedReasons[reason] = true;
+            if (isFinalReason) this._intextTelemetryFinalCommitted = true;
+            logIntext(`[Intext:Telemetry:${this.id}] telemetry_committed`, {
+              cycleId: this._intextTelemetryCycleId,
+              reason,
+            });
+          } catch (e) {}
+        }
+
+        accumulateIntextViewportVisibleMs() {
+          if (!this._intextViewportEnterAt) return;
+          if (document.visibilityState === "visible") {
+            this._intextViewportVisibleMs += Date.now() - this._intextViewportEnterAt;
+          }
+          this._intextViewportEnterAt = null;
+          this.mergeIntextTelemetry({
+            "gexp-intext-viewport-visible-ms": String(Math.max(0, Math.round(this._intextViewportVisibleMs))),
+          });
+        }
+
+        setupIntextViewportTelemetryObserver() {
+          try {
+            const el = this.getIntextTelemetryElement();
+            if (!el || typeof IntersectionObserver === "undefined") return;
+            if (this._intextViewportObserver && this._intextViewportObservedEl === el) return;
+            this.teardownIntextViewportTelemetryObserver();
+            this._intextViewportObservedEl = el;
+            this._intextViewportObserver = new IntersectionObserver((entries) => {
+              const entry = entries && entries[0];
+              if (!entry) return;
+              if (entry.isIntersecting) {
+                this.mergeIntextTelemetry({ "gexp-intext-ever-in-viewport": "true" });
+                if (!this._intextViewportEnterAt && document.visibilityState === "visible") {
+                  this._intextViewportEnterAt = Date.now();
+                }
+              } else {
+                this.accumulateIntextViewportVisibleMs();
+                if (this.state === "video") {
+                  const pct = this.getVideoPlayedPct();
+                  if (pct !== null) {
+                    this.mergeIntextTelemetry({ "gexp-intext-video-viewport-exit-played-pct": String(pct) });
+                  }
+                }
+              }
+            }, { threshold: 0.1 });
+            this._intextViewportObserver.observe(el);
+          } catch (e) {}
+        }
+
+        teardownIntextViewportTelemetryObserver() {
+          try {
+            this.accumulateIntextViewportVisibleMs();
+            if (this._intextViewportObserver) {
+              this._intextViewportObserver.disconnect();
+            }
+          } catch (e) {}
+          this._intextViewportObserver = null;
+          this._intextViewportObservedEl = null;
+        }
+
+        getVideoPlayedPct() {
+          try {
+            const player = this.activeCreative?.player;
+            const current = Number(player?.currentTime?.());
+            let duration = Number(player?.duration?.());
+            if (!Number.isFinite(duration) || duration <= 0) {
+              duration = Number(this.activeCreative?._lastAdDuration || this._lastImaAdDuration);
+            }
+            if (!Number.isFinite(current) || current < 0 || !Number.isFinite(duration) || duration <= 0) return null;
+            const pct = Math.max(0, Math.min(100, (current / duration) * 100));
+            return Math.round(pct * 10) / 10;
+          } catch (e) {
+            return null;
+          }
+        }
+
         readIntextPageKv(key) {
           const readFromMap = (map) => {
             if (!map || typeof map !== "object") return null;
@@ -1761,7 +2153,9 @@
           Object.entries(adserverTargeting).forEach(([key, value]) => {
             if (!String(key).startsWith("hb_")) return;
             if (isKnownScopedKey(String(key))) return;
-            setIfPresent(generic, key, value);
+            // Strip _video from any unknown generic keys (e.g. hb_deal_teads_video -> hb_deal_teads)
+            const normalizedKey = String(key).replace(/_video$/, "").replace(/_video_/, "_");
+            setIfPresent(generic, normalizedKey, value);
           });
 
           const pb =
@@ -2521,6 +2915,13 @@
             this.manager.gexp.cfg,
             this.manager.gexp,
           );
+          
+          // Block native GEXP core from auto-refreshing Intext slots. 
+          // Native refresh bypasses our waterfall, corrupts randoms, ignores video state, and injects empty HBs.
+          this.wa.refreshSlot = () => {
+            logIntext(`[Intext:Display:${this.id}] Blocked native GEXP refresh. Intext manages its own refresh lifecycle.`);
+          };
+          
           this.manager.gexp.windows[this.id] = this.wa;
 
           this.waterfall = new IntextWaterfall({
@@ -2597,14 +2998,21 @@
               } catch(e) {}
               // -----------------------------------------------
 
+              const isRefresh = this.waterfall && (this.waterfall._cycleCount > 0 || this.waterfall.lastTrigger === "refresh");
+              const isFallback = this.waterfall && this.waterfall._displayRenderState?.isFallback === true;
+              this.mergeIntextTelemetry({
+                "gexp-intext-request-type": "display",
+                "gexp-intext": "true",
+                "gexp-intext-position": this.id,
+                "gexp-intext-display": "true",
+                "gexp-intext-is-refresh": isRefresh ? "true" : "false",
+                "gexp-intext-is-fallback": isFallback ? "true" : "false",
+              });
               this.manager.gexp.request(this.slot);
               this.restoreIntextRandomTargetingAfterGexpRequest(this.slot);
               const postCoreSlotTargeting = this.getSlotTargetingMapSafe(this.slot);
               const finalDisplayTargeting = this.resolveDisplayRequestTargeting(postCoreSlotTargeting);
 
-              const isRefresh = this.waterfall && (this.waterfall._cycleCount > 0 || this.waterfall.lastTrigger === "refresh");
-              const isFallback = this.waterfall && this.waterfall._displayRenderState?.isFallback === true;
-              
               finalDisplayTargeting.targeting["gexp-intext"] = "true";
               finalDisplayTargeting.targeting["gexp-intext-position"] = this.id;
               finalDisplayTargeting.targeting["gexp-intext-display"] = "true";
@@ -2617,6 +3025,7 @@
                 this.wa.cI["gexp-intext-display"] = "true";
                 this.wa.cI["gexp-intext-is-refresh"] = isRefresh ? "true" : "false";
                 this.wa.cI["gexp-intext-is-fallback"] = isFallback ? "true" : "false";
+                this.flushIntextTelemetryToCI();
               }
 
               this.clearDisplayRequestTargeting(this.slot, "display_request_targeting_cleared_keys_post_core");
@@ -2640,9 +3049,28 @@
                 const hasContent = !event.isEmpty;
                 const is1x1 =
                   event.size && event.size[0] === 1 && event.size[1] === 1;
+                const renderSize = this.resolveDisplayRenderSizeFromEvent(event, "display_initial_slotRenderEnded");
+                const creativeSize = `${renderSize.gamWidth || renderSize.actualWidth || 0}x${renderSize.actualHeight || 0}`;
+                this.mergeIntextTelemetry({
+                  "gexp-intext-load-end-distance-px": this.getIntextDistancePx(),
+                  "gexp-intext-creative-size": creativeSize,
+                });
+                this.flushIntextTelemetryToCI();
                 logIntext(
                   `[Intext:Display:${this.id}] initial slotRenderEnded — isEmpty: ${event.isEmpty}, size: ${JSON.stringify(event.size)}, is1x1: ${is1x1}, hasContent: ${hasContent}`,
                 );
+
+                if (this.isHouse1x1AutoRefreshCandidate(event)) {
+                  this.handleHouse1x1AutoRefresh(event);
+                  resolve({ filled: false, event, is1x1, suppressed: true, retrying: true });
+                  return;
+                }
+
+                if (this.isHouse1x1AutoRefreshMaxReached(event)) {
+                  this.handleHouse1x1MaxAttemptsReached(event);
+                  resolve({ filled: false, event, is1x1, suppressed: true, retrying: false, maxAttemptsReached: true });
+                  return;
+                }
 
                 resolve({ filled: hasContent, event, is1x1 });
               };
@@ -2686,18 +3114,23 @@
                       else if (prebidIds.includes(advertiserId)) type = "prebid";
                       else if (amazonIds.includes(advertiserId)) type = "amazon";
                       else if (gexp?.isHouse(null, null, advertiserId)) type = "house";
-                      else if (gexp?.isReloadAllowed(this._lastRenderedCampaignId, null, this._lastRenderedAdvertiserId)) type = "cpc";
+                      else if (gexp?.isReloadAllowed(campaignId, null, advertiserId)) type = "cpc";
                       else if (bid && (type === "price_priority" || type === "ad_exchange")) {
                           if (bid.source === "prebid") type = "prebid";
                           else if (bid.source === "amazon") type = "amazon";
                       }
                       
                       this.wa.cI["gexp-intext-type"] = type;
+                      this.mergeIntextTelemetry({
+                        "gexp-intext-load-end-distance-px": this.getIntextDistancePx(),
+                        "gexp-intext-creative-size": this.getDisplayCreativeSizeFromEvent(event),
+                      });
+                      this.flushIntextTelemetryToCI();
                       logIntext(`[Intext:Display:${this.id}] Rendered type: ${type} (Adv:${advertiserId}, Camp:${campaignId})`);
-
+                      
                       // Explicitly register again to ensure statsG has the post-render metadata
                       if (this.manager?.gexp) {
-                          this.manager.gexp.registerImpression(this.wa.cI);
+                          this.commitIntextTelemetry("display-render-ended");
                           logIntext(`[Intext:Display:${this.id}] 📤 Post-render telemetry updated`);
                       }
                   }
@@ -2814,6 +3247,7 @@
           await this.waitForViewport();
 
           this.state = "display";
+          this.setupIntextViewportTelemetryObserver();
           const { event, is1x1 } = displayResult;
           const creativeHeight = event.size && !is1x1 ? event.size[1] : null;
           const loader = this.container
@@ -2865,15 +3299,15 @@
                reason: "display_showDisplay",
              });
 
-             setTimeout(() => {
-                if (slotDoc) slotDoc.style.transition = "";
-             }, 50);
-          }
-           
-           this.videoContainer.close({ destroy: true });
-
-          this.scheduleWaterfallRetry();
-        }
+                  setTimeout(() => {
+                      if (slotDoc) slotDoc.style.transition = "";
+                  }, 50);
+              }
+               
+              this.videoContainer.close({ destroy: true });
+    
+              this.scheduleWaterfallRetry();
+            }
 
         scheduleWaterfallRetry() {
           const refreshCfg = this.config.refreshCycle;
@@ -2974,6 +3408,7 @@
         }
 
         destroyDisplayForRetry() {
+             this.teardownIntextViewportTelemetryObserver();
              if (this._visibilityTimer) {
                  this._visibilityTimer.stop();
                  this._visibilityTimer = null;
@@ -3012,6 +3447,7 @@
 
              this.container.setElement(newWrapper);
              this.container.isOpen = true;
+             this.setupIntextViewportTelemetryObserver();
         }
         discardDisplay() {
           if (this.slot) {
@@ -3029,6 +3465,7 @@
           await this.waitForViewport();
           
           this.state = "video";
+          this.setupIntextViewportTelemetryObserver();
           if (this._videoTiming?.auctionStartAt && this._videoTiming?.requestWinnerVideoAt) {
             logIntext(
               `[Intext:Video:${this.videoId}] timing trigger=${this._videoTiming.trigger || "unknown"} auction_to_request_winner_video=${this._videoTiming.requestWinnerVideoAt - this._videoTiming.auctionStartAt}ms`,
@@ -3058,6 +3495,15 @@
             logIntext(
               `[Intext:Video:${this.videoId}] ✅ Video ad is playing — revealing container`,
             );
+            const vc = this.waterfall?.resolveIntextVideoConfig?.() || this.config?.video || {};
+            const playerSize = Array.isArray(vc.playerSize) && vc.playerSize.length === 2 ? vc.playerSize : [640, 360];
+            this.mergeIntextTelemetry({
+              "gexp-intext-request-type": "video",
+              "gexp-intext-load-end-distance-px": this.getIntextDistancePx(),
+              "gexp-intext-creative-size": `${playerSize[0]}x${playerSize[1]}`,
+            });
+            this.flushIntextTelemetryToCI();
+            this.commitIntextTelemetry("video-rendered");
             containerEl.style.pointerEvents = "auto";
             this.recordTelemetry("video_fill", { slotId: this.videoId });
             this.discardDisplay();
@@ -3071,8 +3517,15 @@
             if (loader) loader.style.display = "none";
 
             this.activeCreative?.destroy?.();
+            this.mergeIntextTelemetry({
+              "gexp-intext-load-end-distance-px": this.getIntextDistancePx(),
+              "gexp-intext-video-failed": "true",
+            });
+            this.flushIntextTelemetryToCI({ register: true, reason: "video-error" });
             this.recordTelemetry("video_no_fill", { slotId: this.videoId });
             containerEl.style.pointerEvents = "";
+            this.teardownIntextViewportTelemetryObserver();
+            this.flushIntextTelemetryToCI();
             this.videoContainer.close({ destroy: true });
             return false;
           }
@@ -3087,6 +3540,8 @@
             logIntext(
               `[Intext:Video:${this.videoId}] Refresh cycle disabled — keeping container open for UX stability or closing`,
             );
+            this.teardownIntextViewportTelemetryObserver();
+            this.flushIntextTelemetryToCI({ register: true, reason: "close-all" });
             this.videoContainer.close({ destroy: true });
             this.manager.onSlotComplete(this.id);
             return;
@@ -3225,6 +3680,11 @@
             logIntext(`[Intext:Slot:${this.id}] ⬜ No container in DOM — nothing to preserve`);
           }
 
+          this.teardownIntextViewportTelemetryObserver();
+          this.mergeIntextTelemetry({
+            "gexp-intext-load-end-distance-px": this.getIntextDistancePx(),
+          });
+          this.flushIntextTelemetryToCI({ register: true, reason: "no-fill" });
           this.recordTelemetry("no_fill", { slotId: this.id });
           this.manager.onSlotComplete(this.id);
         }
@@ -3248,6 +3708,8 @@
         resetNode() {
           this.state = "idle";
           this.clearDisplayLayoutGuard();
+          this.teardownIntextViewportTelemetryObserver();
+          this.flushIntextTelemetryToCI({ register: true, reason: "destroy" });
           if (this.slot) {
             googletag.cmd.push(() => googletag.destroySlots([this.slot]));
           }
@@ -3437,6 +3899,7 @@
           }
           if (this.prebidStarted) return;
           this.prebidStarted = true;
+          this.node.startIntextTelemetryCycle(trigger);
 
           // Cleanup: reset fallback state and clear targeting on new auctions
           if (trigger !== "fallback") {
@@ -3445,7 +3908,7 @@
           if (this.node.slot) {
               this.node.clearDisplayRequestTargeting(this.node.slot, "auction_start_targeting_cleanup");
           }
-          
+
           this.lastTrigger = trigger;
           this._auctionStartAt = Date.now();
           clearTimeout(this.timer);
@@ -3771,6 +4234,9 @@
 
               const hasVideo = Boolean(configuration?.mediaTypes?.video);
               if (hasVideo) {
+                this.node.mergeIntextTelemetry({
+                  "gexp-intext-request-type": "video-prebid",
+                });
                 const videoCacheProfile = this.resolveIntextVideoCacheProfile(configuration.code);
 
                 logIntext(`[Intext:Prebid:${configuration.code}] video_cache_profile_resolved`, {
@@ -4105,6 +4571,10 @@
 
           const success = await this._requestFormat(winner);
 
+          if (success === "retrying" || success === "closed") {
+            return;
+          }
+
           if (success) {
             logIntext(
               `[Intext:Slot:${this.node.id}] ✅ ${winner.toUpperCase()} delivered successfully`,
@@ -4131,12 +4601,23 @@
 
           if (!this._displayRenderState) this._displayRenderState = {};
           this._displayRenderState.isFallback = true;
+          if (winner === "video" && loser === "display") {
+            this.node.startIntextTelemetryCycle("fallback", {
+              "gexp-intext-is-fallback": "true",
+              "gexp-intext-video-failed": "true",
+              "gexp-intext-request-type": "display",
+            });
+          }
 
           logIntext(
             `%c[Intext:Slot:${this.node.id}:${this.node.id}] ═══ FALLBACK → ${loser.toUpperCase()} ═══`,
             "color:#FF5722;font-weight:bold",
           );
           const fallbackSuccess = await this._requestFormat(loser);
+
+          if (fallbackSuccess === "retrying" || fallbackSuccess === "closed") {
+            return;
+          }
 
           if (fallbackSuccess) {
             logIntext(
@@ -4180,6 +4661,21 @@
           const displayResult = await this.node.askDisplay(
             this._lastDisplayBid,
           );
+
+          if (displayResult.retrying === true) {
+            logIntext(
+              `[Intext:Slot:${this.node.id}] ├─ GAM Display: technical 1x1 house suppressed, retry scheduled`,
+            );
+            return "retrying";
+          }
+
+          if (displayResult.maxAttemptsReached === true) {
+            logIntext(
+              `[Intext:Slot:${this.node.id}] ├─ GAM Display: technical 1x1 house max attempts reached`,
+            );
+            this.node.closeAll();
+            return "closed";
+          }
 
           if (displayResult.filled) {
             logIntext(
@@ -4975,15 +5471,23 @@
                 const videoAU = adUnitPath || this.getVideoAdUnitPath();
                 this.node.wa.slot = { getAdUnitPath: () => videoAU };
             }
+            this.node.mergeIntextTelemetry({
+              "gexp-intext-request-type": "video",
+              "gexp-intext-video": "true",
+              "gexp-intext-display": "false",
+              "gexp-intext-position": this.node.id,
+              "gexp-intext-is-refresh": this.lastTrigger === "refresh" ? "true" : "false",
+              "gexp-intext-is-fallback": this._displayRenderState?.isFallback === true ? "true" : "false",
+            });
             this.node.wa.newImpression();
             
             if (this.node.wa.cI) {
                 // Video only: gexp-intext-video (no refresh/fallback as per user request)
                 this.node.wa.cI["gexp-intext-video"] = "true";
                 this.node.wa.cI["gexp-intext-display"] = "false";
+                this.node.flushIntextTelemetryToCI();
                 
                 Object.assign(this.node.wa.cI, custTargeting);
-                this.node.manager.gexp.registerImpression(this.node.wa.cI);
                 logIntext(`[Intext:Video:${this.node.id}] video_telemetry_registered`, { keys: Object.keys(custTargeting) });
             }
           }
@@ -5666,6 +6170,7 @@
           this._adMediaEl = null;
           this._adMediaCleanup = null;
           this._adMediaDiscoveryTimers = [];
+          this._lastAdDuration = null;
         }
 
         async render() {
@@ -6213,7 +6718,12 @@
                   }
 
                   if (this.node.manager?.gexp) {
-                      this.node.manager.gexp.registerImpression(this.node.wa.cI);
+                      this.node.mergeIntextTelemetry({
+                        "gexp-intext-video-failed": "true",
+                        "gexp-intext-load-end-distance-px": this.node.getIntextDistancePx(),
+                      });
+                      this.node.flushIntextTelemetryToCI();
+                      this.node.commitIntextTelemetry("video-error");
                   }
               }
             });
@@ -6229,6 +6739,13 @@
                 );
                 const ad = evt?.data?.ad;
                 if (ad && this.node && this.node.wa && this.node.wa.cI) {
+                    try {
+                      const adDuration = typeof ad.getDuration === "function" ? Number(ad.getDuration()) : null;
+                      if (Number.isFinite(adDuration) && adDuration > 0) {
+                        this._lastAdDuration = adDuration;
+                        this.node._lastImaAdDuration = adDuration;
+                      }
+                    } catch (e) {}
                     this.node.wa.cI.campaignId = ad.getAdId();
                     this.node.wa.cI.advertiserId = ad.getAdvertiserName();
                     
@@ -6252,10 +6769,10 @@
 
                     this.node.wa.cI["gexp-intext-type"] = type;
                     logIntext(`[Intext:Video:IMA] Video ad loaded: ${ad.getAdvertiserName()} (${ad.getAdId()}) type: ${type}`);
-
+                    
                     // Explicitly register again to ensure statsG has the post-load metadata
                     if (this.node.manager?.gexp) {
-                        this.node.manager.gexp.registerImpression(this.node.wa.cI);
+                        this.node.flushIntextTelemetryToCI();
                         logIntext(`[Intext:Video:${this.node.id}] 📤 Post-load video telemetry updated`);
                     }
                 }

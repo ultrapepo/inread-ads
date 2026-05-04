@@ -784,39 +784,25 @@
                     ],
                     "variants": {
                         "1": {
-                            "mode": "custom",
-                            "url": "https://prebid.unidadeditorial.es/cache",
-                            "ignoreBidderCacheKey": false
+                            "mode": "default"
                         },
                         "2": {
-                            "mode": "custom",
-                            "url": "https://prebid.unidadeditorial.es/cache",
-                            "ignoreBidderCacheKey": false
+                            "mode": "default"
                         },
                         "3": {
-                            "mode": "custom",
-                            "url": "https://prebid.unidadeditorial.es/cache",
-                            "ignoreBidderCacheKey": false
+                            "mode": "default"
                         },
                         "4": {
-                            "mode": "custom",
-                            "url": "https://prebid.unidadeditorial.es/cache",
-                            "ignoreBidderCacheKey": false
+                            "mode": "default"
                         },
                         "5": {
-                            "mode": "custom",
-                            "url": "https://prebid.unidadeditorial.es/cache",
-                            "ignoreBidderCacheKey": false
+                            "mode": "default"
                         },
                         "6": {
-                            "mode": "custom",
-                            "url": "https://prebid.unidadeditorial.es/cache",
-                            "ignoreBidderCacheKey": false
+                            "mode": "default"
                         },
                         "7": {
-                            "mode": "custom",
-                            "url": "https://prebid.unidadeditorial.es/cache",
-                            "ignoreBidderCacheKey": false
+                            "mode": "default"
                         }
                     }
                 },
@@ -836,13 +822,26 @@
                 "refreshCycle": {
                     "enabled": true,
                     "delayMs": 5000,
-                    "maxCycles": 2,
+                    "maxCycles": 3,
                     "mode": "display_only",
                     "bidStrategy": "fresh",
                     "bidMaxAgeMs": 30000,
-                    "houseDelayMs": 2000,
-                    "cpcDelayMs": 2000,
-                    "adexDelayMs": 3500
+                    "houseDelayMs": 3000,
+                    "cpcDelayMs": 3000,
+                    "adexDelayMs": 3500,
+                    "house1x1AutoRefresh": {
+                        "enabled": true,
+                        "delayMs": 100,
+                        "maxAttemptsPerCycle": 1,
+                        "maxAttemptsPerSlot": 2,
+                        "registerTelemetry": true,
+                        "requireHouse": true,
+                        "advertiserIds": [],
+                        "campaignIds": [],
+                        "lineItemIds": [
+                            "7234537665"
+                        ]
+                    }
                 },
                 "telemetryIds": {
           "prebid": [
@@ -1109,7 +1108,20 @@
                             "bidStrategy": "fresh",
                             "houseDelayMs": 2000,
                             "cpcDelayMs": 2000,
-                            "adexDelayMs": 3500
+                            "adexDelayMs": 3500,
+                            "house1x1AutoRefresh": {
+                                "enabled": true,
+                                "delayMs": 100,
+                                "maxAttemptsPerCycle": 1,
+                                "maxAttemptsPerSlot": 2,
+                                "registerTelemetry": true,
+                                "requireHouse": true,
+                                "advertiserIds": [],
+                                "campaignIds": [],
+                                "lineItemIds": [
+                                    "7234537665"
+                                ]
+                            }
                         },
                         "slotOverrides": {
                             "1": {
@@ -1126,7 +1138,12 @@
                         "exclusions": {
                             "disableAll": false,
                             "adUnitPaths": [],
-                            "keyValues": [],
+                            "keyValues": {
+                                "isPremium": [
+                                    "1",
+                                    "true"
+                                ]
+                            },
                             "disableSlots": {
                                 "always": [],
                                 "rules": []
@@ -1144,11 +1161,12 @@
                         "tag": [
                             "bloqueo-publi"
                         ],
-                        "isPremium": [
-                            "1"
-                        ],
                         "t": [
                             ""
+                        ],
+                        "isPremium": [
+                            "1",
+                            "true"
                         ]
                     },
                     "disableSlots": {
@@ -1181,14 +1199,32 @@
                             "bidStrategy": "fresh",
                             "houseDelayMs": 2000,
                             "cpcDelayMs": 2000,
-                            "adexDelayMs": 3500
+                            "adexDelayMs": 3500,
+                            "house1x1AutoRefresh": {
+                                "enabled": true,
+                                "delayMs": 100,
+                                "maxAttemptsPerCycle": 1,
+                                "maxAttemptsPerSlot": 2,
+                                "registerTelemetry": true,
+                                "requireHouse": true,
+                                "advertiserIds": [],
+                                "campaignIds": [],
+                                "lineItemIds": [
+                                    "7234537665"
+                                ]
+                            }
                         },
                         "slotOverrides": []
                     },
                     "exclusions": {
                         "disableAll": false,
                         "adUnitPaths": [],
-                        "keyValues": [],
+                        "keyValues": {
+                            "isPremium": [
+                                "1",
+                                "true"
+                            ]
+                        },
                         "disableSlots": {
                             "always": [],
                             "rules": []

@@ -354,40 +354,25 @@ let cfg={
                     "enabledRandom1": ["5", "6"],
                     "variants": {
                         "1": {
-                            "mode": "custom",
-                            "url": "https://prebid.unidadeditorial.es/cache",
-                            "ignoreBidderCacheKey": false
+                            "mode": "default"
                         },
                         "2": {
-                            "mode": "custom",
-                            "url": "https://prebid.unidadeditorial.es/cache",
-                            "ignoreBidderCacheKey": false
+                            "mode": "default"
                         },
                         "3": {
-                            "mode": "custom",
-                            "url": "https://prebid.unidadeditorial.es/cache",
-                            "ignoreBidderCacheKey": false
+                            "mode": "default"
                         },
                         "4": {
-                            "mode": "custom",
-                            "url": "https://prebid.unidadeditorial.es/cache",
-                            "ignoreBidderCacheKey": false
+                            "mode": "default"
                         },
                         "5": {
-                            "mode": "custom",
-                            "url": "https://prebid.unidadeditorial.es/cache",
-                            "ignoreBidderCacheKey": false
+                            "mode": "default"
                         },
                         "6": {
-                            "mode": "custom",
-                            "url": "https://prebid.unidadeditorial.es/cache",
-                            "ignoreBidderCacheKey": false
-                            
+                            "mode": "default"
                         },
                         "7": {
-                            "mode": "custom",
-                            "url": "https://prebid.unidadeditorial.es/cache",
-                            "ignoreBidderCacheKey": false
+                            "mode": "default"
                         }
                     }
                 },
@@ -404,13 +389,26 @@ let cfg={
                 "refreshCycle": {
                     "enabled": true,
                     "delayMs": 5000,
-                    "houseDelayMs": 2000,
-                    "cpcDelayMs": 2000,
+                    "houseDelayMs": 3000,
+                    "cpcDelayMs": 3000,
                     "adexDelayMs": 3500,
-                    "maxCycles": 2,
+                    "maxCycles": 3,
                     "mode": "display_only",
                     "bidStrategy": "fresh",
-                    "bidMaxAgeMs": 30000
+                    "bidMaxAgeMs": 30000,
+                    "house1x1AutoRefresh": {
+                        "enabled": true,
+                        "delayMs": 100,
+                        "maxAttemptsPerCycle": 1,
+                        "maxAttemptsPerSlot": 2,
+                        "registerTelemetry": true,
+                        "requireHouse": true,
+                        "advertiserIds": [],
+                        "campaignIds": [],
+                        "lineItemIds": [
+                            "7234537665"
+                        ]
+                    }
                 },
                 "telemetryIds": {
           "prebid": [
@@ -664,7 +662,20 @@ let cfg={
                     "adexDelayMs": 3500,
                             "maxCycles": 2,
                             "mode": "display_only",
-                            "bidStrategy": "fresh"
+                            "bidStrategy": "fresh",
+                            "house1x1AutoRefresh": {
+                                "enabled": true,
+                                "delayMs": 100,
+                                "maxAttemptsPerCycle": 1,
+                                "maxAttemptsPerSlot": 2,
+                                "registerTelemetry": true,
+                                "requireHouse": true,
+                                "advertiserIds": [],
+                                "campaignIds": [],
+                                "lineItemIds": [
+                                    "7234537665"
+                                ]
+                            }
                         },
                         "slotOverrides": {
                             "1": {
@@ -693,9 +704,15 @@ let cfg={
                     "disableAll": false,
                     "adUnitPaths": [],
                     "keyValues": {
-                        "newsid": [""],
-                        "tag": ["bloqueo-publi"],
-                        "t": [""]
+                        "newsid": [
+                            ""
+                        ],
+                        "tag": [
+                            "bloqueo-publi"
+                        ],
+                        "t": [
+                            ""
+                        ]
                     },
                     "disableSlots": {
                         "always": [],
@@ -725,7 +742,20 @@ let cfg={
                     "adexDelayMs": 3500,
                             "maxCycles": 2,
                             "mode": "display_only",
-                            "bidStrategy": "fresh"
+                            "bidStrategy": "fresh",
+                            "house1x1AutoRefresh": {
+                                "enabled": true,
+                                "delayMs": 100,
+                                "maxAttemptsPerCycle": 1,
+                                "maxAttemptsPerSlot": 2,
+                                "registerTelemetry": true,
+                                "requireHouse": true,
+                                "advertiserIds": [],
+                                "campaignIds": [],
+                                "lineItemIds": [
+                                    "7234537665"
+                                ]
+                            }
                         },
                         "slotOverrides": {}
                     },

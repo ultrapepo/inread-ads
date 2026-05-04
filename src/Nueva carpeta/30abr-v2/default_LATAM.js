@@ -392,44 +392,31 @@ let cfg={
                     "maxCycles": 3,
                     "mode": "display_only",
                     "bidStrategy": "fresh",
-                    "bidMaxAgeMs": 30000,
-                    "house1x1AutoRefresh": {
-                        "enabled": true,
-                        "delayMs": 100,
-                        "maxAttemptsPerCycle": 1,
-                        "maxAttemptsPerSlot": 2,
-                        "registerTelemetry": true,
-                        "requireHouse": true,
-                        "advertiserIds": [],
-                        "campaignIds": [],
-                        "lineItemIds": [
-                            "7234537665"
-                        ]
-                    }
+                    "bidMaxAgeMs": 30000
                 },
                 "telemetryIds": {
-          "prebid": [
-                    "83488497",
-                    "4402193934",
-                    "5907488782",
-                    "5823135725",
-                    "5619844792",
-                    "5180398781",
-                    "5354911588",
-                    "4406227815",
-                    "83522457",
-                    "5907334980",
-                    "5359233312",
-                    "4402208836"
-          ],
-          "amazon": [
-                    "55409457"
-          ],
-          "adex": [
-                    "2559776610",
-                    "2466799184"
-          ]
-},
+                        "prebid": [
+                                    "83488497",
+                                    "4402193934",
+                                    "5907488782",
+                                    "5823135725",
+                                    "5619844792",
+                                    "5180398781",
+                                    "5354911588",
+                                    "4406227815",
+                                    "83522457",
+                                    "5907334980",
+                                    "5359233312",
+                                    "4402208836"
+                        ],
+                        "amazon": [
+                                    "55409457"
+                        ],
+                        "adex": [
+                                    "2559776610",
+                                    "2466799184"
+                        ]
+                },
                 "slotOverrides": {
                     "0": {
                         "decision": {
@@ -659,20 +646,7 @@ let cfg={
                     "adexDelayMs": 3500,
                             "maxCycles": 2,
                             "mode": "display_only",
-                            "bidStrategy": "fresh",
-                            "house1x1AutoRefresh": {
-                                "enabled": true,
-                                "delayMs": 100,
-                                "maxAttemptsPerCycle": 1,
-                                "maxAttemptsPerSlot": 2,
-                                "registerTelemetry": true,
-                                "requireHouse": true,
-                                "advertiserIds": [],
-                                "campaignIds": [],
-                                "lineItemIds": [
-                                    "7234537665"
-                                ]
-                            }
+                            "bidStrategy": "fresh"
                         },
                         "slotOverrides": {
                             "1": {
@@ -701,15 +675,9 @@ let cfg={
                     "disableAll": false,
                     "adUnitPaths": [],
                     "keyValues": {
-                        "newsid": [
-                            ""
-                        ],
-                        "tag": [
-                            "bloqueo-publi"
-                        ],
-                        "t": [
-                            ""
-                        ]
+                        "newsid": [""],
+                        "tag": ["bloqueo-publi"],
+                        "t": [""]
                     },
                     "disableSlots": {
                         "always": [],
@@ -739,20 +707,7 @@ let cfg={
                     "adexDelayMs": 3500,
                             "maxCycles": 2,
                             "mode": "display_only",
-                            "bidStrategy": "fresh",
-                            "house1x1AutoRefresh": {
-                                "enabled": true,
-                                "delayMs": 100,
-                                "maxAttemptsPerCycle": 1,
-                                "maxAttemptsPerSlot": 2,
-                                "registerTelemetry": true,
-                                "requireHouse": true,
-                                "advertiserIds": [],
-                                "campaignIds": [],
-                                "lineItemIds": [
-                                    "7234537665"
-                                ]
-                            }
+                            "bidStrategy": "fresh"
                         },
                         "slotOverrides": {}
                     },

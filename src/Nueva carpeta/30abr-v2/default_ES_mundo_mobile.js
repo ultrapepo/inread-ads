@@ -824,20 +824,7 @@
                     "bidMaxAgeMs": 30000,
                     "houseDelayMs": 3000,
                     "cpcDelayMs": 3000,
-                    "adexDelayMs": 3500,
-                    "house1x1AutoRefresh": {
-                        "enabled": true,
-                        "delayMs": 100,
-                        "maxAttemptsPerCycle": 1,
-                        "maxAttemptsPerSlot": 2,
-                        "registerTelemetry": true,
-                        "requireHouse": true,
-                        "advertiserIds": [],
-                        "campaignIds": [],
-                        "lineItemIds": [
-                            "7234537665"
-                        ]
-                    }
+                    "adexDelayMs": 3500
                 },
                 "telemetryIds": {
                     "prebid": [
@@ -1104,20 +1091,7 @@
                             "bidStrategy": "fresh",
                             "houseDelayMs": 2000,
                             "cpcDelayMs": 2000,
-                            "adexDelayMs": 3500,
-                            "house1x1AutoRefresh": {
-                                "enabled": true,
-                                "delayMs": 100,
-                                "maxAttemptsPerCycle": 1,
-                                "maxAttemptsPerSlot": 2,
-                                "registerTelemetry": true,
-                                "requireHouse": true,
-                                "advertiserIds": [],
-                                "campaignIds": [],
-                                "lineItemIds": [
-                                    "7234537665"
-                                ]
-                            }
+                            "adexDelayMs": 3500
                         },
                         "slotOverrides": {
                             "1": {
@@ -1134,12 +1108,7 @@
                         "exclusions": {
                             "disableAll": false,
                             "adUnitPaths": [],
-                            "keyValues": {
-                                "isPremium": [
-                                    "1",
-                                    "true"
-                                ]
-                            },
+                            "keyValues": [],
                             "disableSlots": {
                                 "always": [],
                                 "rules": []
@@ -1157,12 +1126,11 @@
                         "tag": [
                             "bloqueo-publi"
                         ],
+                        "isPremium": [
+                            "1"
+                        ],
                         "t": [
                             ""
-                        ],
-                        "isPremium": [
-                            "1",
-                            "true"
                         ]
                     },
                     "disableSlots": {
@@ -1195,32 +1163,14 @@
                             "bidStrategy": "fresh",
                             "houseDelayMs": 2000,
                             "cpcDelayMs": 2000,
-                            "adexDelayMs": 3500,
-                            "house1x1AutoRefresh": {
-                                "enabled": true,
-                                "delayMs": 100,
-                                "maxAttemptsPerCycle": 1,
-                                "maxAttemptsPerSlot": 2,
-                                "registerTelemetry": true,
-                                "requireHouse": true,
-                                "advertiserIds": [],
-                                "campaignIds": [],
-                                "lineItemIds": [
-                                    "7234537665"
-                                ]
-                            }
+                            "adexDelayMs": 3500
                         },
                         "slotOverrides": []
                     },
                     "exclusions": {
                         "disableAll": false,
                         "adUnitPaths": [],
-                        "keyValues": {
-                            "isPremium": [
-                                "1",
-                                "true"
-                            ]
-                        },
+                        "keyValues": [],
                         "disableSlots": {
                             "always": [],
                             "rules": []
