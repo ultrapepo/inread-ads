@@ -640,7 +640,7 @@
                             1
                         ],
                         [
-                            5,
+                            4,
                             1
                         ]
                     ],
@@ -824,7 +824,7 @@
                         "delayMs": 100,
                         "maxAttemptsPerCycle": 1,
                         "maxAttemptsPerSlot": 2,
-                        "registerTelemetry": true,
+                        "registerTelemetry": false,
                         "requireHouse": true,
                         "advertiserIds": [],
                         "campaignIds": [],
@@ -856,18 +856,26 @@
                     "2466799184"
           ]
 },
-                "slotOverrides": [
-                    {
+                "slotOverrides": {
+                    "gexp-intext": {
                         "decision": {
                             "mode": "auto"
+                        },
+                        "loading": {
+                            "rootMargin": "1000px 0px",
+                            "maxDelayMs": 1500
                         }
                     },
-                    {
+                    "gexp-intext-2": {
                         "decision": {
                             "mode": "display_only"
+                        },
+                        "loading": {
+                            "rootMargin": "250px 0px",
+                            "maxDelayMs": null
                         }
                     }
-                ],
+                },
                 "prebid": {
                     "timeoutMs": 2000,
                     "graceMs": 200,
@@ -1104,7 +1112,7 @@
                                 "delayMs": 100,
                                 "maxAttemptsPerCycle": 1,
                                 "maxAttemptsPerSlot": 2,
-                                "registerTelemetry": true,
+                                "registerTelemetry": false,
                                 "requireHouse": true,
                                 "advertiserIds": [],
                                 "campaignIds": [],
@@ -1114,12 +1122,12 @@
                             }
                         },
                         "slotOverrides": {
-                            "1": {
+                            "gexp-intext-2": {
                                 "decision": {
                                     "mode": "display_only"
                                 }
                             },
-                            "2": {
+                            "gexp-intext-3": {
                                 "decision": {
                                     "mode": "display_only"
                                 }
@@ -1186,7 +1194,7 @@
                                 "delayMs": 100,
                                 "maxAttemptsPerCycle": 1,
                                 "maxAttemptsPerSlot": 2,
-                                "registerTelemetry": true,
+                                "registerTelemetry": false,
                                 "requireHouse": true,
                                 "advertiserIds": [],
                                 "campaignIds": [],
@@ -1195,7 +1203,7 @@
                                 ]
                             }
                         },
-                        "slotOverrides": []
+                        "slotOverrides": {}
                     },
                     "exclusions": {
                         "disableAll": false,
@@ -1256,7 +1264,7 @@
                                     1
                                 ],
                                 [
-                                    5,
+                                    4,
                                     1
                                 ]
                             ]
