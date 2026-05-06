@@ -3256,6 +3256,12 @@ class RandomStrategy extends WindowArray {
             const width = parseInt(event.size[0], 10) || 0;
             const height = parseInt(event.size[1], 10) || 0;
             if (width <= 0 || height <= 0) return "unknown";
+            if (width === 1 && height === 1) {
+              const bidSize = this.getBidSize(this.waterfall?._lastDisplayBid || null);
+              if (bidSize && /^\d+x\d+$/.test(String(bidSize)) && bidSize !== "1x1") {
+                return String(bidSize);
+              }
+            }
             return `${width}x${height}`;
           } catch (e) {
             return "unknown";
@@ -3263,7 +3269,14 @@ class RandomStrategy extends WindowArray {
         }
 
         getDisplayGamEventSize(event) {
-          return this.getDisplayCreativeSizeFromEvent(event);
+          try {
+            if (!event?.size || event.size.length < 2) return "unknown";
+            const width = parseInt(event.size[0], 10) || 0;
+            const height = parseInt(event.size[1], 10) || 0;
+            return width > 0 && height > 0 ? `${width}x${height}` : "unknown";
+          } catch (e) {
+            return "unknown";
+          }
         }
 
         getDisplayLayoutTelemetry(renderSize = null) {
@@ -3418,10 +3431,24 @@ class RandomStrategy extends WindowArray {
             attempt,
             maxAttemptsPerCycle: cfg.maxAttemptsPerCycle,
             maxAttemptsPerSlot: cfg.maxAttemptsPerSlot,
+            lineItemId: event?.lineItemId,
+            campaignId: event?.campaignId,
+            advertiserId: event?.advertiserId,
+            eventSize: this.getDisplayGamEventSize(event),
           });
 
           this.destroyDisplayForRetry();
           this.waterfall.prebidStarted = false;
+          this.waterfall._houseLineItemSentinelRetryContext = {
+            forceRequestType: "display",
+            forceDecisionMode: "display_only",
+            fromRequestType: "display",
+            isFallback:
+              this.waterfall._displayRenderState?.isFallback === true ||
+              this.wa?.cI?.["gexp-intext-is-fallback"] === "true",
+            originalDecisionMode: this.config?.decision?.mode || "unknown",
+            sentinelLineItemId: event?.lineItemId != null ? String(event.lineItemId) : "unknown",
+          };
           setTimeout(() => {
             try {
               this.waterfall.startAuction("house-1x1-refresh");
@@ -3450,6 +3477,7 @@ class RandomStrategy extends WindowArray {
             "gexp-intext-init-page-ms",
             "gexp-intext-load-start-distance-px",
             "gexp-intext-load-end-distance-px",
+            "gexp-intext-load-observer-target",
             "gexp-intext-request-type",
             "gexp-intext-type",
             "gexp-intext-creative-size",
@@ -3486,6 +3514,10 @@ class RandomStrategy extends WindowArray {
             "gexp-intext-layout-size",
             "gexp-intext-render-layout",
             "gexp-intext-size-recovered",
+            "gexp-intext-sentinel-retry-forced-request-type",
+            "gexp-intext-sentinel-retry-preserved-fallback",
+            "gexp-intext-sentinel-retry-original-decision-mode",
+            "gexp-intext-sentinel-retry-lineitem",
             "advertiserId",
             "campaignId",
             "lineItemId",
@@ -3525,6 +3557,7 @@ class RandomStrategy extends WindowArray {
             "gexp-intext-root-margin": String(this.config?.loading?.rootMargin || "200px 0px"),
             "gexp-intext-timer-delay-ms": hasTimer ? String(maxDelayMs) : "disabled",
             "gexp-intext-has-timer": hasTimer ? "true" : "false",
+            "gexp-intext-load-observer-target": String(this._intextLoadObserverTarget || "wrapper"),
             "gexp-intext-slot-id": String(this.id || "unknown"),
             "gexp-intext-slot-index": String(this.slotIndex ?? 0),
             "gexp-intext-nav-index": String(this.navIndex || 0),
@@ -4749,13 +4782,13 @@ class RandomStrategy extends WindowArray {
 
                 if (this.isHouse1x1AutoRefreshCandidate(event)) {
                   this.handleHouse1x1AutoRefresh(event);
-                  resolve({ filled: false, event, is1x1, suppressed: true, retrying: true });
+                  resolve({ filled: false, event, is1x1, suppressed: true, retrying: true, sentinelLineItemId: event?.lineItemId });
                   return;
                 }
 
                 if (this.isHouse1x1AutoRefreshMaxReached(event)) {
                   this.handleHouse1x1MaxAttemptsReached(event);
-                  resolve({ filled: false, event, is1x1, suppressed: true, retrying: false, maxAttemptsReached: true });
+                  resolve({ filled: false, event, is1x1, suppressed: true, retrying: false, maxAttemptsReached: true, sentinelLineItemId: event?.lineItemId });
                   return;
                 }
 
@@ -5572,6 +5605,15 @@ class RandomStrategy extends WindowArray {
           const margin = this.config.loading?.rootMargin || "200px 0px";
 
           if ("IntersectionObserver" in window) {
+            const targetEl = this.node?.getIntextTelemetryElement?.() || this.container.getElement();
+            const observerTarget =
+              targetEl && targetEl === this.node?.telemetryAnchor ? "anchor" :
+              targetEl && targetEl === this.node?.placement?.paragraph ? "paragraph" :
+              "wrapper";
+            if (this.node) this.node._intextLoadObserverTarget = observerTarget;
+            this.node?.mergeIntextTelemetry?.({
+              "gexp-intext-load-observer-target": observerTarget,
+            });
             this.intersectionObserver = new IntersectionObserver(
               (entries) => {
                 if (entries[0].isIntersecting) {
@@ -5581,7 +5623,7 @@ class RandomStrategy extends WindowArray {
               },
               { threshold: 0, rootMargin: margin },
             );
-            this.intersectionObserver.observe(this.container.getElement());
+            this.intersectionObserver.observe(targetEl || this.container.getElement());
           } else {
             this.startAuction("fallback");
           }
@@ -5597,18 +5639,39 @@ class RandomStrategy extends WindowArray {
         }
         
         async startAuction(trigger) {
+          const sentinelRetryContext =
+            trigger === "house-1x1-refresh" &&
+            this._houseLineItemSentinelRetryContext?.forceRequestType === "display"
+              ? this._houseLineItemSentinelRetryContext
+              : null;
+          if (sentinelRetryContext) {
+            this._houseLineItemSentinelRetryContext = null;
+          }
           if (this.wa && this.wa.cI) {
               this.wa.cI["gexp-intext-is-refresh"] = (trigger === "refresh" || this.node._cycleCount > 0) ? "true" : "false";
-              this.wa.cI["gexp-intext-is-fallback"] = (trigger === "fallback" || this._displayRenderState?.isFallback) ? "true" : "false";
+              this.wa.cI["gexp-intext-is-fallback"] = (trigger === "fallback" || this._displayRenderState?.isFallback || sentinelRetryContext?.isFallback === true) ? "true" : "false";
               logIntext(`[Intext:Auction:${this.node.id}] Status injected: refresh=${this.wa.cI["gexp-intext-is-refresh"]}, fallback=${this.wa.cI["gexp-intext-is-fallback"]}`);
           }
           if (this.prebidStarted) return;
           this.prebidStarted = true;
           this.node.startIntextTelemetryCycle(trigger);
+          if (sentinelRetryContext) {
+            this.node.mergeIntextTelemetry({
+              "gexp-intext-is-fallback": sentinelRetryContext.isFallback ? "true" : "false",
+              "gexp-intext-sentinel-retry-forced-request-type": "display",
+              "gexp-intext-sentinel-retry-preserved-fallback": sentinelRetryContext.isFallback ? "true" : "false",
+              "gexp-intext-sentinel-retry-original-decision-mode": sentinelRetryContext.originalDecisionMode || "unknown",
+              "gexp-intext-sentinel-retry-lineitem": sentinelRetryContext.sentinelLineItemId || "unknown",
+            });
+          }
 
           // Cleanup: reset fallback state and clear targeting on new auctions
           if (trigger !== "fallback") {
               if (this._displayRenderState) this._displayRenderState.isFallback = false;
+          }
+          if (sentinelRetryContext?.isFallback === true) {
+            if (!this._displayRenderState) this._displayRenderState = {};
+            this._displayRenderState.isFallback = true;
           }
           if (this.node.slot) {
               this.node.clearDisplayRequestTargeting(this.node.slot, "auction_start_targeting_cleanup");
@@ -5699,9 +5762,9 @@ class RandomStrategy extends WindowArray {
           }
 
           const isRefresh = trigger === "refresh";
-          const effectiveMode = isRefresh
+          const effectiveMode = sentinelRetryContext?.forceDecisionMode || (isRefresh
             ? this.config.refreshCycle?.mode || "display_only"
-            : this.config.decision?.mode || "auto";
+            : this.config.decision?.mode || "auto");
 
           this._effectiveMode = effectiveMode;
 
@@ -5715,6 +5778,12 @@ class RandomStrategy extends WindowArray {
           logIntext(
             `[Intext:Slot:${this.node.id}] ├─ Mode:     ${effectiveMode}${isRefresh ? " (refresh cycle)" : ""}`,
           );
+
+          if (sentinelRetryContext) {
+            logIntext(
+              `[Intext:Slot:${this.node.id}] technical house lineitem sentinel retry forced to display lineItemId=${sentinelRetryContext.sentinelLineItemId}, preservedFallback=${sentinelRetryContext.isFallback ? "true" : "false"}, originalMode=${sentinelRetryContext.originalDecisionMode || "unknown"}`,
+            );
+          }
 
           const bidStrategy = isRefresh
             ? (this.config.refreshCycle?.bidStrategy || "fresh")
@@ -6369,14 +6438,14 @@ class RandomStrategy extends WindowArray {
 
           if (displayResult.retrying === true) {
             logIntext(
-              `[Intext:Slot:${this.node.id}] ├─ GAM Display: technical 1x1 house suppressed, retry scheduled`,
+              `[Intext:Slot:${this.node.id}] ├─ GAM Display: technical house lineitem sentinel suppressed lineItemId=${displayResult.event?.lineItemId || "unknown"}, campaignId=${displayResult.event?.campaignId || "unknown"}, advertiserId=${displayResult.event?.advertiserId || "unknown"}, eventSize=${this.node.getDisplayGamEventSize(displayResult.event || {})}`,
             );
             return "retrying";
           }
 
           if (displayResult.maxAttemptsReached === true) {
             logIntext(
-              `[Intext:Slot:${this.node.id}] ├─ GAM Display: technical 1x1 house max attempts reached`,
+              `[Intext:Slot:${this.node.id}] ├─ GAM Display: technical house lineitem sentinel max attempts reached lineItemId=${displayResult.event?.lineItemId || "unknown"}, campaignId=${displayResult.event?.campaignId || "unknown"}, advertiserId=${displayResult.event?.advertiserId || "unknown"}, eventSize=${this.node.getDisplayGamEventSize(displayResult.event || {})}`,
             );
             this.node.closeAll();
             return "closed";

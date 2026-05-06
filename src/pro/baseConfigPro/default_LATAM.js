@@ -397,7 +397,7 @@ let cfg={
                         "enabled": true,
                         "delayMs": 100,
                         "maxAttemptsPerCycle": 1,
-                        "maxAttemptsPerSlot": 2,
+                        "maxAttemptsPerSlot": 3,
                         "registerTelemetry": false,
                         "requireHouse": true,
                         "advertiserIds": [],
@@ -436,7 +436,7 @@ let cfg={
                             "mode": "auto"
                         },
                         "loading": {
-                            "rootMargin": "1000px 0px",
+                            "rootMargin": "500px 0px",
                             "maxDelayMs": 1500
                         }
                     },
@@ -445,7 +445,7 @@ let cfg={
                             "mode": "display_only"
                         },
                         "loading": {
-                            "rootMargin": "250px 0px",
+                            "rootMargin": "150px 0px",
                             "maxDelayMs": null
                         }
                     }
@@ -642,9 +642,18 @@ let cfg={
                         },
                         "rules": {
                             "placements": [
-                                [8, 1],
-                                [16, 1],
-                                [24, 1]
+                                [
+                                    2,
+                                    1
+                                ],
+                                [
+                                    4,
+                                    1
+                                ],
+                                [
+                                    6,
+                                    1
+                                ]
                             ],
                             "allowMultiple": true,
                             "minCharacters": 0
@@ -686,11 +695,19 @@ let cfg={
                             "gexp-intext-2": {
                                 "decision": {
                                     "mode": "display_only"
+                                },
+                                "loading": {
+                                    "rootMargin": "250px 0px",
+                                    "maxDelayMs": null
                                 }
                             },
                             "gexp-intext-3": {
                                 "decision": {
                                     "mode": "display_only"
+                                },
+                                "loading": {
+                                    "rootMargin": "250px 0px",
+                                    "maxDelayMs": null
                                 }
                             }
                         },

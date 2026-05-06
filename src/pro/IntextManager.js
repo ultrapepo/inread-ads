@@ -921,8 +921,7 @@
               );
 
               let nodeConfig = this.siteConfig;
-              const slotOverrides =
-                this.siteConfig.slotOverrides?.[String(index)];
+              const slotOverrides = this.getSlotOverridesForNode(index, displayWrapper.id, this.siteConfig);
               if (slotOverrides) {
                 nodeConfig = JSON.parse(JSON.stringify(this.siteConfig)); // deep clone
                 // Deep merge each section
@@ -972,6 +971,27 @@
 
         onSlotComplete(completedIndex) {
           // No-op: Slots initialize independently via IntersectionObserver
+        }
+
+        normalizeIntextBaseSlotId(displayWrapperId) {
+          const id = String(displayWrapperId || "")
+            .replace(/-video$/, "")
+            .replace(/-pnc-\d+$/, "");
+          const match = id.match(/^(gexp-intext(?:-\d+)?)/);
+          return match ? match[1] : id;
+        }
+
+        getSlotOverridesForNode(index, displayWrapperId, config) {
+          const baseSlotId = this.normalizeIntextBaseSlotId(displayWrapperId);
+          const slotOverrides = config?.slotOverrides;
+          return (
+            config?.slotOverridesById?.[baseSlotId] ||
+            (slotOverrides && !Array.isArray(slotOverrides) ? slotOverrides[baseSlotId] : null) ||
+            (slotOverrides && !Array.isArray(slotOverrides) ? slotOverrides[`slot-${index + 1}`] : null) ||
+            (slotOverrides && !Array.isArray(slotOverrides) ? slotOverrides[String(index)] : null) ||
+            (Array.isArray(slotOverrides) ? slotOverrides[index] : null) ||
+            null
+          );
         }
 
         createWrapperNode(idxOrId, type = "display", pncSuffix = "") {
@@ -1172,8 +1192,8 @@
               );
 
               let nodeConfig = { ...scopedConfig };
-              if (scopedConfig.slotOverrides?.[index]) {
-                const slotOverrides = scopedConfig.slotOverrides[index];
+              const slotOverrides = this.getSlotOverridesForNode(index, displayWrapper.id, scopedConfig);
+              if (slotOverrides) {
                 for (const section of Object.keys(slotOverrides)) {
                   if (typeof slotOverrides[section] === 'object' && slotOverrides[section] !== null && !Array.isArray(slotOverrides[section])) {
                     nodeConfig[section] = { ...(nodeConfig[section] || {}), ...slotOverrides[section] };
@@ -1389,7 +1409,12 @@
             }
           }
 
-          return { paragraph, paragraphIndex: targetIndex };
+          return {
+            paragraph,
+            paragraphIndex: targetIndex,
+            placementRule: Array.isArray(rule) ? [...rule] : rule,
+            validParagraphsCount: paragraphs.length,
+          };
         }
 
         isValidParagraph(paragraph) {
@@ -1626,12 +1651,35 @@
 
         getIntextTelemetryElement() {
           try {
+            if (this.telemetryAnchor) return this.telemetryAnchor;
+            if (this.placement?.paragraph) return this.placement.paragraph;
             const displayEl = this.container?.getElement?.() || null;
             const videoEl = this.videoContainer?.getElement?.() || null;
             if (this.state === "video") return videoEl || displayEl;
             return displayEl || videoEl;
           } catch (e) {
             return null;
+          }
+        }
+
+        getIntextTelemetryElementMeta(el = null) {
+          try {
+            const target = el || this.getIntextTelemetryElement();
+            let type = "wrapper";
+            if (target && target === this.telemetryAnchor) type = "anchor";
+            else if (target && target === this.placement?.paragraph) type = "paragraph";
+            const rect = target?.getBoundingClientRect?.();
+            return {
+              "gexp-intext-observer-target": type,
+              "gexp-intext-observer-target-height": rect ? String(Math.round(rect.height || 0)) : "unknown",
+              "gexp-intext-observer-target-top": rect ? String(Math.round(rect.top || 0)) : "unknown",
+            };
+          } catch (e) {
+            return {
+              "gexp-intext-observer-target": "wrapper",
+              "gexp-intext-observer-target-height": "unknown",
+              "gexp-intext-observer-target-top": "unknown",
+            };
           }
         }
 
@@ -1649,15 +1697,46 @@
 
         getDisplayCreativeSizeFromEvent(event) {
           try {
-            const is1x1 = event?.size && event.size[0] === 1 && event.size[1] === 1;
-            if (event?.size && !is1x1) return `${event.size[0]}x${event.size[1]}`;
-            const renderSize = this.resolveDisplayRenderSizeFromEvent(event, "display_telemetry_size");
-            const width = renderSize.gamWidth || renderSize.actualWidth || 0;
-            const height = renderSize.actualHeight || renderSize.gamHeight || 0;
+            if (!event?.size || event.size.length < 2) return "unknown";
+            const width = parseInt(event.size[0], 10) || 0;
+            const height = parseInt(event.size[1], 10) || 0;
+            if (width <= 0 || height <= 0) return "unknown";
+            if (width === 1 && height === 1) {
+              const bidSize = this.getBidSize(this.waterfall?._lastDisplayBid || null);
+              if (bidSize && /^\d+x\d+$/.test(String(bidSize)) && bidSize !== "1x1") {
+                return String(bidSize);
+              }
+            }
             return `${width}x${height}`;
           } catch (e) {
-            return null;
+            return "unknown";
           }
+        }
+
+        getDisplayGamEventSize(event) {
+          try {
+            if (!event?.size || event.size.length < 2) return "unknown";
+            const width = parseInt(event.size[0], 10) || 0;
+            const height = parseInt(event.size[1], 10) || 0;
+            return width > 0 && height > 0 ? `${width}x${height}` : "unknown";
+          } catch (e) {
+            return "unknown";
+          }
+        }
+
+        getDisplayLayoutTelemetry(renderSize = null) {
+          const measuredWidth = parseInt(this.container?.getElement?.()?.clientWidth, 10) || 300;
+          const width = parseInt(renderSize?.gamWidth, 10) || measuredWidth;
+          const height = parseInt(renderSize?.actualHeight, 10) || parseInt(renderSize?.gamHeight, 10) || 0;
+          let layout = renderSize?.layout === "960x540" ? "expanded" : (renderSize?.layout || "unknown");
+          if (layout === "event_size") {
+            layout = height >= this.getDisplayExpandedContentHeight() ? "expanded" : "standard";
+          }
+          return {
+            "gexp-intext-layout-size": width > 0 && height > 0 ? `${width}x${height}` : "unknown",
+            "gexp-intext-render-layout": ["standard", "expanded", "recovered"].includes(layout) ? layout : (renderSize?.recovered ? "recovered" : "unknown"),
+            "gexp-intext-size-recovered": renderSize?.recovered ? "true" : "false",
+          };
         }
 
         getHouse1x1AutoRefreshConfig() {
@@ -1683,6 +1762,37 @@
             advertiserId,
             campaignId,
             lineItemId,
+          };
+        }
+
+        isHouseLineItemSentinel(event) {
+          const cfg = this.getHouse1x1AutoRefreshConfig();
+          const lineItemIds = Array.isArray(cfg?.lineItemIds) ? cfg.lineItemIds.map((value) => String(value)) : [];
+          const lineItemId = event?.lineItemId != null ? String(event.lineItemId) : "";
+          return Boolean(lineItemId && lineItemIds.includes(lineItemId));
+        }
+
+        getHouseLineItemSentinelTelemetry(event, extra = {}) {
+          const renderSize = this.resolveDisplayRenderSizeFromEvent(event, "house_lineitem_sentinel");
+          return {
+            "gexp-intext-type": "technical-sentinel",
+            "gexp-intext-sentinel": "true",
+            "gexp-intext-sentinel-lineitem": event?.lineItemId != null ? String(event.lineItemId) : "unknown",
+            "gexp-intext-render-suppressed": "true",
+            "gexp-intext-house-1x1-refresh": "true",
+            "gexp-intext-technical-refresh-reason": "house-lineitem-sentinel",
+            "gexp-intext-exclude-from-viewability-analysis": "true",
+            "gexp-intext-ad-rendered-logical": "false",
+            "gexp-intext-ad-filled-logical": "false",
+            "gexp-intext-creative-size": this.getDisplayCreativeSizeFromEvent(event),
+            "gexp-intext-gam-event-size": this.getDisplayGamEventSize(event),
+            "gexp-intext-gam-line-item-type": event?.lineItemType,
+            ...this.getDisplayLayoutTelemetry(renderSize),
+            advertiserId: event?.advertiserId,
+            campaignId: event?.campaignId,
+            lineItemId: event?.lineItemId,
+            creativeId: event?.creativeId,
+            ...extra,
           };
         }
 
@@ -1730,19 +1840,11 @@
         }
 
         handleHouse1x1MaxAttemptsReached(event) {
-          const creativeSize = this.getDisplayCreativeSizeFromEvent(event) || "unknown";
           this.mergeIntextTelemetry({
-            "gexp-intext-type": "house",
-            "gexp-intext-creative-size": creativeSize,
-            "gexp-intext-house-1x1-refresh": "true",
+            ...this.getHouseLineItemSentinelTelemetry(event),
             "gexp-intext-house-1x1-max-attempts-reached": "true",
-            "gexp-intext-render-suppressed": "true",
-            "gexp-intext-technical-refresh-reason": "house-lineitem-sentinel",
-            advertiserId: event?.advertiserId,
-            campaignId: event?.campaignId,
-            lineItemId: event?.lineItemId,
           });
-          this.flushIntextTelemetryToCI({ register: true, reason: "house-1x1-max-attempts" });
+          this.flushIntextTelemetryToCI({ register: true, reason: "house-lineitem-sentinel-max-attempts" });
           logIntext(`[Intext:Display:${this.id}] house_1x1_auto_refresh_max_attempts_reached`, {
             attemptsForCycle: this._house1x1AutoRefreshAttemptsForCycle,
             attemptsPerSlot: this._house1x1AutoRefreshAttemptsPerSlot,
@@ -1756,23 +1858,14 @@
           this._house1x1AutoRefreshAttemptsForCycle += 1;
           this._house1x1AutoRefreshAttemptsPerSlot += 1;
           const attempt = this._house1x1AutoRefreshAttemptsPerSlot;
-          const creativeSize = this.getDisplayCreativeSizeFromEvent(event) || "unknown";
-
           this.mergeIntextTelemetry({
-            "gexp-intext-type": "house",
-            "gexp-intext-creative-size": creativeSize,
-            "gexp-intext-house-1x1-refresh": "true",
+            ...this.getHouseLineItemSentinelTelemetry(event),
             "gexp-intext-house-1x1-attempt": String(attempt),
             "gexp-intext-house-1x1-max-attempts-reached": "false",
-            "gexp-intext-render-suppressed": "true",
-            "gexp-intext-technical-refresh-reason": "house-lineitem-sentinel",
-            advertiserId: event?.advertiserId,
-            campaignId: event?.campaignId,
-            lineItemId: event?.lineItemId,
           });
 
           if (cfg.registerTelemetry === true) {
-            this.flushIntextTelemetryToCI({ register: true, reason: "house-1x1-refresh" });
+            this.flushIntextTelemetryToCI({ register: true, reason: "house-lineitem-sentinel" });
           } else {
             this.flushIntextTelemetryToCI();
           }
@@ -1783,10 +1876,24 @@
             attempt,
             maxAttemptsPerCycle: cfg.maxAttemptsPerCycle,
             maxAttemptsPerSlot: cfg.maxAttemptsPerSlot,
+            lineItemId: event?.lineItemId,
+            campaignId: event?.campaignId,
+            advertiserId: event?.advertiserId,
+            eventSize: this.getDisplayGamEventSize(event),
           });
 
           this.destroyDisplayForRetry();
           this.waterfall.prebidStarted = false;
+          this.waterfall._houseLineItemSentinelRetryContext = {
+            forceRequestType: "display",
+            forceDecisionMode: "display_only",
+            fromRequestType: "display",
+            isFallback:
+              this.waterfall._displayRenderState?.isFallback === true ||
+              this.wa?.cI?.["gexp-intext-is-fallback"] === "true",
+            originalDecisionMode: this.config?.decision?.mode || "unknown",
+            sentinelLineItemId: event?.lineItemId != null ? String(event.lineItemId) : "unknown",
+          };
           setTimeout(() => {
             try {
               this.waterfall.startAuction("house-1x1-refresh");
@@ -1815,7 +1922,9 @@
             "gexp-intext-init-page-ms",
             "gexp-intext-load-start-distance-px",
             "gexp-intext-load-end-distance-px",
+            "gexp-intext-load-observer-target",
             "gexp-intext-request-type",
+            "gexp-intext-type",
             "gexp-intext-creative-size",
             "gexp-intext-video-viewport-exit-played-pct",
             "gexp-intext-video-failed",
@@ -1827,6 +1936,37 @@
             "gexp-intext-render-suppressed",
             "gexp-intext-is-technical-refresh",
             "gexp-intext-technical-refresh-reason",
+            "gexp-intext-root-margin",
+            "gexp-intext-timer-delay-ms",
+            "gexp-intext-has-timer",
+            "gexp-intext-slot-id",
+            "gexp-intext-slot-index",
+            "gexp-intext-nav-index",
+            "gexp-intext-paragraph-index",
+            "gexp-intext-paragraph-number",
+            "gexp-intext-placement-rule",
+            "gexp-intext-valid-paragraphs-count",
+            "gexp-intext-observer-target",
+            "gexp-intext-observer-target-height",
+            "gexp-intext-observer-target-top",
+            "gexp-intext-sentinel",
+            "gexp-intext-sentinel-lineitem",
+            "gexp-intext-exclude-from-viewability-analysis",
+            "gexp-intext-ad-rendered-logical",
+            "gexp-intext-ad-filled-logical",
+            "gexp-intext-gam-line-item-type",
+            "gexp-intext-gam-event-size",
+            "gexp-intext-layout-size",
+            "gexp-intext-render-layout",
+            "gexp-intext-size-recovered",
+            "gexp-intext-sentinel-retry-forced-request-type",
+            "gexp-intext-sentinel-retry-preserved-fallback",
+            "gexp-intext-sentinel-retry-original-decision-mode",
+            "gexp-intext-sentinel-retry-lineitem",
+            "advertiserId",
+            "campaignId",
+            "lineItemId",
+            "creativeId",
           ].forEach((key) => {
             try {
               delete this.wa.cI[key];
@@ -1856,6 +1996,22 @@
           };
           const initPageMs = this.getIntextInitPageMs();
           const startDistance = this.getIntextDistancePx();
+          const maxDelayMs = this.config?.loading?.maxDelayMs;
+          const hasTimer = typeof maxDelayMs === "number" && Number.isFinite(maxDelayMs) && maxDelayMs >= 0;
+          Object.assign(cycle, {
+            "gexp-intext-root-margin": String(this.config?.loading?.rootMargin || "200px 0px"),
+            "gexp-intext-timer-delay-ms": hasTimer ? String(maxDelayMs) : "disabled",
+            "gexp-intext-has-timer": hasTimer ? "true" : "false",
+            "gexp-intext-load-observer-target": String(this._intextLoadObserverTarget || "wrapper"),
+            "gexp-intext-slot-id": String(this.id || "unknown"),
+            "gexp-intext-slot-index": String(this.slotIndex ?? 0),
+            "gexp-intext-nav-index": String(this.navIndex || 0),
+            "gexp-intext-paragraph-index": this.placement?.paragraphIndex != null ? String(this.placement.paragraphIndex) : "unknown",
+            "gexp-intext-paragraph-number": this.placement?.paragraphIndex != null ? String(this.placement.paragraphIndex + 1) : "unknown",
+            "gexp-intext-placement-rule": this.placement?.placementRule ? JSON.stringify(this.placement.placementRule) : "unknown",
+            "gexp-intext-valid-paragraphs-count": this.placement?.validParagraphsCount != null ? String(this.placement.validParagraphsCount) : "unknown",
+            ...this.getIntextTelemetryElementMeta(),
+          });
           if (initPageMs !== null) cycle["gexp-intext-init-page-ms"] = String(initPageMs);
           if (startDistance !== null) cycle["gexp-intext-load-start-distance-px"] = String(startDistance);
           if (trigger === "house-1x1-refresh") {
@@ -1916,6 +2072,8 @@
               "video-error",
               "no-fill",
               "house-1x1-max-attempts",
+              "house-lineitem-sentinel",
+              "house-lineitem-sentinel-max-attempts",
             ]);
             const closeReasons = new Set(["close-all", "destroy"]);
             const isFinalReason = finalReasons.has(reason);
@@ -1954,6 +2112,7 @@
             if (this._intextViewportObserver && this._intextViewportObservedEl === el) return;
             this.teardownIntextViewportTelemetryObserver();
             this._intextViewportObservedEl = el;
+            this.mergeIntextTelemetry(this.getIntextTelemetryElementMeta(el));
             this._intextViewportObserver = new IntersectionObserver((entries) => {
               const entry = entries && entries[0];
               if (!entry) return;
@@ -3050,10 +3209,16 @@
                 const is1x1 =
                   event.size && event.size[0] === 1 && event.size[1] === 1;
                 const renderSize = this.resolveDisplayRenderSizeFromEvent(event, "display_initial_slotRenderEnded");
-                const creativeSize = `${renderSize.gamWidth || renderSize.actualWidth || 0}x${renderSize.actualHeight || 0}`;
                 this.mergeIntextTelemetry({
                   "gexp-intext-load-end-distance-px": this.getIntextDistancePx(),
-                  "gexp-intext-creative-size": creativeSize,
+                  "gexp-intext-creative-size": this.getDisplayCreativeSizeFromEvent(event),
+                  "gexp-intext-gam-event-size": this.getDisplayGamEventSize(event),
+                  "gexp-intext-gam-line-item-type": event?.lineItemType,
+                  ...this.getDisplayLayoutTelemetry(renderSize),
+                  advertiserId: event?.advertiserId,
+                  campaignId: event?.campaignId,
+                  lineItemId: event?.lineItemId,
+                  creativeId: event?.creativeId,
                 });
                 this.flushIntextTelemetryToCI();
                 logIntext(
@@ -3062,13 +3227,13 @@
 
                 if (this.isHouse1x1AutoRefreshCandidate(event)) {
                   this.handleHouse1x1AutoRefresh(event);
-                  resolve({ filled: false, event, is1x1, suppressed: true, retrying: true });
+                  resolve({ filled: false, event, is1x1, suppressed: true, retrying: true, sentinelLineItemId: event?.lineItemId });
                   return;
                 }
 
                 if (this.isHouse1x1AutoRefreshMaxReached(event)) {
                   this.handleHouse1x1MaxAttemptsReached(event);
-                  resolve({ filled: false, event, is1x1, suppressed: true, retrying: false, maxAttemptsReached: true });
+                  resolve({ filled: false, event, is1x1, suppressed: true, retrying: false, maxAttemptsReached: true, sentinelLineItemId: event?.lineItemId });
                   return;
                 }
 
@@ -3083,6 +3248,12 @@
                 googletag.pubads().addEventListener("slotRenderEnded", (event) => {
                   if (event.slot !== this.slot) return;
                   if (this.state !== "display") return;
+                  if (this.isHouseLineItemSentinel(event)) {
+                    this.mergeIntextTelemetry(this.getHouseLineItemSentinelTelemetry(event));
+                    this.flushIntextTelemetryToCI();
+                    logIntext(`[Intext:Display:${this.id}] sentinel render ignored by persistent display telemetry`);
+                    return;
+                  }
                   
                   if (event.campaignId) {
                       this._lastRenderedCampaignId = String(event.campaignId);
@@ -3121,9 +3292,17 @@
                       }
                       
                       this.wa.cI["gexp-intext-type"] = type;
+                      const renderSize = this.resolveDisplayRenderSizeFromEvent(event, "display_slotRenderEnded_telemetry");
                       this.mergeIntextTelemetry({
                         "gexp-intext-load-end-distance-px": this.getIntextDistancePx(),
                         "gexp-intext-creative-size": this.getDisplayCreativeSizeFromEvent(event),
+                        "gexp-intext-gam-event-size": this.getDisplayGamEventSize(event),
+                        "gexp-intext-gam-line-item-type": event?.lineItemType,
+                        ...this.getDisplayLayoutTelemetry(renderSize),
+                        advertiserId: event?.advertiserId,
+                        campaignId: event?.campaignId,
+                        lineItemId: event?.lineItemId,
+                        creativeId: event?.creativeId,
                       });
                       this.flushIntextTelemetryToCI();
                       logIntext(`[Intext:Display:${this.id}] Rendered type: ${type} (Adv:${advertiserId}, Camp:${campaignId})`);
@@ -3871,6 +4050,15 @@
           const margin = this.config.loading?.rootMargin || "200px 0px";
 
           if ("IntersectionObserver" in window) {
+            const targetEl = this.node?.getIntextTelemetryElement?.() || this.container.getElement();
+            const observerTarget =
+              targetEl && targetEl === this.node?.telemetryAnchor ? "anchor" :
+              targetEl && targetEl === this.node?.placement?.paragraph ? "paragraph" :
+              "wrapper";
+            if (this.node) this.node._intextLoadObserverTarget = observerTarget;
+            this.node?.mergeIntextTelemetry?.({
+              "gexp-intext-load-observer-target": observerTarget,
+            });
             this.intersectionObserver = new IntersectionObserver(
               (entries) => {
                 if (entries[0].isIntersecting) {
@@ -3880,30 +4068,55 @@
               },
               { threshold: 0, rootMargin: margin },
             );
-            this.intersectionObserver.observe(this.container.getElement());
+            this.intersectionObserver.observe(targetEl || this.container.getElement());
           } else {
             this.startAuction("fallback");
           }
         }
 
         setupTimerTrigger() {
-          const timeout = this.config.loading?.maxDelayMs || 5000;
+          const timeout = this.config.loading?.maxDelayMs;
+          if (typeof timeout !== "number" || !Number.isFinite(timeout) || timeout < 0) {
+            logIntext(`[Intext:Auction:${this.node.id}] timer trigger disabled`);
+            return;
+          }
           this.timer = setTimeout(() => this.startAuction("timer"), timeout);
         }
         
         async startAuction(trigger) {
+          const sentinelRetryContext =
+            trigger === "house-1x1-refresh" &&
+            this._houseLineItemSentinelRetryContext?.forceRequestType === "display"
+              ? this._houseLineItemSentinelRetryContext
+              : null;
+          if (sentinelRetryContext) {
+            this._houseLineItemSentinelRetryContext = null;
+          }
           if (this.wa && this.wa.cI) {
               this.wa.cI["gexp-intext-is-refresh"] = (trigger === "refresh" || this.node._cycleCount > 0) ? "true" : "false";
-              this.wa.cI["gexp-intext-is-fallback"] = (trigger === "fallback" || this._displayRenderState?.isFallback) ? "true" : "false";
+              this.wa.cI["gexp-intext-is-fallback"] = (trigger === "fallback" || this._displayRenderState?.isFallback || sentinelRetryContext?.isFallback === true) ? "true" : "false";
               logIntext(`[Intext:Auction:${this.node.id}] Status injected: refresh=${this.wa.cI["gexp-intext-is-refresh"]}, fallback=${this.wa.cI["gexp-intext-is-fallback"]}`);
           }
           if (this.prebidStarted) return;
           this.prebidStarted = true;
           this.node.startIntextTelemetryCycle(trigger);
+          if (sentinelRetryContext) {
+            this.node.mergeIntextTelemetry({
+              "gexp-intext-is-fallback": sentinelRetryContext.isFallback ? "true" : "false",
+              "gexp-intext-sentinel-retry-forced-request-type": "display",
+              "gexp-intext-sentinel-retry-preserved-fallback": sentinelRetryContext.isFallback ? "true" : "false",
+              "gexp-intext-sentinel-retry-original-decision-mode": sentinelRetryContext.originalDecisionMode || "unknown",
+              "gexp-intext-sentinel-retry-lineitem": sentinelRetryContext.sentinelLineItemId || "unknown",
+            });
+          }
 
           // Cleanup: reset fallback state and clear targeting on new auctions
           if (trigger !== "fallback") {
               if (this._displayRenderState) this._displayRenderState.isFallback = false;
+          }
+          if (sentinelRetryContext?.isFallback === true) {
+            if (!this._displayRenderState) this._displayRenderState = {};
+            this._displayRenderState.isFallback = true;
           }
           if (this.node.slot) {
               this.node.clearDisplayRequestTargeting(this.node.slot, "auction_start_targeting_cleanup");
@@ -3994,9 +4207,9 @@
           }
 
           const isRefresh = trigger === "refresh";
-          const effectiveMode = isRefresh
+          const effectiveMode = sentinelRetryContext?.forceDecisionMode || (isRefresh
             ? this.config.refreshCycle?.mode || "display_only"
-            : this.config.decision?.mode || "auto";
+            : this.config.decision?.mode || "auto");
 
           this._effectiveMode = effectiveMode;
 
@@ -4010,6 +4223,12 @@
           logIntext(
             `[Intext:Slot:${this.node.id}] ├─ Mode:     ${effectiveMode}${isRefresh ? " (refresh cycle)" : ""}`,
           );
+
+          if (sentinelRetryContext) {
+            logIntext(
+              `[Intext:Slot:${this.node.id}] technical house lineitem sentinel retry forced to display lineItemId=${sentinelRetryContext.sentinelLineItemId}, preservedFallback=${sentinelRetryContext.isFallback ? "true" : "false"}, originalMode=${sentinelRetryContext.originalDecisionMode || "unknown"}`,
+            );
+          }
 
           const bidStrategy = isRefresh
             ? (this.config.refreshCycle?.bidStrategy || "fresh")
@@ -4664,14 +4883,14 @@
 
           if (displayResult.retrying === true) {
             logIntext(
-              `[Intext:Slot:${this.node.id}] ├─ GAM Display: technical 1x1 house suppressed, retry scheduled`,
+              `[Intext:Slot:${this.node.id}] ├─ GAM Display: technical house lineitem sentinel suppressed lineItemId=${displayResult.event?.lineItemId || "unknown"}, campaignId=${displayResult.event?.campaignId || "unknown"}, advertiserId=${displayResult.event?.advertiserId || "unknown"}, eventSize=${this.node.getDisplayGamEventSize(displayResult.event || {})}`,
             );
             return "retrying";
           }
 
           if (displayResult.maxAttemptsReached === true) {
             logIntext(
-              `[Intext:Slot:${this.node.id}] ├─ GAM Display: technical 1x1 house max attempts reached`,
+              `[Intext:Slot:${this.node.id}] ├─ GAM Display: technical house lineitem sentinel max attempts reached lineItemId=${displayResult.event?.lineItemId || "unknown"}, campaignId=${displayResult.event?.campaignId || "unknown"}, advertiserId=${displayResult.event?.advertiserId || "unknown"}, eventSize=${this.node.getDisplayGamEventSize(displayResult.event || {})}`,
             );
             this.node.closeAll();
             return "closed";

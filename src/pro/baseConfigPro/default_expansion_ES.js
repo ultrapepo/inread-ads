@@ -786,7 +786,7 @@
                         "enabled": true,
                         "delayMs": 100,
                         "maxAttemptsPerCycle": 1,
-                        "maxAttemptsPerSlot": 2,
+                        "maxAttemptsPerSlot": 3,
                         "registerTelemetry": false,
                         "requireHouse": true,
                         "advertiserIds": [],
@@ -825,7 +825,7 @@
                             "mode": "auto"
                         },
                         "loading": {
-                            "rootMargin": "1000px 0px",
+                            "rootMargin": "500px 0px",
                             "maxDelayMs": 1500
                         }
                     },
@@ -834,7 +834,7 @@
                             "mode": "display_only"
                         },
                         "loading": {
-                            "rootMargin": "250px 0px",
+                            "rootMargin": "150px 0px",
                             "maxDelayMs": null
                         }
                     }
@@ -1032,15 +1032,15 @@
                         "rules": {
                             "placements": [
                                 [
-                                    8,
+                                    2,
                                     1
                                 ],
                                 [
-                                    16,
+                                    4,
                                     1
                                 ],
                                 [
-                                    24,
+                                    6,
                                     1
                                 ]
                             ],
@@ -1088,11 +1088,19 @@
                             "gexp-intext-2": {
                                 "decision": {
                                     "mode": "display_only"
+                                },
+                                "loading": {
+                                    "rootMargin": "250px 0px",
+                                    "maxDelayMs": null
                                 }
                             },
                             "gexp-intext-3": {
                                 "decision": {
                                     "mode": "display_only"
+                                },
+                                "loading": {
+                                    "rootMargin": "250px 0px",
+                                    "maxDelayMs": null
                                 }
                             }
                         },
