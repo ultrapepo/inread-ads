@@ -701,6 +701,20 @@
                                         "renderRootMargin": "100px 0px",
                                         "maxDelayMs": null
                                     }
+                                },
+                                "gexp-intext-3": {
+                                    "loading": {
+                                        "fetchRootMargin": "350px 0px",
+                                        "renderRootMargin": "100px 0px",
+                                        "maxDelayMs": null
+                                    }
+                                },
+                                "pnc": {
+                                    "loading": {
+                                        "fetchRootMargin": "350px 0px",
+                                        "renderRootMargin": "100px 0px",
+                                        "maxDelayMs": null
+                                    }
                                 }
                             }
                         },
@@ -715,6 +729,20 @@
                                     }
                                 },
                                 "gexp-intext-2": {
+                                    "loading": {
+                                        "fetchRootMargin": "400px 0px",
+                                        "renderRootMargin": "150px 0px",
+                                        "maxDelayMs": null
+                                    }
+                                },
+                                "gexp-intext-3": {
+                                    "loading": {
+                                        "fetchRootMargin": "400px 0px",
+                                        "renderRootMargin": "250px 0px",
+                                        "maxDelayMs": null
+                                    }
+                                },
+                                "pnc": {
                                     "loading": {
                                         "fetchRootMargin": "400px 0px",
                                         "renderRootMargin": "150px 0px",
@@ -881,7 +909,7 @@
                         "enabled": true,
                         "delayMs": 100,
                         "maxAttemptsPerCycle": 1,
-                        "maxAttemptsPerSlot": 3,
+                        "maxAttemptsPerSlot": 2,
                         "registerTelemetry": false,
                         "requireHouse": true,
                         "advertiserIds": [],

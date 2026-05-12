@@ -2,7 +2,7 @@
     "enabled": true,
     "defaultP": 1,
     "houseTm": 30000,
-    "maxHReload": 4,
+    "maxHReload": 1,
     "telemetryProb": 3,
     "pList": [
         0.05,
@@ -35,15 +35,12 @@
         2559776610
     ],
     "houseIds": [
-        67317777,
-        4633770194,
-        81003777,
-        45125937,
         5744742627,
-        4815141041,
+        45125937,
+        81003777,
+        4633770194,
         51641577,
-        4716085827,
-        50339097
+        4815141041
     ],
     "prebidIds": [
         "5359233312",
@@ -60,6 +57,7 @@
         4764613895,
         4811457786,
         79449777,
+        67317777,
         4717022388,
         5359233312,
         4402193934,
@@ -68,15 +66,12 @@
         83522457,
         4402208836,
         5354911588,
-        67317777,
-        4633770194,
-        81003777,
-        45125937,
         5744742627,
-        4815141041,
+        45125937,
+        81003777,
+        4633770194,
         51641577,
-        4716085827,
-        50339097
+        4815141041
     ],
     "reloadCampaignIds": [
         2559776610,
@@ -98,11 +93,10 @@
     "houseLineItems": [],
     "positions": {
         "r": {
-            "p": 4,
-            "mu": 4,
+            "p": 2,
             "md": 2,
             "rv": 1,
-            "nbb": 3,
+            "nbb": 2,
             "st": 1,
             "ub": 7,
             "ppbo": 0.1,
@@ -126,11 +120,10 @@
             "tl": true
         },
         "rb": {
-            "p": 4,
-            "mu": 3,
+            "p": 2,
             "md": 2,
-            "rv": 0,
-            "nbb": 3,
+            "rv": 1,
+            "nbb": 2,
             "st": 1,
             "ub": 7,
             "ppbo": 0.1,
@@ -155,12 +148,12 @@
         },
         "rc": {
             "p": 1,
-            "md": 4,
+            "md": 1,
             "rv": 0,
-            "nbb": 3,
+            "nbb": 4,
             "st": 1,
             "ub": 7,
-            "ppbo": 0.1,
+            "ppbo": 0.05,
             "ppbd": 2,
             "hl": 20,
             "hr": {
@@ -184,10 +177,11 @@
             "p": 1,
             "md": 1,
             "rv": 0,
+            "mp": 0,
             "nbb": 4,
             "st": 1,
             "ub": 7,
-            "ppbo": 0.1,
+            "ppbo": 0.05,
             "ppbd": 2,
             "hl": 20,
             "hr": {
@@ -211,17 +205,62 @@
             "p": 2,
             "rv": 0,
             "st": 1,
+            "hr": {
+                "tim": null,
+                "ov": true,
+                "pbtim": 2000,
+                "mr": 1,
+                "mintim": 5000
+            },
+            "ar": {
+                "tim": null,
+                "ov": true,
+                "pbtim": 2000,
+                "mr": 1,
+                "mintim": 5000
+            },
+            "rqpbtim": 2000,
             "tl": true
         },
         "rf": {
             "p": 2,
             "rv": 0,
-            "st": 1
+            "st": 1,
+            "hr": {
+                "tim": null,
+                "ov": true,
+                "pbtim": 2000,
+                "mr": 1,
+                "mintim": 5000
+            },
+            "ar": {
+                "tim": null,
+                "ov": true,
+                "pbtim": 2000,
+                "mr": 1,
+                "mintim": 5000
+            },
+            "rqpbtim": 2000
         },
         "rg": {
             "p": 2,
             "rv": 0,
-            "st": 1
+            "st": 1,
+            "hr": {
+                "tim": null,
+                "ov": true,
+                "pbtim": 2000,
+                "mr": 1,
+                "mintim": 5000
+            },
+            "ar": {
+                "tim": null,
+                "ov": true,
+                "pbtim": 2000,
+                "mr": 1,
+                "mintim": 5000
+            },
+            "rqpbtim": 2000
         },
         "r-pnc": {
             "p": 2,
@@ -238,14 +277,15 @@
             "tl": true
         },
         "r-nata-pnc": {
-            "p": 2,
+            "p": 1,
             "rv": 1
         },
         "m": {
-            "p": 10,
-            "rv": 1,
-            "tl": true,
+            "p": 2,
             "mp": 0,
+            "rv": 1,
+            "st": 1,
+            "tl": true,
             "hr": {
                 "tim": null,
                 "ov": true,
@@ -258,13 +298,13 @@
                 "ov": true,
                 "pbtim": 2000,
                 "mr": 1,
-                "mintim": 5000
+                "mintim": 8000
             }
         },
         "mb": {
-            "p": 8,
-            "rv": 1,
+            "p": 4,
             "mp": 0,
+            "rv": 1,
             "hr": {
                 "tim": null,
                 "ov": true,
@@ -278,7 +318,8 @@
                 "pbtim": 2000,
                 "mr": 1,
                 "mintim": 5000
-            }
+            },
+            "rqpbtim": 2000
         },
         "m-pnc": {
             "p": 2,
@@ -286,13 +327,15 @@
             "tl": true
         },
         "si": {
-            "p": 1,
+            "p": 2,
             "rv": 1,
+            "mp": 0,
             "tl": true
         },
         "sd": {
-            "p": 1,
+            "p": 2,
             "rv": 1,
+            "mp": 0,
             "tl": true
         },
         "c990x50_320x50": {
@@ -311,7 +354,8 @@
                 "pbtim": 2000,
                 "mr": 1,
                 "mintim": 5000
-            }
+            },
+            "rqpbtim": 2000
         },
         "c990x50_320x53c": {
             "p": 1,
@@ -330,6 +374,7 @@
                 "mr": 1,
                 "mintim": 5000
             },
+            "rqpbtim": 2000,
             "tl": true
         },
         "c990x50_320x53d": {
@@ -349,6 +394,7 @@
                 "mr": 1,
                 "mintim": 5000
             },
+            "rqpbtim": 2000,
             "tl": true
         },
         "gexp-intext": {
@@ -521,8 +567,8 @@
         },
         "default": {
             "p": 1,
+            "mu": 2,
             "mp": 0,
-            "mu": 4,
             "md": 2,
             "rv": 0,
             "nbb": 2,
@@ -627,83 +673,10 @@
                 },
                 "loading": {
                     "rootMargin": "1000px 0px",
-                    "maxDelayMs": 1500,
-                    "maxFetchToRenderMs": 3000
-                },
-                "loadingExperiments": {
-                    "enabled": true,
-                    "key": "random1",
-                    "variants": {
-                        "5": {
-                            "name": "test-b",
-                            "slots": {
-                                "gexp-intext": {
-                                    "loading": {
-                                        "fetchRootMargin": "650px 0px",
-                                        "renderRootMargin": "250px 0px",
-                                        "maxDelayMs": null
-                                    }
-                                },
-                                "gexp-intext-2": {
-                                    "loading": {
-                                        "fetchRootMargin": "350px 0px",
-                                        "renderRootMargin": "100px 0px",
-                                        "maxDelayMs": null
-                                    }
-                                },
-                                "gexp-intext-3": {
-                                    "loading": {
-                                        "fetchRootMargin": "350px 0px",
-                                        "renderRootMargin": "100px 0px",
-                                        "maxDelayMs": null
-                                    }
-                                },
-                                "pnc": {
-                                    "loading": {
-                                        "fetchRootMargin": "350px 0px",
-                                        "renderRootMargin": "100px 0px",
-                                        "maxDelayMs": null
-                                    }
-                                }
-                            }
-                        },
-                        "6": {
-                            "name": "control",
-                            "slots": {
-                                "gexp-intext": {
-                                    "loading": {
-                                        "fetchRootMargin": "900px 0px",
-                                        "renderRootMargin": "500px 0px",
-                                        "maxDelayMs": 1500
-                                    }
-                                },
-                                "gexp-intext-2": {
-                                    "loading": {
-                                        "fetchRootMargin": "400px 0px",
-                                        "renderRootMargin": "150px 0px",
-                                        "maxDelayMs": null
-                                    }
-                                },
-                                "gexp-intext-3": {
-                                    "loading": {
-                                        "fetchRootMargin": "400px 0px",
-                                        "renderRootMargin": "250px 0px",
-                                        "maxDelayMs": null
-                                    }
-                                },
-                                "pnc": {
-                                    "loading": {
-                                        "fetchRootMargin": "400px 0px",
-                                        "renderRootMargin": "150px 0px",
-                                        "maxDelayMs": null
-                                    }
-                                }
-                            }
-                        }
-                    }
+                    "maxDelayMs": 1500
                 },
                 "display": {
-                    "adUnitPath": "telva\/belleza\/n",
+                    "adUnitPath": "telva/belleza/n",
                     "sizes": [
                         [
                             300,
@@ -716,21 +689,11 @@
                         [
                             320,
                             100
-                        ],
-                        [
-                            300,
-                            600
-                        ],
-                        [
-                            960,
-                            540
                         ]
                     ]
                 },
                 "video": {
                     "enabled": true,
-                    "fastFallbackErrorCodes": [303],
-                    "fastFallbackOnEmptyVast": true,
                     "playerSize": [
                         640,
                         360
@@ -749,8 +712,8 @@
                             "plcmt": 1,
                             "placement": 1,
                             "mimes": [
-                                "video\/mp4",
-                                "application\/javascript"
+                                "video/mp4",
+                                "application/javascript"
                             ],
                             "protocols": [
                                 2,
@@ -780,8 +743,8 @@
                             "plcmt": 2,
                             "placement": 3,
                             "mimes": [
-                                "video\/mp4",
-                                "application\/javascript"
+                                "video/mp4",
+                                "application/javascript"
                             ],
                             "protocols": [
                                 2,
@@ -866,7 +829,7 @@
                         "enabled": true,
                         "delayMs": 100,
                         "maxAttemptsPerCycle": 1,
-                        "maxAttemptsPerSlot": 2,
+                        "maxAttemptsPerSlot": 3,
                         "registerTelemetry": false,
                         "requireHouse": true,
                         "advertiserIds": [],
@@ -878,25 +841,25 @@
                 },
                 "telemetryIds": {
                     "prebid": [
-                        "83488497",
-                        "4402193934",
-                        "5907488782",
-                        "5823135725",
-                        "5619844792",
-                        "5180398781",
-                        "5354911588",
-                        "4406227815",
-                        "83522457",
-                        "5907334980",
-                        "5359233312",
-                        "4402208836"
+                                "83488497",
+                                "4402193934",
+                                "5907488782",
+                                "5823135725",
+                                "5619844792",
+                                "5180398781",
+                                "5354911588",
+                                "4406227815",
+                                "83522457",
+                                "5907334980",
+                                "5359233312",
+                                "4402208836"
                     ],
                     "amazon": [
-                        "55409457"
+                                "55409457"
                     ],
                     "adex": [
-                        "2559776610",
-                        "2466799184"
+                                "2559776610",
+                                "2466799184"
                     ]
                 },
                 "slotOverrides": {
@@ -1187,7 +1150,12 @@
                         "exclusions": {
                             "disableAll": false,
                             "adUnitPaths": [],
-                            "keyValues": [],
+                            "keyValues": {
+                                "isPremium": [
+                                    "1",
+                                    "true"
+                                ]
+                            },
                             "disableSlots": {
                                 "always": [],
                                 "rules": []
@@ -1207,6 +1175,10 @@
                         ],
                         "t": [
                             ""
+                        ],
+                        "isPremium": [
+                            "1",
+                            "true"
                         ]
                     },
                     "disableSlots": {
@@ -1254,12 +1226,17 @@
                                 ]
                             }
                         },
-                        "slotOverrides": []
+                        "slotOverrides": {}
                     },
                     "exclusions": {
                         "disableAll": false,
                         "adUnitPaths": [],
-                        "keyValues": [],
+                        "keyValues": {
+                            "isPremium": [
+                                "1",
+                                "true"
+                            ]
+                        },
                         "disableSlots": {
                             "always": [],
                             "rules": []
@@ -1301,10 +1278,6 @@
                                 [
                                     320,
                                     50
-                                ],
-                                [
-                                    300,
-                                    600
                                 ]
                             ]
                         },
@@ -1392,7 +1365,7 @@
                     "maxDelayMs": 1500
                 },
                 "display": {
-                    "adUnitPath": "telva\/belleza\/n",
+                    "adUnitPath": "telva/belleza/n",
                     "sizes": [
                         [
                             300,
@@ -1461,7 +1434,7 @@
                                         "pageId": 648549,
                                         "formatId": 40859,
                                         "siteId": 99913,
-                                        "domain": "https:\/\/prg.smartadserver.com"
+                                        "domain": "https://prg.smartadserver.com"
                                     }
                                 },
                                 {
@@ -1725,7 +1698,7 @@
                     "priorityBelowMin": "only_video"
                 },
                 "display": {
-                    "adUnitPath": "telva\/belleza\/n",
+                    "adUnitPath": "telva/belleza/n",
                     "sizes": [
                         [
                             300,
@@ -1772,8 +1745,8 @@
                             "plcmt": 1,
                             "placement": 1,
                             "mimes": [
-                                "video\/mp4",
-                                "application\/javascript"
+                                "video/mp4",
+                                "application/javascript"
                             ],
                             "protocols": [
                                 2,
@@ -1803,8 +1776,8 @@
                             "plcmt": 2,
                             "placement": 3,
                             "mimes": [
-                                "video\/mp4",
-                                "application\/javascript"
+                                "video/mp4",
+                                "application/javascript"
                             ],
                             "protocols": [
                                 2,
@@ -1874,7 +1847,7 @@
                                         "pageId": 648549,
                                         "formatId": 40859,
                                         "siteId": 99913,
-                                        "domain": "https:\/\/prg.smartadserver.com"
+                                        "domain": "https://prg.smartadserver.com"
                                     }
                                 },
                                 {
@@ -1981,7 +1954,7 @@
                                         "siteId": "99913",
                                         "pageId": "648549",
                                         "formatId": "40183",
-                                        "domain": "\/\/prg.smartadserver.com"
+                                        "domain": "//prg.smartadserver.com"
                                     }
                                 },
                                 {
@@ -2072,136 +2045,488 @@
     },
     "ext": {
         "sites": {
+            "p1": {
+                "mun-mv": {
+                    "ES": {
+                        "gexp-intext": [],
+                        "gexp-intext-2": {
+                            "i1": 1,
+                            "i3": 2
+                        },
+                        "m": {
+                            "i1": 4
+                        },
+                        "m-pnc": [],
+                        "mb": [],
+                        "r": {
+                            "i0": 2,
+                            "i1": 1,
+                            "i2": 4,
+                            "i3": 0
+                        }
+                    },
+                    "FR": {
+                        "gexp-intext-2": [],
+                        "m": {
+                            "i1": 1
+                        },
+                        "r": {
+                            "i1": 1,
+                            "i2": 1,
+                            "i3": 0
+                        },
+                        "gexp-intext": [],
+                        "m-pnc": [],
+                        "mb": []
+                    },
+                    "US": {
+                        "gexp-intext": [],
+                        "gexp-intext-2": [],
+                        "m": {
+                            "i1": 3
+                        },
+                        "m-pnc": [],
+                        "r": {
+                            "i1": 6,
+                            "i2": 4,
+                            "i3": 1
+                        },
+                        "mb": []
+                    },
+                    "DE": {
+                        "gexp-intext": [],
+                        "gexp-intext-2": [],
+                        "m": {
+                            "i1": 3
+                        },
+                        "r": {
+                            "i1": 6,
+                            "i2": 8,
+                            "i3": 0
+                        },
+                        "m-pnc": [],
+                        "mb": []
+                    },
+                    "PT": {
+                        "gexp-intext-2": [],
+                        "m": {
+                            "i1": 1
+                        },
+                        "r": {
+                            "i2": 0,
+                            "i3": 0
+                        },
+                        "gexp-intext": []
+                    },
+                    "GB": {
+                        "gexp-intext-2": [],
+                        "m": {
+                            "i1": 1
+                        },
+                        "r": {
+                            "i1": 6,
+                            "i2": 4,
+                            "i3": 1
+                        },
+                        "gexp-intext": [],
+                        "mb": []
+                    },
+                    "CH": {
+                        "gexp-intext-2": {
+                            "i3": 2
+                        },
+                        "m": {
+                            "i1": 1
+                        },
+                        "r": {
+                            "i1": 8,
+                            "i2": 4,
+                            "i3": 0
+                        },
+                        "gexp-intext": [],
+                        "mb": []
+                    },
+                    "MA": {
+                        "gexp-intext-2": [],
+                        "m": {
+                            "i1": 0
+                        },
+                        "r": {
+                            "i2": 0,
+                            "i3": 0
+                        },
+                        "gexp-intext": []
+                    },
+                    "IT": {
+                        "gexp-intext-2": [],
+                        "m": {
+                            "i1": 2
+                        },
+                        "r": {
+                            "i2": 0,
+                            "i3": 4
+                        },
+                        "gexp-intext": []
+                    },
+                    "NL": {
+                        "gexp-intext": [],
+                        "gexp-intext-2": [],
+                        "m": {
+                            "i1": 4
+                        },
+                        "r": {
+                            "i1": 0,
+                            "i2": 0,
+                            "i3": 0
+                        },
+                        "m-pnc": [],
+                        "mb": []
+                    },
+                    "BE": {
+                        "gexp-intext-2": [],
+                        "m": {
+                            "i1": 1
+                        },
+                        "r": {
+                            "i1": 1,
+                            "i2": 6,
+                            "i3": 0
+                        },
+                        "gexp-intext": []
+                    },
+                    "IE": {
+                        "m": {
+                            "i1": 1
+                        },
+                        "r": {
+                            "i2": 3,
+                            "i3": 0
+                        },
+                        "gexp-intext": [],
+                        "gexp-intext-2": [],
+                        "mb": []
+                    },
+                    "AD": {
+                        "m": {
+                            "i1": 1
+                        },
+                        "r": {
+                            "i1": 5,
+                            "i2": 3,
+                            "i3": 2
+                        },
+                        "gexp-intext": [],
+                        "gexp-intext-2": []
+                    },
+                    "SE": {
+                        "gexp-intext-2": [],
+                        "m": {
+                            "i1": 3
+                        },
+                        "r": {
+                            "i2": 3,
+                            "i3": 0
+                        },
+                        "gexp-intext": []
+                    },
+                    "PL": {
+                        "m": {
+                            "i1": 3
+                        },
+                        "r": {
+                            "i2": 3,
+                            "i3": 0
+                        },
+                        "gexp-intext": [],
+                        "gexp-intext-2": []
+                    },
+                    "LU": {
+                        "m": {
+                            "i1": 0
+                        },
+                        "r": {
+                            "i2": 3,
+                            "i3": 0
+                        },
+                        "gexp-intext": [],
+                        "gexp-intext-2": []
+                    },
+                    "RO": {
+                        "gexp-intext-2": [],
+                        "m": {
+                            "i1": 1
+                        },
+                        "r": {
+                            "i2": 3,
+                            "i3": 3
+                        },
+                        "gexp-intext": []
+                    },
+                    "AT": {
+                        "m": {
+                            "i1": 1
+                        },
+                        "r": {
+                            "i2": 3,
+                            "i3": 1
+                        },
+                        "gexp-intext": [],
+                        "gexp-intext-2": []
+                    },
+                    "NO": {
+                        "m": {
+                            "i1": 3
+                        },
+                        "r": {
+                            "i2": 3,
+                            "i3": 3
+                        },
+                        "gexp-intext": [],
+                        "gexp-intext-2": []
+                    },
+                    "SG": {
+                        "r": {
+                            "i3": 3
+                        },
+                        "gexp-intext-2": [],
+                        "m": {
+                            "i1": 1
+                        }
+                    },
+                    "CA": {
+                        "m": {
+                            "i1": 3
+                        },
+                        "r": {
+                            "i2": 3,
+                            "i3": 0
+                        },
+                        "gexp-intext": [],
+                        "gexp-intext-2": []
+                    },
+                    "JP": {
+                        "m": {
+                            "i1": 3
+                        },
+                        "r": {
+                            "i2": 3,
+                            "i3": 0
+                        },
+                        "gexp-intext": [],
+                        "gexp-intext-2": []
+                    }
+                }
+            },
+            "pp2": {
+                "mun-mv": {
+                    "BE": {
+                        "m": 6,
+                        "r": 6,
+                        "rb": 4,
+                        "rc": 2,
+                        "rd": 3,
+                        "gexp-intext": 1,
+                        "gexp-intext-2": 2,
+                        "r-nata": 4,
+                        "re": 4
+                    },
+                    "CH": {
+                        "m": 11,
+                        "r": 6,
+                        "r-nata": 4,
+                        "rb": 6,
+                        "rc": 4,
+                        "rd": 4,
+                        "re": 4,
+                        "gexp-intext-2": 2
+                    },
+                    "ES": {
+                        "gexp-intext": 4,
+                        "gexp-intext-2": 3,
+                        "m": 4,
+                        "m-pnc": 4,
+                        "mb": 11,
+                        "r": 4,
+                        "r-nata": 4,
+                        "rb": 4,
+                        "rc": 4,
+                        "rd": 4,
+                        "re": 1,
+                        "r-pnc": 4
+                    },
+                    "GB": {
+                        "m": 4,
+                        "r": 4,
+                        "rb": 4,
+                        "rc": 4,
+                        "rd": 4,
+                        "re": 4,
+                        "r-nata": 4,
+                        "gexp-intext-2": 3
+                    },
+                    "PT": {
+                        "m": 4,
+                        "r": 4,
+                        "rb": 4,
+                        "rc": 4,
+                        "rd": 3,
+                        "re": 4,
+                        "gexp-intext": 1,
+                        "gexp-intext-2": 2,
+                        "r-nata": 4
+                    },
+                    "DE": {
+                        "m": 6,
+                        "r": 4,
+                        "r-nata": 4,
+                        "rb": 4,
+                        "rc": 2,
+                        "rd": 4,
+                        "gexp-intext": 2,
+                        "gexp-intext-2": 3,
+                        "re": 4
+                    },
+                    "FR": {
+                        "m": 3,
+                        "r": 4,
+                        "rb": 4,
+                        "rc": 2,
+                        "rd": 2,
+                        "r-nata": 4,
+                        "re": 3,
+                        "gexp-intext": 2,
+                        "gexp-intext-2": 3
+                    },
+                    "NL": {
+                        "m": 2,
+                        "r": 6,
+                        "rb": 6,
+                        "rc": 3,
+                        "rd": 3,
+                        "re": 4,
+                        "gexp-intext": 2,
+                        "gexp-intext-2": 2,
+                        "mb": 1,
+                        "r-nata": 4
+                    },
+                    "IT": {
+                        "m": 4,
+                        "r": 4,
+                        "r-nata": 4,
+                        "rb": 4,
+                        "rc": 3,
+                        "rd": 4,
+                        "re": 4,
+                        "gexp-intext-2": 2
+                    },
+                    "US": {
+                        "gexp-intext-2": 6,
+                        "m": 11,
+                        "r": 11,
+                        "r-nata": 4,
+                        "rb": 6,
+                        "rc": 4,
+                        "rd": 4,
+                        "re": 4,
+                        "m-pnc": 1,
+                        "r-pnc": 1,
+                        "gexp-intext": 6
+                    }
+                },
+                "yodona-mv": {
+                    "BE": {
+                        "m": 5,
+                        "r": 9,
+                        "rb": 11,
+                        "rc": 2
+                    },
+                    "CH": {
+                        "re": 3
+                    },
+                    "ES": {
+                        "gexp-intext-2": 6,
+                        "m": 4,
+                        "r": 6,
+                        "r-nata": 4,
+                        "rb": 4,
+                        "rc": 4,
+                        "rd": 4,
+                        "re": 4,
+                        "gexp-intext": 11
+                    },
+                    "GB": {
+                        "r": 8
+                    },
+                    "PT": {
+                        "m": 8,
+                        "r": 8,
+                        "rb": 2,
+                        "rc": 2,
+                        "rd": 2
+                    },
+                    "DE": {
+                        "m": 5,
+                        "r": 11,
+                        "rb": 2,
+                        "rc": 2,
+                        "rd": 2
+                    },
+                    "FR": {
+                        "m": 14,
+                        "r": 11,
+                        "r-nata": 6,
+                        "rb": 11,
+                        "rc": 6,
+                        "rd": 2,
+                        "re": 6
+                    },
+                    "NL": {
+                        "m": 8,
+                        "r": 15,
+                        "rb": 11,
+                        "rc": 6
+                    },
+                    "IT": {
+                        "m": 9,
+                        "r": 8,
+                        "r-nata": 4,
+                        "rb": 2,
+                        "rc": 6,
+                        "rd": 6,
+                        "re": 6
+                    },
+                    "US": {
+                        "re": 4,
+                        "m": 8,
+                        "r": 6,
+                        "r-nata": 4,
+                        "rb": 4,
+                        "rc": 4,
+                        "rd": 4
+                    }
+                }
+            },
             "vv": {
-                "exp2": {
-                    "portada": {
-                        "0": {
+                "mun-mv": {
+                    "portada": [
+                        {
                             "f": {
                                 "f": 0
                             }
                         },
-                        "2": {
+                        {
                             "f": {
                                 "f": 0
                             }
                         },
-                        "3": {
-                            "f": {
-                                "f": 0
-                            }
-                        },
-                        "4": {
-                            "f": {
-                                "f": 0
-                            }
-                        },
-                        "5": {
-                            "f": {
-                                "f": 0
-                            }
-                        },
-                        "6": {
-                            "f": {
-                                "f": 0,
-                                "t": 100
-                            }
-                        },
-                        "7": {
-                            "f": {
-                                "f": 30,
-                                "t": 85
-                            },
-                            "t": {
-                                "t": 100
-                            }
-                        },
-                        "8": {
-                            "f": {
-                                "f": 55,
-                                "t": 75
-                            }
-                        },
-                        "9": {
-                            "f": {
-                                "f": 75,
-                                "t": 100
-                            },
-                            "t": {
-                                "t": 100
-                            }
-                        },
-                        "10": {
-                            "f": {
-                                "f": 80,
-                                "t": 50
-                            },
-                            "t": {
-                                "t": 100
-                            }
-                        },
-                        "11": {
-                            "f": {
-                                "f": 60
-                            },
-                            "t": {
-                                "t": 100
-                            }
-                        },
-                        "12": {
-                            "f": {
-                                "f": 20
-                            }
-                        },
-                        "13": {
-                            "f": {
-                                "f": 55
-                            }
-                        },
-                        "14": {
-                            "f": {
-                                "f": 50
-                            }
-                        },
-                        "15": {
-                            "f": {
-                                "f": 100
-                            }
-                        },
-                        "16": {
-                            "f": {
-                                "f": 100
-                            }
-                        },
-                        "19": {
-                            "f": {
-                                "f": 25
-                            }
-                        },
-                        "20": {
+                        {
                             "f": {
                                 "f": 5
                             }
-                        }
-                    },
-                    "marketcard": [
-                        {
-                            "f": {
-                                "f": 0
-                            }
                         },
                         {
                             "f": {
-                                "f": 0
-                            }
-                        },
-                        {
-                            "f": {
-                                "f": 0
-                            }
-                        },
-                        {
-                            "f": {
-                                "f": 20
+                                "f": 5
                             }
                         },
                         {
@@ -2216,53 +2541,86 @@
                         },
                         {
                             "f": {
-                                "f": 25,
-                                "t": 100
-                            }
-                        },
-                        {
-                            "f": {
-                                "f": 35,
-                                "t": 100
+                                "f": 0,
+                                "t": 35
                             },
                             "t": {
-                                "t": 80
+                                "t": 20
                             }
                         },
                         {
                             "f": {
-                                "f": 55,
+                                "f": 70,
                                 "t": 80
                             },
                             "t": {
-                                "t": 100
+                                "t": 70
                             }
                         },
                         {
                             "f": {
-                                "f": 35,
-                                "t": 80
+                                "f": 45,
+                                "t": 55
                             },
                             "t": {
-                                "t": 100
+                                "t": 60
                             }
                         },
                         {
                             "f": {
-                                "f": 50,
-                                "t": 0
+                                "f": 30,
+                                "t": 65
                             },
                             "t": {
-                                "t": 0
+                                "t": 65
                             }
                         },
                         {
                             "f": {
-                                "f": 35,
+                                "f": 20,
                                 "t": 50
                             },
                             "t": {
-                                "t": 100
+                                "t": 65
+                            }
+                        },
+                        {
+                            "f": {
+                                "f": 35,
+                                "t": 0
+                            }
+                        },
+                        {
+                            "f": {
+                                "f": 35
+                            },
+                            "t": {
+                                "t": 0
+                            }
+                        },
+                        {
+                            "f": {
+                                "f": 40
+                            }
+                        },
+                        {
+                            "f": {
+                                "f": 45
+                            }
+                        },
+                        {
+                            "f": {
+                                "f": 40
+                            }
+                        },
+                        {
+                            "f": {
+                                "f": 35
+                            }
+                        },
+                        {
+                            "f": {
+                                "f": 30
                             }
                         },
                         {
@@ -2273,348 +2631,487 @@
                         {
                             "f": {
                                 "f": 20
-                            },
-                            "t": {
-                                "t": 0
-                            }
-                        },
-                        {
-                            "f": {
-                                "f": 10
-                            },
-                            "t": {
-                                "t": 100
-                            }
-                        },
-                        {
-                            "f": {
-                                "f": 0,
-                                "t": 0
                             }
                         },
                         {
                             "f": {
                                 "f": 5
-                            }
-                        },
-                        {
-                            "f": {
-                                "f": 0
                             }
                         }
                     ],
-                    "noticia": {
-                        "2": {
+                    "noticia": [
+                        {
                             "f": {
-                                "f": 100
+                                "f": 0,
+                                "t": 0
                             }
                         },
-                        "3": {
+                        {
+                            "f": {
+                                "f": 0
+                            }
+                        },
+                        {
+                            "f": {
+                                "f": 0
+                            }
+                        },
+                        {
+                            "f": {
+                                "f": 0
+                            }
+                        },
+                        {
+                            "f": {
+                                "f": 0
+                            }
+                        },
+                        {
                             "f": {
                                 "f": 30
                             }
                         },
-                        "4": {
+                        {
                             "f": {
-                                "f": 15
+                                "f": 0,
+                                "t": 65
                             }
                         },
-                        "5": {
-                            "f": {
-                                "f": 10
-                            }
-                        },
-                        "6": {
-                            "f": {
-                                "f": 20
-                            }
-                        },
-                        "7": {
+                        {
                             "f": {
                                 "f": 50,
+                                "t": 85
+                            },
+                            "t": {
+                                "t": 80
+                            }
+                        },
+                        {
+                            "f": {
+                                "f": 35,
+                                "t": 65
+                            },
+                            "t": {
+                                "t": 75
+                            }
+                        },
+                        {
+                            "f": {
+                                "f": 50,
+                                "t": 70
+                            },
+                            "t": {
+                                "t": 80
+                            }
+                        },
+                        {
+                            "f": {
+                                "f": 75,
+                                "t": 100
+                            },
+                            "t": {
                                 "t": 100
                             }
                         },
-                        "8": {
+                        {
                             "f": {
-                                "f": 100
-                            }
-                        },
-                        "9": {
-                            "f": {
-                                "f": 75
-                            }
-                        },
-                        "10": {
-                            "f": {
-                                "f": 80
-                            }
-                        },
-                        "11": {
-                            "f": {
-                                "f": 100
-                            }
-                        },
-                        "12": {
-                            "f": {
-                                "f": 25
-                            }
-                        },
-                        "13": {
-                            "f": {
-                                "f": 0
-                            }
-                        },
-                        "14": {
-                            "f": {
-                                "f": 0
+                                "f": 65,
+                                "t": 100
                             },
                             "t": {
                                 "t": 0
                             }
                         },
-                        "15": {
+                        {
                             "f": {
-                                "f": 20
+                                "f": 40
                             }
                         },
-                        "16": {
+                        {
                             "f": {
-                                "f": 0
+                                "f": 30
                             }
                         },
-                        "17": {
+                        {
                             "f": {
-                                "f": 0
+                                "f": 15
                             }
                         },
-                        "18": {
+                        {
                             "f": {
-                                "f": 0
+                                "f": 20,
+                                "t": 0
+                            },
+                            "t": {
+                                "t": 0
                             }
                         },
-                        "19": {
+                        {
                             "f": {
-                                "f": 0
+                                "f": 10
                             }
                         },
-                        "20": {
+                        {
+                            "f": {
+                                "f": 10
+                            }
+                        },
+                        {
+                            "f": {
+                                "f": 5
+                            },
+                            "t": {
+                                "t": 0
+                            }
+                        },
+                        {
+                            "f": {
+                                "f": 5
+                            }
+                        },
+                        {
                             "f": {
                                 "f": 0,
                                 "t": 0
                             }
                         }
-                    },
-                    "portadilla": {
-                        "4": {
-                            "f": {
-                                "f": 30
-                            }
-                        },
-                        "5": {
-                            "f": {
-                                "f": 0
-                            }
-                        },
-                        "6": {
-                            "f": {
-                                "f": 25
-                            }
-                        },
-                        "7": {
-                            "f": {
-                                "f": 30,
-                                "t": 100
-                            }
-                        },
-                        "8": {
-                            "f": {
-                                "f": 20,
-                                "t": 100
-                            },
-                            "t": {
-                                "t": 0
-                            }
-                        },
-                        "9": {
-                            "f": {
-                                "f": 0
-                            }
-                        },
-                        "10": {
-                            "f": {
-                                "f": 15
-                            }
-                        },
-                        "11": {
-                            "f": {
-                                "f": 10
-                            }
-                        },
-                        "12": {
-                            "f": {
-                                "f": 30
-                            }
-                        },
-                        "13": {
-                            "f": {
-                                "f": 0
-                            }
-                        },
-                        "14": {
-                            "f": {
-                                "f": 0
-                            }
-                        },
-                        "15": {
-                            "f": {
-                                "f": 0
-                            }
-                        },
-                        "16": {
-                            "f": {
-                                "f": 0
-                            }
-                        },
-                        "17": {
-                            "f": {
-                                "f": 0
-                            }
-                        },
-                        "18": {
-                            "f": {
-                                "f": 0
-                            }
-                        },
-                        "19": {
-                            "f": {
-                                "f": 0
-                            }
-                        },
-                        "20": {
-                            "f": {
-                                "f": 30
-                            }
-                        }
-                    },
-                    "axesor-ejecutivos": {
-                        "5": {
-                            "f": {
-                                "f": 100
-                            }
-                        },
-                        "6": {
-                            "f": {
-                                "f": 25
-                            },
-                            "t": {
-                                "t": 30
-                            }
-                        },
-                        "7": {
-                            "f": {
-                                "f": 75,
-                                "t": 100
-                            },
-                            "t": {
-                                "t": 100
-                            }
-                        },
-                        "8": {
-                            "f": {
-                                "f": 75,
-                                "t": 100
-                            },
-                            "t": {
-                                "t": 100
-                            }
-                        },
-                        "9": {
-                            "f": {
-                                "f": 40
-                            },
-                            "t": {
-                                "t": 0
-                            }
-                        },
-                        "10": {
-                            "f": {
-                                "f": 55
-                            },
-                            "t": {
-                                "t": 100
-                            }
-                        },
-                        "11": {
-                            "f": {
-                                "f": 50
-                            }
-                        },
-                        "13": {
-                            "f": {
-                                "f": 100
-                            }
-                        }
-                    },
+                    ],
                     "directo": {
                         "0": {
                             "f": {
                                 "f": 0
                             }
                         },
-                        "1": {
-                            "f": {
-                                "f": 0
-                            }
-                        },
-                        "2": {
-                            "f": {
-                                "f": 0
-                            }
-                        },
                         "3": {
                             "f": {
                                 "f": 0
                             }
                         },
-                        "5": {
-                            "f": {
-                                "f": 0
+                        "6": {
+                            "t": {
+                                "t": 0
                             }
                         },
                         "7": {
                             "f": {
-                                "f": 75
+                                "f": 45,
+                                "t": 80
+                            },
+                            "t": {
+                                "t": 90
+                            }
+                        },
+                        "8": {
+                            "f": {
+                                "t": 0
+                            },
+                            "t": {
+                                "t": 50
                             }
                         },
                         "9": {
                             "f": {
-                                "f": 100
+                                "t": 100
+                            },
+                            "t": {
+                                "t": 0
+                            }
+                        },
+                        "10": {
+                            "f": {
+                                "f": 50
+                            },
+                            "t": {
+                                "t": 50
                             }
                         },
                         "11": {
                             "f": {
-                                "f": 50
+                                "f": 0,
+                                "t": 100
+                            }
+                        },
+                        "12": {
+                            "f": {
+                                "f": 0
+                            }
+                        },
+                        "13": {
+                            "f": {
+                                "f": 0
+                            }
+                        },
+                        "14": {
+                            "f": {
+                                "f": 0
+                            }
+                        },
+                        "15": {
+                            "f": {
+                                "f": 10
+                            }
+                        },
+                        "16": {
+                            "f": {
+                                "f": 30
+                            }
+                        },
+                        "17": {
+                            "f": {
+                                "f": 45
+                            }
+                        },
+                        "18": {
+                            "f": {
+                                "f": 45
+                            }
+                        },
+                        "19": {
+                            "f": {
+                                "f": 35
                             }
                         },
                         "20": {
                             "f": {
-                                "f": 0
+                                "f": 5
                             }
                         }
                     },
+                    "portadilla": [
+                        {
+                            "f": {
+                                "f": 5
+                            }
+                        },
+                        {
+                            "f": {
+                                "f": 0
+                            }
+                        },
+                        {
+                            "f": {
+                                "f": 0
+                            }
+                        },
+                        {
+                            "f": {
+                                "f": 0
+                            }
+                        },
+                        {
+                            "f": {
+                                "f": 0
+                            }
+                        },
+                        {
+                            "f": {
+                                "f": 0
+                            }
+                        },
+                        {
+                            "f": {
+                                "f": 0,
+                                "t": 100
+                            }
+                        },
+                        {
+                            "f": {
+                                "f": 70,
+                                "t": 100
+                            }
+                        },
+                        {
+                            "f": {
+                                "f": 80
+                            }
+                        },
+                        {
+                            "f": {
+                                "f": 30,
+                                "t": 100
+                            },
+                            "t": {
+                                "t": 50
+                            }
+                        },
+                        {
+                            "f": {
+                                "f": 30
+                            },
+                            "t": {
+                                "t": 100
+                            }
+                        },
+                        {
+                            "f": {
+                                "f": 50
+                            }
+                        },
+                        {
+                            "f": {
+                                "f": 50
+                            }
+                        },
+                        {
+                            "f": {
+                                "f": 5
+                            }
+                        },
+                        {
+                            "f": {
+                                "f": 35
+                            }
+                        },
+                        {
+                            "f": {
+                                "f": 45
+                            }
+                        },
+                        {
+                            "f": {
+                                "f": 35
+                            }
+                        },
+                        {
+                            "f": {
+                                "f": 20
+                            }
+                        },
+                        {
+                            "f": {
+                                "f": 5
+                            }
+                        },
+                        {
+                            "f": {
+                                "f": 5
+                            }
+                        },
+                        {
+                            "f": {
+                                "f": 5
+                            }
+                        }
+                    ],
                     "portadilla-nc": {
                         "0": {
                             "f": {
                                 "f": 0
                             }
                         },
-                        "6": {
+                        "2": {
                             "f": {
                                 "f": 0
                             }
                         },
+                        "4": {
+                            "f": {
+                                "f": 0
+                            }
+                        },
+                        "6": {
+                            "t": {
+                                "t": 25
+                            }
+                        },
                         "7": {
+                            "f": {
+                                "f": 75,
+                                "t": 65
+                            }
+                        },
+                        "8": {
+                            "f": {
+                                "f": 0,
+                                "t": 100
+                            },
+                            "t": {
+                                "t": 40
+                            }
+                        },
+                        "9": {
+                            "f": {
+                                "t": 100
+                            },
+                            "t": {
+                                "t": 65
+                            }
+                        },
+                        "10": {
+                            "f": {
+                                "f": 100,
+                                "t": 0
+                            }
+                        },
+                        "11": {
+                            "f": {
+                                "f": 0
+                            }
+                        },
+                        "12": {
+                            "f": {
+                                "f": 60
+                            }
+                        },
+                        "13": {
+                            "f": {
+                                "f": 80
+                            }
+                        },
+                        "14": {
+                            "f": {
+                                "f": 80
+                            }
+                        },
+                        "15": {
+                            "f": {
+                                "f": 30
+                            }
+                        },
+                        "16": {
+                            "f": {
+                                "f": 30
+                            }
+                        },
+                        "17": {
+                            "f": {
+                                "f": 0
+                            }
+                        },
+                        "18": {
+                            "f": {
+                                "f": 100
+                            }
+                        },
+                        "19": {
+                            "f": {
+                                "f": 75
+                            }
+                        },
+                        "20": {
+                            "f": {
+                                "f": 75
+                            }
+                        }
+                    },
+                    "noticia-especial": {
+                        "5": {
+                            "f": {
+                                "f": 0
+                            }
+                        },
+                        "6": {
+                            "f": {
+                                "t": 100
+                            }
+                        },
+                        "7": {
+                            "f": {
+                                "f": 30,
+                                "t": 0
+                            }
+                        },
+                        "8": {
                             "f": {
                                 "f": 100,
                                 "t": 100
@@ -2623,491 +3120,99 @@
                                 "t": 100
                             }
                         },
-                        "8": {
-                            "t": {
-                                "t": 0
-                            }
-                        },
                         "9": {
                             "f": {
+                                "f": 75,
                                 "t": 100
                             }
                         },
                         "10": {
                             "f": {
-                                "f": 100
-                            }
-                        },
-                        "12": {
-                            "f": {
-                                "f": 100
-                            }
-                        }
-                    },
-                    "album": [],
-                    "diccionario": {
-                        "7": {
-                            "f": {
-                                "f": 0
-                            }
-                        },
-                        "8": {
-                            "f": {
-                                "f": 80
-                            },
-                            "t": {
+                                "f": 85,
                                 "t": 100
-                            }
-                        },
-                        "9": {
-                            "t": {
-                                "t": 100
-                            }
-                        }
-                    },
-                    "axesor": {
-                        "5": {
-                            "f": {
-                                "f": 0
-                            }
-                        },
-                        "8": {
-                            "f": {
-                                "f": 100
-                            },
-                            "t": {
-                                "t": 100
-                            }
-                        },
-                        "9": {
-                            "f": {
-                                "f": 50
-                            }
-                        }
-                    },
-                    "bolsa-materias primas": {
-                        "6": {
-                            "f": {
-                                "f": 0
-                            }
-                        }
-                    },
-                    "ultima hora": {
-                        "6": {
-                            "f": {
-                                "f": 100
-                            }
-                        },
-                        "7": {
-                            "f": {
-                                "f": 100
-                            }
-                        },
-                        "8": {
-                            "f": {
-                                "t": 100
-                            }
-                        },
-                        "9": {
-                            "f": {
-                                "f": 0
-                            }
-                        }
-                    },
-                    "agenda econ\u00f3mica": {
-                        "8": {
-                            "f": {
-                                "f": 100
-                            }
-                        },
-                        "10": {
-                            "f": {
-                                "f": 100
-                            }
-                        }
-                    },
-                    "otros": {
-                        "8": {
-                            "f": {
-                                "f": 100
-                            }
-                        }
-                    },
-                    "encuentro": {
-                        "8": {
-                            "f": {
-                                "f": 50
-                            }
-                        }
-                    },
-                    "hemeroteca": {
-                        "8": {
-                            "f": {
-                                "f": 100
-                            }
-                        },
-                        "10": {
-                            "f": {
-                                "f": 0
-                            }
-                        }
-                    }
-                },
-                "exp-mv": {
-                    "marketcard": {
-                        "0": {
-                            "f": {
-                                "f": 0
-                            }
-                        },
-                        "4": {
-                            "f": {
-                                "f": 0
-                            }
-                        },
-                        "6": {
-                            "f": {
-                                "f": 100
-                            },
-                            "t": {
-                                "t": 0
-                            }
-                        },
-                        "7": {
-                            "f": {
-                                "f": 90,
-                                "t": 90
-                            },
-                            "t": {
-                                "t": 100
-                            }
-                        },
-                        "8": {
-                            "f": {
-                                "f": 50,
-                                "t": 80
-                            },
-                            "t": {
-                                "t": 0
-                            }
-                        },
-                        "9": {
-                            "f": {
-                                "f": 40
-                            },
-                            "t": {
-                                "t": 100
-                            }
-                        },
-                        "10": {
-                            "f": {
-                                "f": 45
                             }
                         },
                         "11": {
                             "f": {
-                                "f": 10
+                                "f": 85
                             }
                         },
                         "12": {
-                            "f": {
-                                "f": 10
-                            }
-                        },
-                        "13": {
-                            "f": {
-                                "f": 20
-                            }
-                        },
-                        "14": {
-                            "f": {
-                                "f": 20
-                            }
-                        },
-                        "15": {
-                            "f": {
-                                "f": 10
-                            }
-                        },
-                        "16": {
-                            "f": {
-                                "f": 10
-                            }
-                        },
-                        "17": {
-                            "f": {
-                                "f": 20
-                            },
-                            "t": {
-                                "t": 0
-                            }
-                        },
-                        "18": {
-                            "f": {
-                                "f": 0
-                            }
-                        },
-                        "19": {
-                            "f": {
-                                "f": 0
-                            }
-                        },
-                        "20": {
-                            "f": {
-                                "f": 10
-                            }
-                        }
-                    },
-                    "portada": {
-                        "0": {
-                            "f": {
-                                "f": 0
-                            }
-                        },
-                        "2": {
-                            "f": {
-                                "f": 0
-                            }
-                        },
-                        "3": {
-                            "f": {
-                                "f": 0
-                            }
-                        },
-                        "4": {
-                            "f": {
-                                "f": 0
-                            }
-                        },
-                        "6": {
-                            "f": {
-                                "f": 0,
-                                "t": 0
-                            }
-                        },
-                        "7": {
-                            "f": {
-                                "f": 90,
-                                "t": 95
-                            },
-                            "t": {
-                                "t": 100
-                            }
-                        },
-                        "8": {
-                            "f": {
-                                "f": 30,
-                                "t": 30
-                            },
-                            "t": {
-                                "t": 100
-                            }
-                        },
-                        "9": {
-                            "f": {
-                                "f": 50,
-                                "t": 100
-                            }
-                        },
-                        "10": {
-                            "f": {
-                                "f": 60
-                            }
-                        },
-                        "11": {
                             "f": {
                                 "f": 65
                             }
                         },
-                        "12": {
+                        "13": {
                             "f": {
                                 "f": 50
                             }
                         },
-                        "13": {
-                            "f": {
-                                "f": 55,
-                                "t": 0
-                            }
-                        },
                         "14": {
                             "f": {
-                                "f": 35
-                            }
-                        },
-                        "17": {
-                            "f": {
                                 "f": 0
-                            }
-                        },
-                        "18": {
-                            "f": {
-                                "f": 10
-                            }
-                        },
-                        "19": {
-                            "f": {
-                                "f": 0
-                            }
-                        },
-                        "20": {
-                            "f": {
-                                "f": 0
-                            }
-                        }
-                    },
-                    "noticia": {
-                        "0": {
-                            "f": {
-                                "f": 0
-                            }
-                        },
-                        "2": {
-                            "f": {
-                                "f": 0
-                            }
-                        },
-                        "4": {
-                            "f": {
-                                "f": 0
-                            }
-                        },
-                        "7": {
-                            "f": {
-                                "f": 80,
-                                "t": 100
-                            },
-                            "t": {
-                                "t": 0
-                            }
-                        },
-                        "8": {
-                            "f": {
-                                "f": 0,
-                                "t": 50
-                            },
-                            "t": {
-                                "t": 100
-                            }
-                        },
-                        "9": {
-                            "f": {
-                                "f": 50
-                            },
-                            "t": {
-                                "t": 100
-                            }
-                        },
-                        "10": {
-                            "f": {
-                                "f": 35
-                            }
-                        },
-                        "11": {
-                            "f": {
-                                "f": 40
-                            }
-                        },
-                        "12": {
-                            "f": {
-                                "f": 30
-                            }
-                        },
-                        "13": {
-                            "f": {
-                                "f": 30
-                            }
-                        },
-                        "14": {
-                            "f": {
-                                "f": 45
                             }
                         },
                         "15": {
+                            "f": {
+                                "f": 50
+                            }
+                        },
+                        "16": {
+                            "f": {
+                                "f": 50
+                            }
+                        },
+                        "17": {
                             "f": {
                                 "f": 15
                             }
                         },
-                        "16": {
-                            "f": {
-                                "f": 25
-                            }
-                        },
-                        "17": {
-                            "f": {
-                                "f": 10
-                            }
-                        },
                         "18": {
                             "f": {
-                                "f": 0
+                                "f": 5
                             }
                         },
                         "19": {
                             "f": {
-                                "f": 0
+                                "f": 15
                             }
                         },
                         "20": {
                             "f": {
-                                "f": 0
+                                "f": 20
                             }
                         }
                     },
-                    "directo": {
+                    "opinion": {
                         "7": {
                             "f": {
-                                "f": 90,
-                                "t": 0
-                            },
-                            "t": {
+                                "f": 60,
                                 "t": 100
                             }
                         },
-                        "11": {
+                        "8": {
                             "f": {
                                 "f": 0
-                            }
-                        },
-                        "19": {
-                            "f": {
-                                "f": 100
-                            }
-                        },
-                        "20": {
-                            "f": {
-                                "f": 0
-                            }
-                        }
-                    },
-                    "portadilla": {
-                        "2": {
-                            "f": {
-                                "f": 0
-                            }
-                        },
-                        "7": {
-                            "f": {
-                                "f": 80,
-                                "t": 100
-                            },
-                            "t": {
-                                "t": 100
                             }
                         },
                         "9": {
                             "f": {
-                                "f": 0
+                                "f": 100
                             }
                         },
                         "10": {
                             "f": {
-                                "f": 75
+                                "f": 40
                             }
                         },
                         "11": {
                             "f": {
-                                "f": 65
+                                "f": 75
+                            }
+                        },
+                        "12": {
+                            "f": {
+                                "f": 40
                             }
                         },
                         "13": {
@@ -3117,12 +3222,12 @@
                         },
                         "14": {
                             "f": {
-                                "f": 0
+                                "f": 45
                             }
                         },
                         "15": {
                             "f": {
-                                "f": 0
+                                "f": 25
                             }
                         },
                         "16": {
@@ -3132,7 +3237,7 @@
                         },
                         "17": {
                             "f": {
-                                "f": 0
+                                "f": 25
                             }
                         },
                         "18": {
@@ -3142,24 +3247,19 @@
                         },
                         "19": {
                             "f": {
-                                "f": 0
+                                "f": 20
                             }
                         },
                         "20": {
                             "f": {
-                                "f": 0
+                                "f": 30
                             }
                         }
                     },
-                    "axesor-ejecutivos": {
-                        "4": {
-                            "f": {
-                                "f": 0
-                            }
-                        },
+                    "guia tv": {
                         "5": {
                             "f": {
-                                "f": 0
+                                "f": 25
                             }
                         },
                         "6": {
@@ -3169,7 +3269,30 @@
                         },
                         "7": {
                             "f": {
-                                "f": 40
+                                "f": 75
+                            }
+                        }
+                    },
+                    "pagecontent": {
+                        "0": {
+                            "f": {
+                                "f": 0
+                            }
+                        },
+                        "6": {
+                            "f": {
+                                "f": 30
+                            }
+                        },
+                        "7": {
+                            "f": {
+                                "f": 90,
+                                "t": 100
+                            }
+                        },
+                        "9": {
+                            "f": {
+                                "t": 100
                             }
                         },
                         "10": {
@@ -3179,7 +3302,8 @@
                         },
                         "11": {
                             "f": {
-                                "f": 50
+                                "f": 0,
+                                "t": 0
                             }
                         },
                         "12": {
@@ -3194,40 +3318,39 @@
                         },
                         "14": {
                             "f": {
-                                "f": 0
+                                "f": 50
                             }
                         },
                         "15": {
                             "f": {
-                                "f": 100
+                                "f": 0
+                            }
+                        },
+                        "16": {
+                            "f": {
+                                "f": 0
+                            }
+                        },
+                        "18": {
+                            "f": {
+                                "f": 0
+                            }
+                        },
+                        "19": {
+                            "f": {
+                                "f": 0
                             }
                         }
                     },
                     "album": {
                         "7": {
                             "f": {
-                                "f": 50
-                            },
-                            "t": {
-                                "t": 0
+                                "f": 40
                             }
                         }
                     },
-                    "ultima hora": {
-                        "7": {
-                            "f": {
-                                "f": 100,
-                                "t": 100
-                            }
-                        },
-                        "17": {
-                            "f": {
-                                "f": 0
-                            }
-                        }
-                    },
-                    "encuentro": {
-                        "3": {
+                    "directorio": {
+                        "4": {
                             "f": {
                                 "f": 0
                             }
@@ -3237,7 +3360,19 @@
                                 "f": 100
                             }
                         },
-                        "13": {
+                        "19": {
+                            "f": {
+                                "f": 0
+                            }
+                        }
+                    },
+                    "receta": {
+                        "7": {
+                            "f": {
+                                "f": 100
+                            }
+                        },
+                        "15": {
                             "f": {
                                 "f": 0
                             }
@@ -3247,38 +3382,139 @@
                                 "f": 0
                             }
                         }
-                    },
-                    "pagecontent": {
-                        "7": {
-                            "f": {
-                                "f": 100
-                            }
-                        }
-                    },
-                    "bolsa-materias primas": {
-                        "14": {
-                            "f": {
-                                "f": 100
-                            }
-                        }
                     }
                 },
-                "fds": {
-                    "album": [],
+                "yodona-mv": {
                     "noticia": {
+                        "0": {
+                            "f": {
+                                "f": 0
+                            }
+                        },
+                        "2": {
+                            "f": {
+                                "f": 0
+                            }
+                        },
+                        "5": {
+                            "f": {
+                                "f": 0
+                            }
+                        },
                         "6": {
                             "f": {
-                                "t": 50
+                                "f": 50
+                            }
+                        },
+                        "7": {
+                            "f": {
+                                "f": 65
+                            },
+                            "t": {
+                                "t": 100
                             }
                         },
                         "8": {
                             "f": {
+                                "f": 40,
+                                "t": 100
+                            },
+                            "t": {
                                 "t": 100
                             }
                         },
-                        "10": {
+                        "9": {
+                            "f": {
+                                "t": 100
+                            }
+                        },
+                        "11": {
+                            "f": {
+                                "f": 60,
+                                "t": 100
+                            }
+                        },
+                        "12": {
+                            "f": {
+                                "f": 80
+                            }
+                        },
+                        "13": {
+                            "f": {
+                                "f": 25
+                            }
+                        },
+                        "14": {
+                            "f": {
+                                "f": 40
+                            }
+                        },
+                        "15": {
+                            "f": {
+                                "f": 50
+                            }
+                        },
+                        "16": {
+                            "f": {
+                                "f": 0
+                            }
+                        },
+                        "17": {
+                            "f": {
+                                "f": 20
+                            }
+                        },
+                        "18": {
+                            "f": {
+                                "f": 15
+                            }
+                        },
+                        "19": {
+                            "f": {
+                                "f": 10
+                            }
+                        },
+                        "20": {
+                            "f": {
+                                "f": 5
+                            }
+                        }
+                    },
+                    "album": {
+                        "7": {
+                            "f": {
+                                "f": 55,
+                                "t": 0
+                            },
+                            "t": {
+                                "t": 0
+                            }
+                        }
+                    },
+                    "portadilla": {
+                        "0": {
+                            "f": {
+                                "f": 0
+                            }
+                        },
+                        "7": {
                             "f": {
                                 "f": 100
+                            }
+                        },
+                        "12": {
+                            "f": {
+                                "f": 0
+                            }
+                        },
+                        "18": {
+                            "f": {
+                                "f": 0
+                            }
+                        },
+                        "20": {
+                            "f": {
+                                "f": 0
                             }
                         }
                     }
@@ -3286,5 +3522,5 @@
             }
         }
     },
-    "config_version": "6a02ec8e31991"
+    "config_version": "69f1de15ba349"
 }

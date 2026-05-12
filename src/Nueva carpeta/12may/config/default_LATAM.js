@@ -291,80 +291,7 @@ let cfg={
                 },
                 "loading": {
                     "rootMargin": "1000px 0px",
-                    "maxDelayMs": 1500,
-                    "maxFetchToRenderMs": 3000
-                },
-                "loadingExperiments": {
-                    "enabled": true,
-                    "key": "random1",
-                    "variants": {
-                        "5": {
-                            "name": "test-b",
-                            "slots": {
-                                "gexp-intext": {
-                                    "loading": {
-                                        "fetchRootMargin": "650px 0px",
-                                        "renderRootMargin": "250px 0px",
-                                        "maxDelayMs": null
-                                    }
-                                },
-                                "gexp-intext-2": {
-                                    "loading": {
-                                        "fetchRootMargin": "350px 0px",
-                                        "renderRootMargin": "100px 0px",
-                                        "maxDelayMs": null
-                                    }
-                                },
-                                "gexp-intext-3": {
-                                    "loading": {
-                                        "fetchRootMargin": "350px 0px",
-                                        "renderRootMargin": "100px 0px",
-                                        "maxDelayMs": null
-                                    }
-                                },
-                                "pnc": {
-                                    "loading": {
-                                        "fetchRootMargin": "350px 0px",
-                                        "renderRootMargin": "100px 0px",
-                                        "maxDelayMs": null
-                                    }
-                                }
-                            }
-                        },
-                        "6": {
-                            "name": "control",
-                            "slots": {
-                                "gexp-intext": {
-                                    "loading": {
-                                        "fetchRootMargin": "900px 0px",
-                                        "renderRootMargin": "500px 0px",
-                                        "maxDelayMs": 1500
-                                    }
-                                },
-                                "gexp-intext-2": {
-                                    "loading": {
-                                        "fetchRootMargin": "400px 0px",
-                                        "renderRootMargin": "150px 0px",
-                                        "maxDelayMs": null
-                                    }
-                                },
-                                "gexp-intext-3": {
-                                    "loading": {
-                                        "fetchRootMargin": "400px 0px",
-                                        "renderRootMargin": "250px 0px",
-                                        "maxDelayMs": null
-                                    }
-                                },
-                                "pnc": {
-                                    "loading": {
-                                        "fetchRootMargin": "400px 0px",
-                                        "renderRootMargin": "150px 0px",
-                                        "maxDelayMs": null
-                                    }
-                                }
-                            }
-                        }
-                    }
+                    "maxDelayMs": 1500
                 },
                 "display": {
                     "adUnitPath": "telva/belleza/n",
@@ -378,12 +305,7 @@ let cfg={
                 },
                 "video": {
                     "enabled": true,
-                    "fastFallbackErrorCodes": [303],
-                    "fastFallbackOnEmptyVast": true,
-                    "playerSize": [
-                        640,
-                        360
-                    ],
+                    "playerSize": [640, 360],
                     "variantSelection": {
                         "key": "random1",
                         "values": {
@@ -475,7 +397,7 @@ let cfg={
                         "enabled": true,
                         "delayMs": 100,
                         "maxAttemptsPerCycle": 1,
-                        "maxAttemptsPerSlot": 2,
+                        "maxAttemptsPerSlot": 3,
                         "registerTelemetry": false,
                         "requireHouse": true,
                         "advertiserIds": [],

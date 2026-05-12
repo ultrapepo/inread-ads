@@ -2004,10 +2004,11 @@ class RandomStrategy extends WindowArray {
           return IntextManager.deepMerge(baseConfig, profile);
         }
 
-        resolveLoadingConfig(slotId) {
-          const experiments = this.siteConfig?.loadingExperiments;
+        resolveLoadingConfig(slotId, resolvedConfig) {
+          const experiments = resolvedConfig?.loadingExperiments || this.siteConfig?.loadingExperiments;
           const random1 = String(this.manager?.gexp?.getRandom?.(1) || this.readIntextPageKv("random1")?.value || "");
-          let loadingConfig = JSON.parse(JSON.stringify(this.siteConfig?.loading || {
+          
+          let loadingConfig = JSON.parse(JSON.stringify(resolvedConfig?.loading || this.siteConfig?.loading || {
             rootMargin: "250px 0px",
             maxDelayMs: 1500,
             maxFetchToRenderMs: 3000
@@ -2024,7 +2025,14 @@ class RandomStrategy extends WindowArray {
           if (experiments?.enabled && experiments.variants && experiments.variants[random1]) {
             const variant = experiments.variants[random1];
             variantName = variant.name || random1;
-            const slotExperiment = variant.slots?.[slotId];
+            
+            // Normalize slotId for PNC
+            let lookupId = slotId;
+            if (slotId.indexOf("-pnc") !== -1 || slotId === "pnc") {
+                lookupId = "pnc";
+            }
+            
+            const slotExperiment = variant.slots?.[lookupId];
             if (slotExperiment) {
               loadingConfig = IntextManager.deepMerge(loadingConfig, slotExperiment.loading || {});
               experimentResolved = true;
@@ -5495,6 +5503,7 @@ class RandomStrategy extends WindowArray {
           this.container.destroy();
           
           if (this.waterfall) {
+             this.waterfall.cleanup();
              if (this.waterfall._visibilityTimer) {
                  this.waterfall._visibilityTimer.stop();
                  this.waterfall._visibilityTimer = null;
@@ -5646,7 +5655,7 @@ class RandomStrategy extends WindowArray {
         }
 
         init() {
-          this.loadingConfig = this.node.manager.resolveLoadingConfig(this.node.id);
+          this.loadingConfig = this.node.manager.resolveLoadingConfig(this.node.id, this.node.config);
           this.setupLoadingTriggers();
         }
 
@@ -5722,6 +5731,31 @@ class RandomStrategy extends WindowArray {
           this.timer = setTimeout(() => this.startRender("timer"), timeout);
         }
 
+        cleanup() {
+            this.disconnectFetchObserver();
+            this.disconnectRenderObserver();
+            clearTimeout(this.timer);
+            logIntext(`[Intext:Waterfall:${this.node.id}] cleanup - observers and timer cleared`);
+        }
+
+        async runPrebidPhase(trigger, effectiveMode) {
+          this.registerPrebidAliases();
+          const multiConfig = this.getPrebidMultiFormatConfig();
+          if (multiConfig) {
+            const mediaTypesStr = Object.keys(multiConfig.mediaTypes).join("+");
+            logIntext(
+              `[Intext:Slot:${this.node.id}] ├─ Prebid Phase: requesting (code: ${multiConfig.code}, ${multiConfig.bids.length} bidders, types: ${mediaTypesStr})`,
+            );
+            await this.executePrebid(multiConfig);
+            return true;
+          } else {
+            logIntext(
+              `[Intext:Slot:${this.node.id}] ├─ Prebid Phase: SKIPPED (no multi-format config)`,
+            );
+            return false;
+          }
+        }
+
         async startFetch(trigger) {
           if (this.fetchStarted) return;
           this.fetchStarted = true;
@@ -5730,6 +5764,13 @@ class RandomStrategy extends WindowArray {
           this.disconnectFetchObserver();
 
           logIntext(`[Intext:Auction:${this.node.id}] loading_phase_fetch_triggered - trigger=${trigger}`);
+
+          // Effective mode for pre-decision
+          const isRefresh = trigger === "refresh";
+          const effectiveMode = isRefresh
+            ? this.config.refreshCycle?.mode || "display_only"
+            : this.config.decision?.mode || "auto";
+          this._effectiveMode = effectiveMode;
 
           // Telemetry
           if (this.node.wa && this.node.wa.cI) {
@@ -5743,7 +5784,6 @@ class RandomStrategy extends WindowArray {
             this.node.wa.cI["gexp-intext-fetch-trigger"] = trigger;
             this.node.wa.cI["gexp-intext-fetch-start-time-ms"] = String(this.fetchStartAt);
             
-            // Calculate distance
             const targetEl = this.node?.getIntextTelemetryElement?.();
             if (targetEl) {
                 const rect = targetEl.getBoundingClientRect();
@@ -5754,20 +5794,20 @@ class RandomStrategy extends WindowArray {
 
           this.node.startIntextTelemetryCycle(trigger);
 
-          // Initiate Prebid
-          this.prebidPromise = this.node.startPrebidAuction();
-          
           try {
-              const bids = await this.prebidPromise;
-              // Preliminary decision without committing to requestWinner
-              const result = this.decideWinner({ commit: false }); 
+              await this.runPrebidPhase(trigger, effectiveMode);
+              const decision = this.decideWinner({ commit: false }); 
               
               this.pendingAuction = {
                   timestamp: Date.now(),
-                  winner: result.winner,
-                  bids: bids
+                  winner: decision.winner,
+                  loser: decision.loser,
+                  allowFallback: decision.allowFallback,
+                  displayBid: decision.displayBid,
+                  videoBid: decision.videoBid
               };
-              logIntext(`[Intext:Auction:${this.node.id}] loading_phase_fetch_waiting_for_render`);
+              this.fetchComplete = true;
+              logIntext(`[Intext:Auction:${this.node.id}] loading_phase_fetch_waiting_for_render - winner=${decision.winner}`);
               
               if (this.renderTriggeredWaitingForFetch) {
                   const t = this.renderTriggeredWaitingForFetch;
@@ -5776,6 +5816,7 @@ class RandomStrategy extends WindowArray {
               }
           } catch (e) {
               logIntext(`[Intext:Auction:${this.node.id}] fetch_error - ${e.message}`);
+              this.fetchComplete = true; 
           }
         }
 
@@ -5834,8 +5875,8 @@ class RandomStrategy extends WindowArray {
 
           logIntext(`[Intext:Auction:${this.node.id}] loading_phase_render_releasing_pending_request`);
           
-          // Proceed with TAM and Winner Request
-          this.node.requestWinner(this.pendingAuction.winner, this.pendingAuction.bids, trigger);
+          const { winner, loser, allowFallback } = this.pendingAuction;
+          this.requestWinner(winner, loser, allowFallback);
         }
         
         async startAuction(trigger) {
@@ -8675,8 +8716,11 @@ class RandomStrategy extends WindowArray {
               logIntext(`[Intext:Video:IMA] player_adserror - code: ${errCode}, msg: ${errMsg}`);
 
               let fastFallback = false;
-              const fastFallbackErrorCodes = this.node.config?.video?.fastFallbackErrorCodes || [];
-              if (String(errCode) === "303" || fastFallbackErrorCodes.includes(errCode) || fastFallbackErrorCodes.includes(Number(errCode))) {
+              const videoCfg = this.node.config?.video || {};
+              const fastFallbackErrorCodes = videoCfg.fastFallbackErrorCodes || [];
+              const fastFallbackOnEmptyVast = videoCfg.fastFallbackOnEmptyVast !== false;
+
+              if ((String(errCode) === "303" && fastFallbackOnEmptyVast) || fastFallbackErrorCodes.includes(errCode) || fastFallbackErrorCodes.includes(Number(errCode))) {
                   fastFallback = true;
               }
 
