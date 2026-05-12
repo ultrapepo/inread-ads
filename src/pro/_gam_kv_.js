@@ -2004,53 +2004,104 @@ class RandomStrategy extends WindowArray {
           return IntextManager.deepMerge(baseConfig, profile);
         }
 
-        resolveLoadingConfig(slotId, resolvedConfig) {
+        parseIntextRootMarginPx(rootMargin) {
+          const firstValue = String(rootMargin || "").trim().split(/\s+/)[0];
+          const parsed = parseFloat(firstValue);
+          return Number.isFinite(parsed) ? parsed : null;
+        }
+
+        normalizeIntextLoadingConfig(loadingConfig = {}) {
+          const normalized = JSON.parse(JSON.stringify(loadingConfig || {}));
+          const fallbackMargin = normalized.rootMargin || "250px 0px";
+          normalized.renderRootMargin = normalized.renderRootMargin || fallbackMargin;
+          normalized.rootMargin = normalized.rootMargin || normalized.renderRootMargin;
+          normalized.fetchRootMargin = normalized.fetchRootMargin || normalized.renderRootMargin;
+
+          const fetchPx = this.parseIntextRootMarginPx(normalized.fetchRootMargin);
+          const renderPx = this.parseIntextRootMarginPx(normalized.renderRootMargin);
+          if (fetchPx !== null && renderPx !== null && fetchPx < renderPx) {
+            normalized.fetchRootMargin = normalized.renderRootMargin;
+          }
+
+          return normalized;
+        }
+
+        readIntextLoadingExperimentKey(key, context = null) {
+          if (key === "random1") {
+            try {
+              const random = this.gexp?.getRandom?.(1);
+              if (random !== null && random !== undefined && random !== "") return String(random);
+            } catch (e) {}
+          }
+
+          const readFromMap = (map) => {
+            if (!map || typeof map !== "object") return null;
+            const value = map[key];
+            if (Array.isArray(value)) return value.length > 0 ? String(value[0]) : null;
+            if (value !== null && value !== undefined && value !== "") return String(value);
+            return null;
+          };
+
+          const pageValue = readFromMap(this.getPageCustomTargeting(context));
+          if (pageValue !== null) return pageValue;
+          return null;
+        }
+
+        normalizeIntextLoadingSlotId(slotId) {
+          const raw = String(slotId || "").replace(/-video$/, "");
+          if (raw.indexOf("-pnc") !== -1 || raw === "pnc") return "pnc";
+          const match = raw.match(/^(gexp-intext(?:-\d+)?)/);
+          return match ? match[1] : raw;
+        }
+
+        resolveLoadingConfig(slotId, resolvedConfig, context = null) {
           const experiments = resolvedConfig?.loadingExperiments || this.siteConfig?.loadingExperiments;
-          const random1 = String(this.manager?.gexp?.getRandom?.(1) || this.readIntextPageKv("random1")?.value || "");
-          
-          let loadingConfig = JSON.parse(JSON.stringify(resolvedConfig?.loading || this.siteConfig?.loading || {
+          const baseLoading = resolvedConfig?.loading || this.siteConfig?.loading || {
             rootMargin: "250px 0px",
             maxDelayMs: 1500,
-            maxFetchToRenderMs: 3000
-          }));
-
-          // Ensure defaults for fetch/render margins
-          if (!loadingConfig.renderRootMargin) loadingConfig.renderRootMargin = loadingConfig.rootMargin;
-          if (!loadingConfig.fetchRootMargin) loadingConfig.fetchRootMargin = loadingConfig.renderRootMargin;
-          if (loadingConfig.maxFetchToRenderMs === undefined) loadingConfig.maxFetchToRenderMs = 3000;
-
-          let experimentResolved = false;
+          };
+          let loadingConfig = this.normalizeIntextLoadingConfig(baseLoading);
+          const key = experiments?.key || "random1";
+          const keyValue = this.readIntextLoadingExperimentKey(key, context) || "";
           let variantName = "default";
+          let experimentResolved = false;
 
-          if (experiments?.enabled && experiments.variants && experiments.variants[random1]) {
-            const variant = experiments.variants[random1];
-            variantName = variant.name || random1;
-            
-            // Normalize slotId for PNC
-            let lookupId = slotId;
-            if (slotId.indexOf("-pnc") !== -1 || slotId === "pnc") {
-                lookupId = "pnc";
-            }
-            
-            const slotExperiment = variant.slots?.[lookupId];
-            if (slotExperiment) {
-              loadingConfig = IntextManager.deepMerge(loadingConfig, slotExperiment.loading || {});
+          if (experiments?.enabled === true && experiments?.variants?.[keyValue]) {
+            const variant = experiments.variants[keyValue];
+            variantName = variant?.name || keyValue;
+            const lookupId = this.normalizeIntextLoadingSlotId(slotId);
+            const slotExperiment = variant?.slots?.[lookupId];
+            if (slotExperiment?.loading) {
+              loadingConfig = this.normalizeIntextLoadingConfig(
+                IntextManager.deepMerge(loadingConfig, slotExperiment.loading),
+              );
               experimentResolved = true;
+              logIntext(`[IntextManager] loading_experiment_resolved`, {
+                slotCode: slotId,
+                random1: key === "random1" ? keyValue : undefined,
+                variant: variantName,
+                fetchRootMargin: loadingConfig.fetchRootMargin,
+                renderRootMargin: loadingConfig.renderRootMargin,
+                maxDelayMs: loadingConfig.maxDelayMs ?? null,
+              });
             }
           }
 
-          if (experimentResolved) {
-            logIntext(`[IntextManager] loading_experiment_resolved - variant=${variantName}, slot=${slotId}, fetchRootMargin=${loadingConfig.fetchRootMargin}, renderRootMargin=${loadingConfig.renderRootMargin}, maxDelayMs=${loadingConfig.maxDelayMs}`);
-          } else {
-            logIntext(`[IntextManager] loading_experiment_fallback_to_default - slot=${slotId}`);
+          if (!experimentResolved && experiments) {
+            logIntext(`[IntextManager] loading_experiment_fallback_to_default`, {
+              slotCode: slotId,
+              random1: key === "random1" ? keyValue : undefined,
+              key,
+              keyValue,
+            });
           }
 
           loadingConfig._experiment = {
-            enabled: !!experiments?.enabled,
+            enabled: experiments?.enabled === true,
+            resolved: experimentResolved,
             variant: variantName,
-            key: experiments?.key || "random1",
-            keyValue: random1,
-            resolved: experimentResolved
+            key,
+            keyValue,
           };
 
           return loadingConfig;
@@ -3535,6 +3586,8 @@ class RandomStrategy extends WindowArray {
             "gexp-intext-creative-size",
             "gexp-intext-video-viewport-exit-played-pct",
             "gexp-intext-video-failed",
+            "gexp-intext-video-error-code",
+            "gexp-intext-video-error-msg",
             "gexp-intext-viewport-visible-ms",
             "gexp-intext-ever-in-viewport",
             "gexp-intext-house-1x1-refresh",
@@ -3546,6 +3599,21 @@ class RandomStrategy extends WindowArray {
             "gexp-intext-root-margin",
             "gexp-intext-timer-delay-ms",
             "gexp-intext-has-timer",
+            "gexp-intext-loading-experiment",
+            "gexp-intext-loading-variant",
+            "gexp-intext-loading-key",
+            "gexp-intext-loading-key-value",
+            "gexp-intext-fetch-root-margin",
+            "gexp-intext-render-root-margin",
+            "gexp-intext-fetch-trigger",
+            "gexp-intext-render-trigger",
+            "gexp-intext-fetch-start-time-ms",
+            "gexp-intext-render-start-time-ms",
+            "gexp-intext-fetch-to-render-ms",
+            "gexp-intext-fetch-age-ms",
+            "gexp-intext-fetch-expired",
+            "gexp-intext-fetch-distance-px",
+            "gexp-intext-render-distance-px",
             "gexp-intext-slot-id",
             "gexp-intext-slot-index",
             "gexp-intext-nav-index",
@@ -3570,6 +3638,8 @@ class RandomStrategy extends WindowArray {
             "gexp-intext-sentinel-retry-preserved-fallback",
             "gexp-intext-sentinel-retry-original-decision-mode",
             "gexp-intext-sentinel-retry-lineitem",
+            "gexp-intext-video-fast-fallback",
+            "gexp-intext-video-fast-fallback-reason",
             "advertiserId",
             "campaignId",
             "lineItemId",
@@ -3605,10 +3675,17 @@ class RandomStrategy extends WindowArray {
           const startDistance = this.getIntextDistancePx();
           const maxDelayMs = this.config?.loading?.maxDelayMs;
           const hasTimer = typeof maxDelayMs === "number" && Number.isFinite(maxDelayMs) && maxDelayMs >= 0;
+          const loadingExperiment = this.config?.loading?._experiment || {};
           Object.assign(cycle, {
-            "gexp-intext-root-margin": String(this.config?.loading?.rootMargin || "200px 0px"),
+            "gexp-intext-root-margin": String(this.config?.loading?.renderRootMargin || this.config?.loading?.rootMargin || "200px 0px"),
             "gexp-intext-timer-delay-ms": hasTimer ? String(maxDelayMs) : "disabled",
             "gexp-intext-has-timer": hasTimer ? "true" : "false",
+            "gexp-intext-loading-experiment": loadingExperiment.enabled ? "true" : "false",
+            "gexp-intext-loading-variant": String(loadingExperiment.variant || "default"),
+            "gexp-intext-loading-key": String(loadingExperiment.key || "random1"),
+            "gexp-intext-loading-key-value": String(loadingExperiment.keyValue || ""),
+            "gexp-intext-fetch-root-margin": String(this.config?.loading?.fetchRootMargin || this.config?.loading?.renderRootMargin || this.config?.loading?.rootMargin || "200px 0px"),
+            "gexp-intext-render-root-margin": String(this.config?.loading?.renderRootMargin || this.config?.loading?.rootMargin || "200px 0px"),
             "gexp-intext-load-observer-target": String(this._intextLoadObserverTarget || "wrapper"),
             "gexp-intext-slot-id": String(this.id || "unknown"),
             "gexp-intext-slot-index": String(this.slotIndex ?? 0),
@@ -5503,7 +5580,7 @@ class RandomStrategy extends WindowArray {
           this.container.destroy();
           
           if (this.waterfall) {
-             this.waterfall.cleanup();
+             this.waterfall.cleanup?.();
              if (this.waterfall._visibilityTimer) {
                  this.waterfall._visibilityTimer.stop();
                  this.waterfall._visibilityTimer = null;
@@ -5614,6 +5691,7 @@ class RandomStrategy extends WindowArray {
           this.wa = wa; 
           this.prebidStarted = false;
           this.fetchStarted = false;
+          this.fetchComplete = false;
           this.renderStarted = false;
           this.timer = null;
           this.fetchObserver = null;
@@ -5655,14 +5733,36 @@ class RandomStrategy extends WindowArray {
         }
 
         init() {
-          this.loadingConfig = this.node.manager.resolveLoadingConfig(this.node.id, this.node.config);
+          this.loadingConfig = this.node.manager.resolveLoadingConfig(
+            this.node.id,
+            this.node.config,
+            this.node.scopedContext,
+          );
+          this.config.loading = this.loadingConfig;
+          this.node.config.loading = this.loadingConfig;
           this.setupLoadingTriggers();
+          this.setupTimerTrigger();
+        }
+
+        getLoadingTargetElement() {
+          return this.node?.getIntextTelemetryElement?.() || this.container.getElement();
+        }
+
+        getLoadingDistancePx() {
+          try {
+            const targetEl = this.getLoadingTargetElement();
+            if (!targetEl || typeof targetEl.getBoundingClientRect !== "function") return null;
+            const rect = targetEl.getBoundingClientRect();
+            return Math.round(rect.top - window.innerHeight);
+          } catch (e) {
+            return null;
+          }
         }
 
         setupLoadingTriggers() {
-          const fetchMargin = this.loadingConfig.fetchRootMargin || "650px 0px";
-          const renderMargin = this.loadingConfig.renderRootMargin || "250px 0px";
-          const targetEl = this.node?.getIntextTelemetryElement?.() || this.container.getElement();
+          const fetchMargin = this.loadingConfig?.fetchRootMargin || this.loadingConfig?.renderRootMargin || "250px 0px";
+          const renderMargin = this.loadingConfig?.renderRootMargin || this.loadingConfig?.rootMargin || "250px 0px";
+          const targetEl = this.getLoadingTargetElement();
 
           if ("IntersectionObserver" in window) {
             const observerTarget =
@@ -5670,12 +5770,13 @@ class RandomStrategy extends WindowArray {
               targetEl && targetEl === this.node?.placement?.paragraph ? "paragraph" :
               "wrapper";
             if (this.node) this.node._intextLoadObserverTarget = observerTarget;
-            
+            this.node?.mergeIntextTelemetry?.({
+              "gexp-intext-load-observer-target": observerTarget,
+            });
             this.fetchObserver = new IntersectionObserver(
               (entries) => {
                 if (entries[0].isIntersecting) {
                   this.startFetch("fetch-intersection");
-                  this.disconnectFetchObserver();
                 }
               },
               { threshold: 0, rootMargin: fetchMargin },
@@ -5685,197 +5786,220 @@ class RandomStrategy extends WindowArray {
               (entries) => {
                 if (entries[0].isIntersecting) {
                   this.startRender("render-intersection");
-                  this.disconnectRenderObserver();
                 }
               },
               { threshold: 0, rootMargin: renderMargin },
             );
 
-            if (targetEl) {
-                this.fetchObserver.observe(targetEl);
-                this.renderObserver.observe(targetEl);
+            const observedEl = targetEl || this.container.getElement();
+            if (observedEl) {
+              this.fetchObserver.observe(observedEl);
+              this.renderObserver.observe(observedEl);
             }
           } else {
             this.startRender("fallback");
           }
-
-          this.setupTimerTrigger();
-        }
-
-        disconnectFetchObserver() {
-            if (this.fetchObserver) {
-                this.fetchObserver.disconnect();
-                this.fetchObserver = null;
-            }
-        }
-
-        disconnectRenderObserver() {
-            if (this.renderObserver) {
-                this.renderObserver.disconnect();
-                this.renderObserver = null;
-            }
         }
 
         setupTimerTrigger() {
-          const timeout = this.loadingConfig.maxDelayMs;
+          const timeout = this.loadingConfig?.maxDelayMs;
           if (typeof timeout !== "number" || !Number.isFinite(timeout) || timeout < 0) {
             logIntext(`[Intext:Auction:${this.node.id}] timer trigger disabled`);
-            if (this.node.wa && this.node.wa.cI) {
-                this.node.wa.cI["gexp-intext-has-timer"] = "false";
-            }
             return;
-          }
-          if (this.node.wa && this.node.wa.cI) {
-              this.node.wa.cI["gexp-intext-has-timer"] = "true";
           }
           this.timer = setTimeout(() => this.startRender("timer"), timeout);
         }
 
+        disconnectFetchObserver() {
+          if (this.fetchObserver) {
+            this.fetchObserver.disconnect();
+            this.fetchObserver = null;
+          }
+        }
+
+        disconnectRenderObserver() {
+          if (this.renderObserver) {
+            this.renderObserver.disconnect();
+            this.renderObserver = null;
+          }
+        }
+
         cleanup() {
-            this.disconnectFetchObserver();
-            this.disconnectRenderObserver();
-            clearTimeout(this.timer);
-            logIntext(`[Intext:Waterfall:${this.node.id}] cleanup - observers and timer cleared`);
+          this.disconnectFetchObserver();
+          this.disconnectRenderObserver();
+          clearTimeout(this.timer);
+          this.timer = null;
+          logIntext(`[Intext:Waterfall:${this.node.id}] cleanup - loading observers and timer cleared`);
+        }
+
+        mergeLoadingPhaseTelemetry(extra = {}) {
+          this.node.mergeIntextTelemetry(extra);
+          this.node.flushIntextTelemetryToCI();
         }
 
         async runPrebidPhase(trigger, effectiveMode) {
+          const prebidPromises = [];
+
           this.registerPrebidAliases();
           const multiConfig = this.getPrebidMultiFormatConfig();
           if (multiConfig) {
             const mediaTypesStr = Object.keys(multiConfig.mediaTypes).join("+");
             logIntext(
-              `[Intext:Slot:${this.node.id}] ├─ Prebid Phase: requesting (code: ${multiConfig.code}, ${multiConfig.bids.length} bidders, types: ${mediaTypesStr})`,
+              `[Intext:Slot:${this.node.id}] ├─ Fetch Prebid: requesting (code: ${multiConfig.code}, ${multiConfig.bids.length} bidders, types: ${mediaTypesStr})`,
             );
-            await this.executePrebid(multiConfig);
-            return true;
+            prebidPromises.push(this.executePrebid(multiConfig));
           } else {
             logIntext(
-              `[Intext:Slot:${this.node.id}] ├─ Prebid Phase: SKIPPED (no multi-format config)`,
+              `[Intext:Slot:${this.node.id}] ├─ Fetch Prebid: SKIPPED (no config)`,
             );
-            return false;
           }
+
+          await Promise.all(prebidPromises);
         }
 
         async startFetch(trigger) {
           if (this.fetchStarted) return;
           this.fetchStarted = true;
+          this.fetchComplete = false;
           this.fetchTrigger = trigger;
           this.fetchStartAt = Date.now();
+          this._auctionStartAt = this.fetchStartAt;
           this.disconnectFetchObserver();
 
-          logIntext(`[Intext:Auction:${this.node.id}] loading_phase_fetch_triggered - trigger=${trigger}`);
+          const distancePx = this.getLoadingDistancePx();
+          const exp = this.loadingConfig?._experiment || {};
+          logIntext(`[Intext:Auction:${this.node.id}] loading_phase_fetch_triggered`, {
+            slotCode: this.node.id,
+            random1: exp.key === "random1" ? exp.keyValue : undefined,
+            variant: exp.variant || "default",
+            fetchRootMargin: this.loadingConfig?.fetchRootMargin,
+            renderRootMargin: this.loadingConfig?.renderRootMargin,
+            maxDelayMs: this.loadingConfig?.maxDelayMs ?? null,
+            trigger,
+            distancePx,
+          });
 
-          // Effective mode for pre-decision
-          const isRefresh = trigger === "refresh";
-          const effectiveMode = isRefresh
-            ? this.config.refreshCycle?.mode || "display_only"
-            : this.config.decision?.mode || "auto";
+          const effectiveMode = this.config.decision?.mode || "auto";
           this._effectiveMode = effectiveMode;
-
-          // Telemetry
-          if (this.node.wa && this.node.wa.cI) {
-            const exp = this.loadingConfig?._experiment || { variant: "default", key: "random1", keyValue: "unknown", enabled: false };
-            this.node.wa.cI["gexp-intext-loading-experiment"] = exp.enabled ? "true" : "false";
-            this.node.wa.cI["gexp-intext-loading-variant"] = exp.variant;
-            this.node.wa.cI["gexp-intext-loading-key"] = exp.key;
-            this.node.wa.cI["gexp-intext-loading-key-value"] = exp.keyValue;
-            this.node.wa.cI["gexp-intext-fetch-root-margin"] = this.loadingConfig?.fetchRootMargin;
-            this.node.wa.cI["gexp-intext-render-root-margin"] = this.loadingConfig?.renderRootMargin;
-            this.node.wa.cI["gexp-intext-fetch-trigger"] = trigger;
-            this.node.wa.cI["gexp-intext-fetch-start-time-ms"] = String(this.fetchStartAt);
-            
-            const targetEl = this.node?.getIntextTelemetryElement?.();
-            if (targetEl) {
-                const rect = targetEl.getBoundingClientRect();
-                const distance = rect.top - window.innerHeight;
-                this.node.wa.cI["gexp-intext-fetch-distance-px"] = String(Math.round(distance));
-            }
-          }
-
           this.node.startIntextTelemetryCycle(trigger);
+          this.mergeLoadingPhaseTelemetry({
+            "gexp-intext-fetch-trigger": trigger,
+            "gexp-intext-fetch-start-time-ms": String(this.fetchStartAt),
+            "gexp-intext-fetch-distance-px": distancePx !== null ? String(distancePx) : undefined,
+          });
 
           try {
-              await this.runPrebidPhase(trigger, effectiveMode);
-              const decision = this.decideWinner({ commit: false }); 
-              
-              this.pendingAuction = {
-                  timestamp: Date.now(),
-                  winner: decision.winner,
-                  loser: decision.loser,
-                  allowFallback: decision.allowFallback,
-                  displayBid: decision.displayBid,
-                  videoBid: decision.videoBid
-              };
-              this.fetchComplete = true;
-              logIntext(`[Intext:Auction:${this.node.id}] loading_phase_fetch_waiting_for_render - winner=${decision.winner}`);
-              
-              if (this.renderTriggeredWaitingForFetch) {
-                  const t = this.renderTriggeredWaitingForFetch;
-                  this.renderTriggeredWaitingForFetch = null;
-                  this.startRender(t);
-              }
-          } catch (e) {
-              logIntext(`[Intext:Auction:${this.node.id}] fetch_error - ${e.message}`);
-              this.fetchComplete = true; 
+            await this.runPrebidPhase(trigger, effectiveMode);
+            const decision = this.decideWinner({ commit: false });
+            this.pendingAuction = {
+              timestamp: Date.now(),
+              ...decision,
+            };
+            this.fetchComplete = true;
+            logIntext(`[Intext:Auction:${this.node.id}] loading_phase_fetch_waiting_for_render`, {
+              slotCode: this.node.id,
+              winner: decision?.winner || "none",
+            });
+            if (this.renderTriggeredWaitingForFetch) {
+              const waitingTrigger = this.renderTriggeredWaitingForFetch;
+              this.renderTriggeredWaitingForFetch = null;
+              this.startRender(waitingTrigger);
+            }
+          } catch (err) {
+            this.fetchComplete = true;
+            this.pendingAuction = null;
+            warnIntext(`[Intext:Auction:${this.node.id}] loading_phase_fetch_error`, err);
+            if (this.renderTriggeredWaitingForFetch) {
+              const waitingTrigger = this.renderTriggeredWaitingForFetch;
+              this.renderTriggeredWaitingForFetch = null;
+              this.startRender(waitingTrigger);
+            }
           }
         }
 
         async startRender(trigger) {
           if (this.renderStarted) return;
-          
+
           if (!this.fetchStarted) {
-              this.startFetch(trigger + "-auto-fetch");
+            this.renderTriggeredWaitingForFetch = trigger;
+            this.startFetch(`${trigger}-auto-fetch`);
+            return;
           }
-          
-          if (!this.pendingAuction) {
-              this.renderTriggeredWaitingForFetch = trigger;
-              logIntext(`[Intext:Auction:${this.node.id}] loading_phase_render_waiting_for_fetch - trigger=${trigger}`);
-              return;
+
+          if (!this.pendingAuction && !this.fetchComplete) {
+            this.renderTriggeredWaitingForFetch = trigger;
+            logIntext(`[Intext:Auction:${this.node.id}] loading_phase_render_waiting_for_fetch - trigger=${trigger}`);
+            return;
           }
 
           this.renderStarted = true;
           this.renderTrigger = trigger;
+          this.lastTrigger = trigger;
           this.renderStartAt = Date.now();
           this.disconnectRenderObserver();
           clearTimeout(this.timer);
+          this.timer = null;
 
-          logIntext(`[Intext:Auction:${this.node.id}] loading_phase_render_triggered - trigger=${trigger}`);
+          const distancePx = this.getLoadingDistancePx();
+          const fetchToRenderMs = this.fetchStartAt ? this.renderStartAt - this.fetchStartAt : 0;
+          logIntext(`[Intext:Auction:${this.node.id}] loading_phase_render_triggered`, {
+            slotCode: this.node.id,
+            trigger,
+            distancePx,
+          });
+          this.mergeLoadingPhaseTelemetry({
+            "gexp-intext-render-trigger": trigger,
+            "gexp-intext-render-start-time-ms": String(this.renderStartAt),
+            "gexp-intext-fetch-to-render-ms": String(fetchToRenderMs),
+            "gexp-intext-render-distance-px": distancePx !== null ? String(distancePx) : undefined,
+          });
 
-          // Expiration check
-          const fetchAge = this.renderStartAt - this.pendingAuction.timestamp;
-          const maxAge = this.loadingConfig.maxFetchToRenderMs || 3000;
-          let usePending = true;
-
-          if (fetchAge > maxAge && trigger !== "refresh" && trigger !== "fallback") {
-              logIntext(`[Intext:Auction:${this.node.id}] fetch_expired - age=${fetchAge}ms, max=${maxAge}ms. Restarting auction.`);
-              usePending = false;
+          if (!this.pendingAuction) {
+            this.prebidStarted = false;
+            await this.startAuction(trigger);
+            return;
           }
 
-          if (this.node.wa && this.node.wa.cI) {
-              this.node.wa.cI["gexp-intext-render-trigger"] = trigger;
-              this.node.wa.cI["gexp-intext-render-start-time-ms"] = String(this.renderStartAt);
-              this.node.wa.cI["gexp-intext-fetch-to-render-ms"] = String(this.renderStartAt - this.fetchStartAt);
-              this.node.wa.cI["gexp-intext-fetch-age-ms"] = String(fetchAge);
-              this.node.wa.cI["gexp-intext-fetch-expired"] = usePending ? "false" : "true";
+          const pendingAgeMs = Date.now() - this.pendingAuction.timestamp;
+          const maxFetchToRenderMs = this.loadingConfig?.maxFetchToRenderMs;
+          const hasFetchExpiry =
+            typeof maxFetchToRenderMs === "number" &&
+            Number.isFinite(maxFetchToRenderMs) &&
+            maxFetchToRenderMs >= 0;
+          const fetchExpired = hasFetchExpiry && pendingAgeMs > maxFetchToRenderMs;
+          this.mergeLoadingPhaseTelemetry({
+            "gexp-intext-fetch-age-ms": String(Math.max(0, Math.round(pendingAgeMs))),
+            "gexp-intext-fetch-expired": fetchExpired ? "true" : "false",
+          });
 
-              const targetEl = this.node?.getIntextTelemetryElement?.();
-              if (targetEl) {
-                  const rect = targetEl.getBoundingClientRect();
-                  const distance = rect.top - window.innerHeight;
-                  this.node.wa.cI["gexp-intext-render-distance-px"] = String(Math.round(distance));
-              }
+          if (fetchExpired) {
+            logIntext(`[Intext:Auction:${this.node.id}] loading_phase_fetch_expired`, {
+              slotCode: this.node.id,
+              trigger,
+              pendingAgeMs,
+              maxFetchToRenderMs,
+            });
+            this.pendingAuction = null;
+            this.fetchStarted = false;
+            this.fetchComplete = false;
+            this.renderStarted = false;
+            this.prebidStarted = false;
+            this.renderTriggeredWaitingForFetch = trigger;
+            await this.startFetch(`${trigger}-restart`);
+            return;
           }
 
-          if (!usePending) {
-              this.fetchStarted = false;
-              this.pendingAuction = null;
-              this.startFetch(trigger + "-restart");
-              return;
-          }
+          logIntext(`[Intext:Auction:${this.node.id}] loading_phase_render_releasing_pending_request`, {
+            slotCode: this.node.id,
+            winner: this.pendingAuction.winner || "none",
+          });
 
-          logIntext(`[Intext:Auction:${this.node.id}] loading_phase_render_releasing_pending_request`);
-          
           const { winner, loser, allowFallback } = this.pendingAuction;
+          this.pendingAuction = null;
+          if (!winner) {
+            this.node.closeAll();
+            return;
+          }
           this.requestWinner(winner, loser, allowFallback);
         }
         
@@ -6360,7 +6484,8 @@ class RandomStrategy extends WindowArray {
           });
         }
 
-        decideWinner() {
+        decideWinner(options = {}) {
+          const commit = options.commit !== false;
           const mode = this._effectiveMode;
           const code = this.getPrebidCode();
 
@@ -6550,12 +6675,19 @@ class RandomStrategy extends WindowArray {
           );
 
           if (!winner) {
+            if (commit === false) {
+              return { winner: null, loser: null, allowFallback: false, displayBid, videoBid };
+            }
             this.node.closeAll();
             return;
           }
 
           const allowFallback = mode === "auto";
           const loser = winner === "video" ? "display" : "video";
+
+          if (commit === false) {
+            return { winner, loser, allowFallback, displayBid, videoBid };
+          }
 
           this.requestWinner(winner, loser, allowFallback);
         }
@@ -8670,6 +8802,35 @@ class RandomStrategy extends WindowArray {
               rejectBeforePlayback(error, source);
             };
 
+            const isFastFallbackVideoError = (errCode) => {
+              const videoCfg = this.node?.config?.video || {};
+              const configuredCodes = Array.isArray(videoCfg.fastFallbackErrorCodes)
+                ? videoCfg.fastFallbackErrorCodes.map((code) => String(code))
+                : [];
+              const normalizedCode = String(errCode || "");
+              if (normalizedCode === "303" && videoCfg.fastFallbackOnEmptyVast !== false) return true;
+              return configuredCodes.includes(normalizedCode);
+            };
+
+            const markFastFallbackVideoError = (errCode, source) => {
+              if (!isFastFallbackVideoError(errCode)) return false;
+              const normalizedCode = String(errCode || "");
+              const reason = normalizedCode === "303" ? "empty-vast" : "configured-error";
+              logIntext(`[Intext:Video:IMA] video_fast_fallback_${normalizedCode}`, {
+                slotCode: this.node?.id,
+                trigger: this._videoTiming?.trigger || "unknown",
+                reason,
+                source,
+              });
+              this.node?.mergeIntextTelemetry?.({
+                "gexp-intext-video-error-code": normalizedCode,
+                "gexp-intext-video-fast-fallback": "true",
+                "gexp-intext-video-fast-fallback-reason": reason,
+              });
+              this.node?.flushIntextTelemetryToCI?.();
+              return true;
+            };
+
             this.player.on("readyforpreroll", () => {
               logIntext(`[Intext:Video:IMA] 🎯 readyforpreroll — anuncio preparado.`);
               logIntext(`[Intext:Video:IMA] readyforpreroll: anuncio preparado, contenedor oculto hasta playback real.`);
@@ -8715,23 +8876,8 @@ class RandomStrategy extends WindowArray {
 
               logIntext(`[Intext:Video:IMA] player_adserror - code: ${errCode}, msg: ${errMsg}`);
 
-              let fastFallback = false;
-              const videoCfg = this.node.config?.video || {};
-              const fastFallbackErrorCodes = videoCfg.fastFallbackErrorCodes || [];
-              const fastFallbackOnEmptyVast = videoCfg.fastFallbackOnEmptyVast !== false;
-
-              if ((String(errCode) === "303" && fastFallbackOnEmptyVast) || fastFallbackErrorCodes.includes(errCode) || fastFallbackErrorCodes.includes(Number(errCode))) {
-                  fastFallback = true;
-              }
-
               if (!firstFramePlayed) {
-                 if (fastFallback) {
-                     logIntext(`[Intext:Video:IMA] video_fast_fallback_${errCode} - skipping additional waits`);
-                     if (this.node.wa && this.node.wa.cI) {
-                         this.node.wa.cI["gexp-intext-video-fast-fallback"] = "true";
-                         this.node.wa.cI["gexp-intext-video-fast-fallback-reason"] = (errCode == 303) ? "empty-vast" : "configured-error";
-                     }
-                 }
+                 markFastFallbackVideoError(errCode, "adserror");
                  rejectBeforePlayback(new Error(`video_ad_error: [${errCode}] ${errMsg}`), "adserror");
               } else {
                 markTerminal("adserror");
@@ -8885,6 +9031,7 @@ class RandomStrategy extends WindowArray {
                           `[Intext:Video:IMA:Native] native_ad_error - code=${err?.getErrorCode?.()}, msg=${err?.getMessage?.()}, vast=${err?.getVastErrorCode?.()}`,
                         );
                         if (!firstFramePlayed) {
+                          markFastFallbackVideoError(err?.getErrorCode?.() || "unknown", "native_ad_error");
                           rejectBeforePlayback(
                             new Error(`video_ad_error: [${err?.getErrorCode?.() || "unknown"}] ${err?.getMessage?.() || "unknown"}`),
                             "native_ad_error",
