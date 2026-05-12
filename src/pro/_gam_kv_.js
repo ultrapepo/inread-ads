@@ -2004,6 +2004,50 @@ class RandomStrategy extends WindowArray {
           return IntextManager.deepMerge(baseConfig, profile);
         }
 
+        resolveLoadingConfig(slotId) {
+          const experiments = this.siteConfig?.loadingExperiments;
+          const random1 = String(this.manager?.gexp?.getRandom?.(1) || this.readIntextPageKv("random1")?.value || "");
+          let loadingConfig = JSON.parse(JSON.stringify(this.siteConfig?.loading || {
+            rootMargin: "250px 0px",
+            maxDelayMs: 1500,
+            maxFetchToRenderMs: 3000
+          }));
+
+          // Ensure defaults for fetch/render margins
+          if (!loadingConfig.renderRootMargin) loadingConfig.renderRootMargin = loadingConfig.rootMargin;
+          if (!loadingConfig.fetchRootMargin) loadingConfig.fetchRootMargin = loadingConfig.renderRootMargin;
+          if (loadingConfig.maxFetchToRenderMs === undefined) loadingConfig.maxFetchToRenderMs = 3000;
+
+          let experimentResolved = false;
+          let variantName = "default";
+
+          if (experiments?.enabled && experiments.variants && experiments.variants[random1]) {
+            const variant = experiments.variants[random1];
+            variantName = variant.name || random1;
+            const slotExperiment = variant.slots?.[slotId];
+            if (slotExperiment) {
+              loadingConfig = IntextManager.deepMerge(loadingConfig, slotExperiment.loading || {});
+              experimentResolved = true;
+            }
+          }
+
+          if (experimentResolved) {
+            logIntext(`[IntextManager] loading_experiment_resolved - variant=${variantName}, slot=${slotId}, fetchRootMargin=${loadingConfig.fetchRootMargin}, renderRootMargin=${loadingConfig.renderRootMargin}, maxDelayMs=${loadingConfig.maxDelayMs}`);
+          } else {
+            logIntext(`[IntextManager] loading_experiment_fallback_to_default - slot=${slotId}`);
+          }
+
+          loadingConfig._experiment = {
+            enabled: !!experiments?.enabled,
+            variant: variantName,
+            key: experiments?.key || "random1",
+            keyValue: random1,
+            resolved: experimentResolved
+          };
+
+          return loadingConfig;
+        }
+
         resolveSiteConfig() {
           const siteConfigs = this.config?.intextSites;
 
@@ -5560,8 +5604,13 @@ class RandomStrategy extends WindowArray {
           this.gexp = gexp;
           this.wa = wa; 
           this.prebidStarted = false;
+          this.fetchStarted = false;
+          this.renderStarted = false;
           this.timer = null;
-          this.intersectionObserver = null;
+          this.fetchObserver = null;
+          this.renderObserver = null;
+          this.pendingAuction = null;
+          this.loadingConfig = null;
         }
 
         getPbjsBidResponsesSafe(adUnitCode) {
@@ -5597,45 +5646,196 @@ class RandomStrategy extends WindowArray {
         }
 
         init() {
-          this.setupIntersectionTrigger();
-          this.setupTimerTrigger();
+          this.loadingConfig = this.node.manager.resolveLoadingConfig(this.node.id);
+          this.setupLoadingTriggers();
         }
 
-        setupIntersectionTrigger() {
-          const margin = this.config.loading?.rootMargin || "200px 0px";
+        setupLoadingTriggers() {
+          const fetchMargin = this.loadingConfig.fetchRootMargin || "650px 0px";
+          const renderMargin = this.loadingConfig.renderRootMargin || "250px 0px";
+          const targetEl = this.node?.getIntextTelemetryElement?.() || this.container.getElement();
 
           if ("IntersectionObserver" in window) {
-            const targetEl = this.node?.getIntextTelemetryElement?.() || this.container.getElement();
             const observerTarget =
               targetEl && targetEl === this.node?.telemetryAnchor ? "anchor" :
               targetEl && targetEl === this.node?.placement?.paragraph ? "paragraph" :
               "wrapper";
             if (this.node) this.node._intextLoadObserverTarget = observerTarget;
-            this.node?.mergeIntextTelemetry?.({
-              "gexp-intext-load-observer-target": observerTarget,
-            });
-            this.intersectionObserver = new IntersectionObserver(
+            
+            this.fetchObserver = new IntersectionObserver(
               (entries) => {
                 if (entries[0].isIntersecting) {
-                  this.startAuction("intersection");
-                  this.intersectionObserver.disconnect();
+                  this.startFetch("fetch-intersection");
+                  this.disconnectFetchObserver();
                 }
               },
-              { threshold: 0, rootMargin: margin },
+              { threshold: 0, rootMargin: fetchMargin },
             );
-            this.intersectionObserver.observe(targetEl || this.container.getElement());
+
+            this.renderObserver = new IntersectionObserver(
+              (entries) => {
+                if (entries[0].isIntersecting) {
+                  this.startRender("render-intersection");
+                  this.disconnectRenderObserver();
+                }
+              },
+              { threshold: 0, rootMargin: renderMargin },
+            );
+
+            if (targetEl) {
+                this.fetchObserver.observe(targetEl);
+                this.renderObserver.observe(targetEl);
+            }
           } else {
-            this.startAuction("fallback");
+            this.startRender("fallback");
           }
+
+          this.setupTimerTrigger();
+        }
+
+        disconnectFetchObserver() {
+            if (this.fetchObserver) {
+                this.fetchObserver.disconnect();
+                this.fetchObserver = null;
+            }
+        }
+
+        disconnectRenderObserver() {
+            if (this.renderObserver) {
+                this.renderObserver.disconnect();
+                this.renderObserver = null;
+            }
         }
 
         setupTimerTrigger() {
-          const timeout = this.config.loading?.maxDelayMs;
+          const timeout = this.loadingConfig.maxDelayMs;
           if (typeof timeout !== "number" || !Number.isFinite(timeout) || timeout < 0) {
             logIntext(`[Intext:Auction:${this.node.id}] timer trigger disabled`);
+            if (this.node.wa && this.node.wa.cI) {
+                this.node.wa.cI["gexp-intext-has-timer"] = "false";
+            }
             return;
           }
-          this.timer = setTimeout(() => this.startAuction("timer"), timeout);
+          if (this.node.wa && this.node.wa.cI) {
+              this.node.wa.cI["gexp-intext-has-timer"] = "true";
+          }
+          this.timer = setTimeout(() => this.startRender("timer"), timeout);
+        }
+
+        async startFetch(trigger) {
+          if (this.fetchStarted) return;
+          this.fetchStarted = true;
+          this.fetchTrigger = trigger;
+          this.fetchStartAt = Date.now();
+          this.disconnectFetchObserver();
+
+          logIntext(`[Intext:Auction:${this.node.id}] loading_phase_fetch_triggered - trigger=${trigger}`);
+
+          // Telemetry
+          if (this.node.wa && this.node.wa.cI) {
+            const exp = this.loadingConfig?._experiment || { variant: "default", key: "random1", keyValue: "unknown", enabled: false };
+            this.node.wa.cI["gexp-intext-loading-experiment"] = exp.enabled ? "true" : "false";
+            this.node.wa.cI["gexp-intext-loading-variant"] = exp.variant;
+            this.node.wa.cI["gexp-intext-loading-key"] = exp.key;
+            this.node.wa.cI["gexp-intext-loading-key-value"] = exp.keyValue;
+            this.node.wa.cI["gexp-intext-fetch-root-margin"] = this.loadingConfig?.fetchRootMargin;
+            this.node.wa.cI["gexp-intext-render-root-margin"] = this.loadingConfig?.renderRootMargin;
+            this.node.wa.cI["gexp-intext-fetch-trigger"] = trigger;
+            this.node.wa.cI["gexp-intext-fetch-start-time-ms"] = String(this.fetchStartAt);
+            
+            // Calculate distance
+            const targetEl = this.node?.getIntextTelemetryElement?.();
+            if (targetEl) {
+                const rect = targetEl.getBoundingClientRect();
+                const distance = rect.top - window.innerHeight;
+                this.node.wa.cI["gexp-intext-fetch-distance-px"] = String(Math.round(distance));
+            }
+          }
+
+          this.node.startIntextTelemetryCycle(trigger);
+
+          // Initiate Prebid
+          this.prebidPromise = this.node.startPrebidAuction();
+          
+          try {
+              const bids = await this.prebidPromise;
+              // Preliminary decision without committing to requestWinner
+              const result = this.decideWinner({ commit: false }); 
+              
+              this.pendingAuction = {
+                  timestamp: Date.now(),
+                  winner: result.winner,
+                  bids: bids
+              };
+              logIntext(`[Intext:Auction:${this.node.id}] loading_phase_fetch_waiting_for_render`);
+              
+              if (this.renderTriggeredWaitingForFetch) {
+                  const t = this.renderTriggeredWaitingForFetch;
+                  this.renderTriggeredWaitingForFetch = null;
+                  this.startRender(t);
+              }
+          } catch (e) {
+              logIntext(`[Intext:Auction:${this.node.id}] fetch_error - ${e.message}`);
+          }
+        }
+
+        async startRender(trigger) {
+          if (this.renderStarted) return;
+          
+          if (!this.fetchStarted) {
+              this.startFetch(trigger + "-auto-fetch");
+          }
+          
+          if (!this.pendingAuction) {
+              this.renderTriggeredWaitingForFetch = trigger;
+              logIntext(`[Intext:Auction:${this.node.id}] loading_phase_render_waiting_for_fetch - trigger=${trigger}`);
+              return;
+          }
+
+          this.renderStarted = true;
+          this.renderTrigger = trigger;
+          this.renderStartAt = Date.now();
+          this.disconnectRenderObserver();
+          clearTimeout(this.timer);
+
+          logIntext(`[Intext:Auction:${this.node.id}] loading_phase_render_triggered - trigger=${trigger}`);
+
+          // Expiration check
+          const fetchAge = this.renderStartAt - this.pendingAuction.timestamp;
+          const maxAge = this.loadingConfig.maxFetchToRenderMs || 3000;
+          let usePending = true;
+
+          if (fetchAge > maxAge && trigger !== "refresh" && trigger !== "fallback") {
+              logIntext(`[Intext:Auction:${this.node.id}] fetch_expired - age=${fetchAge}ms, max=${maxAge}ms. Restarting auction.`);
+              usePending = false;
+          }
+
+          if (this.node.wa && this.node.wa.cI) {
+              this.node.wa.cI["gexp-intext-render-trigger"] = trigger;
+              this.node.wa.cI["gexp-intext-render-start-time-ms"] = String(this.renderStartAt);
+              this.node.wa.cI["gexp-intext-fetch-to-render-ms"] = String(this.renderStartAt - this.fetchStartAt);
+              this.node.wa.cI["gexp-intext-fetch-age-ms"] = String(fetchAge);
+              this.node.wa.cI["gexp-intext-fetch-expired"] = usePending ? "false" : "true";
+
+              const targetEl = this.node?.getIntextTelemetryElement?.();
+              if (targetEl) {
+                  const rect = targetEl.getBoundingClientRect();
+                  const distance = rect.top - window.innerHeight;
+                  this.node.wa.cI["gexp-intext-render-distance-px"] = String(Math.round(distance));
+              }
+          }
+
+          if (!usePending) {
+              this.fetchStarted = false;
+              this.pendingAuction = null;
+              this.startFetch(trigger + "-restart");
+              return;
+          }
+
+          logIntext(`[Intext:Auction:${this.node.id}] loading_phase_render_releasing_pending_request`);
+          
+          // Proceed with TAM and Winner Request
+          this.node.requestWinner(this.pendingAuction.winner, this.pendingAuction.bids, trigger);
         }
         
         async startAuction(trigger) {
@@ -8474,7 +8674,20 @@ class RandomStrategy extends WindowArray {
 
               logIntext(`[Intext:Video:IMA] player_adserror - code: ${errCode}, msg: ${errMsg}`);
 
+              let fastFallback = false;
+              const fastFallbackErrorCodes = this.node.config?.video?.fastFallbackErrorCodes || [];
+              if (String(errCode) === "303" || fastFallbackErrorCodes.includes(errCode) || fastFallbackErrorCodes.includes(Number(errCode))) {
+                  fastFallback = true;
+              }
+
               if (!firstFramePlayed) {
+                 if (fastFallback) {
+                     logIntext(`[Intext:Video:IMA] video_fast_fallback_${errCode} - skipping additional waits`);
+                     if (this.node.wa && this.node.wa.cI) {
+                         this.node.wa.cI["gexp-intext-video-fast-fallback"] = "true";
+                         this.node.wa.cI["gexp-intext-video-fast-fallback-reason"] = (errCode == 303) ? "empty-vast" : "configured-error";
+                     }
+                 }
                  rejectBeforePlayback(new Error(`video_ad_error: [${errCode}] ${errMsg}`), "adserror");
               } else {
                 markTerminal("adserror");
