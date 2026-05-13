@@ -3612,6 +3612,9 @@ class RandomStrategy extends WindowArray {
             "gexp-intext-fetch-to-render-ms",
             "gexp-intext-fetch-age-ms",
             "gexp-intext-fetch-expired",
+            "gexp-intext-fetch-restarted-after-expiry",
+            "gexp-intext-prev-fetch-age-ms",
+            "gexp-intext-prev-fetch-expired-trigger",
             "gexp-intext-fetch-distance-px",
             "gexp-intext-render-distance-px",
             "gexp-intext-slot-id",
@@ -5698,6 +5701,9 @@ class RandomStrategy extends WindowArray {
           this.renderObserver = null;
           this.pendingAuction = null;
           this.loadingConfig = null;
+          this._lastFetchExpiredBeforeRestart = false;
+          this._lastFetchExpiredAgeMs = null;
+          this._lastFetchExpiredTrigger = null;
         }
 
         getPbjsBidResponsesSafe(adUnitCode) {
@@ -5882,6 +5888,22 @@ class RandomStrategy extends WindowArray {
           const effectiveMode = this.config.decision?.mode || "auto";
           this._effectiveMode = effectiveMode;
           this.node.startIntextTelemetryCycle(trigger);
+          if (this._lastFetchExpiredBeforeRestart) {
+            this.mergeLoadingPhaseTelemetry({
+              "gexp-intext-fetch-restarted-after-expiry": "true",
+              "gexp-intext-prev-fetch-age-ms": String(this._lastFetchExpiredAgeMs),
+              "gexp-intext-prev-fetch-expired-trigger": String(this._lastFetchExpiredTrigger || "unknown"),
+            });
+            logIntext(`[Intext:Auction:${this.node.id}] loading_previous_fetch_expiry_telemetry_applied`, {
+              slotCode: this.node.id,
+              previousFetchAgeMs: this._lastFetchExpiredAgeMs,
+              previousFetchExpiredTrigger: this._lastFetchExpiredTrigger || "unknown",
+              trigger,
+            });
+            this._lastFetchExpiredBeforeRestart = false;
+            this._lastFetchExpiredAgeMs = null;
+            this._lastFetchExpiredTrigger = null;
+          }
           this.mergeLoadingPhaseTelemetry({
             "gexp-intext-fetch-trigger": trigger,
             "gexp-intext-fetch-start-time-ms": String(this.fetchStartAt),
@@ -5978,6 +6000,15 @@ class RandomStrategy extends WindowArray {
               trigger,
               pendingAgeMs,
               maxFetchToRenderMs,
+            });
+            this._lastFetchExpiredBeforeRestart = true;
+            this._lastFetchExpiredAgeMs = Math.max(0, Math.round(pendingAgeMs));
+            this._lastFetchExpiredTrigger = trigger;
+            logIntext(`[Intext:Auction:${this.node.id}] loading_pending_auction_expired_restart_marked`, {
+              slotCode: this.node.id,
+              pendingAgeMs,
+              maxFetchToRenderMs,
+              trigger,
             });
             this.pendingAuction = null;
             this.fetchStarted = false;
