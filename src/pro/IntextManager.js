@@ -449,6 +449,127 @@
           return IntextManager.deepMerge(baseConfig, profile);
         }
 
+        parseIntextRootMarginPx(rootMargin) {
+          const firstValue = String(rootMargin || "").trim().split(/\s+/)[0];
+          const parsed = parseFloat(firstValue);
+          return Number.isFinite(parsed) ? parsed : null;
+        }
+
+        normalizeIntextLoadingConfig(loadingConfig = {}) {
+          const normalized = JSON.parse(JSON.stringify(loadingConfig || {}));
+          const defaultRenderRootMargin = "250px 0px";
+          const defaultMaxFetchToRenderMs = 3000;
+          const legacyRootMarginUsed = !normalized.renderRootMargin && !!normalized.rootMargin;
+          const renderRootMargin = normalized.renderRootMargin || normalized.rootMargin || defaultRenderRootMargin;
+          const derivedFetchRootMargin = normalized.derivedFetchRootMargin;
+          normalized.renderRootMargin = renderRootMargin;
+          normalized.fetchRootMargin = normalized.fetchRootMargin || derivedFetchRootMargin || renderRootMargin;
+          normalized.maxFetchToRenderMs = normalized.maxFetchToRenderMs ?? defaultMaxFetchToRenderMs;
+
+          const fetchPx = this.parseIntextRootMarginPx(normalized.fetchRootMargin);
+          const renderPx = this.parseIntextRootMarginPx(normalized.renderRootMargin);
+          if (fetchPx !== null && renderPx !== null && fetchPx < renderPx) {
+            normalized.fetchRootMargin = normalized.renderRootMargin;
+          }
+
+          if (legacyRootMarginUsed) {
+            normalized._legacyRootMarginUsed = true;
+          }
+
+          return normalized;
+        }
+
+        readIntextLoadingExperimentKey(key, context = null) {
+          if (key === "random1") {
+            try {
+              const random = this.gexp?.getRandom?.(1);
+              if (random !== null && random !== undefined && random !== "") return String(random);
+            } catch (e) {}
+          }
+
+          const readFromMap = (map) => {
+            if (!map || typeof map !== "object") return null;
+            const value = map[key];
+            if (Array.isArray(value)) return value.length > 0 ? String(value[0]) : null;
+            if (value !== null && value !== undefined && value !== "") return String(value);
+            return null;
+          };
+
+          const pageValue = readFromMap(this.getPageCustomTargeting(context));
+          if (pageValue !== null) return pageValue;
+          return null;
+        }
+
+        normalizeIntextLoadingSlotId(slotId) {
+          const raw = String(slotId || "").replace(/-video$/, "");
+          if (raw.indexOf("-pnc") !== -1 || raw === "pnc") return "pnc";
+          const match = raw.match(/^(gexp-intext(?:-\d+)?)/);
+          return match ? match[1] : raw;
+        }
+
+        resolveLoadingConfig(slotId, resolvedConfig, context = null) {
+          const experiments = resolvedConfig?.loadingExperiments || this.siteConfig?.loadingExperiments;
+          const baseLoading = resolvedConfig?.loading || this.siteConfig?.loading || {
+            fetchRootMargin: "250px 0px",
+            renderRootMargin: "250px 0px",
+            maxDelayMs: 1500,
+            maxFetchToRenderMs: 3000,
+          };
+          let loadingConfig = this.normalizeIntextLoadingConfig(baseLoading);
+          const key = experiments?.key || "random1";
+          const keyValue = this.readIntextLoadingExperimentKey(key, context) || "";
+          let variantName = "default";
+          let experimentResolved = false;
+
+          if (experiments?.enabled === true && experiments?.variants?.[keyValue]) {
+            const variant = experiments.variants[keyValue];
+            variantName = variant?.name || keyValue;
+            const lookupId = this.normalizeIntextLoadingSlotId(slotId);
+            const slotExperiment = variant?.slots?.[lookupId];
+            if (slotExperiment?.loading) {
+              loadingConfig = this.normalizeIntextLoadingConfig(
+                IntextManager.deepMerge(loadingConfig, slotExperiment.loading),
+              );
+              experimentResolved = true;
+              logIntext(`[IntextManager] loading_experiment_resolved`, {
+                slotCode: slotId,
+                random1: key === "random1" ? keyValue : undefined,
+                variant: variantName,
+                fetchRootMargin: loadingConfig.fetchRootMargin,
+                renderRootMargin: loadingConfig.renderRootMargin,
+                maxDelayMs: loadingConfig.maxDelayMs ?? null,
+              });
+            }
+          }
+
+          if (loadingConfig._legacyRootMarginUsed) {
+            logIntext(`[IntextManager] loading_legacy_rootmargin_used`, {
+              slotCode: slotId,
+              rootMargin: loadingConfig.rootMargin,
+              renderRootMargin: loadingConfig.renderRootMargin,
+            });
+          }
+
+          if (!experimentResolved && experiments) {
+            logIntext(`[IntextManager] loading_experiment_fallback_to_default`, {
+              slotCode: slotId,
+              random1: key === "random1" ? keyValue : undefined,
+              key,
+              keyValue,
+            });
+          }
+
+          loadingConfig._experiment = {
+            enabled: experiments?.enabled === true,
+            resolved: experimentResolved,
+            variant: variantName,
+            key,
+            keyValue,
+          };
+
+          return loadingConfig;
+        }
+
         resolveSiteConfig() {
           const siteConfigs = this.config?.intextSites;
 
@@ -1928,6 +2049,8 @@
             "gexp-intext-creative-size",
             "gexp-intext-video-viewport-exit-played-pct",
             "gexp-intext-video-failed",
+            "gexp-intext-video-error-code",
+            "gexp-intext-video-error-msg",
             "gexp-intext-viewport-visible-ms",
             "gexp-intext-ever-in-viewport",
             "gexp-intext-house-1x1-refresh",
@@ -1939,6 +2062,26 @@
             "gexp-intext-root-margin",
             "gexp-intext-timer-delay-ms",
             "gexp-intext-has-timer",
+            "gexp-intext-loading-experiment",
+            "gexp-intext-loading-variant",
+            "gexp-intext-loading-key",
+            "gexp-intext-loading-key-value",
+            "gexp-intext-fetch-root-margin",
+            "gexp-intext-render-root-margin",
+            "gexp-intext-max-delay-ms",
+            "gexp-intext-max-fetch-to-render-ms",
+            "gexp-intext-fetch-trigger",
+            "gexp-intext-render-trigger",
+            "gexp-intext-fetch-start-time-ms",
+            "gexp-intext-render-start-time-ms",
+            "gexp-intext-fetch-to-render-ms",
+            "gexp-intext-fetch-age-ms",
+            "gexp-intext-fetch-expired",
+            "gexp-intext-fetch-restarted-after-expiry",
+            "gexp-intext-prev-fetch-age-ms",
+            "gexp-intext-prev-fetch-expired-trigger",
+            "gexp-intext-fetch-distance-px",
+            "gexp-intext-render-distance-px",
             "gexp-intext-slot-id",
             "gexp-intext-slot-index",
             "gexp-intext-nav-index",
@@ -1963,6 +2106,8 @@
             "gexp-intext-sentinel-retry-preserved-fallback",
             "gexp-intext-sentinel-retry-original-decision-mode",
             "gexp-intext-sentinel-retry-lineitem",
+            "gexp-intext-video-fast-fallback",
+            "gexp-intext-video-fast-fallback-reason",
             "advertiserId",
             "campaignId",
             "lineItemId",
@@ -1998,10 +2143,19 @@
           const startDistance = this.getIntextDistancePx();
           const maxDelayMs = this.config?.loading?.maxDelayMs;
           const hasTimer = typeof maxDelayMs === "number" && Number.isFinite(maxDelayMs) && maxDelayMs >= 0;
+          const loadingExperiment = this.config?.loading?._experiment || {};
           Object.assign(cycle, {
-            "gexp-intext-root-margin": String(this.config?.loading?.rootMargin || "200px 0px"),
+            "gexp-intext-root-margin": String(this.config?.loading?.renderRootMargin || this.config?.loading?.rootMargin || "200px 0px"),
             "gexp-intext-timer-delay-ms": hasTimer ? String(maxDelayMs) : "disabled",
             "gexp-intext-has-timer": hasTimer ? "true" : "false",
+            "gexp-intext-loading-experiment": loadingExperiment.enabled ? "true" : "false",
+            "gexp-intext-loading-variant": String(loadingExperiment.variant || "default"),
+            "gexp-intext-loading-key": String(loadingExperiment.key || "random1"),
+            "gexp-intext-loading-key-value": String(loadingExperiment.keyValue || ""),
+            "gexp-intext-fetch-root-margin": String(this.config?.loading?.fetchRootMargin || this.config?.loading?.renderRootMargin || this.config?.loading?.rootMargin || "200px 0px"),
+            "gexp-intext-render-root-margin": String(this.config?.loading?.renderRootMargin || this.config?.loading?.rootMargin || "200px 0px"),
+            "gexp-intext-max-delay-ms": hasTimer ? String(maxDelayMs) : "disabled",
+            "gexp-intext-max-fetch-to-render-ms": String(this.config?.loading?.maxFetchToRenderMs ?? "disabled"),
             "gexp-intext-load-observer-target": String(this._intextLoadObserverTarget || "wrapper"),
             "gexp-intext-slot-id": String(this.id || "unknown"),
             "gexp-intext-slot-index": String(this.slotIndex ?? 0),
@@ -3896,6 +4050,7 @@
           this.container.destroy();
           
           if (this.waterfall) {
+             this.waterfall.cleanup?.();
              if (this.waterfall._visibilityTimer) {
                  this.waterfall._visibilityTimer.stop();
                  this.waterfall._visibilityTimer = null;
@@ -4005,8 +4160,17 @@
           this.gexp = gexp;
           this.wa = wa; 
           this.prebidStarted = false;
+          this.fetchStarted = false;
+          this.fetchComplete = false;
+          this.renderStarted = false;
           this.timer = null;
-          this.intersectionObserver = null;
+          this.fetchObserver = null;
+          this.renderObserver = null;
+          this.pendingAuction = null;
+          this.loadingConfig = null;
+          this._lastFetchExpiredBeforeRestart = false;
+          this._lastFetchExpiredAgeMs = null;
+          this._lastFetchExpiredTrigger = null;
         }
 
         getPbjsBidResponsesSafe(adUnitCode) {
@@ -4042,15 +4206,38 @@
         }
 
         init() {
-          this.setupIntersectionTrigger();
+          this.loadingConfig = this.node.manager.resolveLoadingConfig(
+            this.node.id,
+            this.node.config,
+            this.node.scopedContext,
+          );
+          this.config.loading = this.loadingConfig;
+          this.node.config.loading = this.loadingConfig;
+          this.setupLoadingTriggers();
           this.setupTimerTrigger();
         }
 
-        setupIntersectionTrigger() {
-          const margin = this.config.loading?.rootMargin || "200px 0px";
+        getLoadingTargetElement() {
+          return this.node?.getIntextTelemetryElement?.() || this.container.getElement();
+        }
+
+        getLoadingDistancePx() {
+          try {
+            const targetEl = this.getLoadingTargetElement();
+            if (!targetEl || typeof targetEl.getBoundingClientRect !== "function") return null;
+            const rect = targetEl.getBoundingClientRect();
+            return Math.round(rect.top - window.innerHeight);
+          } catch (e) {
+            return null;
+          }
+        }
+
+        setupLoadingTriggers() {
+          const renderMargin = this.loadingConfig?.renderRootMargin || this.loadingConfig?.rootMargin || "250px 0px";
+          const fetchMargin = this.loadingConfig?.fetchRootMargin || renderMargin;
+          const targetEl = this.getLoadingTargetElement();
 
           if ("IntersectionObserver" in window) {
-            const targetEl = this.node?.getIntextTelemetryElement?.() || this.container.getElement();
             const observerTarget =
               targetEl && targetEl === this.node?.telemetryAnchor ? "anchor" :
               targetEl && targetEl === this.node?.placement?.paragraph ? "paragraph" :
@@ -4059,28 +4246,259 @@
             this.node?.mergeIntextTelemetry?.({
               "gexp-intext-load-observer-target": observerTarget,
             });
-            this.intersectionObserver = new IntersectionObserver(
+            this.fetchObserver = new IntersectionObserver(
               (entries) => {
                 if (entries[0].isIntersecting) {
-                  this.startAuction("intersection");
-                  this.intersectionObserver.disconnect();
+                  this.startFetch("fetch-intersection");
                 }
               },
-              { threshold: 0, rootMargin: margin },
+              { threshold: 0, rootMargin: fetchMargin },
             );
-            this.intersectionObserver.observe(targetEl || this.container.getElement());
+
+            this.renderObserver = new IntersectionObserver(
+              (entries) => {
+                if (entries[0].isIntersecting) {
+                  this.startRender("render-intersection");
+                }
+              },
+              { threshold: 0, rootMargin: renderMargin },
+            );
+
+            const observedEl = targetEl || this.container.getElement();
+            if (observedEl) {
+              this.fetchObserver.observe(observedEl);
+              this.renderObserver.observe(observedEl);
+            }
           } else {
-            this.startAuction("fallback");
+            this.startRender("fallback");
           }
         }
 
         setupTimerTrigger() {
-          const timeout = this.config.loading?.maxDelayMs;
+          const timeout = this.loadingConfig?.maxDelayMs;
           if (typeof timeout !== "number" || !Number.isFinite(timeout) || timeout < 0) {
             logIntext(`[Intext:Auction:${this.node.id}] timer trigger disabled`);
             return;
           }
-          this.timer = setTimeout(() => this.startAuction("timer"), timeout);
+          this.timer = setTimeout(() => this.startRender("timer"), timeout);
+        }
+
+        disconnectFetchObserver() {
+          if (this.fetchObserver) {
+            this.fetchObserver.disconnect();
+            this.fetchObserver = null;
+          }
+        }
+
+        disconnectRenderObserver() {
+          if (this.renderObserver) {
+            this.renderObserver.disconnect();
+            this.renderObserver = null;
+          }
+        }
+
+        cleanup() {
+          this.disconnectFetchObserver();
+          this.disconnectRenderObserver();
+          clearTimeout(this.timer);
+          this.timer = null;
+          logIntext(`[Intext:Waterfall:${this.node.id}] cleanup - loading observers and timer cleared`);
+        }
+
+        mergeLoadingPhaseTelemetry(extra = {}) {
+          this.node.mergeIntextTelemetry(extra);
+          this.node.flushIntextTelemetryToCI();
+        }
+
+        async runPrebidPhase(trigger, effectiveMode) {
+          const prebidPromises = [];
+
+          this.registerPrebidAliases();
+          const multiConfig = this.getPrebidMultiFormatConfig();
+          if (multiConfig) {
+            const mediaTypesStr = Object.keys(multiConfig.mediaTypes).join("+");
+            logIntext(
+              `[Intext:Slot:${this.node.id}] ├─ Fetch Prebid: requesting (code: ${multiConfig.code}, ${multiConfig.bids.length} bidders, types: ${mediaTypesStr})`,
+            );
+            prebidPromises.push(this.executePrebid(multiConfig));
+          } else {
+            logIntext(
+              `[Intext:Slot:${this.node.id}] ├─ Fetch Prebid: SKIPPED (no config)`,
+            );
+          }
+
+          await Promise.all(prebidPromises);
+        }
+
+        async startFetch(trigger) {
+          if (this.fetchStarted) return;
+          this.fetchStarted = true;
+          this.fetchComplete = false;
+          this.fetchTrigger = trigger;
+          this.fetchStartAt = Date.now();
+          this._auctionStartAt = this.fetchStartAt;
+          this.disconnectFetchObserver();
+
+          const distancePx = this.getLoadingDistancePx();
+          const exp = this.loadingConfig?._experiment || {};
+          logIntext(`[Intext:Auction:${this.node.id}] loading_phase_fetch_triggered`, {
+            slotCode: this.node.id,
+            random1: exp.key === "random1" ? exp.keyValue : undefined,
+            variant: exp.variant || "default",
+            fetchRootMargin: this.loadingConfig?.fetchRootMargin,
+            renderRootMargin: this.loadingConfig?.renderRootMargin,
+            maxDelayMs: this.loadingConfig?.maxDelayMs ?? null,
+            trigger,
+            distancePx,
+          });
+
+          const effectiveMode = this.config.decision?.mode || "auto";
+          this._effectiveMode = effectiveMode;
+          this.node.startIntextTelemetryCycle(trigger);
+          if (this._lastFetchExpiredBeforeRestart) {
+            this.mergeLoadingPhaseTelemetry({
+              "gexp-intext-fetch-restarted-after-expiry": "true",
+              "gexp-intext-prev-fetch-age-ms": String(this._lastFetchExpiredAgeMs),
+              "gexp-intext-prev-fetch-expired-trigger": String(this._lastFetchExpiredTrigger || "unknown"),
+            });
+            logIntext(`[Intext:Auction:${this.node.id}] loading_previous_fetch_expiry_telemetry_applied`, {
+              slotCode: this.node.id,
+              previousFetchAgeMs: this._lastFetchExpiredAgeMs,
+              previousFetchExpiredTrigger: this._lastFetchExpiredTrigger || "unknown",
+              trigger,
+            });
+            this._lastFetchExpiredBeforeRestart = false;
+            this._lastFetchExpiredAgeMs = null;
+            this._lastFetchExpiredTrigger = null;
+          }
+          this.mergeLoadingPhaseTelemetry({
+            "gexp-intext-fetch-trigger": trigger,
+            "gexp-intext-fetch-start-time-ms": String(this.fetchStartAt),
+            "gexp-intext-fetch-distance-px": distancePx !== null ? String(distancePx) : undefined,
+          });
+
+          try {
+            await this.runPrebidPhase(trigger, effectiveMode);
+            const decision = this.decideWinner({ commit: false });
+            this.pendingAuction = {
+              timestamp: Date.now(),
+              ...decision,
+            };
+            this.fetchComplete = true;
+            logIntext(`[Intext:Auction:${this.node.id}] loading_phase_fetch_waiting_for_render`, {
+              slotCode: this.node.id,
+              winner: decision?.winner || "none",
+            });
+            if (this.renderTriggeredWaitingForFetch) {
+              const waitingTrigger = this.renderTriggeredWaitingForFetch;
+              this.renderTriggeredWaitingForFetch = null;
+              this.startRender(waitingTrigger);
+            }
+          } catch (err) {
+            this.fetchComplete = true;
+            this.pendingAuction = null;
+            warnIntext(`[Intext:Auction:${this.node.id}] loading_phase_fetch_error`, err);
+            if (this.renderTriggeredWaitingForFetch) {
+              const waitingTrigger = this.renderTriggeredWaitingForFetch;
+              this.renderTriggeredWaitingForFetch = null;
+              this.startRender(waitingTrigger);
+            }
+          }
+        }
+
+        async startRender(trigger) {
+          if (this.renderStarted) return;
+
+          if (!this.fetchStarted) {
+            this.renderTriggeredWaitingForFetch = trigger;
+            this.startFetch(`${trigger}-auto-fetch`);
+            return;
+          }
+
+          if (!this.pendingAuction && !this.fetchComplete) {
+            this.renderTriggeredWaitingForFetch = trigger;
+            logIntext(`[Intext:Auction:${this.node.id}] loading_phase_render_waiting_for_fetch - trigger=${trigger}`);
+            return;
+          }
+
+          this.renderStarted = true;
+          this.renderTrigger = trigger;
+          this.lastTrigger = trigger;
+          this.renderStartAt = Date.now();
+          this.disconnectRenderObserver();
+          clearTimeout(this.timer);
+          this.timer = null;
+
+          const distancePx = this.getLoadingDistancePx();
+          const fetchToRenderMs = this.fetchStartAt ? this.renderStartAt - this.fetchStartAt : 0;
+          logIntext(`[Intext:Auction:${this.node.id}] loading_phase_render_triggered`, {
+            slotCode: this.node.id,
+            trigger,
+            distancePx,
+          });
+          this.mergeLoadingPhaseTelemetry({
+            "gexp-intext-render-trigger": trigger,
+            "gexp-intext-render-start-time-ms": String(this.renderStartAt),
+            "gexp-intext-fetch-to-render-ms": String(fetchToRenderMs),
+            "gexp-intext-render-distance-px": distancePx !== null ? String(distancePx) : undefined,
+          });
+
+          if (!this.pendingAuction) {
+            this.prebidStarted = false;
+            await this.startAuction(trigger);
+            return;
+          }
+
+          const pendingAgeMs = Date.now() - this.pendingAuction.timestamp;
+          const maxFetchToRenderMs = this.loadingConfig?.maxFetchToRenderMs;
+          const hasFetchExpiry =
+            typeof maxFetchToRenderMs === "number" &&
+            Number.isFinite(maxFetchToRenderMs) &&
+            maxFetchToRenderMs >= 0;
+          const fetchExpired = hasFetchExpiry && pendingAgeMs > maxFetchToRenderMs;
+          this.mergeLoadingPhaseTelemetry({
+            "gexp-intext-fetch-age-ms": String(Math.max(0, Math.round(pendingAgeMs))),
+            "gexp-intext-fetch-expired": fetchExpired ? "true" : "false",
+          });
+
+          if (fetchExpired) {
+            logIntext(`[Intext:Auction:${this.node.id}] loading_phase_fetch_expired`, {
+              slotCode: this.node.id,
+              trigger,
+              pendingAgeMs,
+              maxFetchToRenderMs,
+            });
+            this._lastFetchExpiredBeforeRestart = true;
+            this._lastFetchExpiredAgeMs = Math.max(0, Math.round(pendingAgeMs));
+            this._lastFetchExpiredTrigger = trigger;
+            logIntext(`[Intext:Auction:${this.node.id}] loading_pending_auction_expired_restart_marked`, {
+              slotCode: this.node.id,
+              pendingAgeMs,
+              maxFetchToRenderMs,
+              trigger,
+            });
+            this.pendingAuction = null;
+            this.fetchStarted = false;
+            this.fetchComplete = false;
+            this.renderStarted = false;
+            this.prebidStarted = false;
+            this.renderTriggeredWaitingForFetch = trigger;
+            await this.startFetch(`${trigger}-restart`);
+            return;
+          }
+
+          logIntext(`[Intext:Auction:${this.node.id}] loading_phase_render_releasing_pending_request`, {
+            slotCode: this.node.id,
+            winner: this.pendingAuction.winner || "none",
+          });
+
+          const { winner, loser, allowFallback } = this.pendingAuction;
+          this.pendingAuction = null;
+          if (!winner) {
+            this.node.closeAll();
+            return;
+          }
+          this.requestWinner(winner, loser, allowFallback);
         }
         
         async startAuction(trigger) {
@@ -4564,7 +4982,8 @@
           });
         }
 
-        decideWinner() {
+        decideWinner(options = {}) {
+          const commit = options.commit !== false;
           const mode = this._effectiveMode;
           const code = this.getPrebidCode();
 
@@ -4754,12 +5173,19 @@
           );
 
           if (!winner) {
+            if (commit === false) {
+              return { winner: null, loser: null, allowFallback: false, displayBid, videoBid };
+            }
             this.node.closeAll();
             return;
           }
 
           const allowFallback = mode === "auto";
           const loser = winner === "video" ? "display" : "video";
+
+          if (commit === false) {
+            return { winner, loser, allowFallback, displayBid, videoBid };
+          }
 
           this.requestWinner(winner, loser, allowFallback);
         }
@@ -6874,6 +7300,35 @@
               rejectBeforePlayback(error, source);
             };
 
+            const isFastFallbackVideoError = (errCode) => {
+              const videoCfg = this.node?.config?.video || {};
+              const configuredCodes = Array.isArray(videoCfg.fastFallbackErrorCodes)
+                ? videoCfg.fastFallbackErrorCodes.map((code) => String(code))
+                : [];
+              const normalizedCode = String(errCode || "");
+              if (normalizedCode === "303" && videoCfg.fastFallbackOnEmptyVast !== false) return true;
+              return configuredCodes.includes(normalizedCode);
+            };
+
+            const markFastFallbackVideoError = (errCode, source) => {
+              if (!isFastFallbackVideoError(errCode)) return false;
+              const normalizedCode = String(errCode || "");
+              const reason = normalizedCode === "303" ? "empty-vast" : "configured-error";
+              logIntext(`[Intext:Video:IMA] video_fast_fallback_${normalizedCode}`, {
+                slotCode: this.node?.id,
+                trigger: this._videoTiming?.trigger || "unknown",
+                reason,
+                source,
+              });
+              this.node?.mergeIntextTelemetry?.({
+                "gexp-intext-video-error-code": normalizedCode,
+                "gexp-intext-video-fast-fallback": "true",
+                "gexp-intext-video-fast-fallback-reason": reason,
+              });
+              this.node?.flushIntextTelemetryToCI?.();
+              return true;
+            };
+
             this.player.on("readyforpreroll", () => {
               logIntext(`[Intext:Video:IMA] 🎯 readyforpreroll — anuncio preparado.`);
               logIntext(`[Intext:Video:IMA] readyforpreroll: anuncio preparado, contenedor oculto hasta playback real.`);
@@ -6920,6 +7375,7 @@
               logIntext(`[Intext:Video:IMA] player_adserror - code: ${errCode}, msg: ${errMsg}`);
 
               if (!firstFramePlayed) {
+                 markFastFallbackVideoError(errCode, "adserror");
                  rejectBeforePlayback(new Error(`video_ad_error: [${errCode}] ${errMsg}`), "adserror");
               } else {
                 markTerminal("adserror");
@@ -7073,6 +7529,7 @@
                           `[Intext:Video:IMA:Native] native_ad_error - code=${err?.getErrorCode?.()}, msg=${err?.getMessage?.()}, vast=${err?.getVastErrorCode?.()}`,
                         );
                         if (!firstFramePlayed) {
+                          markFastFallbackVideoError(err?.getErrorCode?.() || "unknown", "native_ad_error");
                           rejectBeforePlayback(
                             new Error(`video_ad_error: [${err?.getErrorCode?.() || "unknown"}] ${err?.getMessage?.() || "unknown"}`),
                             "native_ad_error",
