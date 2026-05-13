@@ -3795,6 +3795,7 @@ class RandomStrategy extends WindowArray {
             "gexp-intext-loading-variant": String(loadingExperiment.variant || "default"),
             "gexp-intext-loading-key": String(loadingExperiment.key || "random1"),
             "gexp-intext-loading-key-value": String(loadingExperiment.keyValue || ""),
+            "gexp-intext-loading-key-source": String(loadingExperiment.keySource || "unresolved"),
             "gexp-intext-fetch-root-margin": String(this.config?.loading?.fetchRootMargin || this.config?.loading?.renderRootMargin || this.config?.loading?.rootMargin || "200px 0px"),
             "gexp-intext-render-root-margin": String(this.config?.loading?.renderRootMargin || this.config?.loading?.rootMargin || "200px 0px"),
             "gexp-intext-max-delay-ms": hasTimer ? String(maxDelayMs) : "disabled",
@@ -5987,6 +5988,9 @@ class RandomStrategy extends WindowArray {
           logIntext(`[Intext:Auction:${this.node.id}] loading_phase_fetch_triggered`, {
             slotCode: this.node.id,
             random1: exp.key === "random1" ? exp.keyValue : undefined,
+            key: exp.key || "random1",
+            keyValue: exp.keyValue || "",
+            keySource: exp.keySource || "unresolved",
             variant: exp.variant || "default",
             fetchRootMargin: this.loadingConfig?.fetchRootMargin,
             renderRootMargin: this.loadingConfig?.renderRootMargin,
@@ -6168,6 +6172,10 @@ class RandomStrategy extends WindowArray {
               "gexp-intext-sentinel-retry-preserved-fallback": sentinelRetryContext.isFallback ? "true" : "false",
               "gexp-intext-sentinel-retry-original-decision-mode": sentinelRetryContext.originalDecisionMode || "unknown",
               "gexp-intext-sentinel-retry-lineitem": sentinelRetryContext.sentinelLineItemId || "unknown",
+              "gexp-intext-sentinel-retry-attempt-slot": String(sentinelRetryContext.attemptSlot ?? "unknown"),
+              "gexp-intext-sentinel-retry-max-slot": String(sentinelRetryContext.maxAttemptsPerSlot ?? "unknown"),
+              "gexp-intext-sentinel-retry-attempt-cycle": String(sentinelRetryContext.attemptCycle ?? "unknown"),
+              "gexp-intext-sentinel-retry-max-cycle": String(sentinelRetryContext.maxAttemptsPerCycle ?? "unknown"),
             });
           }
 
@@ -6286,6 +6294,15 @@ class RandomStrategy extends WindowArray {
           );
 
           if (sentinelRetryContext) {
+            logIntext(`[Intext:Slot:${this.node.id}] house_lineitem_sentinel_retry_forced_display`, {
+              lineItemId: sentinelRetryContext.sentinelLineItemId,
+              preservedFallback: sentinelRetryContext.isFallback ? "true" : "false",
+              originalMode: sentinelRetryContext.originalDecisionMode || "unknown",
+              attemptSlot: sentinelRetryContext.attemptSlot,
+              maxAttemptsPerSlot: sentinelRetryContext.maxAttemptsPerSlot,
+              attemptCycle: sentinelRetryContext.attemptCycle,
+              maxAttemptsPerCycle: sentinelRetryContext.maxAttemptsPerCycle,
+            });
             logIntext(
               `[Intext:Slot:${this.node.id}] technical house lineitem sentinel retry forced to display lineItemId=${sentinelRetryContext.sentinelLineItemId}, preservedFallback=${sentinelRetryContext.isFallback ? "true" : "false"}, originalMode=${sentinelRetryContext.originalDecisionMode || "unknown"}`,
             );
@@ -8949,24 +8966,52 @@ class RandomStrategy extends WindowArray {
                 ? videoCfg.fastFallbackErrorCodes.map((code) => String(code))
                 : [];
               const normalizedCode = String(errCode || "");
-              if (normalizedCode === "303" && videoCfg.fastFallbackOnEmptyVast !== false) return true;
               return configuredCodes.includes(normalizedCode);
             };
 
-            const markFastFallbackVideoError = (errCode, source) => {
-              if (!isFastFallbackVideoError(errCode)) return false;
+            const getFastFallbackVideoReason = (errCode) => {
               const normalizedCode = String(errCode || "");
-              const reason = normalizedCode === "303" ? "empty-vast" : "configured-error";
-              logIntext(`[Intext:Video:IMA] video_fast_fallback_${normalizedCode}`, {
+              if (normalizedCode === "303") return "ima-303-empty-vast";
+              return "configured-error";
+            };
+
+            const markFastFallbackVideoError = (errCode, errMsg, source) => {
+              const normalizedCode = String(errCode || "");
+              const beforePlayback = !firstFramePlayed;
+              const enabled = isFastFallbackVideoError(normalizedCode);
+              const reason = getFastFallbackVideoReason(normalizedCode);
+              logIntext(`[Intext:Video:IMA] video_fast_fallback_error_detected`, {
                 slotCode: this.node?.id,
                 trigger: this._videoTiming?.trigger || "unknown",
+                code: normalizedCode,
+                message: errMsg,
                 reason,
                 source,
+                beforePlayback,
+                configured: enabled,
               });
               this.node?.mergeIntextTelemetry?.({
                 "gexp-intext-video-error-code": normalizedCode,
-                "gexp-intext-video-fast-fallback": "true",
-                "gexp-intext-video-fast-fallback-reason": reason,
+                "gexp-intext-video-error-message": String(errMsg || "unknown"),
+                "gexp-intext-video-fast-fallback": enabled && beforePlayback ? "true" : "false",
+                "gexp-intext-video-fast-fallback-reason": enabled && beforePlayback ? reason : "not-applied",
+                "gexp-intext-video-before-playback": beforePlayback ? "true" : "false",
+              });
+              if (!enabled || !beforePlayback) {
+                logIntext(`[Intext:Video:IMA] video_fast_fallback_skipped`, {
+                  slotCode: this.node?.id,
+                  code: normalizedCode,
+                  reason: enabled ? "after-playback" : "code-not-configured",
+                  source,
+                });
+                return false;
+              }
+              logIntext(`[Intext:Video:IMA] video_fast_fallback_applied`, {
+                slotCode: this.node?.id,
+                trigger: this._videoTiming?.trigger || "unknown",
+                code: normalizedCode,
+                reason,
+                source,
               });
               this.node?.flushIntextTelemetryToCI?.();
               return true;
@@ -9014,19 +9059,22 @@ class RandomStrategy extends WindowArray {
               const imaErr = evt?.data?.AdError;
               const errCode = imaErr?.getErrorCode?.() || nativeAdError?.code || "unknown";
               const errMsg = imaErr?.getMessage?.() || nativeAdError?.message || "unknown";
+              const normalizedErrCode = String(errCode || "unknown");
 
-              logIntext(`[Intext:Video:IMA] player_adserror - code: ${errCode}, msg: ${errMsg}`);
+              logIntext(`[Intext:Video:IMA] player_adserror - code: ${normalizedErrCode}, msg: ${errMsg}`);
 
               if (!firstFramePlayed) {
-                 markFastFallbackVideoError(errCode, "adserror");
-                 rejectBeforePlayback(new Error(`video_ad_error: [${errCode}] ${errMsg}`), "adserror");
+                 markFastFallbackVideoError(normalizedErrCode, errMsg, "adserror");
+                 rejectBeforePlayback(new Error(`video_ad_error: [${normalizedErrCode}] ${errMsg}`), "adserror");
               } else {
+                markFastFallbackVideoError(normalizedErrCode, errMsg, "adserror");
                 markTerminal("adserror");
               }
 
               if (this.node && this.node.wa && this.node.wa.cI) {
-                  this.node.wa.cI["gexp-intext-video-error-code"] = errCode;
+                  this.node.wa.cI["gexp-intext-video-error-code"] = normalizedErrCode;
                   this.node.wa.cI["gexp-intext-video-error-msg"] = errMsg;
+                  this.node.wa.cI["gexp-intext-video-error-message"] = errMsg;
                   
                   // Track IDs if available even on error
                   const ad = imaErr?.getAd?.() || evt?.getAd?.() || this.player?.ima?.getAdsManager?.()?.getCurrentAd();
@@ -9038,6 +9086,9 @@ class RandomStrategy extends WindowArray {
                   if (this.node.manager?.gexp) {
                       this.node.mergeIntextTelemetry({
                         "gexp-intext-video-failed": "true",
+                        "gexp-intext-video-error-code": normalizedErrCode,
+                        "gexp-intext-video-error-message": errMsg,
+                        "gexp-intext-video-before-playback": firstFramePlayed ? "false" : "true",
                         "gexp-intext-load-end-distance-px": this.node.getIntextDistancePx(),
                       });
                       this.node.flushIntextTelemetryToCI();
