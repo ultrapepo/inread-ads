@@ -9064,10 +9064,10 @@ class RandomStrategy extends WindowArray {
               logIntext(`[Intext:Video:IMA] player_adserror - code: ${normalizedErrCode}, msg: ${errMsg}`);
 
               if (!firstFramePlayed) {
-                 markFastFallbackVideoError(normalizedErrCode, errMsg, "adserror");
+                 markFastFallbackVideoError(normalizedErrCode, errMsg, "player_adserror");
                  rejectBeforePlayback(new Error(`video_ad_error: [${normalizedErrCode}] ${errMsg}`), "adserror");
               } else {
-                markFastFallbackVideoError(normalizedErrCode, errMsg, "adserror");
+                markFastFallbackVideoError(normalizedErrCode, errMsg, "player_adserror");
                 markTerminal("adserror");
               }
 
@@ -9214,18 +9214,20 @@ class RandomStrategy extends WindowArray {
                       ima.AdErrorEvent.Type.AD_ERROR,
                       (event) => {
                         const err = event.getError();
+                        const errCode = err?.getErrorCode?.() || "unknown";
+                        const errMsg = err?.getMessage?.() || "unknown";
                         nativeAdError = {
-                          code: err?.getErrorCode?.(),
-                          message: err?.getMessage?.(),
+                          code: errCode,
+                          message: errMsg,
                           vastCode: err?.getVastErrorCode?.(),
                         };
                         logIntext(
-                          `[Intext:Video:IMA:Native] native_ad_error - code=${err?.getErrorCode?.()}, msg=${err?.getMessage?.()}, vast=${err?.getVastErrorCode?.()}`,
+                          `[Intext:Video:IMA:Native] native_ad_error - code=${errCode}, msg=${errMsg}, vast=${err?.getVastErrorCode?.()}`,
                         );
                         if (!firstFramePlayed) {
-                          markFastFallbackVideoError(err?.getErrorCode?.() || "unknown", "native_ad_error");
+                          markFastFallbackVideoError(errCode, errMsg, "native_ad_error");
                           rejectBeforePlayback(
-                            new Error(`video_ad_error: [${err?.getErrorCode?.() || "unknown"}] ${err?.getMessage?.() || "unknown"}`),
+                            new Error(`video_ad_error: [${errCode}] ${errMsg}`),
                             "native_ad_error",
                           );
                         } else {
