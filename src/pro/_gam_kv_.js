@@ -2012,15 +2012,23 @@ class RandomStrategy extends WindowArray {
 
         normalizeIntextLoadingConfig(loadingConfig = {}) {
           const normalized = JSON.parse(JSON.stringify(loadingConfig || {}));
-          const fallbackMargin = normalized.rootMargin || "250px 0px";
-          normalized.renderRootMargin = normalized.renderRootMargin || fallbackMargin;
-          normalized.rootMargin = normalized.rootMargin || normalized.renderRootMargin;
-          normalized.fetchRootMargin = normalized.fetchRootMargin || normalized.renderRootMargin;
+          const defaultRenderRootMargin = "250px 0px";
+          const defaultMaxFetchToRenderMs = 3000;
+          const legacyRootMarginUsed = !normalized.renderRootMargin && !!normalized.rootMargin;
+          const renderRootMargin = normalized.renderRootMargin || normalized.rootMargin || defaultRenderRootMargin;
+          const derivedFetchRootMargin = normalized.derivedFetchRootMargin;
+          normalized.renderRootMargin = renderRootMargin;
+          normalized.fetchRootMargin = normalized.fetchRootMargin || derivedFetchRootMargin || renderRootMargin;
+          normalized.maxFetchToRenderMs = normalized.maxFetchToRenderMs || defaultMaxFetchToRenderMs;
 
           const fetchPx = this.parseIntextRootMarginPx(normalized.fetchRootMargin);
           const renderPx = this.parseIntextRootMarginPx(normalized.renderRootMargin);
           if (fetchPx !== null && renderPx !== null && fetchPx < renderPx) {
             normalized.fetchRootMargin = normalized.renderRootMargin;
+          }
+
+          if (legacyRootMarginUsed) {
+            normalized._legacyRootMarginUsed = true;
           }
 
           return normalized;
@@ -2057,8 +2065,10 @@ class RandomStrategy extends WindowArray {
         resolveLoadingConfig(slotId, resolvedConfig, context = null) {
           const experiments = resolvedConfig?.loadingExperiments || this.siteConfig?.loadingExperiments;
           const baseLoading = resolvedConfig?.loading || this.siteConfig?.loading || {
-            rootMargin: "250px 0px",
+            fetchRootMargin: "250px 0px",
+            renderRootMargin: "250px 0px",
             maxDelayMs: 1500,
+            maxFetchToRenderMs: 3000,
           };
           let loadingConfig = this.normalizeIntextLoadingConfig(baseLoading);
           const key = experiments?.key || "random1";
@@ -2085,6 +2095,14 @@ class RandomStrategy extends WindowArray {
                 maxDelayMs: loadingConfig.maxDelayMs ?? null,
               });
             }
+          }
+
+          if (loadingConfig._legacyRootMarginUsed) {
+            logIntext(`[IntextManager] loading_legacy_rootmargin_used`, {
+              slotCode: slotId,
+              rootMargin: loadingConfig.rootMargin,
+              renderRootMargin: loadingConfig.renderRootMargin,
+            });
           }
 
           if (!experimentResolved && experiments) {
@@ -3605,6 +3623,8 @@ class RandomStrategy extends WindowArray {
             "gexp-intext-loading-key-value",
             "gexp-intext-fetch-root-margin",
             "gexp-intext-render-root-margin",
+            "gexp-intext-max-delay-ms",
+            "gexp-intext-max-fetch-to-render-ms",
             "gexp-intext-fetch-trigger",
             "gexp-intext-render-trigger",
             "gexp-intext-fetch-start-time-ms",
@@ -3689,6 +3709,8 @@ class RandomStrategy extends WindowArray {
             "gexp-intext-loading-key-value": String(loadingExperiment.keyValue || ""),
             "gexp-intext-fetch-root-margin": String(this.config?.loading?.fetchRootMargin || this.config?.loading?.renderRootMargin || this.config?.loading?.rootMargin || "200px 0px"),
             "gexp-intext-render-root-margin": String(this.config?.loading?.renderRootMargin || this.config?.loading?.rootMargin || "200px 0px"),
+            "gexp-intext-max-delay-ms": hasTimer ? String(maxDelayMs) : "disabled",
+            "gexp-intext-max-fetch-to-render-ms": String(this.config?.loading?.maxFetchToRenderMs ?? "disabled"),
             "gexp-intext-load-observer-target": String(this._intextLoadObserverTarget || "wrapper"),
             "gexp-intext-slot-id": String(this.id || "unknown"),
             "gexp-intext-slot-index": String(this.slotIndex ?? 0),
@@ -5766,8 +5788,8 @@ class RandomStrategy extends WindowArray {
         }
 
         setupLoadingTriggers() {
-          const fetchMargin = this.loadingConfig?.fetchRootMargin || this.loadingConfig?.renderRootMargin || "250px 0px";
           const renderMargin = this.loadingConfig?.renderRootMargin || this.loadingConfig?.rootMargin || "250px 0px";
+          const fetchMargin = this.loadingConfig?.fetchRootMargin || renderMargin;
           const targetEl = this.getLoadingTargetElement();
 
           if ("IntersectionObserver" in window) {

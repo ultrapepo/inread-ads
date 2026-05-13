@@ -290,7 +290,8 @@ let cfg={
                     "useBlur": false
                 },
                 "loading": {
-                    "rootMargin": "1000px 0px",
+                    "fetchRootMargin": "900px 0px",
+                    "renderRootMargin": "500px 0px",
                     "maxDelayMs": 1500,
                     "maxFetchToRenderMs": 3000
                 },
@@ -351,7 +352,7 @@ let cfg={
                                 "gexp-intext-3": {
                                     "loading": {
                                         "fetchRootMargin": "400px 0px",
-                                        "renderRootMargin": "250px 0px",
+                                        "renderRootMargin": "150px 0px",
                                         "maxDelayMs": null
                                     }
                                 },
@@ -514,7 +515,8 @@ let cfg={
                             "mode": "auto"
                         },
                         "loading": {
-                            "rootMargin": "500px 0px",
+                            "fetchRootMargin": "900px 0px",
+                            "renderRootMargin": "500px 0px",
                             "maxDelayMs": 1500
                         }
                     },
@@ -523,7 +525,25 @@ let cfg={
                             "mode": "display_only"
                         },
                         "loading": {
-                            "rootMargin": "150px 0px",
+                            "fetchRootMargin": "400px 0px",
+                            "renderRootMargin": "150px 0px",
+                            "maxDelayMs": null
+                        }
+                    },
+                    "gexp-intext-3": {
+                        "decision": {
+                            "mode": "display_only"
+                        },
+                        "loading": {
+                            "fetchRootMargin": "400px 0px",
+                            "renderRootMargin": "150px 0px",
+                            "maxDelayMs": null
+                        }
+                    },
+                    "pnc": {
+                        "loading": {
+                            "fetchRootMargin": "400px 0px",
+                            "renderRootMargin": "150px 0px",
                             "maxDelayMs": null
                         }
                     }
@@ -775,7 +795,8 @@ let cfg={
                                     "mode": "display_only"
                                 },
                                 "loading": {
-                                    "rootMargin": "250px 0px",
+                                    "fetchRootMargin": "400px 0px",
+                                    "renderRootMargin": "150px 0px",
                                     "maxDelayMs": null
                                 }
                             },
@@ -784,7 +805,15 @@ let cfg={
                                     "mode": "display_only"
                                 },
                                 "loading": {
-                                    "rootMargin": "250px 0px",
+                                    "fetchRootMargin": "400px 0px",
+                                    "renderRootMargin": "150px 0px",
+                                    "maxDelayMs": null
+                                }
+                            },
+                            "pnc": {
+                                "loading": {
+                                    "fetchRootMargin": "400px 0px",
+                                    "renderRootMargin": "150px 0px",
                                     "maxDelayMs": null
                                 }
                             }
