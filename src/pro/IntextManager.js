@@ -458,7 +458,7 @@
         normalizeIntextLoadingConfig(loadingConfig = {}) {
           const normalized = JSON.parse(JSON.stringify(loadingConfig || {}));
           const defaultRenderRootMargin = "250px 0px";
-          const defaultMaxFetchToRenderMs = 3000;
+          const defaultMaxFetchToRenderMs = 8000;
           const legacyRootMarginUsed = !normalized.renderRootMargin && !!normalized.rootMargin;
           const renderRootMargin = normalized.renderRootMargin || normalized.rootMargin || defaultRenderRootMargin;
           const derivedFetchRootMargin = normalized.derivedFetchRootMargin;
@@ -479,14 +479,7 @@
           return normalized;
         }
 
-        readIntextLoadingExperimentKey(key, context = null) {
-          if (key === "random1") {
-            try {
-              const random = this.gexp?.getRandom?.(1);
-              if (random !== null && random !== undefined && random !== "") return String(random);
-            } catch (e) {}
-          }
-
+        readIntextLoadingExperimentKeyResolution(key, context = null) {
           const readFromMap = (map) => {
             if (!map || typeof map !== "object") return null;
             const value = map[key];
@@ -495,9 +488,42 @@
             return null;
           };
 
+          try {
+            const directValue = this.getPageCustomTargeting?.(key);
+            if (!directValue || typeof directValue !== "object") {
+              const normalized = Array.isArray(directValue)
+                ? (directValue.length > 0 ? String(directValue[0]) : null)
+                : (directValue !== null && directValue !== undefined && directValue !== "" ? String(directValue) : null);
+              if (normalized !== null) {
+                return { value: normalized, source: "manager.getPageCustomTargeting(key)" };
+              }
+            }
+          } catch (e) {}
+
+          const scopedValue = readFromMap(context?.targeting);
+          if (scopedValue !== null) return { value: scopedValue, source: "scopedContext.targeting" };
+
           const pageValue = readFromMap(this.getPageCustomTargeting(context));
-          if (pageValue !== null) return pageValue;
-          return null;
+          if (pageValue !== null) return { value: pageValue, source: "manager.getPageCustomTargeting(context)" };
+
+          const managerPageValue = readFromMap(this.pageTargeting);
+          if (managerPageValue !== null) return { value: managerPageValue, source: "manager.pageTargeting" };
+
+          const randomMatch = String(key || "").match(/^random([1-4])$/);
+          if (randomMatch) {
+            try {
+              const random = this.gexp?.getRandom?.(Number(randomMatch[1]));
+              if (random !== null && random !== undefined && random !== "") {
+                return { value: String(random), source: "gexp.getRandom(fallback)" };
+              }
+            } catch (e) {}
+          }
+
+          return { value: null, source: "unresolved" };
+        }
+
+        readIntextLoadingExperimentKey(key, context = null) {
+          return this.readIntextLoadingExperimentKeyResolution(key, context).value;
         }
 
         normalizeIntextLoadingSlotId(slotId) {
@@ -513,11 +539,13 @@
             fetchRootMargin: "250px 0px",
             renderRootMargin: "250px 0px",
             maxDelayMs: 1500,
-            maxFetchToRenderMs: 3000,
+            maxFetchToRenderMs: 8000,
           };
           let loadingConfig = this.normalizeIntextLoadingConfig(baseLoading);
           const key = experiments?.key || "random1";
-          const keyValue = this.readIntextLoadingExperimentKey(key, context) || "";
+          const keyResolution = this.readIntextLoadingExperimentKeyResolution(key, context);
+          const keyValue = keyResolution.value || "";
+          const keySource = keyResolution.source || "unresolved";
           let variantName = "default";
           let experimentResolved = false;
 
@@ -534,6 +562,9 @@
               logIntext(`[IntextManager] loading_experiment_resolved`, {
                 slotCode: slotId,
                 random1: key === "random1" ? keyValue : undefined,
+                key,
+                keyValue,
+                keySource,
                 variant: variantName,
                 fetchRootMargin: loadingConfig.fetchRootMargin,
                 renderRootMargin: loadingConfig.renderRootMargin,
@@ -556,8 +587,17 @@
               random1: key === "random1" ? keyValue : undefined,
               key,
               keyValue,
+              keySource,
             });
           }
+
+          logIntext(`[IntextManager] loading_experiment_key_source`, {
+            slotCode: slotId,
+            key,
+            value: keyValue,
+            source: keySource,
+            variant: variantName,
+          });
 
           loadingConfig._experiment = {
             enabled: experiments?.enabled === true,
@@ -565,6 +605,7 @@
             variant: variantName,
             key,
             keyValue,
+            keySource,
           };
 
           return loadingConfig;
@@ -893,6 +934,12 @@
         }
 
         getPageCustomTargeting(context = null) {
+          if (typeof context === "string") {
+            const key = context;
+            const targeting = this.getPageCustomTargeting(null);
+            if (!targeting || typeof targeting !== "object") return null;
+            return targeting[key];
+          }
           if (context?.targeting && typeof context.targeting === "object") {
             return context.targeting;
           }
@@ -1908,6 +1955,9 @@
             "gexp-intext-creative-size": this.getDisplayCreativeSizeFromEvent(event),
             "gexp-intext-gam-event-size": this.getDisplayGamEventSize(event),
             "gexp-intext-gam-line-item-type": event?.lineItemType,
+            "gexp-intext-sentinel-campaign-id": event?.campaignId != null ? String(event.campaignId) : "unknown",
+            "gexp-intext-sentinel-advertiser-id": event?.advertiserId != null ? String(event.advertiserId) : "unknown",
+            "gexp-intext-sentinel-event-size": this.getDisplayGamEventSize(event),
             ...this.getDisplayLayoutTelemetry(renderSize),
             advertiserId: event?.advertiserId,
             campaignId: event?.campaignId,
@@ -1941,9 +1991,7 @@
           if (!cfg || cfg.enabled !== true) return false;
           if (!this.isHouse1x1EventMatch(event, cfg)) return false;
 
-          const maxAttemptsPerCycle = Number(cfg.maxAttemptsPerCycle ?? 1);
           const maxAttemptsPerSlot = Number(cfg.maxAttemptsPerSlot ?? 2);
-          if (maxAttemptsPerCycle >= 0 && this._house1x1AutoRefreshAttemptsForCycle >= maxAttemptsPerCycle) return false;
           if (maxAttemptsPerSlot >= 0 && this._house1x1AutoRefreshAttemptsPerSlot >= maxAttemptsPerSlot) return false;
           return true;
         }
@@ -1952,23 +2000,31 @@
           const cfg = this.getHouse1x1AutoRefreshConfig();
           if (!cfg || cfg.enabled !== true) return false;
           if (!this.isHouse1x1EventMatch(event, cfg)) return false;
-          const maxAttemptsPerCycle = Number(cfg.maxAttemptsPerCycle ?? 1);
           const maxAttemptsPerSlot = Number(cfg.maxAttemptsPerSlot ?? 2);
-          return (
-            (maxAttemptsPerCycle >= 0 && this._house1x1AutoRefreshAttemptsForCycle >= maxAttemptsPerCycle) ||
-            (maxAttemptsPerSlot >= 0 && this._house1x1AutoRefreshAttemptsPerSlot >= maxAttemptsPerSlot)
-          );
+          return maxAttemptsPerSlot >= 0 && this._house1x1AutoRefreshAttemptsPerSlot >= maxAttemptsPerSlot;
         }
 
         handleHouse1x1MaxAttemptsReached(event) {
+          const cfg = this.getHouse1x1AutoRefreshConfig() || {};
           this.mergeIntextTelemetry({
             ...this.getHouseLineItemSentinelTelemetry(event),
+            "gexp-intext-sentinel-retry-attempt-slot": String(this._house1x1AutoRefreshAttemptsPerSlot),
+            "gexp-intext-sentinel-retry-max-slot": String(cfg.maxAttemptsPerSlot ?? 2),
+            "gexp-intext-sentinel-retry-attempt-cycle": String(this._house1x1AutoRefreshAttemptsForCycle),
+            "gexp-intext-sentinel-retry-max-cycle": String(cfg.maxAttemptsPerCycle ?? 1),
+            "gexp-intext-sentinel-max-attempts-reached": "true",
             "gexp-intext-house-1x1-max-attempts-reached": "true",
           });
           this.flushIntextTelemetryToCI({ register: true, reason: "house-lineitem-sentinel-max-attempts" });
-          logIntext(`[Intext:Display:${this.id}] house_1x1_auto_refresh_max_attempts_reached`, {
-            attemptsForCycle: this._house1x1AutoRefreshAttemptsForCycle,
-            attemptsPerSlot: this._house1x1AutoRefreshAttemptsPerSlot,
+          logIntext(`[Intext:Display:${this.id}] house_lineitem_sentinel_max_attempts_reached`, {
+            attemptCycle: this._house1x1AutoRefreshAttemptsForCycle,
+            attemptSlot: this._house1x1AutoRefreshAttemptsPerSlot,
+            maxAttemptsPerCycle: cfg.maxAttemptsPerCycle,
+            maxAttemptsPerSlot: cfg.maxAttemptsPerSlot,
+            lineItemId: event?.lineItemId,
+            campaignId: event?.campaignId,
+            advertiserId: event?.advertiserId,
+            eventSize: this.getDisplayGamEventSize(event),
           });
         }
 
@@ -1978,10 +2034,16 @@
 
           this._house1x1AutoRefreshAttemptsForCycle += 1;
           this._house1x1AutoRefreshAttemptsPerSlot += 1;
-          const attempt = this._house1x1AutoRefreshAttemptsPerSlot;
+          const attemptSlot = this._house1x1AutoRefreshAttemptsPerSlot;
+          const attemptCycle = this._house1x1AutoRefreshAttemptsForCycle;
           this.mergeIntextTelemetry({
             ...this.getHouseLineItemSentinelTelemetry(event),
-            "gexp-intext-house-1x1-attempt": String(attempt),
+            "gexp-intext-house-1x1-attempt": String(attemptSlot),
+            "gexp-intext-sentinel-retry-attempt-slot": String(attemptSlot),
+            "gexp-intext-sentinel-retry-max-slot": String(cfg.maxAttemptsPerSlot ?? 2),
+            "gexp-intext-sentinel-retry-attempt-cycle": String(attemptCycle),
+            "gexp-intext-sentinel-retry-max-cycle": String(cfg.maxAttemptsPerCycle ?? 1),
+            "gexp-intext-sentinel-max-attempts-reached": "false",
             "gexp-intext-house-1x1-max-attempts-reached": "false",
           });
 
@@ -1992,9 +2054,20 @@
           }
 
           const delayMs = Number(cfg.delayMs ?? 100);
-          logIntext(`[Intext:Display:${this.id}] house_1x1_auto_refresh_scheduled`, {
+          logIntext(`[Intext:Display:${this.id}] house_lineitem_sentinel_detected`, {
+            attemptCycle,
+            attemptSlot,
+            maxAttemptsPerCycle: cfg.maxAttemptsPerCycle,
+            maxAttemptsPerSlot: cfg.maxAttemptsPerSlot,
+            lineItemId: event?.lineItemId,
+            campaignId: event?.campaignId,
+            advertiserId: event?.advertiserId,
+            eventSize: this.getDisplayGamEventSize(event),
+          });
+          logIntext(`[Intext:Display:${this.id}] house_lineitem_sentinel_retry_scheduled`, {
             delayMs,
-            attempt,
+            attemptCycle,
+            attemptSlot,
             maxAttemptsPerCycle: cfg.maxAttemptsPerCycle,
             maxAttemptsPerSlot: cfg.maxAttemptsPerSlot,
             lineItemId: event?.lineItemId,
@@ -2014,6 +2087,10 @@
               this.wa?.cI?.["gexp-intext-is-fallback"] === "true",
             originalDecisionMode: this.config?.decision?.mode || "unknown",
             sentinelLineItemId: event?.lineItemId != null ? String(event.lineItemId) : "unknown",
+            attemptSlot,
+            maxAttemptsPerSlot: cfg.maxAttemptsPerSlot ?? 2,
+            attemptCycle,
+            maxAttemptsPerCycle: cfg.maxAttemptsPerCycle ?? 1,
           };
           setTimeout(() => {
             try {
@@ -2051,6 +2128,10 @@
             "gexp-intext-video-failed",
             "gexp-intext-video-error-code",
             "gexp-intext-video-error-msg",
+            "gexp-intext-video-error-message",
+            "gexp-intext-video-fast-fallback",
+            "gexp-intext-video-fast-fallback-reason",
+            "gexp-intext-video-before-playback",
             "gexp-intext-viewport-visible-ms",
             "gexp-intext-ever-in-viewport",
             "gexp-intext-house-1x1-refresh",
@@ -2066,6 +2147,7 @@
             "gexp-intext-loading-variant",
             "gexp-intext-loading-key",
             "gexp-intext-loading-key-value",
+            "gexp-intext-loading-key-source",
             "gexp-intext-fetch-root-margin",
             "gexp-intext-render-root-margin",
             "gexp-intext-max-delay-ms",
@@ -2080,6 +2162,12 @@
             "gexp-intext-fetch-restarted-after-expiry",
             "gexp-intext-prev-fetch-age-ms",
             "gexp-intext-prev-fetch-expired-trigger",
+            "gexp-intext-render-waited-for-fetch",
+            "gexp-intext-render-wait-for-fetch-ms",
+            "gexp-intext-pending-auction-used",
+            "gexp-intext-pending-auction-expired",
+            "gexp-intext-pending-auction-age-ms",
+            "gexp-intext-pending-auction-restarted",
             "gexp-intext-fetch-distance-px",
             "gexp-intext-render-distance-px",
             "gexp-intext-slot-id",
@@ -2094,6 +2182,14 @@
             "gexp-intext-observer-target-top",
             "gexp-intext-sentinel",
             "gexp-intext-sentinel-lineitem",
+            "gexp-intext-sentinel-campaign-id",
+            "gexp-intext-sentinel-advertiser-id",
+            "gexp-intext-sentinel-event-size",
+            "gexp-intext-sentinel-retry-attempt-slot",
+            "gexp-intext-sentinel-retry-max-slot",
+            "gexp-intext-sentinel-retry-attempt-cycle",
+            "gexp-intext-sentinel-retry-max-cycle",
+            "gexp-intext-sentinel-max-attempts-reached",
             "gexp-intext-exclude-from-viewability-analysis",
             "gexp-intext-ad-rendered-logical",
             "gexp-intext-ad-filled-logical",
@@ -2106,8 +2202,6 @@
             "gexp-intext-sentinel-retry-preserved-fallback",
             "gexp-intext-sentinel-retry-original-decision-mode",
             "gexp-intext-sentinel-retry-lineitem",
-            "gexp-intext-video-fast-fallback",
-            "gexp-intext-video-fast-fallback-reason",
             "advertiserId",
             "campaignId",
             "lineItemId",
@@ -2138,6 +2232,12 @@
             "gexp-intext-is-fallback": trigger === "fallback" ? "true" : "false",
             "gexp-intext-ever-in-viewport": "false",
             "gexp-intext-viewport-visible-ms": "0",
+            "gexp-intext-render-waited-for-fetch": "false",
+            "gexp-intext-render-wait-for-fetch-ms": "0",
+            "gexp-intext-pending-auction-used": "false",
+            "gexp-intext-pending-auction-expired": "false",
+            "gexp-intext-pending-auction-age-ms": "0",
+            "gexp-intext-pending-auction-restarted": "false",
           };
           const initPageMs = this.getIntextInitPageMs();
           const startDistance = this.getIntextDistancePx();
@@ -2152,6 +2252,7 @@
             "gexp-intext-loading-variant": String(loadingExperiment.variant || "default"),
             "gexp-intext-loading-key": String(loadingExperiment.key || "random1"),
             "gexp-intext-loading-key-value": String(loadingExperiment.keyValue || ""),
+            "gexp-intext-loading-key-source": String(loadingExperiment.keySource || "unresolved"),
             "gexp-intext-fetch-root-margin": String(this.config?.loading?.fetchRootMargin || this.config?.loading?.renderRootMargin || this.config?.loading?.rootMargin || "200px 0px"),
             "gexp-intext-render-root-margin": String(this.config?.loading?.renderRootMargin || this.config?.loading?.rootMargin || "200px 0px"),
             "gexp-intext-max-delay-ms": hasTimer ? String(maxDelayMs) : "disabled",
@@ -4171,6 +4272,8 @@
           this._lastFetchExpiredBeforeRestart = false;
           this._lastFetchExpiredAgeMs = null;
           this._lastFetchExpiredTrigger = null;
+          this._renderWaitForFetchStartedAt = null;
+          this._renderWaitedForFetch = false;
         }
 
         getPbjsBidResponsesSafe(adUnitCode) {
@@ -4344,6 +4447,9 @@
           logIntext(`[Intext:Auction:${this.node.id}] loading_phase_fetch_triggered`, {
             slotCode: this.node.id,
             random1: exp.key === "random1" ? exp.keyValue : undefined,
+            key: exp.key || "random1",
+            keyValue: exp.keyValue || "",
+            keySource: exp.keySource || "unresolved",
             variant: exp.variant || "default",
             fetchRootMargin: this.loadingConfig?.fetchRootMargin,
             renderRootMargin: this.loadingConfig?.renderRootMargin,
@@ -4360,6 +4466,10 @@
               "gexp-intext-fetch-restarted-after-expiry": "true",
               "gexp-intext-prev-fetch-age-ms": String(this._lastFetchExpiredAgeMs),
               "gexp-intext-prev-fetch-expired-trigger": String(this._lastFetchExpiredTrigger || "unknown"),
+              "gexp-intext-pending-auction-expired": "true",
+              "gexp-intext-pending-auction-age-ms": String(this._lastFetchExpiredAgeMs),
+              "gexp-intext-pending-auction-restarted": "true",
+              "gexp-intext-pending-auction-used": "false",
             });
             logIntext(`[Intext:Auction:${this.node.id}] loading_previous_fetch_expiry_telemetry_applied`, {
               slotCode: this.node.id,
@@ -4411,12 +4521,16 @@
 
           if (!this.fetchStarted) {
             this.renderTriggeredWaitingForFetch = trigger;
+            this._renderWaitForFetchStartedAt = Date.now();
+            this._renderWaitedForFetch = true;
             this.startFetch(`${trigger}-auto-fetch`);
             return;
           }
 
           if (!this.pendingAuction && !this.fetchComplete) {
             this.renderTriggeredWaitingForFetch = trigger;
+            this._renderWaitForFetchStartedAt = this._renderWaitForFetchStartedAt || Date.now();
+            this._renderWaitedForFetch = true;
             logIntext(`[Intext:Auction:${this.node.id}] loading_phase_render_waiting_for_fetch - trigger=${trigger}`);
             return;
           }
@@ -4425,6 +4539,12 @@
           this.renderTrigger = trigger;
           this.lastTrigger = trigger;
           this.renderStartAt = Date.now();
+          const renderWaitForFetchMs = this._renderWaitForFetchStartedAt
+            ? Math.max(0, this.renderStartAt - this._renderWaitForFetchStartedAt)
+            : 0;
+          const renderWaitedForFetch = this._renderWaitedForFetch;
+          this._renderWaitForFetchStartedAt = null;
+          this._renderWaitedForFetch = false;
           this.disconnectRenderObserver();
           clearTimeout(this.timer);
           this.timer = null;
@@ -4440,10 +4560,22 @@
             "gexp-intext-render-trigger": trigger,
             "gexp-intext-render-start-time-ms": String(this.renderStartAt),
             "gexp-intext-fetch-to-render-ms": String(fetchToRenderMs),
+            "gexp-intext-render-waited-for-fetch": renderWaitedForFetch ? "true" : "false",
+            "gexp-intext-render-wait-for-fetch-ms": String(renderWaitForFetchMs),
             "gexp-intext-render-distance-px": distancePx !== null ? String(distancePx) : undefined,
           });
 
           if (!this.pendingAuction) {
+            const pendingAuctionExpiredAlready =
+              this.node?._intextTelemetryCycle?.["gexp-intext-pending-auction-expired"] === "true";
+            const previousPendingAuctionAgeMs =
+              this.node?._intextTelemetryCycle?.["gexp-intext-pending-auction-age-ms"];
+            this.mergeLoadingPhaseTelemetry({
+              "gexp-intext-pending-auction-used": "false",
+              "gexp-intext-pending-auction-expired": pendingAuctionExpiredAlready ? "true" : "false",
+              "gexp-intext-pending-auction-age-ms": pendingAuctionExpiredAlready ? previousPendingAuctionAgeMs : "0",
+              "gexp-intext-pending-auction-restarted": pendingAuctionExpiredAlready ? "true" : "false",
+            });
             this.prebidStarted = false;
             await this.startAuction(trigger);
             return;
@@ -4456,9 +4588,17 @@
             Number.isFinite(maxFetchToRenderMs) &&
             maxFetchToRenderMs >= 0;
           const fetchExpired = hasFetchExpiry && pendingAgeMs > maxFetchToRenderMs;
+          const pendingAuctionExpiredAlready =
+            this.node?._intextTelemetryCycle?.["gexp-intext-pending-auction-expired"] === "true";
+          const pendingAuctionAgeMsTelemetry =
+            pendingAuctionExpiredAlready
+              ? this.node?._intextTelemetryCycle?.["gexp-intext-pending-auction-age-ms"]
+              : String(Math.max(0, Math.round(pendingAgeMs)));
           this.mergeLoadingPhaseTelemetry({
             "gexp-intext-fetch-age-ms": String(Math.max(0, Math.round(pendingAgeMs))),
             "gexp-intext-fetch-expired": fetchExpired ? "true" : "false",
+            "gexp-intext-pending-auction-age-ms": pendingAuctionAgeMsTelemetry,
+            "gexp-intext-pending-auction-expired": pendingAuctionExpiredAlready || fetchExpired ? "true" : "false",
           });
 
           if (fetchExpired) {
@@ -4483,6 +4623,12 @@
             this.renderStarted = false;
             this.prebidStarted = false;
             this.renderTriggeredWaitingForFetch = trigger;
+            this._renderWaitForFetchStartedAt = Date.now();
+            this._renderWaitedForFetch = true;
+            this.mergeLoadingPhaseTelemetry({
+              "gexp-intext-pending-auction-used": "false",
+              "gexp-intext-pending-auction-restarted": "true",
+            });
             await this.startFetch(`${trigger}-restart`);
             return;
           }
@@ -4494,6 +4640,10 @@
 
           const { winner, loser, allowFallback } = this.pendingAuction;
           this.pendingAuction = null;
+          this.mergeLoadingPhaseTelemetry({
+            "gexp-intext-pending-auction-used": "true",
+            "gexp-intext-pending-auction-restarted": pendingAuctionExpiredAlready ? "true" : "false",
+          });
           if (!winner) {
             this.node.closeAll();
             return;
@@ -4525,6 +4675,10 @@
               "gexp-intext-sentinel-retry-preserved-fallback": sentinelRetryContext.isFallback ? "true" : "false",
               "gexp-intext-sentinel-retry-original-decision-mode": sentinelRetryContext.originalDecisionMode || "unknown",
               "gexp-intext-sentinel-retry-lineitem": sentinelRetryContext.sentinelLineItemId || "unknown",
+              "gexp-intext-sentinel-retry-attempt-slot": String(sentinelRetryContext.attemptSlot ?? "unknown"),
+              "gexp-intext-sentinel-retry-max-slot": String(sentinelRetryContext.maxAttemptsPerSlot ?? "unknown"),
+              "gexp-intext-sentinel-retry-attempt-cycle": String(sentinelRetryContext.attemptCycle ?? "unknown"),
+              "gexp-intext-sentinel-retry-max-cycle": String(sentinelRetryContext.maxAttemptsPerCycle ?? "unknown"),
             });
           }
 
@@ -4643,6 +4797,15 @@
           );
 
           if (sentinelRetryContext) {
+            logIntext(`[Intext:Slot:${this.node.id}] house_lineitem_sentinel_retry_forced_display`, {
+              lineItemId: sentinelRetryContext.sentinelLineItemId,
+              preservedFallback: sentinelRetryContext.isFallback ? "true" : "false",
+              originalMode: sentinelRetryContext.originalDecisionMode || "unknown",
+              attemptSlot: sentinelRetryContext.attemptSlot,
+              maxAttemptsPerSlot: sentinelRetryContext.maxAttemptsPerSlot,
+              attemptCycle: sentinelRetryContext.attemptCycle,
+              maxAttemptsPerCycle: sentinelRetryContext.maxAttemptsPerCycle,
+            });
             logIntext(
               `[Intext:Slot:${this.node.id}] technical house lineitem sentinel retry forced to display lineItemId=${sentinelRetryContext.sentinelLineItemId}, preservedFallback=${sentinelRetryContext.isFallback ? "true" : "false"}, originalMode=${sentinelRetryContext.originalDecisionMode || "unknown"}`,
             );
@@ -7306,24 +7469,54 @@
                 ? videoCfg.fastFallbackErrorCodes.map((code) => String(code))
                 : [];
               const normalizedCode = String(errCode || "");
-              if (normalizedCode === "303" && videoCfg.fastFallbackOnEmptyVast !== false) return true;
               return configuredCodes.includes(normalizedCode);
             };
 
-            const markFastFallbackVideoError = (errCode, source) => {
-              if (!isFastFallbackVideoError(errCode)) return false;
+            const getFastFallbackVideoReason = (errCode) => {
               const normalizedCode = String(errCode || "");
-              const reason = normalizedCode === "303" ? "empty-vast" : "configured-error";
-              logIntext(`[Intext:Video:IMA] video_fast_fallback_${normalizedCode}`, {
+              if (normalizedCode === "303") return "ima-303-empty-vast";
+              if (normalizedCode === "1005") return "ima-1005-fast-fallback";
+              return "configured-error";
+            };
+
+            const markFastFallbackVideoError = (errCode, errMsg, source) => {
+              const normalizedCode = String(errCode || "");
+              const beforePlayback = !firstFramePlayed;
+              const enabled = isFastFallbackVideoError(normalizedCode);
+              const reason = getFastFallbackVideoReason(normalizedCode);
+              logIntext(`[Intext:Video:IMA] video_fast_fallback_error_detected`, {
                 slotCode: this.node?.id,
                 trigger: this._videoTiming?.trigger || "unknown",
+                code: normalizedCode,
+                message: errMsg,
                 reason,
                 source,
+                beforePlayback,
+                configured: enabled,
               });
               this.node?.mergeIntextTelemetry?.({
                 "gexp-intext-video-error-code": normalizedCode,
-                "gexp-intext-video-fast-fallback": "true",
-                "gexp-intext-video-fast-fallback-reason": reason,
+                "gexp-intext-video-error-message": String(errMsg || "unknown"),
+                "gexp-intext-video-fast-fallback": enabled && beforePlayback ? "true" : "false",
+                "gexp-intext-video-fast-fallback-reason": enabled && beforePlayback ? reason : "not-applied",
+                "gexp-intext-video-before-playback": beforePlayback ? "true" : "false",
+                "gexp-intext-video-failed": "true",
+              });
+              if (!enabled || !beforePlayback) {
+                logIntext(`[Intext:Video:IMA] video_fast_fallback_skipped`, {
+                  slotCode: this.node?.id,
+                  code: normalizedCode,
+                  reason: enabled ? "after-playback" : "code-not-configured",
+                  source,
+                });
+                return false;
+              }
+              logIntext(`[Intext:Video:IMA] video_fast_fallback_applied`, {
+                slotCode: this.node?.id,
+                trigger: this._videoTiming?.trigger || "unknown",
+                code: normalizedCode,
+                reason,
+                source,
               });
               this.node?.flushIntextTelemetryToCI?.();
               return true;
@@ -7371,19 +7564,22 @@
               const imaErr = evt?.data?.AdError;
               const errCode = imaErr?.getErrorCode?.() || nativeAdError?.code || "unknown";
               const errMsg = imaErr?.getMessage?.() || nativeAdError?.message || "unknown";
+              const normalizedErrCode = String(errCode || "unknown");
 
-              logIntext(`[Intext:Video:IMA] player_adserror - code: ${errCode}, msg: ${errMsg}`);
+              logIntext(`[Intext:Video:IMA] player_adserror - code: ${normalizedErrCode}, msg: ${errMsg}`);
 
               if (!firstFramePlayed) {
-                 markFastFallbackVideoError(errCode, "adserror");
-                 rejectBeforePlayback(new Error(`video_ad_error: [${errCode}] ${errMsg}`), "adserror");
+                 markFastFallbackVideoError(normalizedErrCode, errMsg, "player_adserror");
+                 rejectBeforePlayback(new Error(`video_ad_error: [${normalizedErrCode}] ${errMsg}`), "adserror");
               } else {
+                markFastFallbackVideoError(normalizedErrCode, errMsg, "player_adserror");
                 markTerminal("adserror");
               }
 
               if (this.node && this.node.wa && this.node.wa.cI) {
-                  this.node.wa.cI["gexp-intext-video-error-code"] = errCode;
+                  this.node.wa.cI["gexp-intext-video-error-code"] = normalizedErrCode;
                   this.node.wa.cI["gexp-intext-video-error-msg"] = errMsg;
+                  this.node.wa.cI["gexp-intext-video-error-message"] = errMsg;
                   
                   // Track IDs if available even on error
                   const ad = imaErr?.getAd?.() || evt?.getAd?.() || this.player?.ima?.getAdsManager?.()?.getCurrentAd();
@@ -7395,6 +7591,9 @@
                   if (this.node.manager?.gexp) {
                       this.node.mergeIntextTelemetry({
                         "gexp-intext-video-failed": "true",
+                        "gexp-intext-video-error-code": normalizedErrCode,
+                        "gexp-intext-video-error-message": errMsg,
+                        "gexp-intext-video-before-playback": firstFramePlayed ? "false" : "true",
                         "gexp-intext-load-end-distance-px": this.node.getIntextDistancePx(),
                       });
                       this.node.flushIntextTelemetryToCI();
@@ -7520,18 +7719,20 @@
                       ima.AdErrorEvent.Type.AD_ERROR,
                       (event) => {
                         const err = event.getError();
+                        const errCode = err?.getErrorCode?.() || "unknown";
+                        const errMsg = err?.getMessage?.() || "unknown";
                         nativeAdError = {
-                          code: err?.getErrorCode?.(),
-                          message: err?.getMessage?.(),
+                          code: errCode,
+                          message: errMsg,
                           vastCode: err?.getVastErrorCode?.(),
                         };
                         logIntext(
-                          `[Intext:Video:IMA:Native] native_ad_error - code=${err?.getErrorCode?.()}, msg=${err?.getMessage?.()}, vast=${err?.getVastErrorCode?.()}`,
+                          `[Intext:Video:IMA:Native] native_ad_error - code=${errCode}, msg=${errMsg}, vast=${err?.getVastErrorCode?.()}`,
                         );
                         if (!firstFramePlayed) {
-                          markFastFallbackVideoError(err?.getErrorCode?.() || "unknown", "native_ad_error");
+                          markFastFallbackVideoError(errCode, errMsg, "native_ad_error");
                           rejectBeforePlayback(
-                            new Error(`video_ad_error: [${err?.getErrorCode?.() || "unknown"}] ${err?.getMessage?.() || "unknown"}`),
+                            new Error(`video_ad_error: [${errCode}] ${errMsg}`),
                             "native_ad_error",
                           );
                         } else {
