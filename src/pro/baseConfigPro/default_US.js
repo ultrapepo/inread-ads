@@ -479,7 +479,7 @@ let cfg={
                         "enabled": true,
                         "delayMs": 100,
                         "maxAttemptsPerCycle": 1,
-                        "maxAttemptsPerSlot": 2,
+                        "maxAttemptsPerSlot": 3,
                         "registerTelemetry": false,
                         "requireHouse": true,
                         "advertiserIds": [],
