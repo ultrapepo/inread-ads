@@ -2034,14 +2034,7 @@ class RandomStrategy extends WindowArray {
           return normalized;
         }
 
-        readIntextLoadingExperimentKey(key, context = null) {
-          if (key === "random1") {
-            try {
-              const random = this.gexp?.getRandom?.(1);
-              if (random !== null && random !== undefined && random !== "") return String(random);
-            } catch (e) {}
-          }
-
+        readIntextLoadingExperimentKeyResolution(key, context = null) {
           const readFromMap = (map) => {
             if (!map || typeof map !== "object") return null;
             const value = map[key];
@@ -2050,9 +2043,42 @@ class RandomStrategy extends WindowArray {
             return null;
           };
 
+          try {
+            const directValue = this.getPageCustomTargeting?.(key);
+            if (!directValue || typeof directValue !== "object") {
+              const normalized = Array.isArray(directValue)
+                ? (directValue.length > 0 ? String(directValue[0]) : null)
+                : (directValue !== null && directValue !== undefined && directValue !== "" ? String(directValue) : null);
+              if (normalized !== null) {
+                return { value: normalized, source: "manager.getPageCustomTargeting(key)" };
+              }
+            }
+          } catch (e) {}
+
+          const scopedValue = readFromMap(context?.targeting);
+          if (scopedValue !== null) return { value: scopedValue, source: "scopedContext.targeting" };
+
           const pageValue = readFromMap(this.getPageCustomTargeting(context));
-          if (pageValue !== null) return pageValue;
-          return null;
+          if (pageValue !== null) return { value: pageValue, source: "manager.getPageCustomTargeting(context)" };
+
+          const managerPageValue = readFromMap(this.pageTargeting);
+          if (managerPageValue !== null) return { value: managerPageValue, source: "manager.pageTargeting" };
+
+          const randomMatch = String(key || "").match(/^random([1-4])$/);
+          if (randomMatch) {
+            try {
+              const random = this.gexp?.getRandom?.(Number(randomMatch[1]));
+              if (random !== null && random !== undefined && random !== "") {
+                return { value: String(random), source: "gexp.getRandom(fallback)" };
+              }
+            } catch (e) {}
+          }
+
+          return { value: null, source: "unresolved" };
+        }
+
+        readIntextLoadingExperimentKey(key, context = null) {
+          return this.readIntextLoadingExperimentKeyResolution(key, context).value;
         }
 
         normalizeIntextLoadingSlotId(slotId) {
@@ -2072,7 +2098,9 @@ class RandomStrategy extends WindowArray {
           };
           let loadingConfig = this.normalizeIntextLoadingConfig(baseLoading);
           const key = experiments?.key || "random1";
-          const keyValue = this.readIntextLoadingExperimentKey(key, context) || "";
+          const keyResolution = this.readIntextLoadingExperimentKeyResolution(key, context);
+          const keyValue = keyResolution.value || "";
+          const keySource = keyResolution.source || "unresolved";
           let variantName = "default";
           let experimentResolved = false;
 
@@ -2089,6 +2117,9 @@ class RandomStrategy extends WindowArray {
               logIntext(`[IntextManager] loading_experiment_resolved`, {
                 slotCode: slotId,
                 random1: key === "random1" ? keyValue : undefined,
+                key,
+                keyValue,
+                keySource,
                 variant: variantName,
                 fetchRootMargin: loadingConfig.fetchRootMargin,
                 renderRootMargin: loadingConfig.renderRootMargin,
@@ -2111,8 +2142,17 @@ class RandomStrategy extends WindowArray {
               random1: key === "random1" ? keyValue : undefined,
               key,
               keyValue,
+              keySource,
             });
           }
+
+          logIntext(`[IntextManager] loading_experiment_key_source`, {
+            slotCode: slotId,
+            key,
+            value: keyValue,
+            source: keySource,
+            variant: variantName,
+          });
 
           loadingConfig._experiment = {
             enabled: experiments?.enabled === true,
@@ -2120,6 +2160,7 @@ class RandomStrategy extends WindowArray {
             variant: variantName,
             key,
             keyValue,
+            keySource,
           };
 
           return loadingConfig;
@@ -2448,6 +2489,12 @@ class RandomStrategy extends WindowArray {
         }
 
         getPageCustomTargeting(context = null) {
+          if (typeof context === "string") {
+            const key = context;
+            const targeting = this.getPageCustomTargeting(null);
+            if (!targeting || typeof targeting !== "object") return null;
+            return targeting[key];
+          }
           if (context?.targeting && typeof context.targeting === "object") {
             return context.targeting;
           }
@@ -3463,6 +3510,9 @@ class RandomStrategy extends WindowArray {
             "gexp-intext-creative-size": this.getDisplayCreativeSizeFromEvent(event),
             "gexp-intext-gam-event-size": this.getDisplayGamEventSize(event),
             "gexp-intext-gam-line-item-type": event?.lineItemType,
+            "gexp-intext-sentinel-campaign-id": event?.campaignId != null ? String(event.campaignId) : "unknown",
+            "gexp-intext-sentinel-advertiser-id": event?.advertiserId != null ? String(event.advertiserId) : "unknown",
+            "gexp-intext-sentinel-event-size": this.getDisplayGamEventSize(event),
             ...this.getDisplayLayoutTelemetry(renderSize),
             advertiserId: event?.advertiserId,
             campaignId: event?.campaignId,
@@ -3496,9 +3546,7 @@ class RandomStrategy extends WindowArray {
           if (!cfg || cfg.enabled !== true) return false;
           if (!this.isHouse1x1EventMatch(event, cfg)) return false;
 
-          const maxAttemptsPerCycle = Number(cfg.maxAttemptsPerCycle ?? 1);
           const maxAttemptsPerSlot = Number(cfg.maxAttemptsPerSlot ?? 2);
-          if (maxAttemptsPerCycle >= 0 && this._house1x1AutoRefreshAttemptsForCycle >= maxAttemptsPerCycle) return false;
           if (maxAttemptsPerSlot >= 0 && this._house1x1AutoRefreshAttemptsPerSlot >= maxAttemptsPerSlot) return false;
           return true;
         }
@@ -3507,23 +3555,31 @@ class RandomStrategy extends WindowArray {
           const cfg = this.getHouse1x1AutoRefreshConfig();
           if (!cfg || cfg.enabled !== true) return false;
           if (!this.isHouse1x1EventMatch(event, cfg)) return false;
-          const maxAttemptsPerCycle = Number(cfg.maxAttemptsPerCycle ?? 1);
           const maxAttemptsPerSlot = Number(cfg.maxAttemptsPerSlot ?? 2);
-          return (
-            (maxAttemptsPerCycle >= 0 && this._house1x1AutoRefreshAttemptsForCycle >= maxAttemptsPerCycle) ||
-            (maxAttemptsPerSlot >= 0 && this._house1x1AutoRefreshAttemptsPerSlot >= maxAttemptsPerSlot)
-          );
+          return maxAttemptsPerSlot >= 0 && this._house1x1AutoRefreshAttemptsPerSlot >= maxAttemptsPerSlot;
         }
 
         handleHouse1x1MaxAttemptsReached(event) {
+          const cfg = this.getHouse1x1AutoRefreshConfig() || {};
           this.mergeIntextTelemetry({
             ...this.getHouseLineItemSentinelTelemetry(event),
+            "gexp-intext-sentinel-retry-attempt-slot": String(this._house1x1AutoRefreshAttemptsPerSlot),
+            "gexp-intext-sentinel-retry-max-slot": String(cfg.maxAttemptsPerSlot ?? 2),
+            "gexp-intext-sentinel-retry-attempt-cycle": String(this._house1x1AutoRefreshAttemptsForCycle),
+            "gexp-intext-sentinel-retry-max-cycle": String(cfg.maxAttemptsPerCycle ?? 1),
+            "gexp-intext-sentinel-max-attempts-reached": "true",
             "gexp-intext-house-1x1-max-attempts-reached": "true",
           });
           this.flushIntextTelemetryToCI({ register: true, reason: "house-lineitem-sentinel-max-attempts" });
-          logIntext(`[Intext:Display:${this.id}] house_1x1_auto_refresh_max_attempts_reached`, {
-            attemptsForCycle: this._house1x1AutoRefreshAttemptsForCycle,
-            attemptsPerSlot: this._house1x1AutoRefreshAttemptsPerSlot,
+          logIntext(`[Intext:Display:${this.id}] house_lineitem_sentinel_max_attempts_reached`, {
+            attemptCycle: this._house1x1AutoRefreshAttemptsForCycle,
+            attemptSlot: this._house1x1AutoRefreshAttemptsPerSlot,
+            maxAttemptsPerCycle: cfg.maxAttemptsPerCycle,
+            maxAttemptsPerSlot: cfg.maxAttemptsPerSlot,
+            lineItemId: event?.lineItemId,
+            campaignId: event?.campaignId,
+            advertiserId: event?.advertiserId,
+            eventSize: this.getDisplayGamEventSize(event),
           });
         }
 
@@ -3533,10 +3589,16 @@ class RandomStrategy extends WindowArray {
 
           this._house1x1AutoRefreshAttemptsForCycle += 1;
           this._house1x1AutoRefreshAttemptsPerSlot += 1;
-          const attempt = this._house1x1AutoRefreshAttemptsPerSlot;
+          const attemptSlot = this._house1x1AutoRefreshAttemptsPerSlot;
+          const attemptCycle = this._house1x1AutoRefreshAttemptsForCycle;
           this.mergeIntextTelemetry({
             ...this.getHouseLineItemSentinelTelemetry(event),
-            "gexp-intext-house-1x1-attempt": String(attempt),
+            "gexp-intext-house-1x1-attempt": String(attemptSlot),
+            "gexp-intext-sentinel-retry-attempt-slot": String(attemptSlot),
+            "gexp-intext-sentinel-retry-max-slot": String(cfg.maxAttemptsPerSlot ?? 2),
+            "gexp-intext-sentinel-retry-attempt-cycle": String(attemptCycle),
+            "gexp-intext-sentinel-retry-max-cycle": String(cfg.maxAttemptsPerCycle ?? 1),
+            "gexp-intext-sentinel-max-attempts-reached": "false",
             "gexp-intext-house-1x1-max-attempts-reached": "false",
           });
 
@@ -3547,9 +3609,20 @@ class RandomStrategy extends WindowArray {
           }
 
           const delayMs = Number(cfg.delayMs ?? 100);
-          logIntext(`[Intext:Display:${this.id}] house_1x1_auto_refresh_scheduled`, {
+          logIntext(`[Intext:Display:${this.id}] house_lineitem_sentinel_detected`, {
+            attemptCycle,
+            attemptSlot,
+            maxAttemptsPerCycle: cfg.maxAttemptsPerCycle,
+            maxAttemptsPerSlot: cfg.maxAttemptsPerSlot,
+            lineItemId: event?.lineItemId,
+            campaignId: event?.campaignId,
+            advertiserId: event?.advertiserId,
+            eventSize: this.getDisplayGamEventSize(event),
+          });
+          logIntext(`[Intext:Display:${this.id}] house_lineitem_sentinel_retry_scheduled`, {
             delayMs,
-            attempt,
+            attemptCycle,
+            attemptSlot,
             maxAttemptsPerCycle: cfg.maxAttemptsPerCycle,
             maxAttemptsPerSlot: cfg.maxAttemptsPerSlot,
             lineItemId: event?.lineItemId,
@@ -3569,6 +3642,10 @@ class RandomStrategy extends WindowArray {
               this.wa?.cI?.["gexp-intext-is-fallback"] === "true",
             originalDecisionMode: this.config?.decision?.mode || "unknown",
             sentinelLineItemId: event?.lineItemId != null ? String(event.lineItemId) : "unknown",
+            attemptSlot,
+            maxAttemptsPerSlot: cfg.maxAttemptsPerSlot ?? 2,
+            attemptCycle,
+            maxAttemptsPerCycle: cfg.maxAttemptsPerCycle ?? 1,
           };
           setTimeout(() => {
             try {
@@ -3606,6 +3683,10 @@ class RandomStrategy extends WindowArray {
             "gexp-intext-video-failed",
             "gexp-intext-video-error-code",
             "gexp-intext-video-error-msg",
+            "gexp-intext-video-error-message",
+            "gexp-intext-video-fast-fallback",
+            "gexp-intext-video-fast-fallback-reason",
+            "gexp-intext-video-before-playback",
             "gexp-intext-viewport-visible-ms",
             "gexp-intext-ever-in-viewport",
             "gexp-intext-house-1x1-refresh",
@@ -3621,6 +3702,7 @@ class RandomStrategy extends WindowArray {
             "gexp-intext-loading-variant",
             "gexp-intext-loading-key",
             "gexp-intext-loading-key-value",
+            "gexp-intext-loading-key-source",
             "gexp-intext-fetch-root-margin",
             "gexp-intext-render-root-margin",
             "gexp-intext-max-delay-ms",
@@ -3649,6 +3731,14 @@ class RandomStrategy extends WindowArray {
             "gexp-intext-observer-target-top",
             "gexp-intext-sentinel",
             "gexp-intext-sentinel-lineitem",
+            "gexp-intext-sentinel-campaign-id",
+            "gexp-intext-sentinel-advertiser-id",
+            "gexp-intext-sentinel-event-size",
+            "gexp-intext-sentinel-retry-attempt-slot",
+            "gexp-intext-sentinel-retry-max-slot",
+            "gexp-intext-sentinel-retry-attempt-cycle",
+            "gexp-intext-sentinel-retry-max-cycle",
+            "gexp-intext-sentinel-max-attempts-reached",
             "gexp-intext-exclude-from-viewability-analysis",
             "gexp-intext-ad-rendered-logical",
             "gexp-intext-ad-filled-logical",
@@ -3661,8 +3751,6 @@ class RandomStrategy extends WindowArray {
             "gexp-intext-sentinel-retry-preserved-fallback",
             "gexp-intext-sentinel-retry-original-decision-mode",
             "gexp-intext-sentinel-retry-lineitem",
-            "gexp-intext-video-fast-fallback",
-            "gexp-intext-video-fast-fallback-reason",
             "advertiserId",
             "campaignId",
             "lineItemId",
