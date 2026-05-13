@@ -2019,7 +2019,7 @@ class RandomStrategy extends WindowArray {
           const derivedFetchRootMargin = normalized.derivedFetchRootMargin;
           normalized.renderRootMargin = renderRootMargin;
           normalized.fetchRootMargin = normalized.fetchRootMargin || derivedFetchRootMargin || renderRootMargin;
-          normalized.maxFetchToRenderMs = normalized.maxFetchToRenderMs || defaultMaxFetchToRenderMs;
+          normalized.maxFetchToRenderMs = normalized.maxFetchToRenderMs ?? defaultMaxFetchToRenderMs;
 
           const fetchPx = this.parseIntextRootMarginPx(normalized.fetchRootMargin);
           const renderPx = this.parseIntextRootMarginPx(normalized.renderRootMargin);
