@@ -293,7 +293,7 @@ let cfg={
                     "fetchRootMargin": "900px 0px",
                     "renderRootMargin": "500px 0px",
                     "maxDelayMs": 1500,
-                    "maxFetchToRenderMs": 3000
+                    "maxFetchToRenderMs": 8000
                 },
                 "loadingExperiments": {
                     "enabled": true,
@@ -311,21 +311,21 @@ let cfg={
                                 },
                                 "gexp-intext-2": {
                                     "loading": {
-                                        "fetchRootMargin": "350px 0px",
+                                        "fetchRootMargin": "500px 0px",
                                         "renderRootMargin": "100px 0px",
                                         "maxDelayMs": null
                                     }
                                 },
                                 "gexp-intext-3": {
                                     "loading": {
-                                        "fetchRootMargin": "350px 0px",
+                                        "fetchRootMargin": "500px 0px",
                                         "renderRootMargin": "100px 0px",
                                         "maxDelayMs": null
                                     }
                                 },
                                 "pnc": {
                                     "loading": {
-                                        "fetchRootMargin": "350px 0px",
+                                        "fetchRootMargin": "500px 0px",
                                         "renderRootMargin": "100px 0px",
                                         "maxDelayMs": null
                                     }
@@ -379,7 +379,7 @@ let cfg={
                 },
                 "video": {
                     "enabled": true,
-                    "fastFallbackErrorCodes": [303],
+                    "fastFallbackErrorCodes": [303, 1005],
                     "fastFallbackOnEmptyVast": true,
                     "playerSize": [
                         640,

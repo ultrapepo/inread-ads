@@ -2013,7 +2013,7 @@ class RandomStrategy extends WindowArray {
         normalizeIntextLoadingConfig(loadingConfig = {}) {
           const normalized = JSON.parse(JSON.stringify(loadingConfig || {}));
           const defaultRenderRootMargin = "250px 0px";
-          const defaultMaxFetchToRenderMs = 3000;
+          const defaultMaxFetchToRenderMs = 8000;
           const legacyRootMarginUsed = !normalized.renderRootMargin && !!normalized.rootMargin;
           const renderRootMargin = normalized.renderRootMargin || normalized.rootMargin || defaultRenderRootMargin;
           const derivedFetchRootMargin = normalized.derivedFetchRootMargin;
@@ -2094,7 +2094,7 @@ class RandomStrategy extends WindowArray {
             fetchRootMargin: "250px 0px",
             renderRootMargin: "250px 0px",
             maxDelayMs: 1500,
-            maxFetchToRenderMs: 3000,
+            maxFetchToRenderMs: 8000,
           };
           let loadingConfig = this.normalizeIntextLoadingConfig(baseLoading);
           const key = experiments?.key || "random1";
@@ -3717,6 +3717,12 @@ class RandomStrategy extends WindowArray {
             "gexp-intext-fetch-restarted-after-expiry",
             "gexp-intext-prev-fetch-age-ms",
             "gexp-intext-prev-fetch-expired-trigger",
+            "gexp-intext-render-waited-for-fetch",
+            "gexp-intext-render-wait-for-fetch-ms",
+            "gexp-intext-pending-auction-used",
+            "gexp-intext-pending-auction-expired",
+            "gexp-intext-pending-auction-age-ms",
+            "gexp-intext-pending-auction-restarted",
             "gexp-intext-fetch-distance-px",
             "gexp-intext-render-distance-px",
             "gexp-intext-slot-id",
@@ -3781,6 +3787,12 @@ class RandomStrategy extends WindowArray {
             "gexp-intext-is-fallback": trigger === "fallback" ? "true" : "false",
             "gexp-intext-ever-in-viewport": "false",
             "gexp-intext-viewport-visible-ms": "0",
+            "gexp-intext-render-waited-for-fetch": "false",
+            "gexp-intext-render-wait-for-fetch-ms": "0",
+            "gexp-intext-pending-auction-used": "false",
+            "gexp-intext-pending-auction-expired": "false",
+            "gexp-intext-pending-auction-age-ms": "0",
+            "gexp-intext-pending-auction-restarted": "false",
           };
           const initPageMs = this.getIntextInitPageMs();
           const startDistance = this.getIntextDistancePx();
@@ -5815,6 +5827,8 @@ class RandomStrategy extends WindowArray {
           this._lastFetchExpiredBeforeRestart = false;
           this._lastFetchExpiredAgeMs = null;
           this._lastFetchExpiredTrigger = null;
+          this._renderWaitForFetchStartedAt = null;
+          this._renderWaitedForFetch = false;
         }
 
         getPbjsBidResponsesSafe(adUnitCode) {
@@ -6007,6 +6021,10 @@ class RandomStrategy extends WindowArray {
               "gexp-intext-fetch-restarted-after-expiry": "true",
               "gexp-intext-prev-fetch-age-ms": String(this._lastFetchExpiredAgeMs),
               "gexp-intext-prev-fetch-expired-trigger": String(this._lastFetchExpiredTrigger || "unknown"),
+              "gexp-intext-pending-auction-expired": "true",
+              "gexp-intext-pending-auction-age-ms": String(this._lastFetchExpiredAgeMs),
+              "gexp-intext-pending-auction-restarted": "true",
+              "gexp-intext-pending-auction-used": "false",
             });
             logIntext(`[Intext:Auction:${this.node.id}] loading_previous_fetch_expiry_telemetry_applied`, {
               slotCode: this.node.id,
@@ -6058,12 +6076,16 @@ class RandomStrategy extends WindowArray {
 
           if (!this.fetchStarted) {
             this.renderTriggeredWaitingForFetch = trigger;
+            this._renderWaitForFetchStartedAt = Date.now();
+            this._renderWaitedForFetch = true;
             this.startFetch(`${trigger}-auto-fetch`);
             return;
           }
 
           if (!this.pendingAuction && !this.fetchComplete) {
             this.renderTriggeredWaitingForFetch = trigger;
+            this._renderWaitForFetchStartedAt = this._renderWaitForFetchStartedAt || Date.now();
+            this._renderWaitedForFetch = true;
             logIntext(`[Intext:Auction:${this.node.id}] loading_phase_render_waiting_for_fetch - trigger=${trigger}`);
             return;
           }
@@ -6072,6 +6094,12 @@ class RandomStrategy extends WindowArray {
           this.renderTrigger = trigger;
           this.lastTrigger = trigger;
           this.renderStartAt = Date.now();
+          const renderWaitForFetchMs = this._renderWaitForFetchStartedAt
+            ? Math.max(0, this.renderStartAt - this._renderWaitForFetchStartedAt)
+            : 0;
+          const renderWaitedForFetch = this._renderWaitedForFetch;
+          this._renderWaitForFetchStartedAt = null;
+          this._renderWaitedForFetch = false;
           this.disconnectRenderObserver();
           clearTimeout(this.timer);
           this.timer = null;
@@ -6087,10 +6115,22 @@ class RandomStrategy extends WindowArray {
             "gexp-intext-render-trigger": trigger,
             "gexp-intext-render-start-time-ms": String(this.renderStartAt),
             "gexp-intext-fetch-to-render-ms": String(fetchToRenderMs),
+            "gexp-intext-render-waited-for-fetch": renderWaitedForFetch ? "true" : "false",
+            "gexp-intext-render-wait-for-fetch-ms": String(renderWaitForFetchMs),
             "gexp-intext-render-distance-px": distancePx !== null ? String(distancePx) : undefined,
           });
 
           if (!this.pendingAuction) {
+            const pendingAuctionExpiredAlready =
+              this.node?._intextTelemetryCycle?.["gexp-intext-pending-auction-expired"] === "true";
+            const previousPendingAuctionAgeMs =
+              this.node?._intextTelemetryCycle?.["gexp-intext-pending-auction-age-ms"];
+            this.mergeLoadingPhaseTelemetry({
+              "gexp-intext-pending-auction-used": "false",
+              "gexp-intext-pending-auction-expired": pendingAuctionExpiredAlready ? "true" : "false",
+              "gexp-intext-pending-auction-age-ms": pendingAuctionExpiredAlready ? previousPendingAuctionAgeMs : "0",
+              "gexp-intext-pending-auction-restarted": pendingAuctionExpiredAlready ? "true" : "false",
+            });
             this.prebidStarted = false;
             await this.startAuction(trigger);
             return;
@@ -6103,9 +6143,17 @@ class RandomStrategy extends WindowArray {
             Number.isFinite(maxFetchToRenderMs) &&
             maxFetchToRenderMs >= 0;
           const fetchExpired = hasFetchExpiry && pendingAgeMs > maxFetchToRenderMs;
+          const pendingAuctionExpiredAlready =
+            this.node?._intextTelemetryCycle?.["gexp-intext-pending-auction-expired"] === "true";
+          const pendingAuctionAgeMsTelemetry =
+            pendingAuctionExpiredAlready
+              ? this.node?._intextTelemetryCycle?.["gexp-intext-pending-auction-age-ms"]
+              : String(Math.max(0, Math.round(pendingAgeMs)));
           this.mergeLoadingPhaseTelemetry({
             "gexp-intext-fetch-age-ms": String(Math.max(0, Math.round(pendingAgeMs))),
             "gexp-intext-fetch-expired": fetchExpired ? "true" : "false",
+            "gexp-intext-pending-auction-age-ms": pendingAuctionAgeMsTelemetry,
+            "gexp-intext-pending-auction-expired": pendingAuctionExpiredAlready || fetchExpired ? "true" : "false",
           });
 
           if (fetchExpired) {
@@ -6130,6 +6178,12 @@ class RandomStrategy extends WindowArray {
             this.renderStarted = false;
             this.prebidStarted = false;
             this.renderTriggeredWaitingForFetch = trigger;
+            this._renderWaitForFetchStartedAt = Date.now();
+            this._renderWaitedForFetch = true;
+            this.mergeLoadingPhaseTelemetry({
+              "gexp-intext-pending-auction-used": "false",
+              "gexp-intext-pending-auction-restarted": "true",
+            });
             await this.startFetch(`${trigger}-restart`);
             return;
           }
@@ -6141,6 +6195,10 @@ class RandomStrategy extends WindowArray {
 
           const { winner, loser, allowFallback } = this.pendingAuction;
           this.pendingAuction = null;
+          this.mergeLoadingPhaseTelemetry({
+            "gexp-intext-pending-auction-used": "true",
+            "gexp-intext-pending-auction-restarted": pendingAuctionExpiredAlready ? "true" : "false",
+          });
           if (!winner) {
             this.node.closeAll();
             return;
@@ -8972,6 +9030,7 @@ class RandomStrategy extends WindowArray {
             const getFastFallbackVideoReason = (errCode) => {
               const normalizedCode = String(errCode || "");
               if (normalizedCode === "303") return "ima-303-empty-vast";
+              if (normalizedCode === "1005") return "ima-1005-fast-fallback";
               return "configured-error";
             };
 
@@ -8996,6 +9055,7 @@ class RandomStrategy extends WindowArray {
                 "gexp-intext-video-fast-fallback": enabled && beforePlayback ? "true" : "false",
                 "gexp-intext-video-fast-fallback-reason": enabled && beforePlayback ? reason : "not-applied",
                 "gexp-intext-video-before-playback": beforePlayback ? "true" : "false",
+                "gexp-intext-video-failed": "true",
               });
               if (!enabled || !beforePlayback) {
                 logIntext(`[Intext:Video:IMA] video_fast_fallback_skipped`, {
