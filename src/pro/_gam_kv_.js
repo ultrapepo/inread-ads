@@ -1589,6 +1589,23 @@ class RandomStrategy extends WindowArray {
             margin-top: 16px;
             margin-bottom: 36px !important;
         }
+        .gexp-intext-slot.gexp-intext-layout-wide-standard {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+        .gexp-intext-slot.gexp-intext-layout-wide-standard > div[id^="google_ads_iframe"],
+        .gexp-intext-slot.gexp-intext-layout-wide-standard > iframe {
+            align-self: flex-start;
+            margin: 0 auto;
+        }
+        .gexp-intext-slot.gexp-intext-layout-wide-tall {
+            display: flex;
+            align-items: flex-start;
+            justify-content: center;
+            overflow: hidden;
+        }
 
         .gexp-intext-slot:not(.video-started) .video-js {
              opacity: 0 !important;
@@ -2624,6 +2641,15 @@ class RandomStrategy extends WindowArray {
               }
 
               const displayWrapper = this.createWrapperNode(index, "display");
+              if (document.getElementById(displayWrapper.id)) {
+                logIntext(`[IntextManager] duplicate_intext_wrapper_creation_blocked`, {
+                  slotCode: displayWrapper.id,
+                  nodeId: displayWrapper.dataset.gexpIntextNodeId,
+                  placementIndex: index,
+                  source: "createIntextPositions",
+                });
+                return;
+              }
               placement.paragraph.parentNode.insertBefore(
                 displayWrapper,
                 placement.paragraph.nextSibling,
@@ -2743,6 +2769,13 @@ class RandomStrategy extends WindowArray {
           }
           wrapper.id = positionId;
           wrapper.className = "gexp-intext-slot";
+          wrapper.dataset.gexpIntextSlot = positionId.replace(/-video$/, "");
+          wrapper.dataset.gexpIntextNodeId = positionId.replace(/-video$/, "");
+          wrapper.dataset.gexpIntextPlacementIndex = typeof idxOrId === "number" ? String(idxOrId) : "unknown";
+          wrapper.dataset.gexpIntextCycleId = "0";
+          wrapper.dataset.gexpIntextRenderToken = "0";
+          wrapper.dataset.gexpIntextVisualState = "created";
+          wrapper.dataset.gexpIntextFormat = type;
           wrapper.innerHTML = `
             <div class="gexp-intext-loader">
               <div class="gexp-intext-spinner"></div>
@@ -2895,6 +2928,16 @@ class RandomStrategy extends WindowArray {
               }
 
               const displayWrapper = this.createWrapperNode(index, "display", pncSuffix);
+              if (document.getElementById(displayWrapper.id)) {
+                logIntext(`[IntextManager:NavContinua] duplicate_intext_wrapper_creation_blocked`, {
+                  slotCode: displayWrapper.id,
+                  nodeId: displayWrapper.dataset.gexpIntextNodeId,
+                  placementIndex: index,
+                  navIndex,
+                  source: "createIntextPositionsScoped",
+                });
+                return;
+              }
               placement.paragraph.parentNode.insertBefore(
                 displayWrapper,
                 placement.paragraph.nextSibling
@@ -3198,6 +3241,255 @@ class RandomStrategy extends WindowArray {
           this._lastImaAdDuration = null;
           this._house1x1AutoRefreshAttemptsForCycle = 0;
           this._house1x1AutoRefreshAttemptsPerSlot = 0;
+          this._activeRenderToken = 0;
+          this._renderTokenSeq = 0;
+          this._renderInProgress = false;
+          this._renderCompleted = false;
+          this._displayRequestInFlight = false;
+          this._lastVisualCycleId = 0;
+          this._visualState = "idle";
+          this._destroyedOrResetToken = 0;
+          this._renderTimers = [];
+        }
+
+        getIntextNodeId() {
+          return String(this.id || this.videoId || "unknown");
+        }
+
+        getIntextPlacementIndex() {
+          return this.placement?.placementIndex != null
+            ? this.placement.placementIndex
+            : this.slotIndex;
+        }
+
+        beginVisualRender(source = "unknown", trigger = "unknown") {
+          this._renderTokenSeq += 1;
+          this._activeRenderToken = this._renderTokenSeq;
+          this._renderInProgress = true;
+          this._renderCompleted = false;
+          this._displayRequestInFlight = false;
+          this._lastVisualCycleId = this._intextTelemetryCycleId;
+          this._visualState = source;
+          this.mergeIntextTelemetry({
+            "gexp-intext-render-token": String(this._activeRenderToken),
+            "gexp-intext-render-attempt": String(this._renderTokenSeq),
+            "gexp-intext-visual-state": this._visualState,
+          });
+          this.applyIntextWrapperDebugAttributes(this.container?.getElement?.(), {
+            renderToken: this._activeRenderToken,
+            visualState: this._visualState,
+          });
+          this.applyIntextWrapperDebugAttributes(this.videoContainer?.getElement?.(), {
+            renderToken: this._activeRenderToken,
+            visualState: this._visualState,
+            slotCode: this.videoId || this.id,
+          });
+          return this._activeRenderToken;
+        }
+
+        completeVisualRender(renderToken, source = "unknown") {
+          if (!this.isActiveRenderToken(renderToken, source)) return false;
+          this._renderInProgress = false;
+          this._renderCompleted = true;
+          this._visualState = source;
+          this.mergeIntextTelemetry({ "gexp-intext-visual-state": this._visualState });
+          this.applyIntextWrapperDebugAttributes(this.container?.getElement?.(), {
+            renderToken,
+            visualState: this._visualState,
+          });
+          return true;
+        }
+
+        invalidateVisualCallbacks(source = "unknown") {
+          this._destroyedOrResetToken += 1;
+          this._renderTokenSeq += 1;
+          this._activeRenderToken = this._renderTokenSeq;
+          this._renderInProgress = false;
+          this._renderCompleted = false;
+          this._displayRequestInFlight = false;
+          this._visualState = source;
+          this.clearRenderTimers();
+          this.mergeIntextTelemetry({
+            "gexp-intext-render-token": String(this._activeRenderToken),
+            "gexp-intext-visual-state": this._visualState,
+          });
+          logIntext(`[Intext:Display:${this.id}] intext_node_reset_callbacks_invalidated`, {
+            slotCode: this.id,
+            activeToken: this._activeRenderToken,
+            cycleId: this._intextTelemetryCycleId,
+            visualState: this._visualState,
+          });
+        }
+
+        logStaleRenderCallback(source, oldToken, trigger = "unknown", extra = {}) {
+          const payload = {
+            slotCode: this.id,
+            source,
+            oldToken,
+            activeToken: this._activeRenderToken,
+            cycleId: this._intextTelemetryCycleId,
+            trigger,
+            visualState: this._visualState,
+            ...extra,
+          };
+          logIntext(`[Intext:Display:${this.id}] stale_render_callback_ignored`, payload);
+          this.mergeIntextTelemetry({
+            "gexp-intext-stale-render-ignored": "true",
+            "gexp-intext-stale-render-source": source,
+            "gexp-intext-visual-state": this._visualState,
+          });
+        }
+
+        isActiveRenderToken(renderToken, source = "unknown", trigger = "unknown") {
+          if (!renderToken || renderToken !== this._activeRenderToken) {
+            this.logStaleRenderCallback(source, renderToken || "missing", trigger);
+            return false;
+          }
+          return true;
+        }
+
+        trackRenderTimer(timerId) {
+          if (!timerId) return timerId;
+          this._renderTimers.push(timerId);
+          return timerId;
+        }
+
+        clearRenderTimers() {
+          if (Array.isArray(this._renderTimers)) {
+            this._renderTimers.forEach((timerId) => clearTimeout(timerId));
+          }
+          this._renderTimers = [];
+        }
+
+        applyIntextWrapperDebugAttributes(el, {
+          renderToken = this._activeRenderToken,
+          visualState = this._visualState,
+          slotCode = this.id,
+        } = {}) {
+          if (!el?.dataset) return;
+          el.dataset.gexpIntextSlot = String(slotCode || this.id || "unknown").replace(/-video$/, "");
+          el.dataset.gexpIntextNodeId = this.getIntextNodeId();
+          el.dataset.gexpIntextPlacementIndex = String(this.getIntextPlacementIndex() ?? "unknown");
+          el.dataset.gexpIntextCycleId = String(this._intextTelemetryCycleId || 0);
+          el.dataset.gexpIntextRenderToken = String(renderToken || 0);
+          el.dataset.gexpIntextVisualState = String(visualState || "unknown");
+        }
+
+        findIntextWrappersForNode() {
+          if (typeof document === "undefined") return [];
+          const baseSlot = String(this.id || "").replace(/-video$/, "");
+          return Array.from(document.querySelectorAll(".gexp-intext-slot")).filter((el) => {
+            if (el.dataset?.gexpIntextFormat === "video" || /-video$/.test(el.id || "")) return false;
+            const slot = String(el.dataset?.gexpIntextSlot || el.id || "").replace(/-video$/, "");
+            const nodeId = String(el.dataset?.gexpIntextNodeId || "");
+            return slot === baseSlot || nodeId === this.getIntextNodeId() || el.id === this.id;
+          });
+        }
+
+        ensureSingleIntextWrapper(preferredEl = null, {
+          source = "unknown",
+          renderToken = this._activeRenderToken,
+          visualState = this._visualState,
+        } = {}) {
+          const wrappers = this.findIntextWrappersForNode().filter((el) => el?.isConnected);
+          const duplicateCount = Math.max(0, wrappers.length - 1);
+          if (duplicateCount > 0) {
+            logIntext(`[Intext:Display:${this.id}] duplicate_intext_wrapper_detected`, {
+              slotCode: this.id,
+              source,
+              duplicateCount,
+              renderToken,
+              cycleId: this._intextTelemetryCycleId,
+            });
+            this.mergeIntextTelemetry({
+              "gexp-intext-duplicate-wrapper-count": String(duplicateCount),
+            });
+          }
+
+          const preferred =
+            preferredEl ||
+            wrappers.find((el) => String(el.dataset?.gexpIntextRenderToken || "") === String(renderToken)) ||
+            wrappers.find((el) => el.id === this.id) ||
+            wrappers[0] ||
+            null;
+
+          wrappers.forEach((el) => {
+            if (!el || el === preferred) return;
+            const token = String(el.dataset?.gexpIntextRenderToken || "0");
+            const isStale =
+              token !== String(renderToken) ||
+              el.dataset?.gexpIntextVisualState === "stale" ||
+              el.dataset?.gexpIntextVisualState === "destroyed";
+            if (isStale) {
+              logIntext(`[Intext:Display:${this.id}] duplicate_intext_wrapper_stale_removed`, {
+                slotCode: this.id,
+                source,
+                oldToken: token,
+                activeToken: renderToken,
+                cycleId: this._intextTelemetryCycleId,
+              });
+              this.mergeIntextTelemetry({ "gexp-intext-stale-wrapper-removed": "true" });
+              el.dataset.gexpIntextVisualState = "stale";
+              el.style.transition = "none";
+              el.style.display = "none";
+              el.remove();
+            } else {
+              logIntext(`[Intext:Display:${this.id}] duplicate_intext_wrapper_creation_blocked`, {
+                slotCode: this.id,
+                source,
+                renderToken,
+                cycleId: this._intextTelemetryCycleId,
+              });
+            }
+          });
+
+          if (preferred) {
+            if (preferred !== preferredEl && duplicateCount > 0) {
+              logIntext(`[Intext:Display:${this.id}] duplicate_intext_wrapper_reused`, {
+                slotCode: this.id,
+                source,
+                renderToken,
+                cycleId: this._intextTelemetryCycleId,
+              });
+              this.mergeIntextTelemetry({ "gexp-intext-wrapper-reused": "true" });
+            }
+            this.applyIntextWrapperDebugAttributes(preferred, { renderToken, visualState });
+          }
+          return preferred;
+        }
+
+        ensureSingleVisibleIntextSurface(activeFormat, renderToken = this._activeRenderToken, source = "unknown") {
+          if (!this.isActiveRenderToken(renderToken, `ensureSingleVisibleIntextSurface:${source}`, this.waterfall?.lastTrigger || "unknown")) {
+            return false;
+          }
+
+          const hideSurface = (el, format) => {
+            if (!el?.isConnected) return;
+            el.style.transition = "none";
+            el.style.display = "none";
+            el.style.height = "0px";
+            el.style.minHeight = "0px";
+            el.style.opacity = "0";
+            el.classList.remove("is-open");
+            const loader = el.querySelector(".gexp-intext-loader");
+            if (loader) loader.style.display = "none";
+            if (format === "display") {
+              el.style.margin = "0";
+              el.style.padding = "0";
+            }
+          };
+
+          if (activeFormat === "display") {
+            hideSurface(this.videoContainer?.getElement?.(), "video");
+            return true;
+          }
+
+          if (activeFormat === "video") {
+            hideSurface(this.container?.getElement?.(), "display");
+            return true;
+          }
+
+          return false;
         }
 
         markDisplayHeightLock(height, sourceEl = null) {
@@ -3447,6 +3739,46 @@ class RandomStrategy extends WindowArray {
           }
         }
 
+        classifyDisplayLayout(renderSize = null, currentEl = null) {
+          const creativeWidth = parseInt(renderSize?.gamWidth, 10) || 0;
+          const creativeHeight = parseInt(renderSize?.gamHeight, 10) || 0;
+          const renderWidth = creativeWidth || parseInt(currentEl?.clientWidth, 10) || 0;
+          const renderHeight =
+            parseInt(renderSize?.actualHeight, 10) ||
+            creativeHeight ||
+            parseInt(currentEl?.dataset?.gexpIntextContentHeight, 10) ||
+            0;
+          const lockedHeight = Math.max(
+            parseInt(this.lockedHeight, 10) || 0,
+            parseInt(currentEl?.dataset?.lockedHeight, 10) || 0,
+          );
+          const contentHeight =
+            parseInt(currentEl?.dataset?.gexpIntextContentHeight, 10) ||
+            renderHeight ||
+            0;
+          const isWide = creativeWidth >= 900 || renderWidth >= 900;
+          const isTall =
+            creativeHeight >= 540 ||
+            renderHeight >= 540 ||
+            lockedHeight >= 540 ||
+            contentHeight >= 540;
+          let layoutKind = "standard";
+          if (isWide && isTall) layoutKind = "wide-tall";
+          else if (isWide) layoutKind = "wide-standard";
+          else if (isTall) layoutKind = "tall";
+          return {
+            layoutKind,
+            isWide,
+            isTall,
+            creativeWidth,
+            creativeHeight,
+            renderWidth,
+            renderHeight,
+            lockedHeight,
+            contentHeight,
+          };
+        }
+
         getDisplayLayoutTelemetry(renderSize = null) {
           const measuredWidth = parseInt(this.container?.getElement?.()?.clientWidth, 10) || 300;
           const width = parseInt(renderSize?.gamWidth, 10) || measuredWidth;
@@ -3455,10 +3787,16 @@ class RandomStrategy extends WindowArray {
           if (layout === "event_size") {
             layout = height >= this.getDisplayExpandedContentHeight() ? "expanded" : "standard";
           }
+          const classified = this.classifyDisplayLayout(renderSize, this.container?.getElement?.());
           return {
             "gexp-intext-layout-size": width > 0 && height > 0 ? `${width}x${height}` : "unknown",
             "gexp-intext-render-layout": ["standard", "expanded", "recovered"].includes(layout) ? layout : (renderSize?.recovered ? "recovered" : "unknown"),
             "gexp-intext-size-recovered": renderSize?.recovered ? "true" : "false",
+            "gexp-intext-layout-kind": classified.layoutKind,
+            "gexp-intext-render-layout-width": String(classified.creativeWidth || classified.renderWidth || width || 0),
+            "gexp-intext-render-layout-height": String(classified.creativeHeight || classified.renderHeight || height || 0),
+            "gexp-intext-layout-locked-height": String(classified.lockedHeight || 0),
+            "gexp-intext-wide-layout-mode": classified.isWide ? classified.layoutKind : "none",
           };
         }
 
@@ -3583,9 +3921,19 @@ class RandomStrategy extends WindowArray {
           });
         }
 
-        handleHouse1x1AutoRefresh(event) {
+        handleHouse1x1AutoRefresh(event, renderToken = this._activeRenderToken) {
           const cfg = this.getHouse1x1AutoRefreshConfig();
           if (!cfg || !this.waterfall) return false;
+          if (!this.isActiveRenderToken(renderToken, "house_lineitem_sentinel", "house-1x1-refresh")) {
+            logIntext(`[Intext:Display:${this.id}] house_lineitem_sentinel_stale_callback_ignored`, {
+              slotCode: this.id,
+              oldToken: renderToken,
+              activeToken: this._activeRenderToken,
+              cycleId: this._intextTelemetryCycleId,
+              lineItemId: event?.lineItemId,
+            });
+            return true;
+          }
 
           this._house1x1AutoRefreshAttemptsForCycle += 1;
           this._house1x1AutoRefreshAttemptsPerSlot += 1;
@@ -3631,7 +3979,12 @@ class RandomStrategy extends WindowArray {
             eventSize: this.getDisplayGamEventSize(event),
           });
 
-          this.destroyDisplayForRetry();
+          this.destroyDisplayForRetry(renderToken, "house_lineitem_sentinel");
+          logIntext(`[Intext:Display:${this.id}] house_lineitem_sentinel_wrapper_cleanup_safe`, {
+            slotCode: this.id,
+            renderToken,
+            cycleId: this._intextTelemetryCycleId,
+          });
           this.waterfall.prebidStarted = false;
           this.waterfall._houseLineItemSentinelRetryContext = {
             forceRequestType: "display",
@@ -3647,13 +4000,23 @@ class RandomStrategy extends WindowArray {
             attemptCycle,
             maxAttemptsPerCycle: cfg.maxAttemptsPerCycle ?? 1,
           };
-          setTimeout(() => {
+          this.trackRenderTimer(setTimeout(() => {
             try {
+              if (!this.isActiveRenderToken(renderToken, "house_lineitem_sentinel_retry_timer", "house-1x1-refresh")) {
+                logIntext(`[Intext:Display:${this.id}] house_lineitem_sentinel_stale_callback_ignored`, {
+                  slotCode: this.id,
+                  oldToken: renderToken,
+                  activeToken: this._activeRenderToken,
+                  cycleId: this._intextTelemetryCycleId,
+                  lineItemId: event?.lineItemId,
+                });
+                return;
+              }
               this.waterfall.startAuction("house-1x1-refresh");
             } catch (err) {
               warnIntext(`[Intext:Display:${this.id}] house_1x1_auto_refresh_failed`, err);
             }
-          }, Math.max(0, delayMs));
+          }, Math.max(0, delayMs)));
 
           return true;
         }
@@ -3753,6 +4116,19 @@ class RandomStrategy extends WindowArray {
             "gexp-intext-layout-size",
             "gexp-intext-render-layout",
             "gexp-intext-size-recovered",
+            "gexp-intext-render-token",
+            "gexp-intext-render-attempt",
+            "gexp-intext-stale-render-ignored",
+            "gexp-intext-stale-render-source",
+            "gexp-intext-visual-state",
+            "gexp-intext-duplicate-wrapper-count",
+            "gexp-intext-wrapper-reused",
+            "gexp-intext-stale-wrapper-removed",
+            "gexp-intext-layout-kind",
+            "gexp-intext-render-layout-width",
+            "gexp-intext-render-layout-height",
+            "gexp-intext-layout-locked-height",
+            "gexp-intext-wide-layout-mode",
             "gexp-intext-sentinel-retry-forced-request-type",
             "gexp-intext-sentinel-retry-preserved-fallback",
             "gexp-intext-sentinel-retry-original-decision-mode",
@@ -3793,6 +4169,9 @@ class RandomStrategy extends WindowArray {
             "gexp-intext-pending-auction-expired": "false",
             "gexp-intext-pending-auction-age-ms": "0",
             "gexp-intext-pending-auction-restarted": "false",
+            "gexp-intext-render-token": String(this._activeRenderToken || 0),
+            "gexp-intext-render-attempt": String(this._renderTokenSeq || 0),
+            "gexp-intext-visual-state": String(this._visualState || "idle"),
           };
           const initPageMs = this.getIntextInitPageMs();
           const startDistance = this.getIntextDistancePx();
@@ -4716,9 +5095,15 @@ class RandomStrategy extends WindowArray {
           actualHeight = 0,
           reason = "unknown",
           skipGuardRefresh = false,
+          renderToken = this._activeRenderToken,
         } = {}) {
           if (!currentEl) return null;
+          if (!this.isActiveRenderToken(renderToken, `applyDisplayRenderLayout:${reason}`)) return null;
           const slotEl = currentEl;
+          this.applyIntextWrapperDebugAttributes(slotEl, {
+            renderToken,
+            visualState: `layout:${reason}`,
+          });
           let scaleTarget = slotEl.querySelector('div[id^="google_ads_iframe"]') || slotEl.querySelector("iframe");
           if (!scaleTarget && slotEl.children.length > 1) {
             scaleTarget = slotEl.lastElementChild;
@@ -4726,14 +5111,45 @@ class RandomStrategy extends WindowArray {
           if (!scaleTarget) scaleTarget = slotEl;
 
           const measuredHeight = parseInt(actualHeight, 10) || parseInt(gamHeight, 10) || 0;
+          const classified = this.classifyDisplayLayout({ gamWidth, gamHeight, actualHeight }, slotEl);
+          slotEl.classList.remove(
+            "gexp-intext-layout-standard",
+            "gexp-intext-layout-tall",
+            "gexp-intext-layout-wide",
+            "gexp-intext-layout-wide-standard",
+            "gexp-intext-layout-wide-tall",
+          );
+          slotEl.classList.add(`gexp-intext-layout-${classified.layoutKind}`);
+          if (classified.isWide) slotEl.classList.add("gexp-intext-layout-wide");
+          logIntext(`[Intext:Display:${this.id}] display_layout_classified`, {
+            slotCode: this.id,
+            reason,
+            layoutKind: classified.layoutKind,
+            creativeWidth: classified.creativeWidth,
+            creativeHeight: classified.creativeHeight,
+            renderWidth: classified.renderWidth,
+            renderHeight: classified.renderHeight,
+            lockedHeight: classified.lockedHeight,
+            contentHeight: classified.contentHeight,
+          });
+          this.mergeIntextTelemetry({
+            "gexp-intext-layout-kind": classified.layoutKind,
+            "gexp-intext-render-layout-width": String(classified.creativeWidth || classified.renderWidth || 0),
+            "gexp-intext-render-layout-height": String(classified.creativeHeight || classified.renderHeight || 0),
+            "gexp-intext-layout-locked-height": String(classified.lockedHeight || 0),
+            "gexp-intext-wide-layout-mode": classified.isWide ? classified.layoutKind : "none",
+          });
           if (measuredHeight === 600 || parseInt(gamHeight, 10) === 600) {
             this.markDisplayHeightLock(600, slotEl);
           }
 
           this._isApplyingDisplayLayout = true;
           try {
-            if (parseInt(gamWidth, 10) === 960 && parseInt(gamHeight, 10) === 540) {
-              const targetContentHeight = this.getDisplayEffectiveLock(slotEl);
+            if (classified.layoutKind === "wide-standard" || classified.layoutKind === "wide-tall") {
+              const wideTall = classified.layoutKind === "wide-tall";
+              const targetContentHeight = wideTall
+                ? Math.max(this.getDisplayEffectiveLock(slotEl), this.getDisplayExpandedContentHeight())
+                : this.getDisplayStandardContentHeight();
               const computedStyle = window.getComputedStyle(slotEl);
               const paddingX =
                 parseFloat(computedStyle.paddingLeft || 0) +
@@ -4742,7 +5158,9 @@ class RandomStrategy extends WindowArray {
                 (slotEl.clientWidth || this.container.getElement().clientWidth || 320) - paddingX,
                 1,
               );
-              const scaleFactor = Math.min(1, availableWidth / 960, targetContentHeight / 540);
+              const sourceWidth = Math.max(parseInt(gamWidth, 10) || classified.creativeWidth || 960, 1);
+              const sourceHeight = Math.max(parseInt(gamHeight, 10) || classified.creativeHeight || 540, 1);
+              const scaleFactor = Math.min(1, availableWidth / sourceWidth, targetContentHeight / sourceHeight);
               const heightState = this.applyDisplayWrapperHeight(slotEl, targetContentHeight, {
                 source: reason,
               });
@@ -4752,18 +5170,26 @@ class RandomStrategy extends WindowArray {
               scaleTarget.style.left = "";
               scaleTarget.style.right = "";
               scaleTarget.style.margin = "0 auto";
-              scaleTarget.style.alignSelf = "center";
+              scaleTarget.style.alignSelf = wideTall ? "center" : "flex-start";
               scaleTarget.style.transformOrigin = "top center";
               scaleTarget.style.transform = `scale(${scaleFactor})`;
-              scaleTarget.style.width = "960px";
-              scaleTarget.style.height = "540px";
+              scaleTarget.style.width = sourceWidth + "px";
+              scaleTarget.style.height = sourceHeight + "px";
               scaleTarget.style.maxWidth = "none";
 
               slotEl.style.overflow = "hidden";
               slotEl.style.display = "flex";
               slotEl.style.justifyContent = "center";
-              slotEl.style.alignItems = "flex-start";
+              slotEl.style.alignItems = wideTall ? "flex-start" : "center";
 
+              logIntext(`[Intext:Display:${this.id}] ${wideTall ? "display_wide_tall_layout_applied" : "display_wide_standard_layout_applied"}`, {
+                source: reason,
+                scaleFactor: scaleFactor.toFixed(4),
+                contentHeight: heightState.contentHeight,
+                totalHeight: heightState.totalHeight,
+                sourceWidth,
+                sourceHeight,
+              });
               logIntext(
                 `[Intext:Display:${this.id}] display_960x540_centered - source=${reason}, scale_factor=${scaleFactor.toFixed(4)}, content_height=${heightState.contentHeight}, total_height=${heightState.totalHeight}`,
               );
@@ -4805,6 +5231,7 @@ class RandomStrategy extends WindowArray {
               gamWidth: parseInt(gamWidth, 10) || 0,
               gamHeight: parseInt(gamHeight, 10) || 0,
               actualHeight: measuredHeight || parseInt(slotEl?.dataset?.gexpIntextContentHeight, 10) || 0,
+              renderToken,
             };
           } finally {
             this._isApplyingDisplayLayout = false;
@@ -4834,12 +5261,13 @@ class RandomStrategy extends WindowArray {
               if (this._isApplyingDisplayLayout) return;
               const state = this._displayRenderState;
               if (!state || state.slotElementId !== slotEl.id) return;
+              if (!this.isActiveRenderToken(state.renderToken, "display_layout_guard_observer")) return;
               const expectedTotalHeight =
                 parseInt(slotEl.dataset.gexpIntextTotalHeight, 10) || 0;
               const currentInlineHeight = parseInt(slotEl.style.height, 10) || 0;
               const currentDisplay = slotEl.style.display || "";
               const expectedDisplay =
-                state.gamWidth === 960 && state.gamHeight === 540 ? "flex" : "block";
+                this.classifyDisplayLayout(state, slotEl).isWide ? "flex" : "block";
               const needsHeightRepair =
                 expectedTotalHeight > 0 &&
                 currentInlineHeight > 0 &&
@@ -4853,6 +5281,7 @@ class RandomStrategy extends WindowArray {
                 `[Intext:Display:${this.id}] display_layout_guard_reapply - attempted_height=${currentInlineHeight || 0}, expected_total_height=${expectedTotalHeight || 0}, attempted_display=${currentDisplay || "unset"}`,
               );
               requestAnimationFrame(() => {
+                if (!this.isActiveRenderToken(state.renderToken, "display_layout_guard_reapply_raf")) return;
                 this.applyDisplayRenderLayout(slotEl, {
                   ...state,
                   reason: "display_layout_guard_reapply",
@@ -4867,14 +5296,15 @@ class RandomStrategy extends WindowArray {
           }
 
           this._displayLayoutTimers = [0, 300, 900, 1800, 3200, 5200].map((delayMs) =>
-            setTimeout(() => {
+            this.trackRenderTimer(setTimeout(() => {
               if (!this._displayRenderState || this._displayLayoutGuardEl !== slotEl) return;
+              if (!this.isActiveRenderToken(this._displayRenderState.renderToken, `display_layout_post_guard_${delayMs}ms`)) return;
               this.applyDisplayRenderLayout(slotEl, {
                 ...this._displayRenderState,
                 reason: `display_layout_post_guard_${delayMs}ms`,
                 skipGuardRefresh: true,
               });
-            }, delayMs),
+            }, delayMs)),
           );
         }
 
@@ -4908,9 +5338,16 @@ class RandomStrategy extends WindowArray {
           return window.innerWidth < 768;
         }
 
-        askDisplay(bidResponse) {
+        askDisplay(bidResponse, renderToken = this._activeRenderToken, trigger = "unknown") {
           return new Promise((resolve) => {
+            if (!this.isActiveRenderToken(renderToken, "askDisplay:start", trigger)) {
+              resolve({ filled: false, event: null, stale: true });
+              return;
+            }
             this.state = "asking_display";
+            this._displayRequestInFlight = true;
+            this._visualState = "asking_display";
+            this.mergeIntextTelemetry({ "gexp-intext-visual-state": this._visualState });
             const adUnitPath =
               this.scopedContext?.adUnitPath || this.manager.adUnitPath || this.manager.gexp.cfg.adUnit || "";
             let sizes = this.config.display?.sizes || [[300, 250], [336, 280], [320, 100], [320, 50]];
@@ -4929,6 +5366,10 @@ class RandomStrategy extends WindowArray {
             }
 
             googletag.cmd.push(() => {
+              if (!this.isActiveRenderToken(renderToken, "askDisplay:googletag_cmd", trigger)) {
+                resolve({ filled: false, event: null, stale: true });
+                return;
+              }
               if (!this.slot) {
                 this.slot = googletag.defineSlot(fullAdUnit, sizes, this.id);
                 if (!this.slot) {
@@ -5014,6 +5455,19 @@ class RandomStrategy extends WindowArray {
                 googletag
                   .pubads()
                   .removeEventListener("slotRenderEnded", initialRenderHandler);
+                if (!this.isActiveRenderToken(renderToken, "display_initial_slotRenderEnded", trigger)) {
+                  if (this.isHouseLineItemSentinel(event)) {
+                    logIntext(`[Intext:Display:${this.id}] house_lineitem_sentinel_stale_callback_ignored`, {
+                      slotCode: this.id,
+                      oldToken: renderToken,
+                      activeToken: this._activeRenderToken,
+                      cycleId: this._intextTelemetryCycleId,
+                      lineItemId: event?.lineItemId,
+                    });
+                  }
+                  resolve({ filled: false, event, stale: true });
+                  return;
+                }
 
                 const hasContent = !event.isEmpty;
                 const is1x1 =
@@ -5036,7 +5490,7 @@ class RandomStrategy extends WindowArray {
                 );
 
                 if (this.isHouse1x1AutoRefreshCandidate(event)) {
-                  this.handleHouse1x1AutoRefresh(event);
+                  this.handleHouse1x1AutoRefresh(event, renderToken);
                   resolve({ filled: false, event, is1x1, suppressed: true, retrying: true, sentinelLineItemId: event?.lineItemId });
                   return;
                 }
@@ -5058,6 +5512,10 @@ class RandomStrategy extends WindowArray {
                 googletag.pubads().addEventListener("slotRenderEnded", (event) => {
                   if (event.slot !== this.slot) return;
                   if (this.state !== "display") return;
+                  const activeToken = this._activeRenderToken;
+                  const slotDocForToken = document.getElementById(this.id);
+                  const eventToken = parseInt(slotDocForToken?.dataset?.gexpIntextRenderToken, 10) || activeToken;
+                  if (!this.isActiveRenderToken(eventToken, "display_persistent_slotRenderEnded", this.waterfall?.lastTrigger || "unknown")) return;
                   if (this.isHouseLineItemSentinel(event)) {
                     this.mergeIntextTelemetry(this.getHouseLineItemSentinelTelemetry(event));
                     this.flushIntextTelemetryToCI();
@@ -5135,6 +5593,7 @@ class RandomStrategy extends WindowArray {
                       gamHeight: renderSize.gamHeight,
                       actualHeight: renderSize.actualHeight,
                       reason: "display_slotRenderEnded",
+                      renderToken: activeToken,
                     });
                   }
                 });
@@ -5183,6 +5642,14 @@ class RandomStrategy extends WindowArray {
                   this.container.setElement(slotEl);
                 }
               }
+              slotEl = this.ensureSingleIntextWrapper(slotEl, {
+                source: "askDisplay_before_display",
+                renderToken,
+                visualState: "asking_display",
+              }) || slotEl;
+              if (slotEl && this.container?.getElement?.() !== slotEl && typeof this.container.setElement === "function") {
+                this.container.setElement(slotEl);
+              }
 
               if (slotEl && !slotEl.hasAttribute("data-gpt-displayed")) {
                 googletag.display(this.id);
@@ -5216,13 +5683,18 @@ class RandomStrategy extends WindowArray {
           });
         }
 
-        waitForViewport() {
+        waitForViewport(renderToken = this._activeRenderToken, source = "waitForViewport") {
           return new Promise((resolve) => {
             const el = this.container.getElement();
             if (typeof IntersectionObserver === "undefined" || !el) {
               return resolve();
             }
             const observer = new IntersectionObserver((entries) => {
+              if (!this.isActiveRenderToken(renderToken, source)) {
+                observer.disconnect();
+                resolve("stale");
+                return;
+              }
               if (entries[0].isIntersecting) {
                 observer.disconnect();
                 resolve();
@@ -5232,13 +5704,25 @@ class RandomStrategy extends WindowArray {
           });
         }
 
-        async showDisplay(displayResult) {
-          await this.waitForViewport();
+        async showDisplay(displayResult, renderToken = this._activeRenderToken, trigger = "unknown") {
+          if (!this.isActiveRenderToken(renderToken, "showDisplay:start", trigger)) return false;
+          const viewportState = await this.waitForViewport(renderToken, "showDisplay:waitForViewport");
+          if (viewportState === "stale" || !this.isActiveRenderToken(renderToken, "showDisplay:afterViewport", trigger)) return false;
 
           this.state = "display";
+          this._displayRequestInFlight = false;
+          this._visualState = "display";
           this.setupIntextViewportTelemetryObserver();
           const { event, is1x1 } = displayResult;
           const creativeHeight = event.size && !is1x1 ? event.size[1] : null;
+          const activeDisplayEl = this.ensureSingleIntextWrapper(this.container.getElement(), {
+            source: "showDisplay",
+            renderToken,
+            visualState: "display",
+          }) || this.container.getElement();
+          if (activeDisplayEl && activeDisplayEl !== this.container.getElement()) {
+            this.container.setElement(activeDisplayEl);
+          }
           const loader = this.container
             .getElement()
             .querySelector(".gexp-intext-loader");
@@ -5248,6 +5732,7 @@ class RandomStrategy extends WindowArray {
             .getElement()
             .querySelector(".gexp-intext-loader");
           if (videoLoader) videoLoader.style.display = "none";
+          this.ensureSingleVisibleIntextSurface("display", renderToken, "showDisplay_before_open");
 
            const renderSize = this.resolveDisplayRenderSizeFromEvent(event, "display_showDisplay");
            const actualCreativeHeight = renderSize.actualHeight;
@@ -5255,16 +5740,11 @@ class RandomStrategy extends WindowArray {
                this.markDisplayHeightLock(600, this.container.getElement());
            }
 
-           const vContainerEl = this.videoContainer.getElement();
-           if (vContainerEl) {
-             vContainerEl.style.transition = "none";
-             vContainerEl.style.display = "none";
-             vContainerEl.style.height = "0px";
-             vContainerEl.style.minHeight = "0px";
-             vContainerEl.classList.remove("is-open");
-           }
-
-           const slotDoc = document.getElementById(this.id);
+           const slotDoc = this.ensureSingleIntextWrapper(document.getElementById(this.id), {
+             source: "showDisplay_before_open",
+             renderToken,
+             visualState: "display",
+           }) || document.getElementById(this.id);
            if (slotDoc) {
               slotDoc.style.transition = "none";
               if (this.lockedHeight) {
@@ -5286,21 +5766,26 @@ class RandomStrategy extends WindowArray {
                gamHeight: renderSize.gamHeight,
                actualHeight: actualCreativeHeight,
                reason: "display_showDisplay",
+               renderToken,
              });
 
-                  setTimeout(() => {
-                      if (slotDoc) slotDoc.style.transition = "";
-                  }, 50);
+                  this.trackRenderTimer(setTimeout(() => {
+                      if (!this.isActiveRenderToken(renderToken, "showDisplay_transition_restore", trigger)) return;
+                      if (slotDoc?.isConnected && this.container?.getElement?.() === slotDoc) slotDoc.style.transition = "";
+                  }, 50));
               }
                
               this.videoContainer.close({ destroy: true });
     
-              this.scheduleWaterfallRetry();
+              this.completeVisualRender(renderToken, "display_completed");
+              this.scheduleWaterfallRetry(renderToken);
+              return true;
             }
 
-        scheduleWaterfallRetry() {
+        scheduleWaterfallRetry(renderToken = this._activeRenderToken) {
           const refreshCfg = this.config.refreshCycle;
           if (!refreshCfg || !refreshCfg.enabled) return;
+          if (!this.isActiveRenderToken(renderToken, "scheduleWaterfallRetry:start", this.waterfall?.lastTrigger || "unknown")) return;
 
           this._cycleCount = (this._cycleCount || 0) + 1;
           if (this._cycleCount >= refreshCfg.maxCycles) {
@@ -5332,11 +5817,12 @@ class RandomStrategy extends WindowArray {
 
           const el = document.getElementById(this.id);
           if (!el) {
-             setTimeout(() => {
-                 this.destroyDisplayForRetry();
+             this.trackRenderTimer(setTimeout(() => {
+                 if (!this.isActiveRenderToken(renderToken, "display_refresh_missing_el_timer", "refresh")) return;
+                 this.destroyDisplayForRetry(renderToken, "display_refresh_missing_el");
                  this.waterfall.prebidStarted = false;
                  this.waterfall.startAuction("refresh");
-             }, targetIntervalMs);
+             }, targetIntervalMs));
              return;
           }
 
@@ -5350,12 +5836,18 @@ class RandomStrategy extends WindowArray {
             if (observer) observer.disconnect();
             if (checkInterval) clearInterval(checkInterval);
             logIntext(`[Intext:Display:${this.id}] 🔄 Visible time reached (${targetIntervalMs}ms) -> Retrying Waterfall`);
-            this.destroyDisplayForRetry();
+            if (!this.isActiveRenderToken(renderToken, "display_refresh_visible_timer", "refresh")) return;
+            this.destroyDisplayForRetry(renderToken, "display_refresh_visible_timer");
             this.waterfall.prebidStarted = false;
             this.waterfall.startAuction("refresh");
           };
 
           const updateAccumulator = () => {
+            if (!this.isActiveRenderToken(renderToken, "display_refresh_update_accumulator", "refresh")) {
+                if (observer) observer.disconnect();
+                if (checkInterval) clearInterval(checkInterval);
+                return;
+            }
             if (isCurrentlyVisible && document.visibilityState === 'visible') {
                 const now = Date.now();
                 if (lastVisibleTimestamp > 0) {
@@ -5396,7 +5888,8 @@ class RandomStrategy extends WindowArray {
           };
         }
 
-        destroyDisplayForRetry() {
+        destroyDisplayForRetry(renderToken = this._activeRenderToken, source = "destroyDisplayForRetry") {
+             if (!this.isActiveRenderToken(renderToken, source, this.waterfall?.lastTrigger || "unknown")) return null;
              this.teardownIntextViewportTelemetryObserver();
              if (this._visibilityTimer) {
                  this._visibilityTimer.stop();
@@ -5414,6 +5907,10 @@ class RandomStrategy extends WindowArray {
              }
 
              const newWrapper = this.manager.createWrapperNode(this.id, "display");
+             this.applyIntextWrapperDebugAttributes(newWrapper, {
+               renderToken,
+               visualState: "refresh_pending",
+             });
              this.applyDisplayWrapperHeight(newWrapper, preservedHeight, {
                logReason:
                  preservedHeight === 600 ? "display_300x600_visual_height_adjusted" : "",
@@ -5426,9 +5923,15 @@ class RandomStrategy extends WindowArray {
              if (newLoader) newLoader.style.display = "flex";
 
              if (currentEl && currentEl.parentNode) {
+                 this.ensureSingleIntextWrapper(currentEl, {
+                   source: `${source}:before_replace`,
+                   renderToken,
+                   visualState: "refresh_pending",
+                 });
                  currentEl.parentNode.insertBefore(newWrapper, currentEl);
                  currentEl.style.transition = "none";
                  currentEl.style.display = "none";
+                 currentEl.dataset.gexpIntextVisualState = "stale";
                  currentEl.remove();
              } else if (this.placement && this.placement.paragraph) {
                  this.placement.paragraph.parentNode.insertBefore(newWrapper, this.placement.paragraph.nextSibling);
@@ -5436,7 +5939,13 @@ class RandomStrategy extends WindowArray {
 
              this.container.setElement(newWrapper);
              this.container.isOpen = true;
+             this.ensureSingleIntextWrapper(newWrapper, {
+               source,
+               renderToken,
+               visualState: "refresh_pending",
+             });
              this.setupIntextViewportTelemetryObserver();
+             return newWrapper;
         }
         discardDisplay() {
           if (this.slot) {
@@ -5450,10 +5959,13 @@ class RandomStrategy extends WindowArray {
           this.container.close({ destroy: true });
         }
 
-        async buildAndPlayVideo(gamVideoTagUrl) {
-          await this.waitForViewport();
+        async buildAndPlayVideo(gamVideoTagUrl, renderToken = this._activeRenderToken, trigger = "unknown") {
+          if (!this.isActiveRenderToken(renderToken, "buildAndPlayVideo:start", trigger)) return false;
+          const viewportState = await this.waitForViewport(renderToken, "buildAndPlayVideo:waitForViewport");
+          if (viewportState === "stale" || !this.isActiveRenderToken(renderToken, "buildAndPlayVideo:afterViewport", trigger)) return false;
           
           this.state = "video";
+          this._visualState = "video";
           this.setupIntextViewportTelemetryObserver();
           if (this._videoTiming?.auctionStartAt && this._videoTiming?.requestWinnerVideoAt) {
             logIntext(
@@ -5465,13 +5977,18 @@ class RandomStrategy extends WindowArray {
           );
 
           const containerEl = this.videoContainer.getElement();
+          this.applyIntextWrapperDebugAttributes(containerEl, {
+            renderToken,
+            visualState: "video",
+            slotCode: this.videoId || this.id,
+          });
           containerEl.style.pointerEvents = "none";
 
           const creativeOpts = {
             container: this.videoContainer,
             node: this,
             config: this.config,
-            onVideoEnded: () => this.onVideoEnded(),
+            onVideoEnded: () => this.onVideoEnded(renderToken),
             adTagUrl: gamVideoTagUrl,
             videoTiming: this._videoTiming,
           };
@@ -5480,10 +5997,15 @@ class RandomStrategy extends WindowArray {
 
           try {
             await this.activeCreative.render();
+            if (!this.isActiveRenderToken(renderToken, "buildAndPlayVideo:after_render", trigger)) {
+              this.activeCreative?.destroy?.();
+              return false;
+            }
 
             logIntext(
               `[Intext:Video:${this.videoId}] ✅ Video ad is playing — revealing container`,
             );
+            this.ensureSingleVisibleIntextSurface("video", renderToken, "buildAndPlayVideo_before_reveal");
             const vc = this.waterfall?.resolveIntextVideoConfig?.() || this.config?.video || {};
             const playerSize = Array.isArray(vc.playerSize) && vc.playerSize.length === 2 ? vc.playerSize : [640, 360];
             this.mergeIntextTelemetry({
@@ -5496,7 +6018,9 @@ class RandomStrategy extends WindowArray {
             containerEl.style.pointerEvents = "auto";
             this.recordTelemetry("video_fill", { slotId: this.videoId });
             this.discardDisplay();
+            this.completeVisualRender(renderToken, "video_completed");
           } catch (err) {
+            if (!this.isActiveRenderToken(renderToken, "buildAndPlayVideo:catch", trigger)) return false;
             logIntext(
               `[Intext:Video:${this.videoId}] ❌ Video build/play failed: ${err.message || err}`,
             );
@@ -5521,7 +6045,8 @@ class RandomStrategy extends WindowArray {
           return true;
         }
         
-        onVideoEnded() {
+        onVideoEnded(renderToken = this._activeRenderToken) {
+          if (!this.isActiveRenderToken(renderToken, "onVideoEnded", this.waterfall?.lastTrigger || "unknown")) return;
           logIntext(`[Intext:Video:${this.videoId}] 🔄 Video playback ended`);
 
           const refreshCfg = this.config.refreshCycle;
@@ -5551,12 +6076,13 @@ class RandomStrategy extends WindowArray {
 
           const el = this.videoContainer.getElement();
           if (!el) {
-             setTimeout(() => {
+             this.trackRenderTimer(setTimeout(() => {
+                 if (!this.isActiveRenderToken(renderToken, "video_refresh_missing_el_timer", "refresh")) return;
                  this.activeCreative?.destroy?.();
                  this.activeCreative = null;
                  this.waterfall.prebidStarted = false;
                  this.waterfall.startAuction("refresh");
-             }, targetIntervalMs);
+             }, targetIntervalMs));
              return;
           }
 
@@ -5571,6 +6097,7 @@ class RandomStrategy extends WindowArray {
           let observer;
 
           const triggerRefresh = () => {
+             if (!this.isActiveRenderToken(renderToken, "video_refresh_visible_timer", "refresh")) return;
              if (observer) observer.disconnect();
              if (checkInterval) clearInterval(checkInterval);
              logIntext(
@@ -5583,6 +6110,11 @@ class RandomStrategy extends WindowArray {
           };
 
           const updateAccumulator = () => {
+             if (!this.isActiveRenderToken(renderToken, "video_refresh_update_accumulator", "refresh")) {
+                 if (observer) observer.disconnect();
+                 if (checkInterval) clearInterval(checkInterval);
+                 return;
+             }
              if (isCurrentlyVisible && document.visibilityState === 'visible') {
                  const now = Date.now();
                  if (lastVisibleTimestamp > 0) {
@@ -5695,6 +6227,13 @@ class RandomStrategy extends WindowArray {
         }
 
         resetNode() {
+          logIntext(`[Intext:Display:${this.id}] intext_node_reset_visual_state`, {
+            slotCode: this.id,
+            activeToken: this._activeRenderToken,
+            cycleId: this._intextTelemetryCycleId,
+            visualState: this._visualState,
+          });
+          this.invalidateVisualCallbacks("reset");
           this.state = "idle";
           this.clearDisplayLayoutGuard();
           this.teardownIntextViewportTelemetryObserver();
@@ -5704,9 +6243,16 @@ class RandomStrategy extends WindowArray {
           }
           this.activeCreative?.destroy?.();
           this.container.destroy();
+          this.videoContainer?.destroy?.();
           
           if (this.waterfall) {
              this.waterfall.cleanup?.();
+             this.waterfall.pendingAuction = null;
+             this.waterfall.renderTriggeredWaitingForFetch = null;
+             this.waterfall.fetchStarted = false;
+             this.waterfall.fetchComplete = false;
+             this.waterfall.renderStarted = false;
+             this.waterfall.prebidStarted = false;
              if (this.waterfall._visibilityTimer) {
                  this.waterfall._visibilityTimer.stop();
                  this.waterfall._visibilityTimer = null;
@@ -5716,6 +6262,14 @@ class RandomStrategy extends WindowArray {
                  this.waterfall._videoVisibilityTimer = null;
              }
           }
+
+          this.findIntextWrappersForNode().forEach((el) => {
+            if (!el?.isConnected) return;
+            el.dataset.gexpIntextVisualState = "stale";
+            el.style.transition = "none";
+            el.style.display = "none";
+            try { el.remove(); } catch (e) {}
+          });
 
           delete this.manager.gexp.windows[this.id];
         }
@@ -5764,33 +6318,53 @@ class RandomStrategy extends WindowArray {
         open(lockedHeightOverride) {
           if (this.isOpen) return;
           this.isOpen = true;
+          const elToOpen = this.domNode;
+          if (!elToOpen) return;
           let finalHeight;
           if (lockedHeightOverride && lockedHeightOverride > 1) {
               const chromeHeight =
-                typeof this.domNode?.dataset?.wrapperChromeHeight !== "undefined"
-                  ? parseInt(this.domNode.dataset.wrapperChromeHeight, 10) || 15
+                typeof elToOpen?.dataset?.wrapperChromeHeight !== "undefined"
+                  ? parseInt(elToOpen.dataset.wrapperChromeHeight, 10) || 15
                   : 15;
               finalHeight = (lockedHeightOverride + chromeHeight) + "px";
           } else {
-              const preset = this.domNode.dataset.targetHeight;
+              const preset = elToOpen.dataset.targetHeight;
               finalHeight = preset || "360px";
           }
-          this.domNode.style.height = '0px';
-          this.domNode.style.minHeight = '';
+          elToOpen.style.height = '0px';
+          elToOpen.style.minHeight = '';
           requestAnimationFrame(() => {
+            if (this.domNode !== elToOpen || !elToOpen.isConnected) {
+              logIntext(`[Intext:Container] intext_container_open_stale_skipped`);
+              return;
+            }
             requestAnimationFrame(() => {
-              this.domNode.classList.add("is-open");
-              this.domNode.style.height = finalHeight;
+              if (this.domNode !== elToOpen || !elToOpen.isConnected) {
+                logIntext(`[Intext:Container] intext_container_open_stale_skipped`);
+                return;
+              }
+              elToOpen.classList.add("is-open");
+              elToOpen.style.height = finalHeight;
             });
           });
         }
 
         close({ destroy = false } = {}) {
           this.isOpen = false;
-          this.domNode.classList.remove("is-open");
-          this.domNode.style.height = "0px";
+          const elToDestroy = this.domNode;
+          if (!elToDestroy) return;
+          elToDestroy.classList.remove("is-open");
+          elToDestroy.style.height = "0px";
           if (destroy) {
-            setTimeout(() => this.destroy(), 350);
+            setTimeout(() => {
+              if (this.domNode !== elToDestroy) {
+                logIntext(`[Intext:Container] intext_container_delayed_destroy_skipped_current_changed`);
+                if (elToDestroy.isConnected) elToDestroy.remove();
+                return;
+              }
+              logIntext(`[Intext:Container] intext_container_delayed_destroy_applied`);
+              this.destroy();
+            }, 350);
           }
         }
 
@@ -5960,6 +6534,12 @@ class RandomStrategy extends WindowArray {
           this.disconnectRenderObserver();
           clearTimeout(this.timer);
           this.timer = null;
+          this.pendingAuction = null;
+          this.renderTriggeredWaitingForFetch = null;
+          this.fetchStarted = false;
+          this.fetchComplete = false;
+          this.renderStarted = false;
+          this.prebidStarted = false;
           logIntext(`[Intext:Waterfall:${this.node.id}] cleanup - loading observers and timer cleared`);
         }
 
@@ -6094,6 +6674,7 @@ class RandomStrategy extends WindowArray {
           this.renderTrigger = trigger;
           this.lastTrigger = trigger;
           this.renderStartAt = Date.now();
+          const renderToken = this.node.beginVisualRender("render_started", trigger);
           const renderWaitForFetchMs = this._renderWaitForFetchStartedAt
             ? Math.max(0, this.renderStartAt - this._renderWaitForFetchStartedAt)
             : 0;
@@ -6110,6 +6691,7 @@ class RandomStrategy extends WindowArray {
             slotCode: this.node.id,
             trigger,
             distancePx,
+            renderToken,
           });
           this.mergeLoadingPhaseTelemetry({
             "gexp-intext-render-trigger": trigger,
@@ -6222,7 +6804,13 @@ class RandomStrategy extends WindowArray {
           }
           if (this.prebidStarted) return;
           this.prebidStarted = true;
+          const renderToken = this.node.beginVisualRender("auction_started", trigger);
           this.node.startIntextTelemetryCycle(trigger);
+          this.node.mergeIntextTelemetry({
+            "gexp-intext-render-token": String(renderToken),
+            "gexp-intext-render-attempt": String(this.node._renderTokenSeq || 0),
+            "gexp-intext-visual-state": "auction_started",
+          });
           if (sentinelRetryContext) {
             this.node.mergeIntextTelemetry({
               "gexp-intext-is-fallback": sentinelRetryContext.isFallback ? "true" : "false",
@@ -6274,6 +6862,7 @@ class RandomStrategy extends WindowArray {
             }
 
             if (currentState === "video") {
+              this.node.ensureSingleVisibleIntextSurface("video", renderToken, "startAuction_refresh_video_wait_surface");
               const videoEl = this.node.videoContainer?.getElement();
               if (videoEl) {
                 let loaderVideo = videoEl.querySelector(".gexp-intext-loader");
@@ -6909,6 +7498,8 @@ class RandomStrategy extends WindowArray {
         }
 
         async requestWinner(winner, loser, allowFallback) {
+          const renderToken = this.node._activeRenderToken || this.node.beginVisualRender("request_winner", this.lastTrigger || "unknown");
+          if (!this.node.isActiveRenderToken(renderToken, "requestWinner:start", this.lastTrigger || "unknown")) return;
           logIntext(
             `%c[Intext:Slot:${this.node.id}:${this.node.id}] ═══ REQUEST PHASE: ${winner.toUpperCase()} ═══`,
             "color:#9C27B0;font-weight:bold",
@@ -6932,7 +7523,8 @@ class RandomStrategy extends WindowArray {
             );
           }
 
-          const success = await this._requestFormat(winner);
+          const success = await this._requestFormat(winner, renderToken);
+          if (!this.node.isActiveRenderToken(renderToken, "requestWinner:after_request_format", this.lastTrigger || "unknown")) return;
 
           if (success === "retrying" || success === "closed") {
             return;
@@ -6964,19 +7556,31 @@ class RandomStrategy extends WindowArray {
 
           if (!this._displayRenderState) this._displayRenderState = {};
           this._displayRenderState.isFallback = true;
+          if (!(winner === "video" && loser === "display")) {
+            this.node.beginVisualRender("fallback_started", "fallback");
+          }
           if (winner === "video" && loser === "display") {
+            this.node.beginVisualRender("fallback_started", "fallback");
             this.node.startIntextTelemetryCycle("fallback", {
               "gexp-intext-is-fallback": "true",
               "gexp-intext-video-failed": "true",
               "gexp-intext-request-type": "display",
+              "gexp-intext-render-token": String(this.node._activeRenderToken || 0),
+              "gexp-intext-render-attempt": String(this.node._renderTokenSeq || 0),
+              "gexp-intext-visual-state": "fallback_started",
             });
+          }
+          const fallbackRenderToken = this.node._activeRenderToken;
+          if (winner === "video" && loser === "display") {
+            this.node.ensureSingleVisibleIntextSurface("display", fallbackRenderToken, "fallback_video_to_display_before_request");
           }
 
           logIntext(
             `%c[Intext:Slot:${this.node.id}:${this.node.id}] ═══ FALLBACK → ${loser.toUpperCase()} ═══`,
             "color:#FF5722;font-weight:bold",
           );
-          const fallbackSuccess = await this._requestFormat(loser);
+          const fallbackSuccess = await this._requestFormat(loser, fallbackRenderToken);
+          if (!this.node.isActiveRenderToken(fallbackRenderToken, "requestWinner:after_fallback_format", "fallback")) return;
 
           if (fallbackSuccess === "retrying" || fallbackSuccess === "closed") {
             return;
@@ -6994,15 +7598,16 @@ class RandomStrategy extends WindowArray {
           }
         }
 
-        async _requestFormat(format) {
+        async _requestFormat(format, renderToken = this.node._activeRenderToken) {
           if (format === "display") {
-            return await this._requestDisplay();
+            return await this._requestDisplay(renderToken);
           } else {
-            return await this._requestVideo();
+            return await this._requestVideo(renderToken);
           }
         }
 
-        async _requestDisplay() {
+        async _requestDisplay(renderToken = this.node._activeRenderToken) {
+          if (!this.node.isActiveRenderToken(renderToken, "_requestDisplay:start", this.lastTrigger || "unknown")) return false;
           const tamConfig = this.getTAMConfiguration();
           if (tamConfig) {
             logIntext(
@@ -7021,9 +7626,13 @@ class RandomStrategy extends WindowArray {
           logIntext(
             `[Intext:Slot:${this.node.id}] ├─ GAM Display: requesting GPT slot...`,
           );
+          if (!this.node.isActiveRenderToken(renderToken, "_requestDisplay:after_tam", this.lastTrigger || "unknown")) return false;
           const displayResult = await this.node.askDisplay(
             this._lastDisplayBid,
+            renderToken,
+            this.lastTrigger || "unknown",
           );
+          if (displayResult.stale === true || !this.node.isActiveRenderToken(renderToken, "_requestDisplay:after_askDisplay", this.lastTrigger || "unknown")) return "closed";
 
           if (displayResult.retrying === true) {
             logIntext(
@@ -7044,7 +7653,7 @@ class RandomStrategy extends WindowArray {
             logIntext(
               `[Intext:Slot:${this.node.id}] ├─ GAM Display: FILL ✅ (size: ${JSON.stringify(displayResult.event?.size)})`,
             );
-            this.node.showDisplay(displayResult);
+            this.node.showDisplay(displayResult, renderToken, this.lastTrigger || "unknown");
             return true;
           } else {
             logIntext(
@@ -7055,7 +7664,8 @@ class RandomStrategy extends WindowArray {
           }
         }
 
-        async _requestVideo() {
+        async _requestVideo(renderToken = this.node._activeRenderToken) {
+          if (!this.node.isActiveRenderToken(renderToken, "_requestVideo:start", this.lastTrigger || "unknown")) return false;
           const tamVideoConfig = this.getTAMVideoConfiguration();
           if (tamVideoConfig) {
             logIntext(
@@ -7071,11 +7681,13 @@ class RandomStrategy extends WindowArray {
             );
           }
 
+          if (!this.node.isActiveRenderToken(renderToken, "_requestVideo:after_tam", this.lastTrigger || "unknown")) return false;
           const gamVideoTagUrl = this.buildGAMVideoTagUrl();
           logIntext(
             `[Intext:Slot:${this.node.id}] ├─ GAM Video: building player...`,
           );
-          const videoPlayed = await this.node.buildAndPlayVideo(gamVideoTagUrl);
+          const videoPlayed = await this.node.buildAndPlayVideo(gamVideoTagUrl, renderToken, this.lastTrigger || "unknown");
+          if (!this.node.isActiveRenderToken(renderToken, "_requestVideo:after_buildAndPlayVideo", this.lastTrigger || "unknown")) return false;
           if (videoPlayed) {
             logIntext(
               `[Intext:Slot:${this.node.id}] ├─ GAM Video: FILL ✅ — playing`,
@@ -7120,8 +7732,12 @@ class RandomStrategy extends WindowArray {
                
                // 4. Restore transitions for future updates
                if (dEl) {
+                 const restoreRenderToken = renderToken;
+                 const elToRestore = dEl;
                  requestAnimationFrame(() => {
-                   dEl.style.transition = "";
+                   if (!this.node.isActiveRenderToken(restoreRenderToken, "video_failure_restore_display_raf", this.lastTrigger || "unknown")) return;
+                   if (!elToRestore.isConnected || this.node.container?.getElement?.() !== elToRestore) return;
+                   elToRestore.style.transition = "";
                  });
                }
             } else {
@@ -8530,6 +9146,7 @@ class RandomStrategy extends WindowArray {
           this._playerRevealed = false;
           this._videoEndHandled = false;
           this._videoTiming = videoTiming || null;
+          this._renderToken = node?._activeRenderToken || 0;
           this._adMediaEl = null;
           this._adMediaCleanup = null;
           this._adMediaDiscoveryTimers = [];
@@ -8537,7 +9154,13 @@ class RandomStrategy extends WindowArray {
         }
 
         async render() {
+          if (!this.node?.isActiveRenderToken?.(this._renderToken, "IntextVideoCreative.render:start", this._videoTiming?.trigger || "unknown")) {
+            throw new Error("stale_render_token");
+          }
           await this.ensureDependencies();
+          if (!this.node?.isActiveRenderToken?.(this._renderToken, "IntextVideoCreative.render:after_dependencies", this._videoTiming?.trigger || "unknown")) {
+            throw new Error("stale_render_token");
+          }
           this.createVideoElement();
           this.initVideoJS();
           const loader = this.container.getElement().querySelector(".gexp-intext-loader");
@@ -8745,6 +9368,14 @@ class RandomStrategy extends WindowArray {
           this._adMediaEl = null;
         }
 
+        isRenderTokenActive(source = "IntextVideoCreative") {
+          return this.node?.isActiveRenderToken?.(
+            this._renderToken,
+            source,
+            this._videoTiming?.trigger || "unknown",
+          ) !== false;
+        }
+
         requestAds() {
           return new Promise((resolve, reject) => {
             if (!this.player) {
@@ -8838,6 +9469,7 @@ class RandomStrategy extends WindowArray {
             }, 25000);
 
             const revealPlayer = (source = "unknown") => {
+              if (!this.isRenderTokenActive(`IntextVideoCreative.revealPlayer:${source}`)) return;
               if (terminalEvent || terminalHandled) {
                 logIntext(
                   `[Intext:Video:IMA] reveal_blocked_by_terminal - source=${source} terminal=${terminalEvent || "unknown"}`,
@@ -8874,6 +9506,7 @@ class RandomStrategy extends WindowArray {
             };
 
             const rejectBeforePlayback = (error, terminalSource) => {
+              if (!this.isRenderTokenActive(`IntextVideoCreative.rejectBeforePlayback:${terminalSource || "unknown"}`)) return;
               if (terminalSource && !markTerminal(terminalSource)) return;
               if (firstFramePlayed) return;
               settle("reject", error);
@@ -8883,7 +9516,7 @@ class RandomStrategy extends WindowArray {
             };
 
             const isRevealBlocked = () =>
-              firstFramePlayed || terminalEvent || terminalHandled || this._aborted || !this.player;
+              firstFramePlayed || terminalEvent || terminalHandled || this._aborted || !this.player || !this.isRenderTokenActive("IntextVideoCreative.isRevealBlocked");
 
             const getMediaCurrentTime = () => {
               const mediaEl = this._adMediaEl;
