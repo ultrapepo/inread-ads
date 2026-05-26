@@ -284,7 +284,13 @@ let cfg={
                     "adjacencyAvoidance": {
                         "enabled": true,
                         "selector": ".ue-c-ad",
-                        "direction": "up"
+                        "direction": "up",
+                        "allowDownwardShift": true,
+                        "fallbackToOriginal": true,
+                        "maxShiftParagraphs": 3,
+                        "minFinalParagraphIndexBySlot": {
+                            "gexp-intext": 1
+                        }
                     }
                 },
                 "style": {
@@ -315,7 +321,7 @@ let cfg={
                                 "gexp-intext-2": {
                                     "loading": {
                                         "fetchRootMargin": "500px 0px",
-                                        "renderRootMargin": "100px 0px",
+                                        "renderRootMargin": "150px 0px",
                                         "maxDelayMs": null
                                     }
                                 },

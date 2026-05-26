@@ -1,0 +1,22 @@
+//Poner coockies en la consola para forzar el intext.
+
+//1º Cookie para activar, efecto exlusico sobre el dominio en el que se está en ese momento y sesión.
+document.cookie = "gexp_intext_force=1; path=/";
+
+//2º Cookie para forzar una configuracion en caso de test a/b o default para no test
+
+document.cookie = "gexp_intext_force_random1=5; path=/";
+document.cookie = "gexp_intext_force_random1=6; path=/";
+document.cookie = "gexp_intext_force_random1=default; path=/";
+
+document.cookie = "gexp_intext_force_exclusions=1; path=/";
+
+
+//Limpiar cookies
+document.cookie = "gexp_intext_force=; Max-Age=0; path=/";
+document.cookie = "gexp_intext_force_random1=; Max-Age=0; path=/";
+document.cookie = "gexp_intext_force_exclusions=; Max-Age=0; path=/";
+
+
+//Extensión para meter al final de la url, activa el modo debug y la muestra de todos los logs de depuración en la consola.
+?gexpIntextDebug=true
