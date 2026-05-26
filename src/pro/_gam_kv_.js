@@ -4258,6 +4258,53 @@ class RandomStrategy extends WindowArray {
           };
         }
 
+        getDisplaySpecialCreativeProfile(width, height) {
+          const sourceWidth = parseInt(width, 10) || 0;
+          const sourceHeight = parseInt(height, 10) || 0;
+          const key = `${sourceWidth}x${sourceHeight}`;
+          const profiles = {
+            "970x90": "wide-horizontal-special",
+            "980x90": "wide-horizontal-special",
+            "970x250": "wide-medium-special",
+            "980x250": "wide-medium-special",
+            "120x600": "tall-narrow-special",
+            "120x1000": "tall-narrow-special",
+          };
+          const layoutKind = profiles[key];
+          if (!layoutKind) {
+            return {
+              isSpecial: false,
+              reason: sourceWidth > 0 && sourceHeight > 0 ? "size-not-whitelisted" : "invalid-size",
+              sourceWidth,
+              sourceHeight,
+            };
+          }
+          return {
+            isSpecial: true,
+            layoutKind,
+            sourceWidth,
+            sourceHeight,
+            centerX: true,
+            centerY: true,
+            preserveSlotHeight: true,
+          };
+        }
+
+        getDisplaySpecialCreativeTelemetry(profile = null, applied = false, scaleFactor = null, targetContentHeight = null) {
+          const size = profile?.sourceWidth && profile?.sourceHeight
+            ? `${profile.sourceWidth}x${profile.sourceHeight}`
+            : "unknown";
+          return {
+            "gexp-intext-special-creative-layout": profile?.isSpecial ? profile.layoutKind : "none",
+            "gexp-intext-special-creative-size": size,
+            "gexp-intext-special-creative-scale": scaleFactor !== null && scaleFactor !== undefined ? String(scaleFactor) : "none",
+            "gexp-intext-special-creative-source-width": String(profile?.sourceWidth || 0),
+            "gexp-intext-special-creative-source-height": String(profile?.sourceHeight || 0),
+            "gexp-intext-special-creative-target-height": targetContentHeight !== null && targetContentHeight !== undefined ? String(targetContentHeight) : "none",
+            "gexp-intext-special-creative-applied": applied ? "true" : "false",
+          };
+        }
+
         getDisplayLayoutTelemetry(renderSize = null) {
           const measuredWidth = parseInt(this.container?.getElement?.()?.clientWidth, 10) || 300;
           const width = parseInt(renderSize?.gamWidth, 10) || measuredWidth;
@@ -4630,6 +4677,13 @@ class RandomStrategy extends WindowArray {
             "gexp-intext-render-layout-height",
             "gexp-intext-layout-locked-height",
             "gexp-intext-wide-layout-mode",
+            "gexp-intext-special-creative-layout",
+            "gexp-intext-special-creative-size",
+            "gexp-intext-special-creative-scale",
+            "gexp-intext-special-creative-source-width",
+            "gexp-intext-special-creative-source-height",
+            "gexp-intext-special-creative-target-height",
+            "gexp-intext-special-creative-applied",
             "gexp-intext-sentinel-retry-forced-request-type",
             "gexp-intext-sentinel-retry-preserved-fallback",
             "gexp-intext-sentinel-retry-original-decision-mode",
@@ -5569,6 +5623,29 @@ class RandomStrategy extends WindowArray {
             };
           }
 
+          const recoveredSpecialProfile = this.getDisplaySpecialCreativeProfile(recoveredWidth, recoveredHeight);
+          if (recoveredSpecialProfile.isSpecial) {
+            logIntext(`[Intext:Display:${this.id}] display_render_size_recovered_from_1x1`, {
+              source,
+              width: recoveredWidth,
+              height: recoveredHeight,
+              layoutKind: recoveredSpecialProfile.layoutKind,
+            });
+            logIntext(`[Intext:Display:${this.id}] display_special_creative_layout_detected`, {
+              source,
+              sourceWidth: recoveredWidth,
+              sourceHeight: recoveredHeight,
+              layoutKind: recoveredSpecialProfile.layoutKind,
+            });
+            return {
+              gamWidth: recoveredWidth,
+              gamHeight: recoveredHeight,
+              actualHeight: recoveredHeight,
+              recovered: true,
+              layout: recoveredSpecialProfile.layoutKind,
+            };
+          }
+
           if (isConfiguredStandardSize || isStandardVisualSize) {
             logIntext(`[Intext:Display:${this.id}] display_render_size_recovered_from_1x1`, {
               source,
@@ -5635,6 +5712,10 @@ class RandomStrategy extends WindowArray {
 
           const measuredHeight = parseInt(actualHeight, 10) || parseInt(gamHeight, 10) || 0;
           const classified = this.classifyDisplayLayout({ gamWidth, gamHeight, actualHeight }, slotEl);
+          const specialProfile = this.getDisplaySpecialCreativeProfile(
+            parseInt(gamWidth, 10) || classified.creativeWidth || 0,
+            parseInt(gamHeight, 10) || classified.creativeHeight || 0,
+          );
           slotEl.classList.remove(
             "gexp-intext-layout-standard",
             "gexp-intext-layout-tall",
@@ -5655,20 +5736,96 @@ class RandomStrategy extends WindowArray {
             lockedHeight: classified.lockedHeight,
             contentHeight: classified.contentHeight,
           });
+          if (specialProfile.isSpecial) {
+            logIntext(`[Intext:Display:${this.id}] display_special_creative_layout_detected`, {
+              source: reason,
+              sourceWidth: specialProfile.sourceWidth,
+              sourceHeight: specialProfile.sourceHeight,
+              layoutKind: specialProfile.layoutKind,
+            });
+          } else if (
+            specialProfile.reason !== "invalid-size" &&
+            (specialProfile.sourceWidth >= 900 || specialProfile.sourceWidth === 120)
+          ) {
+            logIntext(`[Intext:Display:${this.id}] display_special_creative_layout_skipped`, {
+              source: reason,
+              sourceWidth: specialProfile.sourceWidth,
+              sourceHeight: specialProfile.sourceHeight,
+              reason: specialProfile.reason,
+            });
+          }
           this.mergeIntextTelemetry({
             "gexp-intext-layout-kind": classified.layoutKind,
             "gexp-intext-render-layout-width": String(classified.creativeWidth || classified.renderWidth || 0),
             "gexp-intext-render-layout-height": String(classified.creativeHeight || classified.renderHeight || 0),
             "gexp-intext-layout-locked-height": String(classified.lockedHeight || 0),
             "gexp-intext-wide-layout-mode": classified.isWide ? classified.layoutKind : "none",
+            ...this.getDisplaySpecialCreativeTelemetry(specialProfile),
           });
-          if (measuredHeight === 600 || parseInt(gamHeight, 10) === 600) {
+          if (!specialProfile.isSpecial && (measuredHeight === 600 || parseInt(gamHeight, 10) === 600)) {
             this.markDisplayHeightLock(600, slotEl);
           }
 
           this._isApplyingDisplayLayout = true;
           try {
-            if (classified.layoutKind === "wide-standard" || classified.layoutKind === "wide-tall") {
+            if (specialProfile.isSpecial) {
+              const computedStyle = window.getComputedStyle(slotEl);
+              const paddingX =
+                parseFloat(computedStyle.paddingLeft || 0) +
+                parseFloat(computedStyle.paddingRight || 0);
+              const availableWidth = Math.max(
+                (slotEl.clientWidth || this.container.getElement().clientWidth || 320) - paddingX,
+                1,
+              );
+              const existingContentHeight =
+                parseInt(slotEl?.dataset?.gexpIntextContentHeight, 10) ||
+                parseInt(this.lockedHeight, 10) ||
+                parseInt(slotEl?.dataset?.lockedHeight, 10) ||
+                0;
+              const targetContentHeight = existingContentHeight >= this.getDisplayExpandedContentHeight()
+                ? this.getDisplayExpandedContentHeight()
+                : this.getDisplayStandardContentHeight();
+              const sourceWidth = Math.max(specialProfile.sourceWidth, 1);
+              const sourceHeight = Math.max(specialProfile.sourceHeight, 1);
+              const scaleFactor = Math.min(1, availableWidth / sourceWidth, targetContentHeight / sourceHeight);
+              const heightState = this.applyDisplayWrapperHeight(slotEl, targetContentHeight, {
+                source: reason,
+              });
+
+              scaleTarget.style.position = "static";
+              scaleTarget.style.top = "";
+              scaleTarget.style.left = "";
+              scaleTarget.style.right = "";
+              scaleTarget.style.margin = "0 auto";
+              scaleTarget.style.alignSelf = "center";
+              scaleTarget.style.transformOrigin = "center center";
+              scaleTarget.style.transform = `scale(${scaleFactor})`;
+              scaleTarget.style.width = sourceWidth + "px";
+              scaleTarget.style.height = sourceHeight + "px";
+              scaleTarget.style.maxWidth = "none";
+
+              slotEl.style.overflow = "hidden";
+              slotEl.style.display = "flex";
+              slotEl.style.justifyContent = "center";
+              slotEl.style.alignItems = "center";
+
+              this.mergeIntextTelemetry({
+                "gexp-intext-layout-kind": specialProfile.layoutKind,
+                "gexp-intext-render-layout-width": String(sourceWidth),
+                "gexp-intext-render-layout-height": String(sourceHeight),
+                "gexp-intext-wide-layout-mode": specialProfile.layoutKind,
+                ...this.getDisplaySpecialCreativeTelemetry(specialProfile, true, scaleFactor.toFixed(4), heightState.contentHeight),
+              });
+              logIntext(`[Intext:Display:${this.id}] display_special_creative_layout_applied`, {
+                source: reason,
+                sourceWidth,
+                sourceHeight,
+                layoutKind: specialProfile.layoutKind,
+                availableWidth,
+                targetContentHeight: heightState.contentHeight,
+                scaleFactor: scaleFactor.toFixed(4),
+              });
+            } else if (classified.layoutKind === "wide-standard" || classified.layoutKind === "wide-tall") {
               const wideTall = classified.layoutKind === "wide-tall";
               const targetContentHeight = wideTall
                 ? Math.max(this.getDisplayEffectiveLock(slotEl), this.getDisplayExpandedContentHeight())
@@ -6260,7 +6417,10 @@ class RandomStrategy extends WindowArray {
            const renderSize = this.resolveDisplayRenderSizeFromEvent(event, "display_showDisplay");
            const actualCreativeHeight = renderSize.actualHeight;
            if (actualCreativeHeight === 600) {
-               this.markDisplayHeightLock(600, this.container.getElement());
+               const specialProfile = this.getDisplaySpecialCreativeProfile(renderSize.gamWidth, renderSize.gamHeight);
+               if (!specialProfile.isSpecial) {
+                   this.markDisplayHeightLock(600, this.container.getElement());
+               }
            }
 
            const slotDoc = this.ensureSingleIntextWrapper(document.getElementById(this.id), {
