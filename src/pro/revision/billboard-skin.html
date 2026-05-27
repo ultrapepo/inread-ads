@@ -1,0 +1,694 @@
+<script data-gam-publi="publicidad" type="text/javascript">
+    // ### Codigo en pagina ###
+    (function () {
+        // Variables GAM
+        const adConfig = {
+            inPageClickUrl: '%%CLICK_URL_UNESC%%[%click_url%]',
+            inPageImage: '[%inPageImageDFP%]',
+            inPageSite: '[%SITE%]',
+            inPageWidth: 0,
+            inPageHeight: 0,
+            inPageLeft: [% inPageLeft %]
+        };
+
+        //Tamaños de los sites
+        const sites = {
+            marca: {
+                adSlot: {
+                    adUnit: "mc2/"
+                },
+
+                portada: {
+                    pClass: ".portada",
+                    siClass: ".ue-l-cover-grid__sky--left",
+                    sdClass: ".ue-l-cover-grid__sky--right",
+                    divId: "portada",
+                    sizeAd: {
+                        sizeWidth: 1039,
+                        sizeHeight: 250
+                    }
+                },
+
+                portadillas: {
+                    pClass: ".section",
+                    siClass: ".ue-l-cover-grid__sky--left",
+                    sdClass: ".ue-l-cover-grid__sky--right",
+                    divId: "_p",
+                    sizeAd: {
+                        sizeWidth: 1039,
+                        sizeHeight: 250
+                    }
+                },
+
+                noticias: {
+                    pClass: ".news",
+                    skyClass: ".ue-l-article__sky",
+                    siClass: ".ue-l-article__sky--left",
+                    sdClass: ".ue-l-article__sky--right",
+                    divId: "_n",
+                    sizeSkys: 2.25,
+                    sizeAd: {
+                        sizeWidth: 1022,
+                        sizeHeight: 250
+                    }
+                },
+
+                directos: {
+                    pClass: ".ue-l-liveeditorial--basic",
+                    skyClass: ".ue-l-article__sky",
+                    siClass: ".ue-l-article__sky--left",
+                    sdClass: ".ue-l-article__sky--right",
+                    divId: "_dir",
+                    sizeSkys: 2.05,
+                    sizeAd: {
+                        sizeWidth: 1022,
+                        sizeHeight: 250
+                    }
+                },
+
+                album: {
+                    pClass: ".ue-l-gallery--basic-horizontal",
+                    skyClass: ".ue-l-article__sky",
+                    siClass: ".ue-l-article__sky--left",
+                    sdClass: ".ue-l-article__sky--right",
+                    divId: "_a",
+                    sizeSkys: 1.45,
+                    sizeAd: {
+                        sizeWidth: 1022,
+                        sizeHeight: 250
+                    }
+                },
+
+                estatica: {
+                    pClass: ".section",
+                    siClass: ".ue-l-common-page__sky--left",
+                    sdClass: ".ue-l-common-page__sky--right",
+                    divId: "_e",
+                    sizeSkys: 1.45,
+                    sizeAd: {
+                        sizeWidth: 1020,
+                        sizeHeight: 250
+                    }
+                }
+            },
+
+            mundo: {
+                adSlot: {
+                    adUnit: "mun/"
+                },
+
+                portada: {
+                    pClass: ".portada",
+                    siClass: ".ue-l-cg__sky--left",
+                    sdClass: ".ue-l-cg__sky--right",
+                    divId: "portada",
+                    sizeAd: {
+                        sizeWidth: 1233,
+                        sizeHeight: 250
+                    }
+                },
+
+                portadillas: {
+                    pClass: ".section",
+                    siClass: ".ue-l-cg__sky--left",
+                    sdClass: ".ue-l-cg__sky--right",
+                    divId: "_p",
+                    sizeAd: {
+                        sizeWidth: 1233,
+                        sizeHeight: 250
+                    }
+                },
+
+                noticias: {
+                    pClass: ".news",
+                    skyClass: ".ue-l-article__sky",
+                    siClass: ".ue-l-article__sky--left",
+                    sdClass: ".ue-l-article__sky--right",
+                    divId: "_n",
+                    sizeSkys: 1.5,
+                    sizeAd: {
+                        sizeWidth: 1233,
+                        sizeHeight: 250
+                    }
+                },
+
+                directos: {
+                    pClass: ".ue-l-liveeditorial--basic",
+                    siClass: ".ue-l-article__sky--left",
+                    sdClass: ".ue-l-article__sky--right",
+                    divId: "_dir",
+                    sizeSkys: 1.41,
+                    sizeAd: {
+                        sizeWidth: 1233,
+                        sizeHeight: 250
+                    }
+                },
+
+                album: {
+                    pClass: ".ue-l-gallery--basic-horizontal",
+                    skyClass: ".ue-l-article__sky",
+                    siClass: ".ue-l-article__sky--left",
+                    sdClass: ".ue-l-article__sky--right",
+                    divId: "_a",
+                    sizeSkys: 1.45,
+                    sizeAd: {
+                        sizeWidth: 1022,
+                        sizeHeight: 250
+                    }
+                }
+            },
+
+            expansion: {
+                adSlot: {
+                    adUnit: "exp2/"
+                },
+
+                portada: {
+                    pClass: ".portada",
+                    siClass: ".ue-l-cover-grid__sky--left",
+                    sdClass: ".ue-l-cover-grid__sky--right",
+                    divId: "portada",
+                    sizeAd: {
+                        sizeWidth: 1022,
+                        sizeHeight: 250
+                    }
+                },
+
+                portadillas: {
+                    pClass: ".section",
+                    siClass: ".ue-l-cover-grid__sky--left",
+                    sdClass: ".ue-l-cover-grid__sky--right",
+                    divId: "_p",
+                    sizeAd: {
+                        sizeWidth: 1022,
+                        sizeHeight: 250
+                    }
+                },
+
+                noticias: {
+                    pClass: ".news",
+                    skyClass: ".ue-l-article__sky",
+                    siClass: ".ue-l-article__sky--left",
+                    sdClass: ".ue-l-article__sky--right",
+                    divId: "_n",
+                    sizeSkys: 1.42,
+                    sizeAd: {
+                        sizeWidth: 1022,
+                        sizeHeight: 250
+                    }
+                },
+
+                directos: {
+                    pClass: ".ue-l-liveeditorial--basic",
+                    skyClass: ".ue-l-article__sky",
+                    siClass: ".ue-l-article__sky--left",
+                    sdClass: ".ue-l-article__sky--right",
+                    divId: "_dir",
+                    sizeSkys: 1.45,
+                    sizeAd: {
+                        sizeWidth: 1022,
+                        sizeHeight: 250
+                    }
+                },
+
+                album: {
+                    pClass: ".ue-l-gallery--basic-horizontal",
+                    skyClass: ".ue-l-article__sky",
+                    siClass: ".ue-l-article__sky--left",
+                    sdClass: ".ue-l-article__sky--right",
+                    divId: "_a",
+                    sizeSkys: 1.45,
+                    sizeAd: {
+                        sizeWidth: 1022,
+                        sizeHeight: 250
+                    }
+                }
+            },
+
+            telva: {
+                adSlot: {
+                    adUnit: "telva"
+                },
+
+                portada: {
+                    pClass: ".portada",
+                    mClass: ".ad-item-990",
+                    siClass: ".ad-item-si",
+                    sdClass: ".ad-item-sd",
+                    divId: "portada",
+                    sizeSkys: 0, //20.2
+                    rSky: -41.3,
+                    lSky: -41.2,
+                    sMargin: 0,
+                    sPadding: 0,
+                    sizeAd: {
+                        sizeWidth: 1233,
+                        sizeHeight: 250
+                    }
+                },
+
+                portadillas: {
+                    pClass: ".main",
+                    mClass: ".ad-item-990",
+                    siClass: ".ad-item-si",
+                    sdClass: ".ad-item-sd",
+                    rSky: -41.3,
+                    lSky: -41.2,
+                    divId: "_p",
+                    sizeAd: {
+                        sizeWidth: 1233,
+                        sizeHeight: 250
+                    }
+                },
+
+                noticias: {
+                    pClass: ".ue-l-article--basic",
+                    skyClass: ".ue-l-article__sky",
+                    siClass: ".ue-l-article__sky--left",
+                    sdClass: ".ue-l-article__sky--right",
+                    divId: "_n",
+                    sizeSkys: 2.4,
+                    sizeAd: {
+                        sizeWidth: 1233,
+                        sizeHeight: 250
+                    }
+                },
+
+                directos: {
+                    pClass: ".ue-l-liveeditorial--basic",
+                    skyClass: ".ue-l-article__sky",
+                    siClass: ".ue-l-article__sky--left",
+                    sdClass: ".ue-l-article__sky--right",
+                    divId: "_dir",
+                    sizeSkys: 1.45,
+                    sizeAd: {
+                        sizeWidth: 1022,
+                        sizeHeight: 250
+                    }
+                },
+
+                album: {
+                    pClass: ".ue-l-gallery--basic-horizontal",
+                    skyClass: ".ue-l-article__sky",
+                    siClass: ".ue-l-article__sky--left",
+                    sdClass: ".ue-l-article__sky--right",
+                    divId: "_a",
+                    sizeSkys: 2.3,
+                    sizeAd: {
+                        sizeWidth: 1022,
+                        sizeHeight: 250
+                    }
+                }
+            }
+        };
+
+
+        // ### Llamada
+        window.addEventListener('DOMContentLoaded', function () {
+            siteSizes();
+            initAd();
+        }, false);
+
+        function getZoomLevel() {
+            var zoomLevel = window.devicePixelRatio || 1; // Valor predeterminado
+
+            return zoomLevel;
+        }
+
+        //Se setea el tamaño según el Site y Plantillas, adaptaciones de estilos a laterales.
+        function siteSizes() {
+            const targetParent = parent.window.document.getElementById(window.frameElement.id);
+            const windowDocument = parent.window.document;
+
+            // Buscar el objeto DATA de GAM
+            const iframeData = parent.window.data
+
+            // Buscar el elemento main más cercano
+            const mainElement = targetParent.closest('main');
+            const mainDirecto = mainElement.id.includes('directo');
+
+            let site = "";
+
+            let detectedSite = "";
+
+            let plPortada = "";
+            let plPortadilla = "";
+            let plNoticia = "";
+            let plDirecto = "";
+            let plAlbum = "";
+            let plEstatica = "";
+
+
+            // Verificar si se aplicará la configuración GAM, Auto o Manual
+            if (adConfig.inPageSite === 'GAM' && iframeData) {
+                siteGAM();
+
+
+                const iframeSuffix = iframeData.divId.substring(iframeData.divId.lastIndexOf('_'));
+
+                plPortada = targetParent.id.includes(site.portada.divId);
+                plPortadilla = iframeSuffix === site.portadillas.divId;
+                plNoticia = iframeSuffix === site.noticias.divId;
+                plDirecto = iframeSuffix === site.directos.divId;
+                plAlbum = iframeSuffix === site.album.divId;
+                plEstatica = site.estatica && iframeSuffix === site.estatica.divId;
+
+
+                if (adSlotKvNc()) {
+                    plPortadilla = targetParent.closest(site.portadillas.pClass);
+                    plNoticia = targetParent.closest(site.noticias.pClass);
+                    if (site.estatica) {
+                        plEstatica = targetParent.closest(site.estatica.pClass);
+                    }
+                }
+
+            } else if (adConfig.inPageSite === 'AUTO' && mainElement) {
+                siteAuto();
+                plPortada = targetParent.closest(site.portada.pClass);
+                plPortadilla = targetParent.closest(site.portadillas.pClass);
+                plNoticia = targetParent.closest(site.noticias.pClass);
+                plDirecto = targetParent.closest(site.directos.pClass);
+                plAlbum = targetParent.closest(site.album.pClass);
+                if (site.estatica) {
+                    plEstatica = targetParent.closest(site.estatica.pClass);
+                }
+
+            } else {
+                siteManual();
+            }
+
+            let skyLeft = windowDocument.querySelector(site.noticias.siClass);
+            let skyRight = windowDocument.querySelector(site.noticias.sdClass);
+
+            if (plEstatica && site.estatica) {
+                skyLeft = windowDocument.querySelector(site.estatica.siClass);
+                skyRight = windowDocument.querySelector(site.estatica.sdClass);
+            }
+
+            const skyLeftDir = windowDocument.querySelector(site.directos.siClass);
+            const skyRightDir = windowDocument.querySelector(site.directos.sdClass);
+
+
+            let megaTelva = "";
+
+            // Verificar el nivel de zoom
+            const zoomValue = getZoomLevel();
+
+            // Ajustar el tamaño si el zoom no es del 100%
+            const additionalPixels = zoomValue !== 1.0 ? 2 : 0;
+
+
+            if (plPortada) {
+                adConfig.inPageWidth = site.portada.sizeAd.sizeWidth + additionalPixels;
+                adConfig.inPageHeight = site.portada.sizeAd.sizeHeight;
+
+                if (adConfig.inPageSite === 'TELVA' || detectedSite === 'telva') {
+                    megaTelva = targetParent.closest(site.portada.mClass);
+
+                    if (megaTelva) {
+                        megaTelva.style.width = site.portada.sizeAd.sizeWidth + "px";
+                        megaTelva.style.height = site.portada.sizeAd.sizeHeight + "px";
+                    }
+
+                    skyElements();
+                } else if (adConfig.inPageSite === 'EXPANSION' || detectedSite === 'expansion') {
+                    skyLeft = windowDocument.querySelector(site.portada.siClass);
+                    skyRight = windowDocument.querySelector(site.portada.sdClass);
+
+                    if (skyLeft && skyRight) {
+                        skyLeft.style.transform = 'translateX(calc(-100% - 0.25rem))';
+                        skyRight.style.transform = 'translateX(calc(100% + 0.25rem))';
+                    }
+                }
+
+            } else if (plPortadilla) {
+                adConfig.inPageWidth = site.portadillas.sizeAd.sizeWidth + additionalPixels;
+                adConfig.inPageHeight = site.portadillas.sizeAd.sizeHeight;
+
+                if (adConfig.inPageSite === 'TELVA' || detectedSite === 'telva') {
+                    megaTelva = targetParent.closest(site.portadillas.mClass);
+
+                    if (megaTelva) {
+                        megaTelva.style.width = site.portadillas.sizeAd.sizeWidth + "px";
+                        megaTelva.style.height = site.portadillas.sizeAd.sizeHeight + "px";
+                    }
+
+                    skyElements();
+                }
+
+            } else if (plNoticia && !mainDirecto) {
+                adConfig.inPageWidth = site.noticias.sizeAd.sizeWidth + additionalPixels;
+
+                adConfig.inPageHeight = site.noticias.sizeAd.sizeHeight;
+
+                if (skyLeft && skyRight) {
+                    console.log("Dentro de skyLeft y skyRight" + "" + skyLeft.outerHTML || "No hay está dentro de Noticia");
+                    console.log("Dentro de skyLeft y skyRight" + "" + skyRight.outerHTML || "No hay está dentro de Noticia");
+                    switch (false) {
+                        case adConfig.inPageSite === 'MUNDO':
+                        case detectedSite === 'mundo':
+                        case adConfig.inPageSite === 'MARCA':
+                        case detectedSite === 'marca':
+                            skyLeft.style.top = site.noticias.sizeSkys + 'rem';
+                            skyRight.style.top = site.noticias.sizeSkys + 'rem';
+                            break;
+                        case adConfig.inPageSite === 'TELVA':
+                        case detectedSite === 'telva':
+                            skyLeft.style.top = site.noticias.sizeSkys + 'rem';
+                            skyRight.style.top = site.noticias.sizeSkys + 'rem';
+                            break;
+                        default:
+                            break;
+                    }
+                }
+            } else if (plDirecto) {
+                adConfig.inPageWidth = site.directos.sizeAd.sizeWidth + additionalPixels;
+                adConfig.inPageHeight = site.directos.sizeAd.sizeHeight;
+
+                if (skyLeftDir && skyRightDir) {
+                    switch (true) {
+                        case adConfig.inPageSite === 'MUNDO':
+                        case detectedSite === 'mundo':
+                        case adConfig.inPageSite === 'MARCA':
+                        case detectedSite === 'marca':
+                        case adConfig.inPageSite === 'EXPANSION':
+                        case detectedSite === 'expansion':
+                            skyLeftDir.style.top = site.directos.sizeSkys + 'rem';
+                            skyRightDir.style.top = site.directos.sizeSkys + 'rem';
+                            break;
+                        default:
+                            break;
+                    }
+                }
+            } else if (plAlbum) {
+                adConfig.inPageWidth = site.album.sizeAd.sizeWidth + additionalPixels;
+                adConfig.inPageHeight = site.album.sizeAd.sizeHeight;
+
+                if (skyLeft && skyRight) {
+                    skyLeftDir.style.top = site.album.sizeSkys + 'rem';
+                    skyRightDir.style.top = site.album.sizeSkys + 'rem';
+                }
+            } else if (plEstatica) {
+                adConfig.inPageWidth = site.estatica.sizeAd.sizeWidth + additionalPixels;
+                adConfig.inPageHeight = site.estatica.sizeAd.sizeHeight;
+
+                if (skyLeft && skyRight) {
+                    skyLeft.style.top = site.estatica.sizeSkys + 'rem';
+                    skyRight.style.top = site.estatica.sizeSkys + 'rem';
+                }
+            }
+
+            if (adConfig.inPageSite === 'MARCA' || detectedSite === 'marca') {
+                const marcaBoxShadow = targetParent.closest('.ue-c-ad--label');
+                marcaBoxShadow.style.boxShadow = 'none';
+            }
+
+            function siteAuto() {
+
+                //obtener url del dominio
+                const domain = window.location.hostname;
+
+                // Verificar y asignar el site correspondiente según el data-theme detectado
+                switch (true) {
+                    case domain.includes("marca.com"):
+                        detectedSite = 'marca';
+                        break;
+                    case domain.includes("elmundo.es"):
+                        detectedSite = 'mundo';
+                        break;
+                    case domain.includes("expansion.com"):
+                        detectedSite = 'expansion';
+                        break;
+                    case domain.includes("telva.com"):
+                        detectedSite = 'telva';
+                        break;
+                    default:
+                        break;
+                }
+
+                if (detectedSite) {
+                    site = sites[detectedSite];
+                }
+            };
+
+            function siteManual() {
+                const siteData = {
+                    marca: sites.marca,
+                    mundo: sites.mundo,
+                    expansion: sites.expansion,
+                    telva: sites.telva
+                };
+
+                site = siteData[adConfig.inPageSite.toLowerCase()];
+            };
+
+            function siteGAM() {
+
+                if (iframeData) {
+                    const adSlots = iframeData.adSlots;
+
+                    switch (true) {
+                        case adSlots.some(slot => slot.adUnit.includes("mc2/")):
+                            detectedSite = 'marca';
+                            break;
+                        case adSlots.some(slot => slot.adUnit.includes("mun/")):
+                            detectedSite = 'mundo';
+                            break;
+                        case adSlots.some(slot => slot.adUnit.includes("exp2/")):
+                            detectedSite = 'expansion';
+                            break;
+                        case adSlots.some(slot => slot.adUnit.includes("telva/")):
+                            detectedSite = 'telva';
+                            break;
+                        default:
+                            break;
+                    }
+                }
+
+                if (detectedSite) {
+                    site = sites[detectedSite];
+                }
+            };
+
+            // Verificar si se pasa la key-value "nc:1" a nivel de slot
+            function adSlotKvNc() {
+                // Obtener todos los slots publicitarios en la página
+                const slots = parent.window.googletag.pubads().getSlots();
+
+                // Iterar sobre cada slot publicitario
+                for (let i = 0; i < slots.length; i++) {
+                    const slot = slots[i];
+
+                    // Verificar si el slot tiene la key-value "nc:1" a nivel de slot
+                    if (slot.getTargetingKeys().indexOf("nc") > -1 && slot.getTargeting("nc")[0] === "1") {
+                        // La key-value "nc:1" está presente en el adslot a nivel de slot
+                        return true;
+                    }
+                }
+                return false;
+            };
+
+            function skyElements() {
+                // Seleccionar los elementos <aside> con las clases ad-item-si y ad-item-sd de la portada
+
+                const tagHeader = windowDocument.querySelector('header');
+
+                if (plPortada) {
+                    skyLeft = windowDocument.querySelector(site.portada.siClass);
+                    skyRight = windowDocument.querySelector(site.portada.sdClass);
+
+                    // Aplicar los estilos iniciales
+                    skyLeft.style.top = site.portada.sizeSkys + 'rem';
+                    skyRight.style.top = site.portada.sizeSkys + 'rem';
+                    skyLeft.style.left = site.portada.lSky + 'rem';
+                    skyRight.style.right = site.portada.rSky + 'rem';
+                    skyLeft.style.marginTop = site.portada.sMargin + 'rem';
+                    skyRight.style.marginTop = site.portada.sMargin + 'rem';
+                    skyLeft.style.paddingTop = site.portada.sPadding + 'rem';
+                    skyRight.style.paddingTop = site.portada.sPadding + 'rem';
+
+
+                    // Función para verificar y aplicar estilos según las clases del header
+                    function headerClass() {
+                        const isFixedDown = tagHeader.classList.contains('fixed-down');
+                        const isFixedUp = tagHeader.classList.contains('fixed-up');
+
+                        if (isFixedDown || isFixedUp) {
+                            skyLeft.style.top = '';
+                            skyRight.style.top = '';
+                        } else {
+                            skyLeft.style.top = site.portada.sizeSkys + 'rem';
+                            skyRight.style.top = site.portada.sizeSkys + 'rem';
+                        }
+                    }
+
+                    // Observar cambios en las clases del header
+                    const headerObserver = new parent.window.MutationObserver(headerClass);
+                    headerObserver.observe(tagHeader, {
+                        attributes: true,
+                        attributeFilter: ['class']
+                    });
+
+                    headerObserver.disconnect();
+
+                } else if (plPortadilla) {
+                    skyLeft = windowDocument.querySelector(site.portadillas.siClass);
+                    skyRight = windowDocument.querySelector(site.portadillas.sdClass);
+
+                    skyLeft.style.left = site.portadillas.lSky + 'rem';
+                    skyRight.style.right = site.portadillas.rSky + 'rem';
+
+                };
+
+            };
+
+        };
+
+        //Construcción de la imagen física del billboard.
+        function buildImageIn(cU, u, w, h) {
+
+            let imageObj_tmp = `<div style="position:relative;width:100%;height:100%;overflow:hidden">
+                              <a href="${cU}" target="_blank">
+                                      <img src="${u}" width=${w} height=${h} border="0" alt="">
+                                                  </a>
+                      </div>`;
+            return imageObj_tmp;
+        };
+
+        // Inicialización de la creatividad
+        function initAd() {
+
+            // Renderizado de la creatividad física del billboard.
+            function render() {
+                const inPageDivContent = document.createElement('DIV');
+                const divPadre = document.querySelector('script[data-gam-publi="publicidad"]').parentNode;
+                if (adConfig.inPageImage != '') {
+                    inPageDivContent.setAttribute("style", "position: absolute; width:" + adConfig.inPageWidth +
+                        "px; height:" +
+                        adConfig.inPageHeight + "px; left: 0px; top: 0px;")
+                    inPageDivContent.innerHTML += buildImageIn(adConfig.inPageClickUrl, adConfig.inPageImage,
+                        adConfig.inPageWidth + 'px',
+                        adConfig.inPageHeight + 'px');
+                    divPadre.appendChild(inPageDivContent);
+                };
+            };
+
+            //Aplicar tamaño al iframe del billboard.
+            function setPos() {
+                if (window.frameElement.id && parent.window.document.getElementById(window.frameElement.id)) {
+                    const targetElem = parent.window.document.getElementById(window.frameElement.id);
+                    if (targetElem) {
+                        targetElem.style.width = adConfig.inPageWidth + "px";
+                        targetElem.style.height = adConfig.inPageHeight + "px";
+                        targetElem.parentNode.style.marginLeft = adConfig.inPageLeft + "px";
+                    }
+                }
+            };
+
+            render();
+            setPos();
+        };
+
+    })();
+</script>
+[%1x1CounterPixel%] [%3rdRedirectCreative%]
