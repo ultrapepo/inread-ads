@@ -652,7 +652,7 @@
                                     "loading": {
                                         "fetchRootMargin": "650px 0px",
                                         "renderRootMargin": "250px 0px",
-                                        "maxDelayMs": null
+                                        "maxDelayMs": 7000
                                     }
                                 },
                                 "gexp-intext-2": {

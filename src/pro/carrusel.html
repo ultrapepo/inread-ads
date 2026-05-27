@@ -1,0 +1,637 @@
+<script data-gam-publi="publicidad" type="text/javascript">
+  (function () {
+    // Configuración a partir de macros
+    const adConfig = {
+      clickUrl: "%%CLICK_URL_UNESC%%[%URL_DESTINO%]",
+      imageLogo: "[%IMAGEN%]",
+      colorLogo: "[%colorLogo%]",
+      imageWidth: parseInt("[%ANCHOLOGO%]", 10),
+      imageHeight: parseInt("[%ALTOLOGO%]", 10),
+      legalLabel: "[%LEGAL_LABEL%]",
+      legalTxt: "[%LEGAL_TEXT%]",
+      legalFlag: "[%LEGALFLAG%]",
+      legalTextColor: "[%LEGAL_TEXT_COLOR%]",
+      legalPosition: "[%LEGAL_POSITION%]", // "izquierda", "derecha", "arriba", "abajo"
+      lineItemIds: "[%LINEITEMIDS%]",
+      patrocinador: "[%PATROCINADOR%]",
+      clickableFlag: "[%CLICKABLE%]",
+      dominio: "[%DOMINIO%]",
+      posicion: "[%POSICION%]", // "izquierda", "derecha", "centro". También admite "arriba"/"abajo" como fallback para LEGAL_POSITION.
+      extender: "[%EXTENDER%]", // "SI", "NO"
+      pintarLinea: "[%PINTAR_LINEA%]", // "SI", "NO" (Solo Mundo)
+      colorLinea: "[%COLOR_LINEA%]", // "default", "naranjaLuckia", u otro hex
+    };
+
+    // 1. CONFIGURACIÓN DE SELECTORES POR DOMINIO
+    const dominioId = (adConfig.dominio || "MARCA").trim().toUpperCase();
+
+    let selGridBody, selLgStages, selLgBars, selCarruselSlots, selCarruselPsp;
+
+    switch (dominioId) {
+      case "ELMUNDO":
+      case "MUNDO":
+        selGridBody = ".ue-l-cg__body";
+        selLgStages = ".selector-torneo-mundo";
+        selLgBars = ".selector-barras-mundo";
+        selCarruselSlots = '[id*="_carrusel_"]';
+        selCarruselPsp = '[data-ads-slot-role="carrusel_430x34"]';
+        break;
+
+      case "EXPANSION":
+        selGridBody = ".ue-l-cover-grid__body";
+        selLgStages = ".selector-torneo-expansion";
+        selLgBars = ".selector-barras-expansion";
+        selCarruselSlots = '[id*="_carrusel_"]';
+        selCarruselPsp = '[data-ads-slot-role="carrusel_430x34"]';
+        break;
+
+      case "MARCA":
+      default:
+        selGridBody = ".ue-l-cover-grid__body";
+        selLgStages =
+          ".ue-c-tournament-group-stages.ue-c-tournament-group-stages--mundial-2026.marca";
+        selLgBars =
+          ".ue-c-tournament-group-stages-bar.ue-c-tournament-group-stages-bar--sponsored.ue-c-tournament-group-stages-bar--countdown";
+        selCarruselSlots = '[id*="_carrusel_"]';
+        selCarruselPsp = '[data-ads-slot-role="carrusel_430x34"]';
+        break;
+    }
+
+    // Normalización
+    const patrocinadorId = (adConfig.patrocinador || "").trim().toUpperCase();
+    const isLuckia = patrocinadorId === "LUCKIA" || patrocinadorId === "LUKIA";
+
+    function getCleanMacroValue(value) {
+      const normalized = (value || "").toString().trim().toLowerCase();
+      // Evita que un macro no creado en GAM, por ejemplo "[%LEGAL_POSITION%]",
+      // se trate como un valor real.
+      if (!normalized || /^\[%.*%\]$/.test(normalized)) return "";
+      return normalized;
+    }
+
+    const posicionMacro = getCleanMacroValue(adConfig.posicion) || "izquierda";
+    const posicionLayout = ["izquierda", "derecha", "centro"].includes(
+      posicionMacro,
+    )
+      ? posicionMacro
+      : "centro";
+
+    // Posición visual del bloque legal respecto al logo.
+    // Recomendado: crear en GAM la variable LEGAL_POSITION con estos valores:
+    // "izquierda", "derecha", "arriba", "abajo".
+    // Si no existe, se mantiene la compatibilidad con POSICION:
+    // - POSICION=derecha => legal a la izquierda del logo, como antes.
+    // - POSICION=arriba/abajo => legal arriba/abajo.
+    const legalPositionMacro = getCleanMacroValue(adConfig.legalPosition);
+    const legalPositionFallback =
+      posicionMacro === "derecha"
+        ? "izquierda"
+        : posicionMacro === "arriba" || posicionMacro === "abajo"
+          ? posicionMacro
+          : "derecha";
+    const legalPosition = ["izquierda", "derecha", "arriba", "abajo"].includes(
+      legalPositionMacro,
+    )
+      ? legalPositionMacro
+      : legalPositionFallback;
+    const isLegalVertical = legalPosition === "arriba" || legalPosition === "abajo";
+
+    const isExtender =
+      (adConfig.extender || "SI").trim().toUpperCase() !== "NO";
+
+    // Ajuste del color según la macro
+    if (adConfig.colorLogo === "verdeCodere") {
+      adConfig.colorLogo = "#95c11f";
+    } else if (adConfig.colorLogo === "rojoCaliente") {
+      adConfig.colorLogo = "#ff0000";
+    } else if (
+      adConfig.colorLogo === "naranjaLukia" ||
+      adConfig.colorLogo === "naranjaLuckia"
+    ) {
+      adConfig.colorLogo = "#ea5b0c";
+    } else if (adConfig.colorLogo === "verdeBET365") {
+      adConfig.colorLogo = "#126e51";
+    } else if (adConfig.colorLogo === "powerRanking") {
+      adConfig.colorLogo = "#113518";
+    } else if (adConfig.colorLogo === "fondoTransparente") {
+      adConfig.colorLogo = "transparent";
+    }
+
+    // Función para determinar el color del texto legal
+    function getLegalTextColor() {
+      const colorPref = (adConfig.legalTextColor || "").trim().toLowerCase();
+      if (colorPref === "blanco") return "#ffffff";
+      if (colorPref === "gris") return "#7B7B7B";
+      if (colorPref === "negro") return "#000000";
+      return isLuckia ? "#000000" : "#707070";
+    }
+
+    // Función para decidir si la creatividad debe ser clicable
+    function isClickable() {
+      const flag = (adConfig.clickableFlag || "SI").trim().toUpperCase();
+      return !["NO", "FALSE", "0"].includes(flag);
+    }
+
+    // Acceso a data global del parent
+    const dataGam = parent.window.data;
+    let adUnitG;
+
+    // Intentar obtener el adUnitG
+    if (dataGam && dataGam.adSlots && dataGam.adSlots.length > 0) {
+      adUnitG = dataGam.adSlots[0].adUnit.split("/")[0];
+    } else {
+      console.log("dataGam o adSlots no disponible.");
+      return;
+    }
+
+    // Obtenemos los elementos de slot con los selectores definidos arriba
+    const slots = parent.document.querySelectorAll(selCarruselSlots);
+    const slotsPsp = parent.document.querySelector(selCarruselPsp);
+    const isAdUnitValid = ["mc2", "mc-mv2", "mc-mx", "mc-mx-mv"].includes(
+      adUnitG,
+    );
+
+    if (slots) {
+      slots.forEach((slot) => {
+        const id = slot.id || "";
+        const parentEl = slot.parentElement;
+
+        if (!parentEl) return;
+
+        const isCarrusel4 = id.includes("_carrusel_4");
+        const isCarruselGeneral = id.includes("_carrusel_") && !isCarrusel4;
+
+        if (isAdUnitValid && (isCarrusel4 || isCarruselGeneral)) {
+          parentEl.style.display = "flex";
+          parentEl.style.justifyContent = "center";
+          parentEl.style.flexWrap = "wrap";
+        }
+      });
+    }
+
+    if (slotsPsp) {
+      const parentElPsp = slotsPsp.parentElement;
+      if (isAdUnitValid) {
+        parentElPsp.style.display = "flex";
+        parentElPsp.style.justifyContent = "center";
+        parentElPsp.style.flexWrap = "wrap";
+      }
+    }
+
+    // Función para determinar si se construye el bloque legal
+    function shouldShowLegal() {
+      if (adConfig.legalFlag === "SI") {
+        return true;
+      } else if (adConfig.legalFlag === "NO") {
+        return false;
+      } else if (adConfig.legalFlag === "AUTO") {
+        if (dataGam && dataGam.networkId === "99071977") {
+          return true;
+        } else {
+          return false;
+        }
+      }
+      return false;
+    }
+
+    // Comprobamos si googletag ya está definido y configuramos el listener
+    if (parent.window.googletag && parent.window.googletag.pubads) {
+      parent.window.googletag.cmd = parent.window.googletag.cmd || [];
+      parent.window.googletag.cmd.push(function () {
+        parent.window.googletag
+          .pubads()
+          .addEventListener("slotRenderEnded", function (event) {
+            try {
+              const slotElementId = event.slot.getSlotElementId();
+
+              if (
+                (slotElementId &&
+                  slotElementId.includes(
+                    "div-gpt-ad-portada_carrusel_430x34_",
+                  )) ||
+                (slotElementId &&
+                  slotElementId.includes("div-gpt-ad-portada_carrusel_")) ||
+                (slotElementId && slotElementId.includes("SelectorBased"))
+              ) {
+                const responseInfo = event.slot.getResponseInformation();
+
+                if (responseInfo) {
+                  const lineItemId = responseInfo.lineItemId;
+
+                  if (lineItemId == adConfig.lineItemIds) {
+                    hasTargetLineItem = true;
+                    const legalContainers = document.querySelectorAll(
+                      'span[data-legal-container="true"]',
+                    );
+                    if (
+                      legalContainers.length > 0 &&
+                      shouldApplyPaddingTop() &&
+                      !isLegalVertical
+                    ) {
+                      legalContainers.forEach((container) => {
+                        container.style.paddingTop = "0.5rem";
+                      });
+                    }
+                  }
+                } else {
+                  console.log("No hay información de respuesta disponible");
+                }
+              }
+            } catch (error) {
+              console.log("Error en evento slotRenderEnded:", error);
+            }
+          });
+      });
+    }
+
+    // Función para verificar si se cumplen las condiciones para aplicar padding-top
+    let hasTargetLineItem = false;
+    function shouldApplyPaddingTop() {
+      try {
+        const isDevice =
+          parent.window.ueDataLayer &&
+          parent.window.ueDataLayer.device_category === "desktop";
+        return isDevice && hasTargetLineItem;
+      } catch (error) {
+        console.log("Error al verificar condiciones para padding-top:", error);
+        return false;
+      }
+    }
+
+    // Solo construimos la creatividad si hay imagen de logo
+    if (adConfig.imageLogo) {
+      function initAd() {
+        const parentDoc = window.parent.document;
+        let parentContainer;
+        const isMobile =
+          parent.window.ueDataLayer &&
+          parent.window.ueDataLayer.device_category !== "desktop";
+
+        // 1. OBTENER CONTENEDOR (ADAPTACIÓN PARA MUNDO)
+        if (dominioId === "MUNDO" || dominioId === "ELMUNDO") {
+          if (window.frameElement) {
+            const targetElem = parentDoc.getElementById(window.frameElement.id);
+            if (targetElem) {
+              parentContainer = targetElem.closest(selGridBody);
+            }
+          }
+          // Fallback
+          if (!parentContainer) {
+            parentContainer = parentDoc.querySelector(selGridBody);
+          }
+        } else {
+          // Lógica original para el resto
+          if (isMobile) {
+            const allGrids = parentDoc.querySelectorAll(selGridBody);
+            for (let i = 0; i < allGrids.length; i++) {
+              if (allGrids[i].offsetWidth > 0) {
+                parentContainer = allGrids[i];
+                break;
+              }
+            }
+          } else {
+            parentContainer = parentDoc.querySelector(selGridBody);
+          }
+        }
+
+        if (!parentContainer) {
+          console.log(
+            "No se encontró el contenedor principal en el parent.document",
+          );
+          return;
+        }
+
+        // 2. OBTENEMOS EL ANCHO PRIMERO
+        const containerWidth = parentContainer.offsetWidth;
+        const showLegal = shouldShowLegal();
+        const hasLegalContent = !!(
+          showLegal &&
+          (adConfig.legalLabel || adConfig.legalTxt)
+        );
+
+        // Altura estimada del bloque legal cuando va arriba/abajo.
+        // 0.625rem ~= 10px con root 16px; dejamos margen para interlineado y padding.
+        function getVerticalLegalExtraHeight() {
+          if (!isLegalVertical || !hasLegalContent) return 0;
+          const legalLines =
+            (adConfig.legalLabel ? 1 : 0) + (adConfig.legalTxt ? 1 : 0);
+          return legalLines * 12 + 8;
+        }
+
+        // 3. CONFIGURAMOS EL ALTO
+        let containerHeight = adConfig.imageHeight;
+
+        // 4. LÓGICA DE REESCALADO PARA LG
+        if (patrocinadorId === "LG" && adConfig.imageWidth > 0) {
+          containerHeight = Math.round(
+            (containerWidth * adConfig.imageHeight) / adConfig.imageWidth,
+          );
+        }
+
+        // Si el legal va arriba o abajo, ampliamos la creatividad para que no lo corte
+        // el overflow ni el iframe.
+        const logoHeight = containerHeight;
+        const legalVerticalExtraHeight = getVerticalLegalExtraHeight();
+        containerHeight += legalVerticalExtraHeight;
+
+        // --- Manipulación asíncrona del DOM padre para LG ---
+        if (patrocinadorId === "LG") {
+          let attempts = 0;
+          const maxAttempts = 50;
+
+          const waitForComponents = setInterval(() => {
+            attempts++;
+
+            let stylesAppliedToStages = false;
+            let stylesAppliedToBars = false;
+
+            const tournamentDivs = parentDoc.querySelectorAll(selLgStages);
+            if (tournamentDivs && tournamentDivs.length > 0) {
+              tournamentDivs.forEach((div) => {
+                div.style.borderTopLeftRadius = "0";
+                div.style.borderTopRightRadius = "0";
+              });
+              stylesAppliedToStages = true;
+            }
+
+            const tournamentBars = parentDoc.querySelectorAll(selLgBars);
+            if (tournamentBars && tournamentBars.length > 0) {
+              tournamentBars.forEach((bar) => {
+                bar.style.position = "relative";
+              });
+              stylesAppliedToBars = true;
+            }
+
+            if (stylesAppliedToStages && stylesAppliedToBars) {
+              clearInterval(waitForComponents);
+            } else if (attempts >= maxAttempts) {
+              console.log(
+                "GAM creative: Timeout esperando los componentes del torneo para aplicar estilos LG.",
+              );
+              clearInterval(waitForComponents);
+            }
+          }, 200);
+        }
+
+        // --- LÓGICA DE PINTAR LÍNEA (MUNDO) ---
+        if (
+          (dominioId === "MUNDO" || dominioId === "ELMUNDO") &&
+          (adConfig.pintarLinea || "").trim().toUpperCase() === "SI"
+        ) {
+          let hexColorLinea = "#000000";
+          if (adConfig.colorLinea === "naranjaLuckia")
+            hexColorLinea = "#ea5b0c";
+          else if (adConfig.colorLinea && adConfig.colorLinea !== "default")
+            hexColorLinea = adConfig.colorLinea;
+
+          if (parentContainer) {
+            const adMainGrid = parentContainer.closest(".ue-l-cg");
+            let h1Element = null;
+
+            if (adMainGrid) {
+              // 1. Buscamos en el propio bloque contenedor por si estuvieran juntos
+              h1Element = adMainGrid.querySelector(
+                "h1.ue-c-section-title.js_seccionPortadilla",
+              );
+
+              // 2. Si no está en este bloque, iteramos hacia atrás por los bloques hermanos (lógica de El Mundo)
+              if (!h1Element) {
+                let prevBlock = adMainGrid.previousElementSibling;
+                while (prevBlock) {
+                  if (prevBlock.querySelector) {
+                    h1Element = prevBlock.querySelector(
+                      "h1.ue-c-section-title.js_seccionPortadilla",
+                    );
+                    if (h1Element) break;
+                  }
+                  prevBlock = prevBlock.previousElementSibling;
+                }
+              }
+            }
+
+            // Si lo encontramos, inyectamos la clase y el CSS
+            if (h1Element) {
+              const uniqueIdClass =
+                "gam-custom-line-" + Math.floor(Math.random() * 1000000);
+              h1Element.classList.add(uniqueIdClass);
+              const styleTag = parentDoc.createElement("style");
+              styleTag.innerHTML = `.${uniqueIdClass}::before { background-color: ${hexColorLinea} !important; }`;
+              parentDoc.head.appendChild(styleTag);
+            } else {
+              console.log(
+                "GAM creative: No se encontró el titular H1 para pintar la línea superior.",
+              );
+            }
+          }
+        }
+
+        // Creamos el contenedor flexible
+        const inPageDivContent = document.createElement("DIV");
+        inPageDivContent.style.position = "relative";
+        inPageDivContent.style.width = "100%";
+        inPageDivContent.style.height = containerHeight + "px";
+        inPageDivContent.style.backgroundColor = adConfig.colorLogo;
+        inPageDivContent.style.overflow = isLegalVertical ? "visible" : "hidden";
+        inPageDivContent.style.display = "flex";
+        inPageDivContent.style.alignItems = "center";
+
+        function getLayoutJustifyContent() {
+          if (posicionLayout === "centro") return "center";
+          if (posicionLayout === "derecha") return "flex-end";
+          return "flex-start";
+        }
+
+        function getContentJustifyContent() {
+          if (isLegalVertical) return "center";
+          if (posicionLayout === "centro") return "center";
+
+          const isReverseRow = legalPosition === "izquierda";
+          if (posicionLayout === "derecha") {
+            return isReverseRow ? "flex-start" : "flex-end";
+          }
+          return isReverseRow ? "flex-end" : "flex-start";
+        }
+
+        // Si no es "Extender", el contenedor padre se encarga de empujar el contenido.
+        if (!isExtender) {
+          inPageDivContent.style.justifyContent = getLayoutJustifyContent();
+        }
+
+        // si es clicable usamos A, si no DIV
+        const contentElement = isClickable()
+          ? document.createElement("A")
+          : document.createElement("DIV");
+
+        if (isClickable()) {
+          contentElement.href = adConfig.clickUrl;
+          contentElement.target = "_blank";
+        }
+
+        contentElement.style.display = "flex";
+        contentElement.style.alignItems = isLegalVertical ? "center" : "center";
+
+        // Control del área clicable
+        contentElement.style.width = isExtender ? "100%" : "max-content";
+        contentElement.style.height = "100%";
+        contentElement.style.textDecoration = "none";
+        contentElement.style.color = "inherit";
+
+        // Lógica de layout. LEGAL_POSITION decide dónde va el legal respecto al logo.
+        if (legalPosition === "izquierda") {
+          contentElement.style.flexDirection = "row-reverse";
+        } else if (legalPosition === "arriba") {
+          contentElement.style.flexDirection = "column-reverse";
+        } else if (legalPosition === "abajo") {
+          contentElement.style.flexDirection = "column";
+        } else {
+          contentElement.style.flexDirection = "row";
+        }
+
+        if (isExtender) {
+          contentElement.style.justifyContent = getContentJustifyContent();
+
+          if (isLegalVertical) {
+            contentElement.style.alignItems =
+              posicionLayout === "derecha"
+                ? "flex-end"
+                : posicionLayout === "izquierda"
+                  ? "flex-start"
+                  : "center";
+          }
+        }
+
+        // Creamos la imagen (logo)
+        const imgElement = document.createElement("IMG");
+        imgElement.src = adConfig.imageLogo;
+        imgElement.style.maxHeight = "186px";
+
+        // APLICAMOS TAMAÑOS Y MARGENES
+        if (patrocinadorId === "LG") {
+          imgElement.style.width = "100%";
+          imgElement.style.height = "auto";
+          imgElement.style.marginLeft = "0px";
+          imgElement.style.maxHeight = logoHeight + "px";
+          if (isLegalVertical) {
+            imgElement.style.marginTop = legalPosition === "arriba" ? "4px" : "0";
+            imgElement.style.marginBottom = legalPosition === "abajo" ? "4px" : "0";
+          }
+        } else {
+          imgElement.width = adConfig.imageWidth;
+          imgElement.height = adConfig.imageHeight;
+
+          let finalMarginLeft = "10px";
+          let finalMarginRight = "10px";
+
+          if (adUnitG === "mun-mv" && posicionLayout === "derecha") {
+            finalMarginLeft = "auto";
+            finalMarginRight = "0px";
+          } else if (legalPosition === "izquierda") {
+            finalMarginLeft = "10px";
+            finalMarginRight = adUnitG !== "mun" ? "15px" : "10px";
+          }
+
+          if (isLegalVertical) {
+            imgElement.style.marginLeft = finalMarginLeft;
+            imgElement.style.marginRight = finalMarginRight;
+            imgElement.style.marginTop = legalPosition === "arriba" ? "4px" : "0";
+            imgElement.style.marginBottom = legalPosition === "abajo" ? "4px" : "0";
+            imgElement.style.maxHeight = logoHeight + "px";
+          } else if (legalPosition === "izquierda") {
+            imgElement.style.marginLeft = finalMarginLeft;
+            imgElement.style.marginRight = finalMarginRight;
+          } else {
+            imgElement.style.marginLeft = finalMarginLeft;
+            imgElement.style.marginRight = finalMarginRight;
+          }
+        }
+
+        contentElement.appendChild(imgElement);
+
+        const finalLegalTextColor = getLegalTextColor();
+
+        if (hasLegalContent) {
+          const legalContainer = document.createElement("SPAN");
+          legalContainer.style.display = "flex";
+          legalContainer.style.flexDirection = "column";
+          legalContainer.style.alignItems = isLegalVertical ? "center" : "flex-start";
+          legalContainer.style.flexWrap = "wrap";
+          legalContainer.style.boxSizing = "border-box";
+
+          if (isLegalVertical) {
+            legalContainer.style.width = "100%";
+            legalContainer.style.textAlign = "center";
+            legalContainer.style.padding =
+              legalPosition === "arriba"
+                ? "0.25rem 0.3rem 0.1rem"
+                : "0.1rem 0.3rem 0.25rem";
+          } else if (legalPosition === "izquierda") {
+            legalContainer.style.paddingRight = "0.3rem";
+            legalContainer.style.paddingLeft = "0";
+          } else {
+            legalContainer.style.paddingLeft = "0.3rem";
+          }
+
+          legalContainer.setAttribute("data-legal-container", "true");
+
+          if (shouldApplyPaddingTop() && !isLegalVertical) {
+            legalContainer.style.paddingTop = "0.5rem";
+          }
+
+          if (adConfig.legalLabel) {
+            const spanLegalLabel = document.createElement("SPAN");
+            spanLegalLabel.textContent = adConfig.legalLabel;
+            spanLegalLabel.style.fontFamily =
+              "Barlow, Arial, Helvetica, sans-serif";
+            spanLegalLabel.style.fontSize = "0.625rem";
+            spanLegalLabel.style.lineHeight = "1.2";
+            spanLegalLabel.style.color = finalLegalTextColor;
+            spanLegalLabel.style.textTransform = "uppercase";
+            spanLegalLabel.style.textDecoration = "none";
+            legalContainer.appendChild(spanLegalLabel);
+          }
+
+          if (adConfig.legalTxt) {
+            const spanLegalText = document.createElement("SPAN");
+            spanLegalText.textContent = adConfig.legalTxt;
+            spanLegalText.style.fontFamily =
+              "robotoRegular,Arial,sans-serif,helvetica";
+            spanLegalText.style.fontSize = "0.625rem";
+            spanLegalText.style.lineHeight = "1.2";
+            spanLegalText.style.color = finalLegalTextColor;
+            spanLegalText.style.textTransform = "none";
+            spanLegalText.style.textDecoration = "none";
+            legalContainer.appendChild(spanLegalText);
+          }
+
+          contentElement.appendChild(legalContainer);
+        }
+
+        inPageDivContent.appendChild(contentElement);
+
+        const divPadre = document.querySelector(
+          'script[data-gam-publi="publicidad"]',
+        ).parentNode;
+        divPadre.appendChild(inPageDivContent);
+
+        if (window.frameElement && window.frameElement.id) {
+          const targetElem = parent.window.document.getElementById(
+            window.frameElement.id,
+          );
+          if (targetElem) {
+            targetElem.style.width = containerWidth + "px";
+            targetElem.style.height = containerHeight + "px";
+            targetElem.style.minHeight = containerHeight + "px";
+            if (targetElem.parentElement) {
+              targetElem.parentElement.style.minHeight = containerHeight + "px";
+            }
+          } else {
+            console.log("No existe el adSlot con el id del frame");
+          }
+        }
+      }
+
+      initAd();
+    }
+  })();
+</script>
+[%PIXEL_TERCEROS%]
