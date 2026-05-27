@@ -1481,6 +1481,8 @@ class IntextManager {
           placement,
           slotIndex: index,
         });
+        displayContainer.ownerNode = node;
+        videoContainer.ownerNode = node;
         this.nodes.push(node);
         slotsCreated++;
       });
@@ -1762,6 +1764,8 @@ class IntextManager {
             navIndex,
           },
         });
+        displayContainer.ownerNode = node;
+        videoContainer.ownerNode = node;
         newNodes.push(node);
         this.nodes.push(node);
         slotsCreatedScoped++;
@@ -2174,6 +2178,7 @@ class IntextNode {
     this._visualState = "idle";
     this._destroyedOrResetToken = 0;
     this._renderTimers = [];
+    this._intextTransitionBridge = null;
   }
 
   getIntextNodeId() {
@@ -2414,6 +2419,258 @@ class IntextNode {
     }
 
     return false;
+  }
+
+  resolveTransitionPreservedHeight(...candidates) {
+    const standardHeight = this.getDisplayStandardContentHeight();
+    for (const candidate of candidates) {
+      if (!candidate) continue;
+      const direct = typeof candidate === "number" ? candidate : 0;
+      const dataset = candidate?.dataset || {};
+      const values = [
+        direct,
+        parseInt(dataset.gexpIntextContentHeight, 10) || 0,
+        parseInt(dataset.lockedHeight, 10) || 0,
+        parseInt(dataset.gexpIntextTotalHeight, 10) || 0,
+        candidate?.offsetHeight ? Math.max(0, candidate.offsetHeight - this.getWrapperChromeHeight()) : 0,
+      ];
+      const normalized = values.find((value) => value >= this.getDisplayExpandedContentHeight())
+        || values.find((value) => value >= standardHeight)
+        || 0;
+      if (normalized >= this.getDisplayExpandedContentHeight()) return this.getDisplayExpandedContentHeight();
+      if (normalized >= standardHeight) return standardHeight;
+    }
+    if (this.lockedHeight >= this.getDisplayExpandedContentHeight()) return this.getDisplayExpandedContentHeight();
+    return standardHeight;
+  }
+
+  ensureTransitionLoader(surfaceEl, {
+    text = "Recuperando anuncio",
+    source = "unknown",
+    renderToken = this._activeRenderToken,
+  } = {}) {
+    if (!surfaceEl?.isConnected) return null;
+    let loader = Array.from(surfaceEl.children || []).find((child) => child.classList?.contains("gexp-intext-loader"))
+      || surfaceEl.querySelector(".gexp-intext-loader");
+    if (!loader) {
+      surfaceEl.insertAdjacentHTML("beforeend", '<div class="gexp-intext-loader"><div class="gexp-intext-spinner"></div><div class="gexp-intext-loader-text">Recuperando anuncio</div></div>');
+      loader = surfaceEl.querySelector(".gexp-intext-loader");
+    }
+    const loaderText = loader?.querySelector(".gexp-intext-loader-text");
+    if (loaderText) loaderText.textContent = text;
+    if (loader) {
+      loader.style.display = "flex";
+      loader.dataset.gexpIntextTransitionLoader = "true";
+    }
+    surfaceEl.dataset.gexpIntextTransitionLoaderActive = "true";
+    logIntext(`[Intext:Display:${this.id}] intext_transition_bridge_loader_visible`, {
+      slotCode: this.id,
+      renderToken,
+      source,
+      loaderVisible: Boolean(loader),
+    });
+    this.mergeIntextTelemetry({
+      "gexp-intext-transition-bridge-loader-visible": "true",
+    });
+    return loader;
+  }
+
+  findDisplayCreativeSurface(slotDoc) {
+    if (!slotDoc?.isConnected) return null;
+    const candidates = [
+      slotDoc.querySelector('iframe[id*="google_ads_iframe"]'),
+      slotDoc.querySelector('iframe[name*="google_ads_iframe"]'),
+      slotDoc.querySelector('div[id^="google_ads_iframe"] iframe'),
+      slotDoc.querySelector("iframe"),
+      slotDoc.querySelector('div[id^="google_ads_iframe"]'),
+    ].filter(Boolean);
+
+    Array.from(slotDoc.children || []).forEach((child) => {
+      if (child && !candidates.includes(child)) candidates.push(child);
+    });
+
+    return candidates.find((candidate) => {
+      if (!candidate || candidate === slotDoc) return false;
+      if (candidate.classList?.contains("gexp-intext-loader")) return false;
+      if (candidate.closest?.(".gexp-intext-loader")) return false;
+      if (candidate.classList?.contains("gexp-intext-slot")) return false;
+      return candidate.isConnected;
+    }) || null;
+  }
+
+  hideOppositeTransitionSurface(surfaceEl, surfaceName, {
+    renderToken = this._activeRenderToken,
+    source = "unknown",
+  } = {}) {
+    if (!surfaceEl?.isConnected) return;
+    delete surfaceEl.dataset.gexpIntextTransitionBridgeActive;
+    delete surfaceEl.dataset.gexpIntextTransitionLoaderActive;
+    surfaceEl.style.transition = "none";
+    surfaceEl.style.display = "none";
+    surfaceEl.style.opacity = "0";
+    surfaceEl.classList.remove("is-open");
+    surfaceEl.setAttribute("aria-hidden", "true");
+    const loader = surfaceEl.querySelector(".gexp-intext-loader");
+    if (loader) loader.style.display = "none";
+    if (surfaceName === "display") {
+      this.container.isOpen = false;
+    } else if (this.videoContainer) {
+      this.videoContainer.isOpen = false;
+    }
+    logIntext(`[Intext:Display:${this.id}] intext_transition_bridge_opposite_surface_hidden`, {
+      slotCode: this.id,
+      renderToken,
+      source,
+      hiddenSurface: surfaceName,
+    });
+  }
+
+  recreateDisplayBridgeWrapper(renderToken, source, preservedHeight) {
+    const slotEl = this.manager.createWrapperNode(this.id, "display");
+    this.applyIntextWrapperDebugAttributes(slotEl, {
+      renderToken,
+      visualState: "transition_bridge",
+    });
+    const videoEl = this.videoContainer?.getElement?.();
+    if (videoEl?.parentNode) {
+      videoEl.parentNode.insertBefore(slotEl, videoEl);
+    } else if (this.placement?.paragraph?.parentNode) {
+      this.placement.paragraph.parentNode.insertBefore(slotEl, this.placement.paragraph.nextSibling);
+    }
+    if (this.container && typeof this.container.setElement === "function") {
+      this.container.setElement(slotEl);
+    }
+    this.applyDisplayWrapperHeight(slotEl, preservedHeight, {
+      logReason: preservedHeight === 600 ? "display_300x600_visual_height_adjusted" : "",
+      source,
+    });
+    slotEl.classList.add("is-open");
+    slotEl.style.display = "";
+    slotEl.style.opacity = "1";
+    slotEl.style.margin = "";
+    slotEl.style.padding = "";
+    slotEl.setAttribute("aria-hidden", "false");
+    this.container.isOpen = true;
+    this.ensureTransitionLoader(slotEl, { source, renderToken });
+    logIntext(`[Intext:Display:${this.id}] intext_transition_bridge_no_surface_recreated_display`, {
+      slotCode: this.id,
+      renderToken,
+      source,
+      preservedHeight,
+    });
+    return slotEl;
+  }
+
+  ensureIntextTransitionBridge({
+    preferredSurface = "display",
+    fallbackSurface = "video",
+    renderToken = this._activeRenderToken,
+    source = "unknown",
+    preservedHeight = null,
+    loaderText = "Recuperando anuncio",
+  } = {}) {
+    if (renderToken && !this.isActiveRenderToken(renderToken, `ensureIntextTransitionBridge:${source}`, this.waterfall?.lastTrigger || "unknown")) {
+      return null;
+    }
+
+    const displayEl = this.container?.getElement?.();
+    const videoEl = this.videoContainer?.getElement?.();
+    const displayConnected = Boolean(displayEl?.isConnected);
+    const videoConnected = Boolean(videoEl?.isConnected);
+    const height = this.resolveTransitionPreservedHeight(
+      preservedHeight,
+      displayEl,
+      videoEl,
+      this.lockedHeight,
+    );
+    logIntext(`[Intext:Display:${this.id}] intext_transition_bridge_started`, {
+      slotCode: this.id,
+      renderToken,
+      source,
+      preferredSurface,
+      fallbackSurface,
+      preservedHeight: height,
+      displayConnected,
+      videoConnected,
+    });
+
+    let bridgeSurface = null;
+    let bridgeEl = null;
+    let recreated = false;
+    if (preferredSurface === "display" && displayConnected) {
+      bridgeSurface = "display";
+      bridgeEl = displayEl;
+    } else if (fallbackSurface === "video" && videoConnected) {
+      bridgeSurface = "video";
+      bridgeEl = videoEl;
+    } else if (displayConnected) {
+      bridgeSurface = "display";
+      bridgeEl = displayEl;
+    } else if (videoConnected) {
+      bridgeSurface = "video";
+      bridgeEl = videoEl;
+    } else {
+      bridgeSurface = "display-recreated";
+      bridgeEl = this.recreateDisplayBridgeWrapper(renderToken, source, height);
+      recreated = true;
+    }
+
+    if (!bridgeEl) return null;
+    logIntext(`[Intext:Display:${this.id}] intext_transition_bridge_surface_selected`, {
+      slotCode: this.id,
+      renderToken,
+      source,
+      bridgeSurface,
+      preservedHeight: height,
+      displayConnected,
+      videoConnected,
+    });
+
+    this.applyDisplayWrapperHeight(bridgeEl, height, {
+      logReason: height === 600 ? "display_300x600_visual_height_adjusted" : "",
+      source,
+    });
+    bridgeEl.classList.add("is-open");
+    bridgeEl.style.display = "";
+    bridgeEl.style.opacity = "1";
+    bridgeEl.style.margin = bridgeSurface === "display" || bridgeSurface === "display-recreated" ? "" : bridgeEl.style.margin;
+    bridgeEl.style.padding = bridgeSurface === "display" || bridgeSurface === "display-recreated" ? "" : bridgeEl.style.padding;
+    bridgeEl.setAttribute("aria-hidden", "false");
+    bridgeEl.dataset.gexpIntextTransitionBridgeActive = "true";
+    bridgeEl.dataset.gexpIntextTransitionBridgeSurface = bridgeSurface;
+    bridgeEl.dataset.gexpIntextTransitionBridgeHeight = String(height);
+    this.ensureTransitionLoader(bridgeEl, { text: loaderText, source, renderToken });
+
+    if (bridgeSurface === "display" || bridgeSurface === "display-recreated") {
+      this.container.isOpen = true;
+      if (videoConnected) this.hideOppositeTransitionSurface(videoEl, "video", { renderToken, source });
+    } else {
+      this.videoContainer.isOpen = true;
+      if (displayConnected) this.hideOppositeTransitionSurface(displayEl, "display", { renderToken, source });
+    }
+
+    this._intextTransitionBridge = {
+      active: true,
+      surface: bridgeSurface,
+      renderToken,
+      source,
+      preservedHeight: height,
+    };
+    this.mergeIntextTelemetry({
+      "gexp-intext-transition-bridge-active": "true",
+      "gexp-intext-transition-bridge-surface": bridgeSurface,
+      "gexp-intext-transition-bridge-height": String(height),
+      "gexp-intext-transition-bridge-loader-visible": "true",
+      "gexp-intext-transition-bridge-wrapper-recreated": recreated ? "true" : "false",
+    });
+    logIntext(`[Intext:Display:${this.id}] intext_transition_bridge_height_preserved`, {
+      slotCode: this.id,
+      renderToken,
+      source,
+      bridgeSurface,
+      preservedHeight: height,
+    });
+    return { bridgeSurface, bridgeEl, preservedHeight: height, recreated };
   }
 
   markDisplayHeightLock(height, sourceEl = null) {
@@ -3132,11 +3389,30 @@ class IntextNode {
       "gexp-intext-special-creative-prerender-hidden",
       "gexp-intext-special-creative-revealed-after-layout",
       "gexp-intext-special-creative-prerender-hide-skipped",
+      "gexp-intext-special-creative-surface-hidden",
+      "gexp-intext-special-creative-surface-revealed",
+      "gexp-intext-special-creative-loader-preserved",
+      "gexp-intext-special-creative-loader-hidden-after-layout",
       "gexp-intext-video-to-display-transition",
       "gexp-intext-video-to-display-video-hidden",
       "gexp-intext-video-to-display-display-loader",
       "gexp-intext-video-to-display-single-surface",
       "gexp-intext-video-to-display-container-state-synced",
+      "gexp-intext-video-to-display-display-missing",
+      "gexp-intext-video-to-display-video-bridge",
+      "gexp-intext-video-to-display-bridge-complete",
+      "gexp-intext-video-to-display-bridge-display-recreated",
+      "gexp-intext-video-to-display-bridge-swap-complete",
+      "gexp-intext-transition-bridge-active",
+      "gexp-intext-transition-bridge-surface",
+      "gexp-intext-transition-bridge-height",
+      "gexp-intext-transition-bridge-loader-visible",
+      "gexp-intext-transition-bridge-wrapper-recreated",
+      "gexp-intext-delayed-destroy-skipped-active-display",
+      "gexp-intext-delayed-destroy-skipped-transition-bridge",
+      "gexp-intext-delayed-destroy-skipped-special-creative",
+      "gexp-intext-close-visual-preserve-skipped",
+      "gexp-intext-close-visual-preserve-reason",
       "gexp-intext-sentinel-retry-forced-request-type",
       "gexp-intext-sentinel-retry-preserved-fallback",
       "gexp-intext-sentinel-retry-original-decision-mode",
@@ -4747,14 +5023,18 @@ class IntextNode {
             "display",
           );
 
-          slotEl.style.height = "0px";
-          slotEl.style.minHeight = "0px";
-          slotEl.style.opacity = "0";
-          slotEl.style.display = "none";
-          slotEl.style.margin = "0";
-          slotEl.style.padding = "0";
-
           const videoEl = document.getElementById(this.videoId);
+          const activeVideoBridge =
+            this._intextTransitionBridge?.active === true &&
+            this._intextTransitionBridge?.surface === "video" &&
+            String(this._intextTransitionBridge?.renderToken || "") === String(renderToken);
+          const preservedHeight = activeVideoBridge
+            ? this.resolveTransitionPreservedHeight(
+              videoEl,
+              this._intextTransitionBridge?.preservedHeight,
+              this.lockedHeight,
+            )
+            : this.getDisplayStandardContentHeight();
           if (videoEl && videoEl.parentNode) {
             videoEl.parentNode.insertBefore(slotEl, videoEl);
           } else if (this.placement && this.placement.paragraph) {
@@ -4773,6 +5053,81 @@ class IntextNode {
             typeof this.container.setElement === "function"
           ) {
             this.container.setElement(slotEl);
+          }
+          if (activeVideoBridge) {
+            this.applyIntextWrapperDebugAttributes(slotEl, {
+              renderToken,
+              visualState: "transition_bridge_display_recreated",
+            });
+            this.applyDisplayWrapperHeight(slotEl, preservedHeight, {
+              logReason:
+                preservedHeight === 600 ? "display_300x600_visual_height_adjusted" : "",
+              source: "askDisplay_recreate_from_video_bridge",
+            });
+            this.ensureTransitionLoader(slotEl, {
+              source: "askDisplay_recreate_from_video_bridge",
+              renderToken,
+              text: "Recuperando anuncio",
+            });
+            slotEl.classList.add("is-open");
+            slotEl.style.display = "";
+            slotEl.style.opacity = "1";
+            slotEl.style.margin = "";
+            slotEl.style.padding = "";
+            slotEl.setAttribute("aria-hidden", "false");
+            slotEl.dataset.gexpIntextTransitionBridgeActive = "true";
+            slotEl.dataset.gexpIntextTransitionBridgeSurface = "display";
+            slotEl.dataset.gexpIntextTransitionBridgeHeight = String(preservedHeight);
+            this.container.isOpen = true;
+            this.mergeIntextTelemetry({
+              "gexp-intext-video-to-display-bridge-display-recreated": "true",
+              "gexp-intext-video-to-display-bridge-swap-complete": "true",
+              "gexp-intext-transition-bridge-surface": "display",
+              "gexp-intext-transition-bridge-height": String(preservedHeight),
+            });
+            logIntext(`[Intext:Display:${this.id}] video_to_display_bridge_display_recreated`, {
+              slotCode: this.id,
+              renderToken,
+              preservedHeight,
+              source: "askDisplay_recreate_from_video_bridge",
+            });
+            logIntext(`[Intext:Display:${this.id}] video_to_display_bridge_display_opened_before_video_hide`, {
+              slotCode: this.id,
+              renderToken,
+              preservedHeight,
+              displayConnected: Boolean(slotEl?.isConnected),
+              videoConnected: Boolean(videoEl?.isConnected),
+            });
+            if (videoEl?.isConnected) {
+              this.hideOppositeTransitionSurface(videoEl, "video", {
+                renderToken,
+                source: "askDisplay_recreate_from_video_bridge",
+              });
+              logIntext(`[Intext:Display:${this.id}] video_to_display_bridge_video_hidden_after_recreate`, {
+                slotCode: this.id,
+                renderToken,
+                preservedHeight,
+              });
+            }
+            this._intextTransitionBridge = {
+              active: true,
+              surface: "display",
+              renderToken,
+              source: "askDisplay_recreate_from_video_bridge",
+              preservedHeight,
+            };
+            logIntext(`[Intext:Display:${this.id}] video_to_display_bridge_swap_complete`, {
+              slotCode: this.id,
+              renderToken,
+              preservedHeight,
+            });
+          } else {
+            slotEl.style.height = "0px";
+            slotEl.style.minHeight = "0px";
+            slotEl.style.opacity = "0";
+            slotEl.style.display = "none";
+            slotEl.style.margin = "0";
+            slotEl.style.padding = "0";
           }
         }
         slotEl = this.ensureSingleIntextWrapper(slotEl, {
@@ -4894,19 +5249,50 @@ class IntextNode {
         slotDoc.dataset.lockedHeight = String(this.lockedHeight);
       }
       if (incomingSpecialProfile.isSpecial) {
-        specialHiddenEl = slotDoc;
-        specialHiddenEl.style.visibility = "hidden";
-        specialHidden = true;
-        logIntext(`[Intext:Display:${this.id}] display_special_creative_prerender_hidden`, {
-          slotCode: this.id,
+        this.ensureTransitionLoader(slotDoc, {
+          source: "display_special_creative_loader_preserved_until_layout",
           renderToken,
-          sourceWidth: incomingSpecialProfile.sourceWidth,
-          sourceHeight: incomingSpecialProfile.sourceHeight,
-          layoutKind: incomingSpecialProfile.layoutKind,
+          text: "Recuperando anuncio",
         });
-        this.mergeIntextTelemetry({
-          "gexp-intext-special-creative-prerender-hidden": "true",
-        });
+        slotDoc.dataset.gexpIntextSpecialCreativeActive = "true";
+        slotDoc.dataset.gexpIntextDisplayFillActive = "true";
+        specialHiddenEl = this.findDisplayCreativeSurface(slotDoc);
+        if (specialHiddenEl?.isConnected) {
+          specialHiddenEl.style.visibility = "hidden";
+          specialHidden = true;
+          logIntext(`[Intext:Display:${this.id}] display_special_creative_surface_hidden`, {
+            slotCode: this.id,
+            renderToken,
+            sourceWidth: incomingSpecialProfile.sourceWidth,
+            sourceHeight: incomingSpecialProfile.sourceHeight,
+            layoutKind: incomingSpecialProfile.layoutKind,
+            surfaceTag: specialHiddenEl.tagName || "unknown",
+            surfaceId: specialHiddenEl.id || "",
+          });
+          logIntext(`[Intext:Display:${this.id}] display_special_creative_loader_preserved_until_layout`, {
+            slotCode: this.id,
+            renderToken,
+            layoutKind: incomingSpecialProfile.layoutKind,
+          });
+          this.mergeIntextTelemetry({
+            "gexp-intext-special-creative-prerender-hidden": "true",
+            "gexp-intext-special-creative-surface-hidden": "true",
+            "gexp-intext-special-creative-loader-preserved": "true",
+          });
+        } else {
+          logIntext(`[Intext:Display:${this.id}] display_special_creative_surface_hide_skipped`, {
+            slotCode: this.id,
+            renderToken,
+            reason: "creative_surface_not_found",
+            sourceWidth: incomingSpecialProfile.sourceWidth,
+            sourceHeight: incomingSpecialProfile.sourceHeight,
+            layoutKind: incomingSpecialProfile.layoutKind,
+          });
+          this.mergeIntextTelemetry({
+            "gexp-intext-special-creative-prerender-hide-skipped": "true",
+            "gexp-intext-special-creative-loader-preserved": "true",
+          });
+        }
       } else if (incomingSpecialProfile.reason === "invalid-size") {
         logIntext(`[Intext:Display:${this.id}] display_special_creative_prerender_hide_skipped`, {
           slotCode: this.id,
@@ -4927,6 +5313,7 @@ class IntextNode {
 
       if (slotDoc) {
         slotDoc.classList.add("is-open");
+        slotDoc.dataset.gexpIntextDisplayFillActive = "true";
         slotDoc.style.display = "block";
         slotDoc.style.opacity = "1";
         slotDoc.style.margin = "";
@@ -4950,6 +5337,11 @@ class IntextNode {
     } finally {
       if (specialHidden && specialHiddenEl?.isConnected) {
         specialHiddenEl.style.visibility = "";
+        logIntext(`[Intext:Display:${this.id}] display_special_creative_surface_revealed`, {
+          slotCode: this.id,
+          renderToken,
+          recoveredFromError: specialRevealRecoveredFromError,
+        });
         logIntext(`[Intext:Display:${this.id}] display_special_creative_revealed_after_layout`, {
           slotCode: this.id,
           renderToken,
@@ -4963,7 +5355,40 @@ class IntextNode {
         }
         this.mergeIntextTelemetry({
           "gexp-intext-special-creative-revealed-after-layout": "true",
+          "gexp-intext-special-creative-surface-revealed": "true",
         });
+      }
+      if (incomingSpecialProfile?.isSpecial && slotDoc?.isConnected) {
+        const transitionLoader = slotDoc.querySelector?.(".gexp-intext-loader");
+        if (transitionLoader) {
+          transitionLoader.style.display = "none";
+          delete transitionLoader.dataset.gexpIntextTransitionLoader;
+        }
+        if (slotDoc.dataset) {
+          delete slotDoc.dataset.gexpIntextTransitionLoaderActive;
+        }
+        logIntext(`[Intext:Display:${this.id}] display_special_creative_loader_hidden_after_layout`, {
+          slotCode: this.id,
+          renderToken,
+          hadHiddenSurface: specialHidden === true,
+          layoutKind: incomingSpecialProfile.layoutKind,
+          sourceWidth: incomingSpecialProfile.sourceWidth,
+          sourceHeight: incomingSpecialProfile.sourceHeight,
+        });
+        this.mergeIntextTelemetry({
+          "gexp-intext-special-creative-loader-hidden-after-layout": "true",
+        });
+        this.trackRenderTimer(setTimeout(() => {
+          if (!this.isActiveRenderToken(renderToken, "special_creative_active_flag_cleanup", trigger)) return;
+          const currentDisplayEl = this.container?.getElement?.();
+          if (currentDisplayEl === slotDoc && slotDoc?.isConnected) {
+            delete slotDoc.dataset.gexpIntextSpecialCreativeActive;
+            logIntext(`[Intext:Display:${this.id}] display_special_creative_active_flag_cleared`, {
+              slotCode: this.id,
+              renderToken,
+            });
+          }
+        }, 700));
       }
     }
 
@@ -5472,6 +5897,7 @@ class IntextContainer {
     this.domNode = domNode;
     this.styleConfig = styleConfig;
     this.isOpen = false;
+    this.ownerNode = null;
     this.applyStyles();
   }
 
@@ -5542,13 +5968,109 @@ class IntextContainer {
   }
 
   close({ destroy = false } = {}) {
-    this.isOpen = false;
     const elToDestroy = this.domNode;
     if (!elToDestroy) return;
+    const getProtectedDestroyReason = (el) => {
+      if (!el?.isConnected) return "";
+      const hasPreservedHeight =
+        (parseInt(el.dataset?.gexpIntextContentHeight, 10) || 0) >= 345 ||
+        (parseInt(el.dataset?.gexpIntextTotalHeight, 10) || 0) >= 345 ||
+        (parseInt(el.style?.height, 10) || 0) >= 345;
+      const visiblyOpen = el.style?.display !== "none" && el.style?.opacity !== "0";
+      const loaderActive =
+        el.dataset?.gexpIntextTransitionLoaderActive === "true" ||
+        el.querySelector?.(".gexp-intext-loader[style*='flex']");
+      const isOwnerDisplayWrapper = this.ownerNode?.container?.getElement?.() === el;
+      const isOwnerVideoWrapper = this.ownerNode?.videoContainer?.getElement?.() === el;
+      if (el.dataset?.gexpIntextTransitionBridgeActive === "true") return "transition_bridge";
+      if (el.dataset?.gexpIntextTransitionLoaderActive === "true") return "transition_loader";
+      if (el.dataset?.gexpIntextSpecialCreativeActive === "true") return "special_creative_active";
+      if (el.dataset?.gexpIntextDisplayFillActive === "true" && visiblyOpen && hasPreservedHeight) return "active_display";
+      if ((isOwnerDisplayWrapper || isOwnerVideoWrapper) && visiblyOpen && hasPreservedHeight) return "owner_current_wrapper";
+      if (this.domNode === el && el.classList?.contains("is-open") && visiblyOpen && hasPreservedHeight) return "current_wrapper";
+      if (loaderActive && hasPreservedHeight) return "transition_bridge";
+      return "";
+    };
+    const markDelayedDestroySkippedTelemetry = (reason) => {
+      if (!this.ownerNode?.mergeIntextTelemetry) return;
+      const telemetry = {};
+      if (reason === "transition_bridge") {
+        telemetry["gexp-intext-delayed-destroy-skipped-transition-bridge"] = "true";
+      } else if (reason === "transition_loader") {
+        telemetry["gexp-intext-delayed-destroy-skipped-transition-bridge"] = "true";
+      } else if (reason === "special_creative_active") {
+        telemetry["gexp-intext-delayed-destroy-skipped-special-creative"] = "true";
+      } else if (reason === "active_display") {
+        telemetry["gexp-intext-delayed-destroy-skipped-active-display"] = "true";
+      }
+      telemetry["gexp-intext-close-visual-preserve-skipped"] = "true";
+      telemetry["gexp-intext-close-visual-preserve-reason"] = reason;
+      if (Object.keys(telemetry).length) this.ownerNode.mergeIntextTelemetry(telemetry);
+    };
+    const logCloseVisualPreserveSkipped = (reason, phase = "before_close_mutation") => {
+      logIntext(`[Intext:Container] intext_container_close_visual_preserve_skipped`, {
+        slotCode: elToDestroy.id,
+        reason,
+        phase,
+        renderToken: elToDestroy.dataset?.gexpIntextRenderToken || "unknown",
+        isConnected: elToDestroy.isConnected,
+        height: elToDestroy.style.height,
+        minHeight: elToDestroy.style.minHeight,
+        display: elToDestroy.style.display,
+        opacity: elToDestroy.style.opacity,
+        datasetHeight: elToDestroy.dataset?.gexpIntextContentHeight,
+      });
+    };
+    if (destroy) {
+      const protectedReason = getProtectedDestroyReason(elToDestroy);
+      if (protectedReason) {
+        markDelayedDestroySkippedTelemetry(protectedReason);
+        this.isOpen = true;
+        elToDestroy.classList.add("is-open");
+        elToDestroy.style.display = "";
+        elToDestroy.style.opacity = "1";
+        elToDestroy.setAttribute("aria-hidden", "false");
+        logCloseVisualPreserveSkipped(protectedReason);
+        if (protectedReason === "transition_bridge") {
+          logIntext(`[Intext:Container] intext_container_delayed_destroy_skipped_transition_bridge`);
+          logIntext(`[Intext:Container] intext_transition_bridge_active_wrapper_destroy_skipped`);
+        } else if (protectedReason === "transition_loader") {
+          logIntext(`[Intext:Container] intext_container_delayed_destroy_skipped_transition_bridge`);
+          logIntext(`[Intext:Container] intext_transition_bridge_active_wrapper_destroy_skipped`);
+        } else if (protectedReason === "special_creative_active") {
+          logIntext(`[Intext:Container] intext_container_delayed_destroy_skipped_special_creative_active`);
+        } else if (protectedReason === "active_display") {
+          logIntext(`[Intext:Container] intext_container_delayed_destroy_skipped_active_display`);
+        } else {
+          logIntext(`[Intext:Container] intext_container_delayed_destroy_skipped_current_wrapper`);
+        }
+        return;
+      }
+    }
+    this.isOpen = false;
     elToDestroy.classList.remove("is-open");
     elToDestroy.style.height = "0px";
     if (destroy) {
       setTimeout(() => {
+        const protectedReason = getProtectedDestroyReason(elToDestroy);
+        if (protectedReason) {
+          markDelayedDestroySkippedTelemetry(protectedReason);
+          logCloseVisualPreserveSkipped(protectedReason, "delayed_destroy");
+          if (protectedReason === "transition_bridge") {
+            logIntext(`[Intext:Container] intext_container_delayed_destroy_skipped_transition_bridge`);
+            logIntext(`[Intext:Container] intext_transition_bridge_active_wrapper_destroy_skipped`);
+          } else if (protectedReason === "transition_loader") {
+            logIntext(`[Intext:Container] intext_container_delayed_destroy_skipped_transition_bridge`);
+            logIntext(`[Intext:Container] intext_transition_bridge_active_wrapper_destroy_skipped`);
+          } else if (protectedReason === "special_creative_active") {
+            logIntext(`[Intext:Container] intext_container_delayed_destroy_skipped_special_creative_active`);
+          } else if (protectedReason === "active_display") {
+            logIntext(`[Intext:Container] intext_container_delayed_destroy_skipped_active_display`);
+          } else {
+            logIntext(`[Intext:Container] intext_container_delayed_destroy_skipped_current_wrapper`);
+          }
+          return;
+        }
         if (this.domNode !== elToDestroy) {
           logIntext(`[Intext:Container] intext_container_delayed_destroy_skipped_current_changed`);
           if (elToDestroy.isConnected) elToDestroy.remove();
@@ -6078,87 +6600,69 @@ class IntextWaterfall {
           videoConnected: Boolean(videoEl?.isConnected),
           source: "startAuction_refresh_video_to_display_prepare",
         });
-        if (videoEl) {
-          const loaderVideo = videoEl.querySelector(".gexp-intext-loader");
-          if (loaderVideo) loaderVideo.style.display = "none";
-          videoEl.style.display = "none";
-          videoEl.style.opacity = "0";
-          videoEl.classList.remove("is-open");
-          videoEl.setAttribute("aria-hidden", "true");
-          this.node.mergeIntextTelemetry({
-            "gexp-intext-video-to-display-video-hidden": "true",
-          });
-          logIntext(`[Intext:Display:${this.node.id}] video_to_display_video_surface_hidden`, {
+        const preservedHeight = this.node.resolveTransitionPreservedHeight(displayEl, videoEl, this.node.lockedHeight);
+        const bridge = this.node.ensureIntextTransitionBridge({
+          preferredSurface: "display",
+          fallbackSurface: "video",
+          renderToken,
+          source: "video_to_display_refresh",
+          preservedHeight,
+          loaderText: "Recuperando anuncio",
+        });
+        const displayMissing = !displayEl?.isConnected;
+        this.node.mergeIntextTelemetry({
+          "gexp-intext-video-to-display-display-missing": displayMissing ? "true" : "false",
+          "gexp-intext-video-to-display-video-bridge": bridge?.bridgeSurface === "video" ? "true" : "false",
+          "gexp-intext-video-to-display-bridge-complete": "true",
+          "gexp-intext-video-to-display-display-loader": "true",
+          "gexp-intext-video-to-display-single-surface": "true",
+          "gexp-intext-video-to-display-container-state-synced": "true",
+        });
+        if (displayMissing && bridge?.bridgeSurface === "video") {
+          logIntext(`[Intext:Display:${this.node.id}] video_to_display_display_missing_keep_video_surface`, {
             slotCode: this.node.id,
             renderToken,
             currentState,
+            preservedHeight: bridge.preservedHeight,
             displayConnected: Boolean(displayEl?.isConnected),
             videoConnected: Boolean(videoEl?.isConnected),
-            source: "startAuction_refresh_video_to_display_prepare",
+            source: "video_to_display_refresh",
+          });
+          logIntext(`[Intext:Display:${this.node.id}] video_to_display_video_loader_preserved_as_bridge`, {
+            slotCode: this.node.id,
+            renderToken,
+            currentState,
+            preservedHeight: bridge.preservedHeight,
+            source: "video_to_display_refresh",
+          });
+        } else if (bridge?.bridgeSurface === "display" || bridge?.bridgeSurface === "display-recreated") {
+          logIntext(`[Intext:Display:${this.node.id}] video_to_display_display_surface_ready`, {
+            slotCode: this.node.id,
+            renderToken,
+            currentState,
+            preservedHeight: bridge.preservedHeight,
+            bridgeSurface: bridge.bridgeSurface,
+            source: "video_to_display_refresh",
+          });
+          logIntext(`[Intext:Display:${this.node.id}] video_to_display_video_surface_hidden_after_display_ready`, {
+            slotCode: this.node.id,
+            renderToken,
+            currentState,
+            displayConnected: Boolean(this.container.getElement()?.isConnected),
+            videoConnected: Boolean(videoEl?.isConnected),
+            source: "video_to_display_refresh",
           });
         }
-        if (displayEl) {
-          let loaderDisplay = displayEl.querySelector(".gexp-intext-loader");
-          if (!loaderDisplay) {
-            displayEl.insertAdjacentHTML('beforeend', '<div class="gexp-intext-loader"><div class="gexp-intext-spinner"></div><div class="gexp-intext-loader-text">Recuperando anuncio</div></div>');
-            loaderDisplay = displayEl.querySelector(".gexp-intext-loader");
-          }
-          if (loaderDisplay) loaderDisplay.style.display = "flex";
-          const preservedHeight = this.node.getPreservedRefreshHeight(displayEl);
-          logIntext(
-            `[Intext:Display:${this.node.id}] display_refresh_preserved_height - height=${preservedHeight}`,
-          );
-          this.node.applyDisplayWrapperHeight(displayEl, preservedHeight, {
-            logReason:
-              preservedHeight === 600 ? "display_300x600_visual_height_adjusted" : "",
-            source: "refresh_prepare_display_container_from_video",
-          });
-          displayEl.classList.add("is-open");
-          displayEl.style.display = "";
-          displayEl.style.opacity = "1";
-          displayEl.style.margin = "";
-          displayEl.style.padding = "";
-          displayEl.setAttribute("aria-hidden", "false");
-          if (this.container) {
-            this.container.isOpen = true;
-          }
-          if (this.node?.videoContainer) {
-            this.node.videoContainer.isOpen = false;
-          }
-          this.node.mergeIntextTelemetry({
-            "gexp-intext-video-to-display-display-loader": "true",
-            "gexp-intext-video-to-display-single-surface": "true",
-            "gexp-intext-video-to-display-container-state-synced": "true",
-          });
-          logIntext(`[Intext:Display:${this.node.id}] video_to_display_display_loader_preserved`, {
-            slotCode: this.node.id,
-            renderToken,
-            currentState,
-            preservedHeight,
-            displayConnected: Boolean(displayEl?.isConnected),
-            videoConnected: Boolean(videoEl?.isConnected),
-            source: "startAuction_refresh_video_to_display_prepare",
-          });
-          logIntext(`[Intext:Display:${this.node.id}] video_to_display_single_surface_enforced`, {
-            slotCode: this.node.id,
-            renderToken,
-            currentState,
-            preservedHeight,
-            displayConnected: Boolean(displayEl?.isConnected),
-            videoConnected: Boolean(videoEl?.isConnected),
-            source: "startAuction_refresh_video_to_display_prepare",
-          });
-          logIntext(`[Intext:Display:${this.node.id}] video_to_display_container_state_synced`, {
-            slotCode: this.node.id,
-            videoSlotCode: this.node.videoId,
-            renderToken,
-            currentState,
-            displayIsOpen: this.container?.isOpen === true,
-            videoIsOpen: this.node?.videoContainer?.isOpen === true,
-            preservedHeight,
-            source: "refresh-from-video",
-          });
-        }
+        logIntext(`[Intext:Display:${this.node.id}] video_to_display_bridge_complete`, {
+          slotCode: this.node.id,
+          renderToken,
+          currentState,
+          bridgeSurface: bridge?.bridgeSurface || "none",
+          preservedHeight: bridge?.preservedHeight || preservedHeight,
+          displayConnected: Boolean(this.container.getElement()?.isConnected),
+          videoConnected: Boolean(videoEl?.isConnected),
+          source: "video_to_display_refresh",
+        });
       } else {
         let loaderDisplay = this.container
           .getElement()
