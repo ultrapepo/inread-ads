@@ -1,6 +1,3 @@
-
-      gexp-intext:
-
       { "bidder": "rubicon", "params": { "zoneId": 3460960, "siteId": 96108, "position": "atf", "accountId": 15366, "video": { "size_id": 201 } } },
       { "bidder": "richaudience", "params": { "pid": "Uobr28BI2A", "supplyType": "site" } },
       { "bidder": "msft", "params": { "placement_id": 21721834 } },
@@ -9,16 +6,3 @@
       { "bidder": "equativ", "params":{ "networkId":"1844", "siteId":"99915", "pageId":"648545", "formatId":"40183" } },
       { "bidder":"ix", "params":{ "siteId":"1255467" } },
       { "bidder":"pubstack_server","params":{"adUnitName":"elmundo_desktop_othersection_vidpr" } }
-
-      gexp-intext2 y sucesivos:
-      
-      {"bidder":"msft","params":{"placement_id":11595035}},
-      {"bidder":"rubicon","params":{"zoneId":663018,"siteId":142572,"accountId":15366,"position":"btf"}},
-      {"bidder":"criteo","params":{"networkId":1080,"pubid":"108879"}},
-      {"bidder":"equativ","params":{"networkId":1844,"pageId":648545,"formatId":40974,"siteId":99915}},
-      {"bidder":"richaudience","params":{"pid":"0YrQs39oI7","supplyType":"site"}},
-      {"bidder":"teads","params":{"placementId":202863,"pageId":187760}},
-      {"bidder":"ttd","params":{"supplySourceId":"unidad","publisherId":"1"}},
-      {"bidder":"ix","params":{"siteId":"1255442"}},
-      {"bidder":"taboola","params":{"publisherId":"1925072"}},
-      {"bidder":"pubstack_server","params":{"adUnitName":"elmundo_desktop_othersection_mpu2"}}
