@@ -1,0 +1,8 @@
+    { "bidder": "rubicon", "params": { "zoneId": 3460966, "siteId": 96112, "position": "atf", "accountId": 15366, "video": { "size_id": 201 } } },
+    { "bidder": "richaudience", "params": { "pid": "OJ8OM7nlqu", "supplyType": "site" } },
+    { "bidder": "msft", "params": { "placement_id": 34117168 } },
+    { "bidder": "criteo", "params": { "networkId":"1080","pubid":"108879" } },
+    { "bidder": "ttd", "params": { "supplySourceId": "unidad", "publisherId": "1", "placementId": "video" } },
+    { "bidder": "equativ", "params":{ "networkId":"1844", "siteId":"154206", "pageId":"790177", "formatId":"40183" } },
+    { "bidder":"ix", "params":{ "siteId":"1255297" } },
+    { "bidder": "pubstack_server", "params":{"adUnitName":"expansion_mobile_othersection_vidpr" } }

@@ -1,0 +1,11 @@
+
+      {"bidder":"msft","params":{"placement_id":11595034}},
+      {"bidder":"rubicon","params":{"zoneId":663016,"siteId":142572,"accountId":15366,"position":"atf"}},
+      {"bidder":"criteo","params":{"networkId":1080,"pubid":"108879"}},
+      {"bidder":"equativ","params":{"networkId":1844,"pageId":648545,"formatId":40859,"siteId":99915}},
+      {"bidder":"richaudience","params":{"pid":"1cypJugBaX","supplyType":"site"}},
+      {"bidder":"teads","params":{"placementId":202863,"pageId":187760}},
+      {"bidder":"ttd","params":{"supplySourceId":"unidad","publisherId":"1"}},
+      {"bidder":"ix","params":{"siteId":"1255437"}},
+      {"bidder":"taboola","params":{"publisherId":"1925072"}},
+      {"bidder":"pubstack_server","params":{"adUnitName":"elmundo_desktop_othersection_mpu1"}}

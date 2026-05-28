@@ -1,0 +1,9 @@
+
+      { "bidder": "rubicon", "params": { "zoneId": 3460964, "siteId": 96110, "position": "atf", "accountId": 15366, "video": { "size_id": 201 } } },
+      { "bidder": "pubmatic", "params": { "publisherId": "161984", "adSlot": "6112271" } },
+      { "bidder": "richaudience", "params": { "pid": "ImcSe2TtvR", "supplyType": "site" } },
+      { "bidder": "appnexus", "params": { "placementId": 34117164 } },
+      { "bidder": "criteo", "params": { "networkId":"1080","pubid":"108879" } },
+      { "bidder": "ttd", "params": { "supplySourceId": "unidad", "publisherId": "1", "placementId": "video" } },
+      { "bidder": "equativ", "params":{ "networkId":"1844", "siteId":"99913", "pageId":"648549", "formatId":"40183" } },
+      { "bidder":"ix", "params":{ "siteId":"1255722" } }

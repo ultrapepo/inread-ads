@@ -1,0 +1,24 @@
+
+gexp-intext:
+    { "bidder":"msft", "params":{ "placement_id":11200335 } },
+    { "bidder":"rubicon", "params":{ "zoneId":663198, "siteId":142594, "accountId":15366, "position":"btf" } },
+    { "bidder":"equativ", "params":{ "networkId":"1844", "siteId":"154206", "pageId":"790177", "formatId":"40859"} },
+    { "bidder":"criteo", "params":{ "networkId":"1080","pubid":"108879" } },
+    { "bidder":"richaudience", "params":{ "pid":"XiBXG0Rjqr", "supplyType":"site" } },
+    { "bidder":"teads", "params":{ "placementId":202867, "pageId":187762 } },
+    { "bidder":"ttd", "params":{ "supplySourceId":"unidad", "publisherId":"1" } },
+    { "bidder":"ix", "params":{ "siteId":"1255277" } },
+    { "bidder":"taboola", "params":{ "publisherId":"1925073" } },
+    { "bidder":"pubstack_server", "params":{"adUnitName":"expansion_mobile_othersection_mpu1"} }
+
+gexp-intext2 y sucesivos:    
+    { "bidder":"msft", "params":{ "placement_id":11200336 } },
+    { "bidder":"rubicon", "params":{ "zoneId":663200, "siteId":142594, "accountId":15366, "position":"btf" } },
+    { "bidder":"equativ", "params":{ "networkId":"1844", "siteId":"154206", "pageId":"790177", "formatId":"40974"} },
+    { "bidder":"criteo", "params":{ "networkId":"1080","pubid":"108879" } },
+    { "bidder":"richaudience", "params":{ "pid":"i6xnqUF6qT", "supplyType":"site" } },
+    { "bidder":"teads", "params":{ "placementId":202867, "pageId":187762 } },
+    { "bidder":"ttd", "params":{ "supplySourceId":"unidad", "publisherId":"1" } },
+    { "bidder":"ix", "params":{ "siteId":"1255282" } },
+    { "bidder":"taboola", "params":{ "publisherId":"1925073" } },
+    { "bidder":"pubstack_server", "params":{"adUnitName":"expansion_mobile_othersection_mpu2"} }
