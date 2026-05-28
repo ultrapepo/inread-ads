@@ -4972,6 +4972,13 @@ class RandomStrategy extends WindowArray {
             "gexp-intext-sentinel-retry-preserved-fallback",
             "gexp-intext-sentinel-retry-original-decision-mode",
             "gexp-intext-sentinel-retry-lineitem",
+            "gexp-intext-prebid-slot-family",
+            "gexp-intext-prebid-slot-profile",
+            "gexp-intext-prebid-banner-bidder-count",
+            "gexp-intext-prebid-video-bidder-count",
+            "gexp-intext-taboola-tagid-applied",
+            "gexp-intext-ttd-placementid-applied",
+            "gexp-intext-prebid-ortb2-video-mode",
             "advertiserId",
             "campaignId",
             "lineItemId",
@@ -8387,6 +8394,60 @@ class RandomStrategy extends WindowArray {
           });
         }
 
+        waitForPrebidGlobalInitFlag(configuration) {
+          const flag = this.config.prebid?.waitForGlobalInitFlag;
+          if (!flag) return Promise.resolve(true);
+
+          const waitMs = Number(this.config.prebid?.globalInitWaitMs);
+          const maxWaitMs = Number.isFinite(waitMs) && waitMs >= 0 ? waitMs : 1200;
+          const intervalMs = 50;
+          const startedAt = Date.now();
+
+          logIntext(
+            `[Intext:Prebid:${this.node.id}] prebid_global_init_wait_start - code=${configuration.code}, flag=${flag}, wait_ms=${maxWaitMs}`,
+          );
+
+          const isReady = () => {
+            try {
+              return window[flag] === true;
+            } catch (e) {
+              return false;
+            }
+          };
+
+          if (isReady()) {
+            logIntext(
+              `[Intext:Prebid:${this.node.id}] prebid_global_init_wait_ready - code=${configuration.code}, flag=${flag}, elapsed_ms=0`,
+            );
+            return Promise.resolve(true);
+          }
+
+          return new Promise((resolve) => {
+            const retry = () => {
+              if (isReady()) {
+                logIntext(
+                  `[Intext:Prebid:${this.node.id}] prebid_global_init_wait_ready - code=${configuration.code}, flag=${flag}, elapsed_ms=${Date.now() - startedAt}`,
+                );
+                resolve(true);
+                return;
+              }
+
+              const elapsedMs = Date.now() - startedAt;
+              if (elapsedMs >= maxWaitMs) {
+                warnIntext(
+                  `[Intext:Prebid:${this.node.id}] prebid_global_init_wait_timeout - code=${configuration.code}, flag=${flag}, elapsed_ms=${elapsedMs}`,
+                );
+                resolve(false);
+                return;
+              }
+
+              setTimeout(retry, intervalMs);
+            };
+
+            setTimeout(retry, intervalMs);
+          });
+        }
+
         executePrebid(configuration) {
           return new Promise((resolve) => {
             const runPrebid = () => window.pbjs.que.push(() => {
@@ -8559,7 +8620,7 @@ class RandomStrategy extends WindowArray {
                 resolve(null);
                 return;
               }
-              runPrebid();
+              this.waitForPrebidGlobalInitFlag(configuration).then(() => runPrebid());
             });
           });
         }
@@ -9399,22 +9460,182 @@ class RandomStrategy extends WindowArray {
           });
         }
 
+        getIntextPrebidAdSlotContext(adUnitCode, adUnitPathOverride = null) {
+          const networkId =
+            this.node.scopedContext?.networkId ||
+            this.node.manager.networkId ||
+            this.gexp.cfg.networkId ||
+            "99071977";
+          const adUnitPath =
+            adUnitPathOverride ||
+            this.node.scopedContext?.adUnitPath ||
+            this.node.manager.adUnitPath ||
+            "";
+          const fullAdUnitPath = networkId && adUnitPath ? `/${networkId}/${adUnitPath}` : "";
+
+          return {
+            networkId,
+            adUnitPath,
+            fullAdUnitPath,
+            adUnitCode: adUnitCode || this.node?.id || "",
+          };
+        }
+
+        resolvePrebidSlotProfile(targetNetwork, slotCode) {
+          const normalizedSlot = String(slotCode || "");
+          const isSecondary =
+            /^gexp-intext-\d+$/.test(normalizedSlot) ||
+            normalizedSlot === "pnc" ||
+            /-pnc$/.test(normalizedSlot);
+          const slotFamily = isSecondary ? "secondary" : "primary";
+          const profileKey = isSecondary ? "secondary" : "gexp-intext";
+          const profiles = targetNetwork?.slotProfiles || {};
+          const profile = profiles[profileKey];
+
+          if (profile) {
+            const resolved = {
+              slotFamily,
+              profileKey,
+              bidders: profile.bidders || targetNetwork?.bidders || [],
+              videoBidders: profile.videoBidders || targetNetwork?.videoBidders || [],
+            };
+            this.mergeIntextTelemetry({
+              "gexp-intext-prebid-slot-family": slotFamily,
+              "gexp-intext-prebid-slot-profile": profileKey,
+            });
+            logIntext(`[Intext:Prebid:${this.node.id}] intext_prebid_slot_profile_resolved`, {
+              slotCode: normalizedSlot,
+              slotFamily,
+              profile: profileKey,
+              bannerBidders: resolved.bidders.length,
+              videoBidders: resolved.videoBidders.length,
+            });
+            return resolved;
+          }
+
+          const fallback = {
+            slotFamily,
+            profileKey: "fallback",
+            bidders: targetNetwork?.bidders || [],
+            videoBidders: targetNetwork?.videoBidders || [],
+          };
+          this.mergeIntextTelemetry({
+            "gexp-intext-prebid-slot-family": slotFamily,
+            "gexp-intext-prebid-slot-profile": "fallback",
+          });
+          logIntext(`[Intext:Prebid:${this.node.id}] intext_prebid_slot_profile_fallback`, {
+            slotCode: normalizedSlot,
+            slotFamily,
+            requestedProfile: profileKey,
+            bannerBidders: fallback.bidders.length,
+            videoBidders: fallback.videoBidders.length,
+          });
+          return fallback;
+        }
+
+        enhanceIntextDisplayBidders(bidders, adUnitCode) {
+          const context = this.getIntextPrebidAdSlotContext(adUnitCode);
+          const hasContext = Boolean(context.fullAdUnitPath && context.adUnitCode);
+          const dynamicId = hasContext ? `${context.fullAdUnitPath}/${context.adUnitCode}` : "";
+          let taboolaApplied = false;
+          let ttdApplied = false;
+
+          const enhancedBidders = (bidders || []).map((bid) => {
+            if (!bid || typeof bid !== "object" || !bid.bidder) return bid;
+
+            const bidderName = String(bid.bidder).toLowerCase();
+            const params = bid.params || {};
+
+            if (bidderName === "taboola") {
+              if (params.tagId) {
+                logIntext(`[Intext:Prebid:${this.node.id}] taboola_tagId_skipped_existing`, {
+                  bidder: bid.bidder,
+                  tagId: params.tagId,
+                });
+                return bid;
+              }
+              if (!hasContext) {
+                logIntext(`[Intext:Prebid:${this.node.id}] taboola_tagId_skipped_missing_context`, {
+                  bidder: bid.bidder,
+                  networkId: context.networkId || null,
+                  adUnitPath: context.adUnitPath || null,
+                  adUnitCode: context.adUnitCode || null,
+                });
+                return bid;
+              }
+              taboolaApplied = true;
+              logIntext(`[Intext:Prebid:${this.node.id}] taboola_tagId_applied`, {
+                bidder: bid.bidder,
+                tagId: dynamicId,
+              });
+              return {
+                ...bid,
+                params: {
+                  ...params,
+                  tagId: dynamicId,
+                },
+              };
+            }
+
+            if (bidderName === "ttd") {
+              if (params.placementId) {
+                logIntext(`[Intext:Prebid:${this.node.id}] ttd_display_placementId_skipped_existing`, {
+                  bidder: bid.bidder,
+                  placementId: params.placementId,
+                });
+                return bid;
+              }
+              if (!hasContext) return bid;
+              ttdApplied = true;
+              logIntext(`[Intext:Prebid:${this.node.id}] ttd_display_placementId_applied`, {
+                bidder: bid.bidder,
+                placementId: dynamicId,
+              });
+              return {
+                ...bid,
+                params: {
+                  ...params,
+                  placementId: dynamicId,
+                },
+              };
+            }
+
+            return bid;
+          });
+
+          this.mergeIntextTelemetry({
+            "gexp-intext-taboola-tagid-applied": taboolaApplied ? "true" : "false",
+            "gexp-intext-ttd-placementid-applied": ttdApplied ? "true" : "false",
+          });
+
+          return enhancedBidders;
+        }
+
         getPrebidMultiFormatConfig() {
           const code = this.getPrebidCode();
           const mode = this._effectiveMode;
           const mediaTypes = {};
           let allBids = [];
           let videoMediaType = null;
+          const networkId = this.node.scopedContext?.networkId || this.node.manager.networkId;
+          const prebidNetworks = this.config.prebid?.networks || {};
+          const targetNetwork = prebidNetworks[networkId] || prebidNetworks.default || {};
+          const slotProfile = this.resolvePrebidSlotProfile(targetNetwork, code);
+          this.mergeIntextTelemetry({
+            "gexp-intext-prebid-banner-bidder-count": "0",
+            "gexp-intext-prebid-video-bidder-count": "0",
+          });
 
           // Banner (if mode allows display)
           if (mode === "auto" || mode === "display_only") {
             const sizes = this.getDisplaySizes();
             if (sizes.length) {
               mediaTypes.banner = { sizes };
-              const networkId = this.node.scopedContext?.networkId || this.node.manager.networkId;
-              const prebidNetworks = this.config.prebid?.networks || {};
-              const targetNetwork = prebidNetworks[networkId] || prebidNetworks.default || {};
-              allBids = allBids.concat(targetNetwork.bidders || []);              
+              const displayBidders = this.enhanceIntextDisplayBidders(slotProfile.bidders || [], code);
+              this.mergeIntextTelemetry({
+                "gexp-intext-prebid-banner-bidder-count": String(displayBidders.length),
+              });
+              allBids = allBids.concat(displayBidders);
             }
           }
 
@@ -9446,19 +9667,19 @@ class RandomStrategy extends WindowArray {
                       : {}),
               };
               mediaTypes.video = videoMediaType;
-              const networkId = this.node.scopedContext?.networkId || this.node.manager.networkId;
-              const prebidNetworks = this.config.prebid?.networks || {};
-              const targetNetwork = prebidNetworks[networkId] || prebidNetworks.default || {};
               const excludedVideoList = this.config.prebid?.excludedVideoBidders || [];
-              const filteredVideoBidders = (targetNetwork.videoBidders || []).filter(
+              const filteredVideoBidders = (slotProfile.videoBidders || []).filter(
                 (b) => !excludedVideoList.includes(b.bidder)
               );
               if (excludedVideoList.length) {
                 logIntext(
-                  `[Intext:Prebid] ⚠️ excludedVideoBidders active: [${excludedVideoList.join(", ")}] — filtered ${(targetNetwork.videoBidders || []).length - filteredVideoBidders.length} bidder(s)`
+                  `[Intext:Prebid] ⚠️ excludedVideoBidders active: [${excludedVideoList.join(", ")}] — filtered ${(slotProfile.videoBidders || []).length - filteredVideoBidders.length} bidder(s)`
                 );
               }
               const effectiveVideoBidders = this.enhanceIntextVideoBidders(filteredVideoBidders, vc, videoMediaType, code);
+              this.mergeIntextTelemetry({
+                "gexp-intext-prebid-video-bidder-count": String(effectiveVideoBidders.length),
+              });
               allBids = allBids.concat(effectiveVideoBidders);
               this.logIntextPrebidVideoConfiguration(videoMediaType, effectiveVideoBidders);
             }
@@ -9475,17 +9696,8 @@ class RandomStrategy extends WindowArray {
         }
 
         buildOrtb2Imp(adUnitCode, adUnitPathOverride, videoMediaType = null) {
-          const networkId =
-            this.node.scopedContext?.networkId ||
-            this.node.manager.networkId ||
-            this.gexp.cfg.networkId ||
-            "99071977";
-          const adUnitPath =
-            adUnitPathOverride ||
-            this.node.scopedContext?.adUnitPath ||
-            this.node.manager.adUnitPath ||
-            "";
-          const fullAdSlot = `/${networkId}/${adUnitPath}`;
+          const adSlotContext = this.getIntextPrebidAdSlotContext(adUnitCode, adUnitPathOverride);
+          const fullAdSlot = adSlotContext.fullAdUnitPath || `/${adSlotContext.networkId}/${adSlotContext.adUnitPath}`;
           const pbadslot = `${fullAdSlot}#${adUnitCode}`;
 
           const imp = {
@@ -9501,23 +9713,42 @@ class RandomStrategy extends WindowArray {
           };
 
           if (videoMediaType) {
-            const normalizedPlayerSize = this.normalizeVideoPlayerSize(videoMediaType.playerSize);
-            imp.video = {
-              w: normalizedPlayerSize.width,
-              h: normalizedPlayerSize.height,
-              mimes: videoMediaType.mimes,
-              protocols: videoMediaType.protocols,
-              playbackmethod: videoMediaType.playbackmethod,
-              plcmt: videoMediaType.plcmt,
-              placement: videoMediaType.placement,
-              linearity: videoMediaType.linearity,
-              api: videoMediaType.api,
-              minduration: videoMediaType.minduration,
-              maxduration: videoMediaType.maxduration,
-              startdelay: videoMediaType.startdelay,
-              ...(videoMediaType.battr ? { battr: videoMediaType.battr } : {}),
-              ...(videoMediaType.skip != null ? { skip: videoMediaType.skip } : {}),
-            };
+            const configuredMode = this.config?.prebid?.videoOrtb2ImpMode;
+            const videoOrtb2ImpMode = configuredMode === "full" ? "full" : "ext_only";
+            this.mergeIntextTelemetry({
+              "gexp-intext-prebid-ortb2-video-mode": videoOrtb2ImpMode,
+            });
+            logIntext(`[Intext:Prebid:${this.node.id}] prebid_ortb2_video_mode_resolved`, {
+              mode: videoOrtb2ImpMode,
+              configuredMode: configuredMode || null,
+            });
+
+            if (videoOrtb2ImpMode === "full") {
+              const normalizedPlayerSize = this.normalizeVideoPlayerSize(videoMediaType.playerSize);
+              imp.video = {
+                w: normalizedPlayerSize.width,
+                h: normalizedPlayerSize.height,
+                mimes: videoMediaType.mimes,
+                protocols: videoMediaType.protocols,
+                playbackmethod: videoMediaType.playbackmethod,
+                plcmt: videoMediaType.plcmt,
+                placement: videoMediaType.placement,
+                linearity: videoMediaType.linearity,
+                api: videoMediaType.api,
+                minduration: videoMediaType.minduration,
+                maxduration: videoMediaType.maxduration,
+                startdelay: videoMediaType.startdelay,
+                ...(videoMediaType.battr ? { battr: videoMediaType.battr } : {}),
+                ...(videoMediaType.skip != null ? { skip: videoMediaType.skip } : {}),
+              };
+              logIntext(`[Intext:Prebid:${this.node.id}] prebid_ortb2_video_included_full`, {
+                code: adUnitCode,
+              });
+            } else {
+              logIntext(`[Intext:Prebid:${this.node.id}] prebid_ortb2_video_omitted_ext_only`, {
+                code: adUnitCode,
+              });
+            }
           }
 
           return imp;
@@ -9873,32 +10104,62 @@ class RandomStrategy extends WindowArray {
           const prebidNetworks = this.config.prebid?.networks || {};
           const targetNetwork = prebidNetworks[networkId] || prebidNetworks.default || {};
           const aliases = targetNetwork.aliases;
-          if (!aliases || !window.pbjs) return;
+          if (!aliases || !window.pbjs) {
+            logIntext(`[Intext:Prebid] prebid_alias_register_skipped`, {
+              reason: !aliases ? "missing_aliases" : "missing_pbjs",
+            });
+            return;
+          }
 
           window.pbjs.que.push(() => {
-            try {
-              const gvlMapping = {
-                rubicon: 52,
-                appnexus: 32,
-                criteo: 91,
-                pubmatic: 76,
-                smartadserver: 45,
-                ix: 10,
-                ttd: 21,
-                teads: 132
-              };
-              for (const [alias, original] of Object.entries(aliases)) {
-                if (typeof window.pbjs.aliasBidder === "function") {
-                  if (gvlMapping[original]) {
-                    window.pbjs.aliasBidder(original, alias, { gvlid: gvlMapping[original] });
-                  } else {
-                    window.pbjs.aliasBidder(original, alias);
-                  }
-                }
+            if (typeof window.pbjs.aliasBidder !== "function") {
+              logIntext(`[Intext:Prebid] prebid_alias_register_skipped`, {
+                reason: "missing_aliasBidder",
+              });
+              return;
+            }
+
+            for (const [alias, aliasConfig] of Object.entries(aliases)) {
+              const isObjectConfig = aliasConfig && typeof aliasConfig === "object";
+              const original = isObjectConfig ? aliasConfig.bidder : aliasConfig;
+              const gvlid = isObjectConfig ? aliasConfig.gvlid : null;
+
+              if (!original) {
+                logIntext(`[Intext:Prebid] prebid_alias_register_skipped`, {
+                  alias,
+                  reason: "missing_original_bidder",
+                });
+                continue;
               }
-              logIntext(`[Intext:Prebid] Configured bidder aliases via pbjs.aliasBidder`, aliases);
-            } catch (e) {
-              warnIntext(`[Intext:Prebid] Failed to configure aliases:`, e);
+
+              try {
+                const options = gvlid != null ? { gvlid } : undefined;
+                logIntext(`[Intext:Prebid] prebid_alias_register_attempt`, {
+                  alias,
+                  bidder: original,
+                  gvlid: gvlid ?? null,
+                });
+                if (options) {
+                  window.pbjs.aliasBidder(original, alias, options);
+                  logIntext(`[Intext:Prebid] prebid_alias_gvlid_applied`, {
+                    alias,
+                    bidder: original,
+                    gvlid,
+                  });
+                } else {
+                  window.pbjs.aliasBidder(original, alias);
+                }
+                logIntext(`[Intext:Prebid] prebid_alias_register_success`, {
+                  alias,
+                  bidder: original,
+                });
+              } catch (e) {
+                warnIntext(`[Intext:Prebid] prebid_alias_register_error`, {
+                  alias,
+                  bidder: original,
+                  error: e?.message || String(e),
+                });
+              }
             }
           });
         }

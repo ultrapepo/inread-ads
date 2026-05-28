@@ -1027,6 +1027,7 @@
                     "timeoutMs": 2000,
                     "graceMs": 200,
                     "excludedVideoBidders": [],
+                    "videoOrtb2ImpMode": "ext_only",
                     "networks": {
                         "default": {
                             "aliases": {
@@ -1034,22 +1035,25 @@
                                 "appnexus_video": "appnexus",
                                 "criteo_video": "criteo",
                                 "pubmatic_video": "pubmatic",
-                                "equativ_video": "equativ",
+                                "equativ_video": {
+                                    "bidder": "equativ",
+                                    "gvlid": 45
+                                },
                                 "ix_video": "ix",
                                 "ttd_video": "ttd"
                             },
                             "bidders": [
                                 {
-                                    "bidder": "appnexus",
+                                    "bidder": "msft",
                                     "params": {
-                                        "placementId": "11595057"
+                                        "placement_id": 11595034
                                     }
                                 },
                                 {
                                     "bidder": "rubicon",
                                     "params": {
-                                        "zoneId": 663050,
-                                        "siteId": 142576,
+                                        "zoneId": 663016,
+                                        "siteId": 142572,
                                         "accountId": 15366,
                                         "position": "atf"
                                     }
@@ -1065,30 +1069,23 @@
                                     "bidder": "equativ",
                                     "params": {
                                         "networkId": 1844,
-                                        "pageId": 648549,
+                                        "pageId": 648545,
                                         "formatId": 40859,
-                                        "siteId": 99913
+                                        "siteId": 99915
                                     }
                                 },
                                 {
                                     "bidder": "richaudience",
                                     "params": {
-                                        "pid": "463Y4dJxIO",
+                                        "pid": "1cypJugBaX",
                                         "supplyType": "site"
                                     }
                                 },
                                 {
                                     "bidder": "teads",
                                     "params": {
-                                        "placementId": 202864,
-                                        "pageId": 187761
-                                    }
-                                },
-                                {
-                                    "bidder": "pubmatic",
-                                    "params": {
-                                        "publisherId": "161984",
-                                        "adSlot": "4525457"
+                                        "placementId": 202863,
+                                        "pageId": 187760
                                     }
                                 },
                                 {
@@ -1101,22 +1098,28 @@
                                 {
                                     "bidder": "ix",
                                     "params": {
-                                        "siteId": "1255677"
+                                        "siteId": "1255437"
                                     }
                                 },
                                 {
                                     "bidder": "taboola",
                                     "params": {
-                                        "publisherId": "1925071"
+                                        "publisherId": "1925072"
+                                    }
+                                },
+                                {
+                                    "bidder": "pubstack_server",
+                                    "params": {
+                                        "adUnitName": "elmundo_desktop_othersection_mpu1"
                                     }
                                 }
                             ],
                             "videoBidders": [
                                 {
-                                    "bidder": "rubicon_video",
+                                    "bidder": "rubicon",
                                     "params": {
-                                        "zoneId": 3460964,
-                                        "siteId": 96110,
+                                        "zoneId": 3460960,
+                                        "siteId": 96108,
                                         "position": "atf",
                                         "accountId": 15366,
                                         "video": {
@@ -1125,34 +1128,27 @@
                                     }
                                 },
                                 {
-                                    "bidder": "pubmatic_video",
-                                    "params": {
-                                        "publisherId": "161984",
-                                        "adSlot": "6112271"
-                                    }
-                                },
-                                {
                                     "bidder": "richaudience",
                                     "params": {
-                                        "pid": "ImcSe2TtvR",
+                                        "pid": "Uobr28BI2A",
                                         "supplyType": "site"
                                     }
                                 },
                                 {
-                                    "bidder": "appnexus_video",
+                                    "bidder": "msft",
                                     "params": {
-                                        "placementId": 34117164
+                                        "placement_id": 21721834
                                     }
                                 },
                                 {
-                                    "bidder": "criteo_video",
+                                    "bidder": "criteo",
                                     "params": {
                                         "networkId": "1080",
                                         "pubid": "108879"
                                     }
                                 },
                                 {
-                                    "bidder": "ttd_video",
+                                    "bidder": "ttd",
                                     "params": {
                                         "supplySourceId": "unidad",
                                         "publisherId": "1",
@@ -1160,39 +1156,303 @@
                                     }
                                 },
                                 {
-                                    "bidder": "equativ_video",
+                                    "bidder": "equativ",
                                     "params": {
                                         "networkId": "1844",
-                                        "siteId": "99913",
-                                        "pageId": "648549",
+                                        "siteId": "99915",
+                                        "pageId": "648545",
                                         "formatId": "40183"
                                     }
                                 },
                                 {
-                                    "bidder": "ix_video",
+                                    "bidder": "ix",
                                     "params": {
-                                        "siteId": "1255722"
-                                    }
-                                }
-                            ]
-                        },
-                        "21626337071": {
-                            "aliases": [],
-                            "bidders": [
-                                {
-                                    "bidder": "appnexus",
-                                    "params": {
-                                        "placementId": 37306510
+                                        "siteId": "1255467"
                                     }
                                 },
                                 {
-                                    "bidder": "sovrn",
+                                    "bidder": "pubstack_server",
                                     "params": {
-                                        "tagid": 1306015
+                                        "adUnitName": "elmundo_desktop_othersection_vidpr"
                                     }
                                 }
                             ],
-                            "videoBidders": []
+                            "slotProfiles": {
+                                "gexp-intext": {
+                                    "bidders": [
+                                        {
+                                            "bidder": "msft",
+                                            "params": {
+                                                "placement_id": 11595034
+                                            }
+                                        },
+                                        {
+                                            "bidder": "rubicon",
+                                            "params": {
+                                                "zoneId": 663016,
+                                                "siteId": 142572,
+                                                "accountId": 15366,
+                                                "position": "atf"
+                                            }
+                                        },
+                                        {
+                                            "bidder": "criteo",
+                                            "params": {
+                                                "networkId": 1080,
+                                                "pubid": "108879"
+                                            }
+                                        },
+                                        {
+                                            "bidder": "equativ",
+                                            "params": {
+                                                "networkId": 1844,
+                                                "pageId": 648545,
+                                                "formatId": 40859,
+                                                "siteId": 99915
+                                            }
+                                        },
+                                        {
+                                            "bidder": "richaudience",
+                                            "params": {
+                                                "pid": "1cypJugBaX",
+                                                "supplyType": "site"
+                                            }
+                                        },
+                                        {
+                                            "bidder": "teads",
+                                            "params": {
+                                                "placementId": 202863,
+                                                "pageId": 187760
+                                            }
+                                        },
+                                        {
+                                            "bidder": "ttd",
+                                            "params": {
+                                                "supplySourceId": "unidad",
+                                                "publisherId": "1"
+                                            }
+                                        },
+                                        {
+                                            "bidder": "ix",
+                                            "params": {
+                                                "siteId": "1255437"
+                                            }
+                                        },
+                                        {
+                                            "bidder": "taboola",
+                                            "params": {
+                                                "publisherId": "1925072"
+                                            }
+                                        },
+                                        {
+                                            "bidder": "pubstack_server",
+                                            "params": {
+                                                "adUnitName": "elmundo_desktop_othersection_mpu1"
+                                            }
+                                        }
+                                    ],
+                                    "videoBidders": [
+                                        {
+                                            "bidder": "rubicon",
+                                            "params": {
+                                                "zoneId": 3460960,
+                                                "siteId": 96108,
+                                                "position": "atf",
+                                                "accountId": 15366,
+                                                "video": {
+                                                    "size_id": 201
+                                                }
+                                            }
+                                        },
+                                        {
+                                            "bidder": "richaudience",
+                                            "params": {
+                                                "pid": "Uobr28BI2A",
+                                                "supplyType": "site"
+                                            }
+                                        },
+                                        {
+                                            "bidder": "msft",
+                                            "params": {
+                                                "placement_id": 21721834
+                                            }
+                                        },
+                                        {
+                                            "bidder": "criteo",
+                                            "params": {
+                                                "networkId": "1080",
+                                                "pubid": "108879"
+                                            }
+                                        },
+                                        {
+                                            "bidder": "ttd",
+                                            "params": {
+                                                "supplySourceId": "unidad",
+                                                "publisherId": "1",
+                                                "placementId": "video"
+                                            }
+                                        },
+                                        {
+                                            "bidder": "equativ",
+                                            "params": {
+                                                "networkId": "1844",
+                                                "siteId": "99915",
+                                                "pageId": "648545",
+                                                "formatId": "40183"
+                                            }
+                                        },
+                                        {
+                                            "bidder": "ix",
+                                            "params": {
+                                                "siteId": "1255467"
+                                            }
+                                        },
+                                        {
+                                            "bidder": "pubstack_server",
+                                            "params": {
+                                                "adUnitName": "elmundo_desktop_othersection_vidpr"
+                                            }
+                                        }
+                                    ]
+                                },
+                                "secondary": {
+                                    "bidders": [
+                                        {
+                                            "bidder": "msft",
+                                            "params": {
+                                                "placement_id": 11595035
+                                            }
+                                        },
+                                        {
+                                            "bidder": "rubicon",
+                                            "params": {
+                                                "zoneId": 663018,
+                                                "siteId": 142572,
+                                                "accountId": 15366,
+                                                "position": "btf"
+                                            }
+                                        },
+                                        {
+                                            "bidder": "criteo",
+                                            "params": {
+                                                "networkId": 1080,
+                                                "pubid": "108879"
+                                            }
+                                        },
+                                        {
+                                            "bidder": "equativ",
+                                            "params": {
+                                                "networkId": 1844,
+                                                "pageId": 648545,
+                                                "formatId": 40974,
+                                                "siteId": 99915
+                                            }
+                                        },
+                                        {
+                                            "bidder": "richaudience",
+                                            "params": {
+                                                "pid": "0YrQs39oI7",
+                                                "supplyType": "site"
+                                            }
+                                        },
+                                        {
+                                            "bidder": "teads",
+                                            "params": {
+                                                "placementId": 202863,
+                                                "pageId": 187760
+                                            }
+                                        },
+                                        {
+                                            "bidder": "ttd",
+                                            "params": {
+                                                "supplySourceId": "unidad",
+                                                "publisherId": "1"
+                                            }
+                                        },
+                                        {
+                                            "bidder": "ix",
+                                            "params": {
+                                                "siteId": "1255442"
+                                            }
+                                        },
+                                        {
+                                            "bidder": "taboola",
+                                            "params": {
+                                                "publisherId": "1925072"
+                                            }
+                                        },
+                                        {
+                                            "bidder": "pubstack_server",
+                                            "params": {
+                                                "adUnitName": "elmundo_desktop_othersection_mpu2"
+                                            }
+                                        }
+                                    ],
+                                    "videoBidders": [
+                                        {
+                                            "bidder": "rubicon",
+                                            "params": {
+                                                "zoneId": 3460960,
+                                                "siteId": 96108,
+                                                "position": "atf",
+                                                "accountId": 15366,
+                                                "video": {
+                                                    "size_id": 201
+                                                }
+                                            }
+                                        },
+                                        {
+                                            "bidder": "richaudience",
+                                            "params": {
+                                                "pid": "Uobr28BI2A",
+                                                "supplyType": "site"
+                                            }
+                                        },
+                                        {
+                                            "bidder": "msft",
+                                            "params": {
+                                                "placement_id": 21721834
+                                            }
+                                        },
+                                        {
+                                            "bidder": "criteo",
+                                            "params": {
+                                                "networkId": "1080",
+                                                "pubid": "108879"
+                                            }
+                                        },
+                                        {
+                                            "bidder": "ttd",
+                                            "params": {
+                                                "supplySourceId": "unidad",
+                                                "publisherId": "1",
+                                                "placementId": "video"
+                                            }
+                                        },
+                                        {
+                                            "bidder": "equativ",
+                                            "params": {
+                                                "networkId": "1844",
+                                                "siteId": "99915",
+                                                "pageId": "648545",
+                                                "formatId": "40183"
+                                            }
+                                        },
+                                        {
+                                            "bidder": "ix",
+                                            "params": {
+                                                "siteId": "1255467"
+                                            }
+                                        },
+                                        {
+                                            "bidder": "pubstack_server",
+                                            "params": {
+                                                "adUnitName": "elmundo_desktop_othersection_vidpr"
+                                            }
+                                        }
+                                    ]
+                                }
+                            }
                         }
                     }
                 },
