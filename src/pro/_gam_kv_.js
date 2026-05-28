@@ -9499,7 +9499,7 @@ class RandomStrategy extends WindowArray {
               bidders: profile.bidders || targetNetwork?.bidders || [],
               videoBidders: profile.videoBidders || targetNetwork?.videoBidders || [],
             };
-            this.mergeIntextTelemetry({
+            this.node.mergeIntextTelemetry({
               "gexp-intext-prebid-slot-family": slotFamily,
               "gexp-intext-prebid-slot-profile": profileKey,
             });
@@ -9519,7 +9519,7 @@ class RandomStrategy extends WindowArray {
             bidders: targetNetwork?.bidders || [],
             videoBidders: targetNetwork?.videoBidders || [],
           };
-          this.mergeIntextTelemetry({
+          this.node.mergeIntextTelemetry({
             "gexp-intext-prebid-slot-family": slotFamily,
             "gexp-intext-prebid-slot-profile": "fallback",
           });
@@ -9603,7 +9603,7 @@ class RandomStrategy extends WindowArray {
             return bid;
           });
 
-          this.mergeIntextTelemetry({
+          this.node.mergeIntextTelemetry({
             "gexp-intext-taboola-tagid-applied": taboolaApplied ? "true" : "false",
             "gexp-intext-ttd-placementid-applied": ttdApplied ? "true" : "false",
           });
@@ -9621,7 +9621,7 @@ class RandomStrategy extends WindowArray {
           const prebidNetworks = this.config.prebid?.networks || {};
           const targetNetwork = prebidNetworks[networkId] || prebidNetworks.default || {};
           const slotProfile = this.resolvePrebidSlotProfile(targetNetwork, code);
-          this.mergeIntextTelemetry({
+          this.node.mergeIntextTelemetry({
             "gexp-intext-prebid-banner-bidder-count": "0",
             "gexp-intext-prebid-video-bidder-count": "0",
           });
@@ -9632,7 +9632,7 @@ class RandomStrategy extends WindowArray {
             if (sizes.length) {
               mediaTypes.banner = { sizes };
               const displayBidders = this.enhanceIntextDisplayBidders(slotProfile.bidders || [], code);
-              this.mergeIntextTelemetry({
+              this.node.mergeIntextTelemetry({
                 "gexp-intext-prebid-banner-bidder-count": String(displayBidders.length),
               });
               allBids = allBids.concat(displayBidders);
@@ -9677,7 +9677,7 @@ class RandomStrategy extends WindowArray {
                 );
               }
               const effectiveVideoBidders = this.enhanceIntextVideoBidders(filteredVideoBidders, vc, videoMediaType, code);
-              this.mergeIntextTelemetry({
+              this.node.mergeIntextTelemetry({
                 "gexp-intext-prebid-video-bidder-count": String(effectiveVideoBidders.length),
               });
               allBids = allBids.concat(effectiveVideoBidders);
@@ -9715,7 +9715,7 @@ class RandomStrategy extends WindowArray {
           if (videoMediaType) {
             const configuredMode = this.config?.prebid?.videoOrtb2ImpMode;
             const videoOrtb2ImpMode = configuredMode === "full" ? "full" : "ext_only";
-            this.mergeIntextTelemetry({
+            this.node.mergeIntextTelemetry({
               "gexp-intext-prebid-ortb2-video-mode": videoOrtb2ImpMode,
             });
             logIntext(`[Intext:Prebid:${this.node.id}] prebid_ortb2_video_mode_resolved`, {
