@@ -4815,6 +4815,157 @@ class RandomStrategy extends WindowArray {
           }
         }
 
+        isIntextTelemetryDebugEnabled() {
+          try {
+            const configuredMode = String(
+              this.config?.telemetry?.mode || this.manager?.siteConfig?.telemetry?.mode || "",
+            ).trim().toLowerCase();
+            if (configuredMode === "debug") return true;
+            if (typeof window !== "undefined" && window.gexpIntextDebug === true) return true;
+            if (typeof document !== "undefined" && typeof document.cookie === "string") {
+              return document.cookie.split(";").some((part) => part.trim() === "gexp_intext_telemetry_debug=1");
+            }
+          } catch (e) {}
+          return false;
+        }
+
+        getIntextTelemetryMode() {
+          const mode = this.isIntextTelemetryDebugEnabled() ? "debug" : "standard";
+          if (this._lastIntextTelemetryMode !== mode) {
+            this._lastIntextTelemetryMode = mode;
+            logIntext(`[Intext:Telemetry:${this.id}] intext_telemetry_mode_resolved`, { mode });
+          }
+          return mode;
+        }
+
+        getStandardIntextTelemetryAllowlist() {
+          if (!this._standardIntextTelemetryAllowlist) {
+            this._standardIntextTelemetryAllowlist = new Set([
+              "gexp-intext-cycle-id",
+              "gexp-intext-slot-id",
+              "gexp-intext-slot-index",
+              "gexp-intext-nav-index",
+              "gexp-intext-load-trigger",
+              "gexp-intext-is-refresh",
+              "gexp-intext-is-fallback",
+              "gexp-intext-request-type",
+              "gexp-intext-refresh",
+              "gexp-intext-fetch-root-margin",
+              "gexp-intext-render-root-margin",
+              "gexp-intext-max-delay-ms",
+              "gexp-intext-max-fetch-to-render-ms",
+              "gexp-intext-fetch-trigger",
+              "gexp-intext-render-trigger",
+              "gexp-intext-fetch-distance-px",
+              "gexp-intext-render-distance-px",
+              "gexp-intext-load-start-distance-px",
+              "gexp-intext-load-end-distance-px",
+              "gexp-intext-fetch-to-render-ms",
+              "gexp-intext-fetch-age-ms",
+              "gexp-intext-fetch-expired",
+              "gexp-intext-render-waited-for-fetch",
+              "gexp-intext-render-wait-for-fetch-ms",
+              "gexp-intext-pending-auction-used",
+              "gexp-intext-pending-auction-restarted",
+              "gexp-intext-pending-auction-expired",
+              "gexp-intext-pending-auction-age-ms",
+              "gexp-intext-ever-in-viewport",
+              "gexp-intext-viewport-visible-ms",
+              "gexp-intext-loading-experiment",
+              "gexp-intext-loading-experiment-enabled",
+              "gexp-intext-loading-variant",
+              "gexp-intext-loading-key",
+              "gexp-intext-loading-key-value",
+              "gexp-intext-loading-key-source",
+              "gexp-intext-paragraph-index",
+              "gexp-intext-paragraph-number",
+              "gexp-intext-placement-rule",
+              "gexp-intext-valid-paragraphs-count",
+              "gexp-intext-adjacency-enabled",
+              "gexp-intext-adjacency-triggered",
+              "gexp-intext-adjacency-original-paragraph",
+              "gexp-intext-adjacency-final-paragraph",
+              "gexp-intext-adjacency-shifted",
+              "gexp-intext-adjacency-shift-direction",
+              "gexp-intext-adjacency-shift-distance",
+              "gexp-intext-adjacency-fallback-original",
+              "gexp-intext-adjacency-min-final-paragraph-index",
+              "gexp-intext-adjacency-reason",
+              "gexp-intext-ad-rendered-logical",
+              "gexp-intext-ad-filled-logical",
+              "gexp-intext-gam-line-item-type",
+              "gexp-intext-gam-event-size",
+              "gexp-intext-layout-size",
+              "gexp-intext-render-layout",
+              "gexp-intext-size-recovered",
+              "lineItemId",
+              "creativeId",
+              "campaignId",
+              "advertiserId",
+              "gexp-intext-video-failed",
+              "gexp-intext-video-error-code",
+              "gexp-intext-video-error-message",
+              "gexp-intext-video-fast-fallback",
+              "gexp-intext-video-fast-fallback-reason",
+              "gexp-intext-video-before-playback",
+              "gexp-intext-sentinel",
+              "gexp-intext-sentinel-lineitem",
+              "gexp-intext-sentinel-max-attempts-reached",
+              "gexp-intext-exclude-from-viewability-analysis",
+              "gexp-intext-prebid-slot-family",
+              "gexp-intext-prebid-slot-profile",
+              "gexp-intext-prebid-banner-bidder-count",
+              "gexp-intext-prebid-video-bidder-count",
+              "gexp-intext-prebid-ortb2-video-mode",
+              "gexp-intext-taboola-tagid-applied",
+              "gexp-intext-ttd-placementid-applied",
+              "gexp-intext-telemetry-mode",
+              "gexp-intext-telemetry-filtered",
+              "gexp-intext-telemetry-commit-reason",
+            ]);
+          }
+          return this._standardIntextTelemetryAllowlist;
+        }
+
+        filterIntextTelemetryForCI(payload = {}) {
+          const mode = this.getIntextTelemetryMode();
+          if (mode === "debug") {
+            logIntext(`[Intext:Telemetry:${this.id}] intext_telemetry_debug_passthrough`, {
+              keys: Object.keys(payload).length,
+            });
+            return {
+              ...payload,
+              "gexp-intext-telemetry-mode": "debug",
+              "gexp-intext-telemetry-filtered": "false",
+            };
+          }
+
+          const allowlist = this.getStandardIntextTelemetryAllowlist();
+          const filtered = {};
+          Object.entries(payload || {}).forEach(([key, value]) => {
+            if (allowlist.has(key)) filtered[key] = value;
+          });
+          const didFilter = Object.keys(filtered).length < Object.keys(payload).length;
+          filtered["gexp-intext-telemetry-mode"] = "standard";
+          filtered["gexp-intext-telemetry-filtered"] = String(didFilter);
+          logIntext(`[Intext:Telemetry:${this.id}] intext_telemetry_standard_filter_applied`, {
+            inputKeys: Object.keys(payload).length,
+            outputKeys: Object.keys(filtered).length,
+          });
+          return filtered;
+        }
+
+        applyIntextTelemetryToCI(payload = {}) {
+          if (!this.wa?.cI) return;
+          const filtered = this.filterIntextTelemetryForCI(payload);
+          Object.keys(payload || {}).forEach((key) => {
+            if (!Object.prototype.hasOwnProperty.call(filtered, key)) {
+              delete this.wa.cI[key];
+            }
+          });
+          Object.assign(this.wa.cI, filtered);
+        }
+
         clearIntextTelemetryCycleCI() {
           if (!this.wa?.cI) return;
           [
@@ -4979,6 +5130,9 @@ class RandomStrategy extends WindowArray {
             "gexp-intext-taboola-tagid-applied",
             "gexp-intext-ttd-placementid-applied",
             "gexp-intext-prebid-ortb2-video-mode",
+            "gexp-intext-telemetry-mode",
+            "gexp-intext-telemetry-filtered",
+            "gexp-intext-telemetry-commit-reason",
             "advertiserId",
             "campaignId",
             "lineItemId",
@@ -5098,7 +5252,11 @@ class RandomStrategy extends WindowArray {
             }
 
             if (this.wa?.cI) {
-              Object.assign(this.wa.cI, this._intextTelemetryCycle || {}, this._pendingIntextTelemetry || {}, clean);
+              this.applyIntextTelemetryToCI({
+                ...(this._intextTelemetryCycle || {}),
+                ...(this._pendingIntextTelemetry || {}),
+                ...clean,
+              });
             }
 
             if (options.register === true) {
@@ -5110,7 +5268,10 @@ class RandomStrategy extends WindowArray {
         flushIntextTelemetryToCI(options = {}) {
           try {
             if (this.wa?.cI) {
-              Object.assign(this.wa.cI, this._intextTelemetryCycle || {}, this._pendingIntextTelemetry || {});
+              this.applyIntextTelemetryToCI({
+                ...(this._intextTelemetryCycle || {}),
+                ...(this._pendingIntextTelemetry || {}),
+              });
             }
             if (options.register === true) {
               this.commitIntextTelemetry(options.reason || "manual");
@@ -5139,7 +5300,7 @@ class RandomStrategy extends WindowArray {
             if (this._intextTelemetryCommittedForCycle && !isFinalReason && !closeReasons.has(reason)) return;
             if (!this.wa?.cI || !this.manager?.gexp?.registerImpression) return;
             this.flushIntextTelemetryToCI();
-            this.wa.cI["gexp-intext-telemetry-commit-reason"] = reason;
+            this.applyIntextTelemetryToCI({ "gexp-intext-telemetry-commit-reason": reason });
             this.manager.gexp.registerImpression(this.wa.cI);
             this._intextTelemetryCommittedForCycle = true;
             this._intextTelemetryCommittedReasons[reason] = true;
@@ -11387,6 +11548,7 @@ class RandomStrategy extends WindowArray {
                       this.node.mergeIntextTelemetry({
                         "gexp-intext-video-failed": "true",
                         "gexp-intext-video-error-code": normalizedErrCode,
+                        "gexp-intext-video-error-msg": errMsg,
                         "gexp-intext-video-error-message": errMsg,
                         "gexp-intext-video-before-playback": firstFramePlayed ? "false" : "true",
                         "gexp-intext-load-end-distance-px": this.node.getIntextDistancePx(),

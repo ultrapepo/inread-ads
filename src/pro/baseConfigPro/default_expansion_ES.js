@@ -636,10 +636,13 @@
                     "useBlur": false
                 },
                 "loading": {
-                    "fetchRootMargin": "900px 0px",
+                    "fetchRootMargin": "1200px 0px",
                     "renderRootMargin": "500px 0px",
                     "maxDelayMs": 1500,
-                    "maxFetchToRenderMs": 8000
+                    "maxFetchToRenderMs": 10000
+                },
+                "telemetry": {
+                    "mode": "standard"
                 },
                 "loadingExperiments": {
                     "enabled": true,
@@ -650,28 +653,28 @@
                             "slots": {
                                 "gexp-intext": {
                                     "loading": {
-                                        "fetchRootMargin": "650px 0px",
+                                        "fetchRootMargin": "1200px 0px",
                                         "renderRootMargin": "250px 0px",
                                         "maxDelayMs": 7000
                                     }
                                 },
                                 "gexp-intext-2": {
                                     "loading": {
-                                        "fetchRootMargin": "500px 0px",
+                                        "fetchRootMargin": "1000px 0px",
                                         "renderRootMargin": "150px 0px",
                                         "maxDelayMs": null
                                     }
                                 },
                                 "gexp-intext-3": {
                                     "loading": {
-                                        "fetchRootMargin": "500px 0px",
+                                        "fetchRootMargin": "1000px 0px",
                                         "renderRootMargin": "100px 0px",
                                         "maxDelayMs": null
                                     }
                                 },
                                 "pnc": {
                                     "loading": {
-                                        "fetchRootMargin": "500px 0px",
+                                        "fetchRootMargin": "1000px 0px",
                                         "renderRootMargin": "100px 0px",
                                         "maxDelayMs": null
                                     }
@@ -683,28 +686,28 @@
                             "slots": {
                                 "gexp-intext": {
                                     "loading": {
-                                        "fetchRootMargin": "900px 0px",
+                                        "fetchRootMargin": "1200px 0px",
                                         "renderRootMargin": "500px 0px",
                                         "maxDelayMs": 1500
                                     }
                                 },
                                 "gexp-intext-2": {
                                     "loading": {
-                                        "fetchRootMargin": "400px 0px",
+                                        "fetchRootMargin": "1000px 0px",
                                         "renderRootMargin": "150px 0px",
                                         "maxDelayMs": null
                                     }
                                 },
                                 "gexp-intext-3": {
                                     "loading": {
-                                        "fetchRootMargin": "400px 0px",
+                                        "fetchRootMargin": "1000px 0px",
                                         "renderRootMargin": "150px 0px",
                                         "maxDelayMs": null
                                     }
                                 },
                                 "pnc": {
                                     "loading": {
-                                        "fetchRootMargin": "400px 0px",
+                                        "fetchRootMargin": "1000px 0px",
                                         "renderRootMargin": "150px 0px",
                                         "maxDelayMs": null
                                     }
@@ -943,7 +946,7 @@
                             "mode": "auto"
                         },
                         "loading": {
-                            "fetchRootMargin": "900px 0px",
+                            "fetchRootMargin": "1200px 0px",
                             "renderRootMargin": "500px 0px",
                             "maxDelayMs": 1500
                         }
@@ -953,7 +956,7 @@
                             "mode": "display_only"
                         },
                         "loading": {
-                            "fetchRootMargin": "400px 0px",
+                            "fetchRootMargin": "1000px 0px",
                             "renderRootMargin": "150px 0px",
                             "maxDelayMs": null
                         }
@@ -963,14 +966,14 @@
                             "mode": "display_only"
                         },
                         "loading": {
-                            "fetchRootMargin": "400px 0px",
+                            "fetchRootMargin": "1000px 0px",
                             "renderRootMargin": "150px 0px",
                             "maxDelayMs": null
                         }
                     },
                     "pnc": {
                         "loading": {
-                            "fetchRootMargin": "400px 0px",
+                            "fetchRootMargin": "1000px 0px",
                             "renderRootMargin": "150px 0px",
                             "maxDelayMs": null
                         }
@@ -1487,7 +1490,7 @@
                                     "mode": "display_only"
                                 },
                                 "loading": {
-                                    "fetchRootMargin": "400px 0px",
+                                    "fetchRootMargin": "1000px 0px",
                                     "renderRootMargin": "150px 0px",
                                     "maxDelayMs": null
                                 }
@@ -1497,14 +1500,14 @@
                                     "mode": "display_only"
                                 },
                                 "loading": {
-                                    "fetchRootMargin": "400px 0px",
+                                    "fetchRootMargin": "1000px 0px",
                                     "renderRootMargin": "150px 0px",
                                     "maxDelayMs": null
                                 }
                             },
                             "pnc": {
                                 "loading": {
-                                    "fetchRootMargin": "400px 0px",
+                                    "fetchRootMargin": "1000px 0px",
                                     "renderRootMargin": "150px 0px",
                                     "maxDelayMs": null
                                 }
