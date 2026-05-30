@@ -454,7 +454,7 @@ let cfg={
                             "skippable": true,
                             "maxduration": 30,
                             "minduration": 1,
-                            "playbackmethod": [6]
+                            "playbackmethod": [3, 4, 5, 6]
                         },
                         "outstream": {
                             "context": "outstream",
@@ -468,7 +468,7 @@ let cfg={
                             "skippable": true,
                             "maxduration": 30,
                             "minduration": 1,
-                            "playbackmethod": [6]
+                            "playbackmethod": [3, 4, 5, 6]
                         }
                     }
                 },

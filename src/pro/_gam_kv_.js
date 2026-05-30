@@ -9807,6 +9807,7 @@ class RandomStrategy extends WindowArray {
               videoMediaType = {
                 context: vc.context || "instream",
                 playerSize: normalizedPlayerSize.playerSize,
+                playersize: normalizedPlayerSize.playerSize,
                 mimes: vc.mimes || ["video/mp4", "application/javascript"],
                 protocols: vc.protocols || [2, 3, 5, 6, 7],
                 playbackmethod: vc.playbackmethod || [6],
