@@ -586,7 +586,7 @@
                     "rootMargin": "1000px 0px",
                     "maxDelayMs": 1500,
                     "fetchRootMargin": "1200px 0px",
-                    "renderRootMargin": "500px 0px",
+                    "renderRootMargin": "650px 0px",
                     "maxFetchToRenderMs": 10000
                 },
                 "telemetry": {
@@ -831,7 +831,7 @@
                             "rootMargin": "500px 0px",
                             "maxDelayMs": 1500,
                             "fetchRootMargin": "1200px 0px",
-                            "renderRootMargin": "500px 0px"
+                            "renderRootMargin": "650px 0px"
                         }
                     },
                     "gexp-intext-2": {
@@ -871,17 +871,59 @@
                     "networks": {
                         "default": {
                             "aliases": {
-                                "rubicon_video": "rubicon",
-                                "msft_video": "msft",
-                                "criteo_video": "criteo",
-                                "pubstack_server_video": "pubstack_server",
-                                "richaudience_video": "richaudience",
+                                "rubicon_video": {
+
+                                    "bidder": "rubicon",
+
+                                    "useBaseGvlid": true
+
+                                },
+                                "msft_video": {
+
+                                    "bidder": "msft",
+
+                                    "useBaseGvlid": true
+
+                                },
+                                "criteo_video": {
+
+                                    "bidder": "criteo",
+
+                                    "useBaseGvlid": true
+
+                                },
+                                "pubstack_server_video": {
+
+                                    "bidder": "pubstack_server",
+
+                                    "useBaseGvlid": true
+
+                                },
+                                "richaudience_video": {
+
+                                    "bidder": "richaudience",
+
+                                    "useBaseGvlid": true
+
+                                },
                                 "equativ_video": {
                                     "bidder": "equativ",
-                                    "gvlid": 45
+                                    "useBaseGvlid": true
                                 },
-                                "ix_video": "ix",
-                                "ttd_video": "ttd"
+                                "ix_video": {
+
+                                    "bidder": "ix",
+
+                                    "useBaseGvlid": true
+
+                                },
+                                "ttd_video": {
+
+                                    "bidder": "ttd",
+
+                                    "useBaseGvlid": true
+
+                                }
                             },
                             "bidders": [
                                 {
@@ -1499,7 +1541,7 @@
                                 "gexp-intext": {
                                     "loading": {
                                         "fetchRootMargin": "1200px 0px",
-                                        "renderRootMargin": "250px 0px",
+                                        "renderRootMargin": "650px 0px",
                                         "maxDelayMs": 7000
                                     }
                                 },
@@ -1532,7 +1574,7 @@
                                 "gexp-intext": {
                                     "loading": {
                                         "fetchRootMargin": "1200px 0px",
-                                        "renderRootMargin": "500px 0px",
+                                        "renderRootMargin": "650px 0px",
                                         "maxDelayMs": 1500
                                     }
                                 },
@@ -1641,17 +1683,59 @@
                             "networks": {
                                 "default": {
                                     "aliases": {
-                                        "rubicon_video": "rubicon",
-                                        "msft_video": "msft",
-                                        "criteo_video": "criteo",
-                                        "pubstack_server_video": "pubstack_server",
-                                        "richaudience_video": "richaudience",
+                                        "rubicon_video": {
+
+                                            "bidder": "rubicon",
+
+                                            "useBaseGvlid": true
+
+                                        },
+                                        "msft_video": {
+
+                                            "bidder": "msft",
+
+                                            "useBaseGvlid": true
+
+                                        },
+                                        "criteo_video": {
+
+                                            "bidder": "criteo",
+
+                                            "useBaseGvlid": true
+
+                                        },
+                                        "pubstack_server_video": {
+
+                                            "bidder": "pubstack_server",
+
+                                            "useBaseGvlid": true
+
+                                        },
+                                        "richaudience_video": {
+
+                                            "bidder": "richaudience",
+
+                                            "useBaseGvlid": true
+
+                                        },
                                         "equativ_video": {
                                             "bidder": "equativ",
-                                            "gvlid": 45
+                                            "useBaseGvlid": true
                                         },
-                                        "ix_video": "ix",
-                                        "ttd_video": "ttd"
+                                        "ix_video": {
+
+                                            "bidder": "ix",
+
+                                            "useBaseGvlid": true
+
+                                        },
+                                        "ttd_video": {
+
+                                            "bidder": "ttd",
+
+                                            "useBaseGvlid": true
+
+                                        }
                                     },
                                     "bidders": [
                                         {
@@ -3039,17 +3123,22 @@
             "vv": {
                 "exp2": {
                     "portada": {
-                        "3": {
+                        "0": {
                             "f": {
                                 "f": 0
                             }
                         },
-                        "4": {
+                        "1": {
                             "f": {
                                 "f": 0
                             }
                         },
                         "5": {
+                            "f": {
+                                "f": 0
+                            }
+                        },
+                        "6": {
                             "f": {
                                 "f": 0
                             }
@@ -3061,46 +3150,38 @@
                         },
                         "8": {
                             "f": {
-                                "f": 50
+                                "f": 30,
+                                "t": 100
                             }
                         },
                         "9": {
                             "f": {
-                                "f": 100,
+                                "f": 75,
                                 "t": 100
                             }
                         },
                         "10": {
                             "f": {
-                                "f": 65
+                                "f": 55,
+                                "t": 100
                             }
                         },
                         "11": {
                             "f": {
-                                "f": 20
+                                "f": 10
                             }
                         },
                         "12": {
                             "f": {
-                                "f": 0
+                                "f": 50
                             }
                         },
-                        "13": {
-                            "f": {
-                                "f": 100
-                            }
-                        },
-                        "16": {
+                        "15": {
                             "f": {
                                 "f": 100
                             }
                         },
                         "17": {
-                            "f": {
-                                "f": 40
-                            }
-                        },
-                        "18": {
                             "f": {
                                 "f": 0
                             }
@@ -3112,54 +3193,44 @@
                         },
                         "20": {
                             "f": {
-                                "f": 50
+                                "f": 0
                             }
                         }
                     },
                     "marketcard": {
-                        "3": {
-                            "f": {
-                                "f": 0
-                            }
-                        },
-                        "5": {
-                            "f": {
-                                "f": 0
-                            }
-                        },
                         "7": {
                             "f": {
-                                "f": 0
+                                "f": 15
                             }
                         },
                         "8": {
                             "f": {
-                                "f": 0
+                                "f": 30
                             }
                         },
                         "9": {
                             "f": {
-                                "f": 0
+                                "f": 20
                             }
                         },
                         "11": {
                             "f": {
-                                "f": 0
+                                "f": 30
                             }
                         },
                         "12": {
                             "f": {
-                                "f": 0
+                                "f": 15
                             }
                         },
                         "13": {
                             "f": {
-                                "f": 0
+                                "f": 20
                             }
                         },
                         "14": {
                             "f": {
-                                "f": 0
+                                "f": 50
                             }
                         },
                         "15": {
@@ -3174,14 +3245,19 @@
                         }
                     },
                     "noticia": {
-                        "2": {
+                        "0": {
+                            "f": {
+                                "f": 0
+                            }
+                        },
+                        "1": {
                             "f": {
                                 "f": 0
                             }
                         },
                         "3": {
                             "f": {
-                                "f": 0
+                                "f": 15
                             }
                         },
                         "4": {
@@ -3191,50 +3267,20 @@
                         },
                         "5": {
                             "f": {
-                                "f": 100
-                            }
-                        },
-                        "6": {
-                            "f": {
                                 "f": 0
                             }
                         },
                         "7": {
                             "f": {
-                                "f": 55
-                            }
-                        },
-                        "8": {
-                            "f": {
-                                "f": 100
+                                "f": 65
                             }
                         },
                         "9": {
                             "f": {
-                                "f": 30
-                            }
-                        },
-                        "12": {
-                            "f": {
-                                "f": 0
+                                "f": 80
                             }
                         },
                         "14": {
-                            "f": {
-                                "f": 0
-                            }
-                        },
-                        "15": {
-                            "f": {
-                                "f": 0
-                            }
-                        },
-                        "16": {
-                            "f": {
-                                "f": 0
-                            }
-                        },
-                        "17": {
                             "f": {
                                 "f": 0
                             }
@@ -3251,24 +3297,59 @@
                         },
                         "20": {
                             "f": {
-                                "f": 0
+                                "f": 10
                             }
                         }
                     },
                     "portadilla": {
+                        "0": {
+                            "f": {
+                                "f": 25
+                            }
+                        },
                         "7": {
                             "f": {
-                                "f": 0
+                                "f": 15
                             }
                         },
                         "8": {
                             "f": {
+                                "f": 15
+                            }
+                        },
+                        "9": {
+                            "f": {
                                 "f": 0
+                            }
+                        },
+                        "10": {
+                            "f": {
+                                "f": 100
                             }
                         },
                         "11": {
                             "f": {
+                                "f": 50
+                            }
+                        },
+                        "12": {
+                            "f": {
+                                "f": 50
+                            }
+                        },
+                        "13": {
+                            "f": {
+                                "f": 100
+                            }
+                        },
+                        "15": {
+                            "f": {
                                 "f": 0
+                            }
+                        },
+                        "16": {
+                            "f": {
+                                "f": 100
                             }
                         },
                         "17": {
@@ -3283,39 +3364,88 @@
                         }
                     },
                     "axesor-ejecutivos": {
+                        "7": {
+                            "f": {
+                                "f": 65
+                            }
+                        },
                         "8": {
                             "f": {
-                                "f": 60
+                                "f": 55,
+                                "t": 100
+                            }
+                        },
+                        "11": {
+                            "f": {
+                                "f": 50
                             }
                         }
                     },
-                    "otros": {
-                        "5": {
-                            "f": {
-                                "f": 0
-                            }
-                        },
+                    "axesor": {
                         "6": {
                             "f": {
                                 "f": 100
                             }
                         },
+                        "7": {
+                            "f": {
+                                "f": 65
+                            }
+                        },
                         "8": {
+                            "f": {
+                                "f": 75
+                            }
+                        },
+                        "9": {
+                            "f": {
+                                "f": 100
+                            }
+                        },
+                        "10": {
+                            "f": {
+                                "f": 0
+                            }
+                        },
+                        "12": {
                             "f": {
                                 "f": 50
                             }
                         }
                     },
-                    "album": [],
-                    "axesor": {
-                        "8": {
+                    "noticia-especial": {
+                        "12": {
                             "f": {
                                 "f": 100
                             }
                         },
-                        "9": {
+                        "17": {
                             "f": {
-                                "f": 50
+                                "f": 0
+                            }
+                        },
+                        "19": {
+                            "f": {
+                                "f": 0
+                            }
+                        },
+                        "20": {
+                            "f": {
+                                "f": 0
+                            }
+                        }
+                    },
+                    "portadilla-nc": [
+                        {
+                            "f": {
+                                "f": 0
+                            }
+                        }
+                    ],
+                    "album": {
+                        "6": {
+                            "f": {
+                                "f": 100
                             }
                         }
                     }
@@ -3327,6 +3457,16 @@
                                 "f": 0
                             }
                         },
+                        "1": {
+                            "f": {
+                                "f": 0
+                            }
+                        },
+                        "3": {
+                            "f": {
+                                "f": 0
+                            }
+                        },
                         "5": {
                             "f": {
                                 "f": 0
@@ -3334,50 +3474,47 @@
                         },
                         "6": {
                             "f": {
-                                "f": 50
+                                "f": 100
                             }
                         },
                         "7": {
                             "f": {
-                                "f": 90
+                                "f": 90,
+                                "t": 100
                             }
                         },
                         "8": {
                             "f": {
-                                "f": 0
+                                "f": 25,
+                                "t": 100
                             }
                         },
                         "9": {
                             "f": {
-                                "f": 75
+                                "f": 55
                             }
                         },
                         "10": {
                             "f": {
-                                "f": 55
+                                "f": 60
                             }
                         },
                         "11": {
                             "f": {
-                                "f": 70
+                                "f": 75
                             }
                         },
                         "12": {
                             "f": {
-                                "f": 70
+                                "f": 75
                             }
                         },
                         "13": {
                             "f": {
-                                "f": 60
+                                "f": 25
                             }
                         },
-                        "17": {
-                            "f": {
-                                "f": 0
-                            }
-                        },
-                        "20": {
+                        "14": {
                             "f": {
                                 "f": 0
                             }
@@ -3386,62 +3523,52 @@
                     "noticia": {
                         "7": {
                             "f": {
-                                "f": 85
-                            }
-                        },
-                        "8": {
-                            "f": {
-                                "f": 0
-                            }
-                        },
-                        "9": {
-                            "f": {
-                                "f": 65
+                                "f": 90
                             }
                         },
                         "10": {
                             "f": {
-                                "f": 65
+                                "f": 0
                             }
                         },
                         "11": {
                             "f": {
-                                "f": 50
+                                "f": 20
                             }
                         },
                         "12": {
                             "f": {
-                                "f": 25
+                                "f": 30
                             }
                         },
                         "13": {
                             "f": {
-                                "f": 50
+                                "f": 30
                             }
                         },
                         "14": {
                             "f": {
-                                "f": 30
+                                "f": 15
                             }
                         },
                         "15": {
                             "f": {
-                                "f": 100
+                                "f": 30
                             }
                         },
                         "16": {
                             "f": {
-                                "f": 25
+                                "f": 30
                             }
                         },
                         "17": {
                             "f": {
-                                "f": 25
+                                "f": 30
                             }
                         },
                         "18": {
                             "f": {
-                                "f": 10
+                                "f": 0
                             }
                         },
                         "19": {
@@ -3458,55 +3585,7 @@
                     "marketcard": {
                         "7": {
                             "f": {
-                                "f": 100,
-                                "t": 100
-                            }
-                        },
-                        "8": {
-                            "f": {
-                                "f": 0
-                            }
-                        },
-                        "13": {
-                            "f": {
-                                "f": 0
-                            }
-                        },
-                        "15": {
-                            "f": {
-                                "f": 0
-                            }
-                        },
-                        "16": {
-                            "f": {
-                                "f": 0
-                            }
-                        },
-                        "17": {
-                            "f": {
-                                "f": 0
-                            }
-                        },
-                        "18": {
-                            "f": {
-                                "f": 0
-                            }
-                        },
-                        "19": {
-                            "f": {
-                                "f": 0
-                            }
-                        },
-                        "20": {
-                            "f": {
-                                "f": 0
-                            }
-                        }
-                    },
-                    "portadilla": {
-                        "7": {
-                            "f": {
-                                "f": 100
+                                "f": 90
                             }
                         },
                         "8": {
@@ -3516,7 +3595,97 @@
                         },
                         "9": {
                             "f": {
+                                "f": 25
+                            }
+                        },
+                        "13": {
+                            "f": {
+                                "f": 0
+                            }
+                        },
+                        "15": {
+                            "f": {
+                                "f": 20
+                            }
+                        },
+                        "16": {
+                            "f": {
+                                "f": 30
+                            }
+                        },
+                        "17": {
+                            "f": {
+                                "f": 25
+                            }
+                        },
+                        "19": {
+                            "f": {
                                 "f": 100
+                            }
+                        },
+                        "20": {
+                            "f": {
+                                "f": 0
+                            }
+                        }
+                    },
+                    "portadilla-nc": {
+                        "6": {
+                            "f": {
+                                "f": 0
+                            }
+                        },
+                        "7": {
+                            "f": {
+                                "f": 100
+                            }
+                        },
+                        "8": {
+                            "f": {
+                                "f": 0
+                            }
+                        },
+                        "9": {
+                            "f": {
+                                "f": 50
+                            }
+                        },
+                        "10": {
+                            "f": {
+                                "f": 100
+                            }
+                        },
+                        "11": {
+                            "f": {
+                                "f": 100
+                            }
+                        },
+                        "13": {
+                            "f": {
+                                "f": 50
+                            }
+                        }
+                    },
+                    "portadilla": {
+                        "7": {
+                            "f": {
+                                "f": 100,
+                                "t": 0
+                            }
+                        },
+                        "11": {
+                            "f": {
+                                "f": 0
+                            }
+                        },
+                        "12": {
+                            "f": {
+                                "f": 100
+                            }
+                        },
+                        "14": {
+                            "f": {
+                                "f": 0
                             }
                         },
                         "15": {
@@ -3526,7 +3695,12 @@
                         },
                         "16": {
                             "f": {
-                                "f": 50
+                                "f": 0
+                            }
+                        },
+                        "18": {
+                            "f": {
+                                "f": 0
                             }
                         },
                         "19": {
@@ -3543,20 +3717,15 @@
                     "axesor-ejecutivos": {
                         "5": {
                             "f": {
-                                "f": 100
-                            }
-                        },
-                        "6": {
-                            "f": {
-                                "f": 0
+                                "f": 50
                             }
                         },
                         "7": {
                             "f": {
-                                "f": 100
+                                "f": 30
                             }
                         },
-                        "11": {
+                        "12": {
                             "f": {
                                 "f": 0
                             }
@@ -3566,62 +3735,26 @@
                                 "f": 0
                             }
                         },
-                        "15": {
-                            "f": {
-                                "f": 0
-                            }
-                        }
-                    },
-                    "portadilla-nc": {
-                        "7": {
-                            "f": {
-                                "f": 100
-                            }
-                        },
-                        "10": {
-                            "f": {
-                                "f": 40
-                            }
-                        }
-                    },
-                    "noticia-especial": {
-                        "7": {
+                        "14": {
                             "f": {
                                 "f": 0
                             }
                         },
-                        "18": {
+                        "16": {
                             "f": {
                                 "f": 0
-                            }
-                        },
-                        "20": {
-                            "f": {
-                                "f": 0
-                            }
-                        }
-                    },
-                    "encuentro": {
-                        "3": {
-                            "f": {
-                                "f": 0
-                            }
-                        },
-                        "20": {
-                            "f": {
-                                "f": 100
                             }
                         }
                     },
                     "ultima hora": {
-                        "7": {
+                        "3": {
                             "f": {
                                 "f": 100
                             }
                         },
-                        "18": {
+                        "16": {
                             "f": {
-                                "f": 100
+                                "f": 0
                             }
                         }
                     },
@@ -3632,8 +3765,8 @@
                             }
                         }
                     },
-                    "pagecontent": {
-                        "5": {
+                    "bolsa-materias primas": {
+                        "14": {
                             "f": {
                                 "f": 0
                             }
@@ -3641,16 +3774,24 @@
                     }
                 },
                 "fds": {
-                    "album": [],
-                    "noticia": []
+                    "noticia": {
+                        "7": {
+                            "f": {
+                                "t": 100
+                            }
+                        },
+                        "9": {
+                            "f": {
+                                "t": 100
+                            }
+                        }
+                    },
+                    "album": []
                 },
                 "fds-mv": {
                     "noticia": {
                         "7": {
                             "f": {
-                                "t": 100
-                            },
-                            "t": {
                                 "t": 100
                             }
                         }
@@ -3658,10 +3799,7 @@
                     "portadilla": {
                         "7": {
                             "f": {
-                                "t": 100
-                            },
-                            "t": {
-                                "t": 100
+                                "t": 0
                             }
                         }
                     }
@@ -3669,6 +3807,6 @@
             }
         }
     },
-    "config_version": "6a1c3b6257dd5",
+    "config_version": "6a1c4972b6688",
     "npTelemetryProb": 0
 }
