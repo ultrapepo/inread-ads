@@ -10296,6 +10296,7 @@ class RandomStrategy extends WindowArray {
               const isObjectConfig = aliasConfig && typeof aliasConfig === "object";
               const original = isObjectConfig ? aliasConfig.bidder : aliasConfig;
               const gvlid = isObjectConfig ? aliasConfig.gvlid : null;
+              const useBaseGvlid = isObjectConfig && aliasConfig.useBaseGvlid === true;
 
               if (!original) {
                 logIntext(`[Intext:Prebid] prebid_alias_register_skipped`, {
@@ -10306,21 +10307,35 @@ class RandomStrategy extends WindowArray {
               }
 
               try {
-                const options = gvlid != null ? { gvlid } : undefined;
+                const options = {};
+                if (useBaseGvlid) {
+                  options.useBaseGvlid = true;
+                } else if (gvlid != null) {
+                  options.gvlid = gvlid;
+                }
+                const hasOptions = Object.keys(options).length > 0;
                 logIntext(`[Intext:Prebid] prebid_alias_register_attempt`, {
                   alias,
                   bidder: original,
                   gvlid: gvlid ?? null,
+                  useBaseGvlid,
                 });
-                if (options) {
-                  window.pbjs.aliasBidder(original, alias, options);
+                window.pbjs.aliasBidder(
+                  original,
+                  alias,
+                  hasOptions ? options : undefined
+                );
+                if (useBaseGvlid) {
+                  logIntext(`[Intext:Prebid] prebid_alias_use_base_gvlid_applied`, {
+                    alias,
+                    bidder: original,
+                  });
+                } else if (gvlid != null) {
                   logIntext(`[Intext:Prebid] prebid_alias_gvlid_applied`, {
                     alias,
                     bidder: original,
                     gvlid,
                   });
-                } else {
-                  window.pbjs.aliasBidder(original, alias);
                 }
                 logIntext(`[Intext:Prebid] prebid_alias_register_success`, {
                   alias,

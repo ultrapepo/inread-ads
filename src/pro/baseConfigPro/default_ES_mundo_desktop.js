@@ -692,7 +692,7 @@
                 },
                 "loading": {
                     "fetchRootMargin": "1400px 0px",
-                    "renderRootMargin": "500px 0px",
+                    "renderRootMargin": "650px 0px",
                     "maxDelayMs": 1500,
                     "maxFetchToRenderMs": 10000
                 },
@@ -709,7 +709,7 @@
                                 "gexp-intext": {
                                     "loading": {
                                         "fetchRootMargin": "1400px 0px",
-                                        "renderRootMargin": "250px 0px",
+                                        "renderRootMargin": "650px 0px",
                                         "maxDelayMs": null
                                     }
                                 },
@@ -742,7 +742,7 @@
                                 "gexp-intext": {
                                     "loading": {
                                         "fetchRootMargin": "1400px 0px",
-                                        "renderRootMargin": "500px 0px",
+                                        "renderRootMargin": "650px 0px",
                                         "maxDelayMs": 1500
                                     }
                                 },
@@ -1000,7 +1000,7 @@
                         },
                         "loading": {
                             "fetchRootMargin": "1400px 0px",
-                            "renderRootMargin": "500px 0px",
+                            "renderRootMargin": "650px 0px",
                             "maxDelayMs": 1500
                         }
                     },
@@ -1040,17 +1040,59 @@
                     "networks": {
                         "default": {
                             "aliases": {
-                                "rubicon_video": "rubicon",
-                                "msft_video": "msft",
-                                "criteo_video": "criteo",
-                                "pubstack_server_video": "pubstack_server",
-                                "richaudience_video": "richaudience",
+                                "rubicon_video": {
+
+                                    "bidder": "rubicon",
+
+                                    "useBaseGvlid": true
+
+                                },
+                                "msft_video": {
+
+                                    "bidder": "msft",
+
+                                    "useBaseGvlid": true
+
+                                },
+                                "criteo_video": {
+
+                                    "bidder": "criteo",
+
+                                    "useBaseGvlid": true
+
+                                },
+                                "pubstack_server_video": {
+
+                                    "bidder": "pubstack_server",
+
+                                    "useBaseGvlid": true
+
+                                },
+                                "richaudience_video": {
+
+                                    "bidder": "richaudience",
+
+                                    "useBaseGvlid": true
+
+                                },
                                 "equativ_video": {
                                     "bidder": "equativ",
-                                    "gvlid": 45
+                                    "useBaseGvlid": true
                                 },
-                                "ix_video": "ix",
-                                "ttd_video": "ttd"
+                                "ix_video": {
+
+                                    "bidder": "ix",
+
+                                    "useBaseGvlid": true
+
+                                },
+                                "ttd_video": {
+
+                                    "bidder": "ttd",
+
+                                    "useBaseGvlid": true
+
+                                }
                             },
                             "bidders": [
                                 {

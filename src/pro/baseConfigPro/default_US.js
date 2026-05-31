@@ -300,7 +300,7 @@ let cfg={
                 },
                 "loading": {
                     "fetchRootMargin": "1200px 0px",
-                    "renderRootMargin": "500px 0px",
+                    "renderRootMargin": "650px 0px",
                     "maxDelayMs": 1500,
                     "maxFetchToRenderMs": 10000
                 },
@@ -317,7 +317,7 @@ let cfg={
                                 "gexp-intext": {
                                     "loading": {
                                         "fetchRootMargin": "1200px 0px",
-                                        "renderRootMargin": "250px 0px",
+                                        "renderRootMargin": "650px 0px",
                                         "maxDelayMs": 7000
                                     }
                                 },
@@ -350,7 +350,7 @@ let cfg={
                                 "gexp-intext": {
                                     "loading": {
                                         "fetchRootMargin": "1200px 0px",
-                                        "renderRootMargin": "500px 0px",
+                                        "renderRootMargin": "650px 0px",
                                         "maxDelayMs": 1500
                                     }
                                 },
@@ -567,7 +567,7 @@ let cfg={
                         },
                         "loading": {
                             "fetchRootMargin": "1200px 0px",
-                            "renderRootMargin": "500px 0px",
+                            "renderRootMargin": "650px 0px",
                             "maxDelayMs": 1500
                         }
                     },
@@ -607,17 +607,59 @@ let cfg={
                     "networks": {
                         "default": {
                             "aliases": {
-                                "rubicon_video": "rubicon",
-                                "appnexus_video": "appnexus",
-                                "criteo_video": "criteo",
-                                "pubmatic_video": "pubmatic",
-                                "richaudience_video": "richaudience",
+                                "rubicon_video": {
+
+                                    "bidder": "rubicon",
+
+                                    "useBaseGvlid": true
+
+                                },
+                                "appnexus_video": {
+
+                                    "bidder": "appnexus",
+
+                                    "useBaseGvlid": true
+
+                                },
+                                "criteo_video": {
+
+                                    "bidder": "criteo",
+
+                                    "useBaseGvlid": true
+
+                                },
+                                "pubmatic_video": {
+
+                                    "bidder": "pubmatic",
+
+                                    "useBaseGvlid": true
+
+                                },
+                                "richaudience_video": {
+
+                                    "bidder": "richaudience",
+
+                                    "useBaseGvlid": true
+
+                                },
                                 "equativ_video": {
                                     "bidder": "equativ",
-                                    "gvlid": 45
+                                    "useBaseGvlid": true
                                 },
-                                "ix_video": "ix",
-                                "ttd_video": "ttd"
+                                "ix_video": {
+
+                                    "bidder": "ix",
+
+                                    "useBaseGvlid": true
+
+                                },
+                                "ttd_video": {
+
+                                    "bidder": "ttd",
+
+                                    "useBaseGvlid": true
+
+                                }
                             },
                             "bidders": [
                                 {
@@ -1303,17 +1345,59 @@ let cfg={
                             "networks": {
                                 "default": {
                                     "aliases": {
-                                        "rubicon_video": "rubicon",
-                                        "appnexus_video": "appnexus",
-                                        "criteo_video": "criteo",
-                                        "pubmatic_video": "pubmatic",
-                                        "richaudience_video": "richaudience",
+                                        "rubicon_video": {
+
+                                            "bidder": "rubicon",
+
+                                            "useBaseGvlid": true
+
+                                        },
+                                        "appnexus_video": {
+
+                                            "bidder": "appnexus",
+
+                                            "useBaseGvlid": true
+
+                                        },
+                                        "criteo_video": {
+
+                                            "bidder": "criteo",
+
+                                            "useBaseGvlid": true
+
+                                        },
+                                        "pubmatic_video": {
+
+                                            "bidder": "pubmatic",
+
+                                            "useBaseGvlid": true
+
+                                        },
+                                        "richaudience_video": {
+
+                                            "bidder": "richaudience",
+
+                                            "useBaseGvlid": true
+
+                                        },
                                         "equativ_video": {
                                             "bidder": "equativ",
-                                            "gvlid": 45
+                                            "useBaseGvlid": true
                                         },
-                                        "ix_video": "ix",
-                                        "ttd_video": "ttd"
+                                        "ix_video": {
+
+                                            "bidder": "ix",
+
+                                            "useBaseGvlid": true
+
+                                        },
+                                        "ttd_video": {
+
+                                            "bidder": "ttd",
+
+                                            "useBaseGvlid": true
+
+                                        }
                                     },
                                     "bidders": [
                                         {
