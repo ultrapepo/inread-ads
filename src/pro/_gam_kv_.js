@@ -8751,7 +8751,7 @@ class RandomStrategy extends WindowArray {
               setTimeout(retry, intervalMs);
             };
 
-            setTimeout(retry, intervalMs);
+            retry();
           });
         }
 
