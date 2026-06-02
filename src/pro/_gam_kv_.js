@@ -4845,11 +4845,13 @@ class RandomStrategy extends WindowArray {
               "gexp-intext-slot-id",
               "gexp-intext-slot-index",
               "gexp-intext-nav-index",
+              "gexp-intext-position",
               "gexp-intext-load-trigger",
               "gexp-intext-is-refresh",
               "gexp-intext-is-fallback",
               "gexp-intext-request-type",
               "gexp-intext-refresh",
+              "gexp-intext-fallback",
               "gexp-intext-is-technical-refresh",
               "gexp-intext-technical-refresh-reason",
               "gexp-intext-init-page-ms",
@@ -4860,6 +4862,12 @@ class RandomStrategy extends WindowArray {
               "gexp-intext-load-observer-target",
               "gexp-intext-fetch-trigger",
               "gexp-intext-render-trigger",
+              "gexp-intext-fetch-sl-off-y",
+              "gexp-intext-fetch-us-off-y",
+              "gexp-intext-render-sl-off-y",
+              "gexp-intext-render-us-off-y",
+              "gexp-intext-fetch-ev",
+              "gexp-intext-render-ev",
               "gexp-intext-fetch-distance-px",
               "gexp-intext-render-distance-px",
               "gexp-intext-load-start-distance-px",
@@ -4984,6 +4992,9 @@ class RandomStrategy extends WindowArray {
             "gexp-intext-load-start-distance-px",
             "gexp-intext-load-end-distance-px",
             "gexp-intext-load-observer-target",
+            "gexp-intext-position",
+            "gexp-intext-refresh",
+            "gexp-intext-fallback",
             "gexp-intext-request-type",
             "gexp-intext-type",
             "gexp-intext-creative-size",
@@ -5028,6 +5039,12 @@ class RandomStrategy extends WindowArray {
             "gexp-intext-max-fetch-to-render-ms",
             "gexp-intext-fetch-trigger",
             "gexp-intext-render-trigger",
+            "gexp-intext-fetch-sl-off-y",
+            "gexp-intext-fetch-us-off-y",
+            "gexp-intext-render-sl-off-y",
+            "gexp-intext-render-us-off-y",
+            "gexp-intext-fetch-ev",
+            "gexp-intext-render-ev",
             "gexp-intext-fetch-start-time-ms",
             "gexp-intext-render-start-time-ms",
             "gexp-intext-fetch-to-render-ms",
@@ -5167,11 +5184,16 @@ class RandomStrategy extends WindowArray {
           this._house1x1AutoRefreshAttemptsForCycle = 0;
           this.clearIntextTelemetryCycleCI();
 
+          const isRefresh = trigger === "refresh";
+          const isFallback = trigger === "fallback";
           const cycle = {
             "gexp-intext-cycle-id": String(this._intextTelemetryCycleId),
+            "gexp-intext-position": String(this.id || "unknown"),
             "gexp-intext-load-trigger": String(trigger || "unknown"),
-            "gexp-intext-is-refresh": trigger === "refresh" ? "true" : "false",
-            "gexp-intext-is-fallback": trigger === "fallback" ? "true" : "false",
+            "gexp-intext-is-refresh": isRefresh ? "true" : "false",
+            "gexp-intext-refresh": isRefresh ? "true" : "false",
+            "gexp-intext-is-fallback": isFallback ? "true" : "false",
+            "gexp-intext-fallback": isFallback ? "true" : "false",
             "gexp-intext-ever-in-viewport": "false",
             "gexp-intext-viewport-visible-ms": "0",
             "gexp-intext-render-waited-for-fetch": "false",
@@ -5238,6 +5260,7 @@ class RandomStrategy extends WindowArray {
           if (startDistance !== null) cycle["gexp-intext-load-start-distance-px"] = String(startDistance);
           if (trigger === "house-1x1-refresh") {
             cycle["gexp-intext-is-refresh"] = "false";
+            cycle["gexp-intext-refresh"] = "false";
             cycle["gexp-intext-is-technical-refresh"] = "true";
             cycle["gexp-intext-technical-refresh-reason"] = "house-lineitem-sentinel";
           }
@@ -6559,7 +6582,9 @@ class RandomStrategy extends WindowArray {
                 "gexp-intext-position": this.id,
                 "gexp-intext-display": "true",
                 "gexp-intext-is-refresh": isRefresh ? "true" : "false",
+                "gexp-intext-refresh": isRefresh ? "true" : "false",
                 "gexp-intext-is-fallback": isFallback ? "true" : "false",
+                "gexp-intext-fallback": isFallback ? "true" : "false",
               });
               this.manager.gexp.request(this.slot);
               this.restoreIntextRandomTargetingAfterGexpRequest(this.slot);
@@ -6570,14 +6595,18 @@ class RandomStrategy extends WindowArray {
               finalDisplayTargeting.targeting["gexp-intext-position"] = this.id;
               finalDisplayTargeting.targeting["gexp-intext-display"] = "true";
               finalDisplayTargeting.targeting["gexp-intext-is-refresh"] = isRefresh ? "true" : "false";
+              finalDisplayTargeting.targeting["gexp-intext-refresh"] = isRefresh ? "true" : "false";
               finalDisplayTargeting.targeting["gexp-intext-is-fallback"] = isFallback ? "true" : "false";
+              finalDisplayTargeting.targeting["gexp-intext-fallback"] = isFallback ? "true" : "false";
 
               if (this.wa && this.wa.cI) {
                 this.wa.cI["gexp-intext"] = "true";
                 this.wa.cI["gexp-intext-position"] = this.id;
                 this.wa.cI["gexp-intext-display"] = "true";
                 this.wa.cI["gexp-intext-is-refresh"] = isRefresh ? "true" : "false";
+                this.wa.cI["gexp-intext-refresh"] = this.wa.cI["gexp-intext-is-refresh"];
                 this.wa.cI["gexp-intext-is-fallback"] = isFallback ? "true" : "false";
+                this.wa.cI["gexp-intext-fallback"] = this.wa.cI["gexp-intext-is-fallback"];
                 this.flushIntextTelemetryToCI();
               }
 
@@ -7381,9 +7410,21 @@ class RandomStrategy extends WindowArray {
             if (loader) loader.style.display = "none";
 
             this.activeCreative?.destroy?.();
+            const videoErrorRawMessage = String(err?.message || err || "unknown");
+            const videoErrorCode =
+              videoErrorRawMessage === "video_ad_timeout" || videoErrorRawMessage === "contrib_ads_timeout"
+                ? "timeout"
+                : String(
+                    this._intextTelemetryCycle?.["gexp-intext-video-error-code"] ||
+                    this.wa?.cI?.["gexp-intext-video-error-code"] ||
+                    "unknown",
+                  );
+            const videoErrorMessage = videoErrorCode === "timeout" ? "video_ad_timeout" : videoErrorRawMessage;
             this.mergeIntextTelemetry({
               "gexp-intext-load-end-distance-px": this.getIntextDistancePx(),
               "gexp-intext-video-failed": "true",
+              "gexp-intext-video-error-code": videoErrorCode,
+              "gexp-intext-video-error-message": videoErrorMessage,
             });
             this.flushIntextTelemetryToCI({ register: true, reason: "video-error" });
             this.recordTelemetry("video_no_fill", { slotId: this.videoId });
@@ -7912,6 +7953,81 @@ class RandomStrategy extends WindowArray {
           }
         }
 
+        getIntextOffYTelemetry(prefix) {
+          const unknown = {
+            [`${prefix}-sl-off-y`]: "unknown",
+            [`${prefix}-us-off-y`]: "unknown",
+          };
+          try {
+            const el =
+              this.getLoadingTargetElement?.() ||
+              this.node?.getIntextTelemetryElement?.() ||
+              this.container?.getElement?.();
+            if (!el || typeof el.getBoundingClientRect !== "function") return unknown;
+
+            const rect = el.getBoundingClientRect();
+            let scrollTop =
+              window.scrollY ||
+              window.pageYOffset ||
+              document.documentElement?.scrollTop ||
+              0;
+            let top = rect.top;
+            let currentNode = el;
+            let parent = null;
+            while (currentNode && currentNode.tagName !== "BODY" && currentNode !== parent) {
+              if (parent) currentNode = parent;
+              if (window.getComputedStyle(currentNode).position === "fixed") {
+                top = 100;
+                scrollTop = 0;
+                break;
+              }
+              parent = currentNode.parentNode;
+            }
+
+            return {
+              [`${prefix}-sl-off-y`]: String(parseInt((top + scrollTop) / 100)),
+              [`${prefix}-us-off-y`]: String(parseInt(top / 100)),
+            };
+          } catch (e) {
+            return unknown;
+          }
+        }
+
+        getIntextExpectedViewability(offYTelemetry, prefix, trigger) {
+          try {
+            const usOffY = Number(offYTelemetry?.[`${prefix}-us-off-y`]);
+            if (!Number.isFinite(usOffY)) return "unknown";
+
+            let adUnit = this.wa?.cI?.adUnit || null;
+            if (!adUnit) {
+              const adUnitPath =
+                this.node?.scopedContext?.adUnitPath ||
+                this.node?.manager?.adUnitPath ||
+                this.gexp?.cfg?.adUnit ||
+                "";
+              const parts = String(adUnitPath).replace(/^\/+/, "").split("/").filter(Boolean);
+              if (parts[0] === String(this.node?.scopedContext?.networkId || this.node?.manager?.networkId || "")) {
+                parts.shift();
+              }
+              adUnit = parts[0] || null;
+            }
+            if (!adUnit || typeof this.gexp?.getExpectedViewability !== "function") return "unknown";
+
+            const isRefresh = trigger === "refresh" || (this.node?._cycleCount || 0) > 0;
+            const isHouseRefresh = isRefresh && this.wa?.lastImpressionType === this.wa?.IT_HOUSE;
+            return String(
+              this.gexp.getExpectedViewability(
+                adUnit,
+                usOffY,
+                isHouseRefresh ? "t" : "f",
+                isRefresh && !isHouseRefresh ? "t" : "f",
+              ),
+            );
+          } catch (e) {
+            return "unknown";
+          }
+        }
+
         setupLoadingTriggers() {
           const renderMargin = this.loadingConfig?.renderRootMargin || this.loadingConfig?.rootMargin || "250px 0px";
           const fetchMargin = this.loadingConfig?.fetchRootMargin || renderMargin;
@@ -8026,6 +8142,12 @@ class RandomStrategy extends WindowArray {
           this.disconnectFetchObserver();
 
           const distancePx = this.getLoadingDistancePx();
+          const fetchOffYTelemetry = this.getIntextOffYTelemetry("gexp-intext-fetch");
+          const fetchExpectedViewability = this.getIntextExpectedViewability(
+            fetchOffYTelemetry,
+            "gexp-intext-fetch",
+            trigger,
+          );
           const exp = this.loadingConfig?._experiment || {};
           logIntext(`[Intext:Auction:${this.node.id}] loading_phase_fetch_triggered`, {
             slotCode: this.node.id,
@@ -8068,6 +8190,8 @@ class RandomStrategy extends WindowArray {
             "gexp-intext-fetch-trigger": trigger,
             "gexp-intext-fetch-start-time-ms": String(this.fetchStartAt),
             "gexp-intext-fetch-distance-px": distancePx !== null ? String(distancePx) : undefined,
+            ...fetchOffYTelemetry,
+            "gexp-intext-fetch-ev": fetchExpectedViewability,
           });
 
           try {
@@ -8134,6 +8258,12 @@ class RandomStrategy extends WindowArray {
           this.timer = null;
 
           const distancePx = this.getLoadingDistancePx();
+          const renderOffYTelemetry = this.getIntextOffYTelemetry("gexp-intext-render");
+          const renderExpectedViewability = this.getIntextExpectedViewability(
+            renderOffYTelemetry,
+            "gexp-intext-render",
+            trigger,
+          );
           const fetchToRenderMs = this.fetchStartAt ? this.renderStartAt - this.fetchStartAt : 0;
           logIntext(`[Intext:Auction:${this.node.id}] loading_phase_render_triggered`, {
             slotCode: this.node.id,
@@ -8148,6 +8278,8 @@ class RandomStrategy extends WindowArray {
             "gexp-intext-render-waited-for-fetch": renderWaitedForFetch ? "true" : "false",
             "gexp-intext-render-wait-for-fetch-ms": String(renderWaitForFetchMs),
             "gexp-intext-render-distance-px": distancePx !== null ? String(distancePx) : undefined,
+            ...renderOffYTelemetry,
+            "gexp-intext-render-ev": renderExpectedViewability,
           });
 
           if (!this.pendingAuction) {
@@ -8247,7 +8379,9 @@ class RandomStrategy extends WindowArray {
           }
           if (this.wa && this.wa.cI) {
               this.wa.cI["gexp-intext-is-refresh"] = (trigger === "refresh" || this.node._cycleCount > 0) ? "true" : "false";
+              this.wa.cI["gexp-intext-refresh"] = this.wa.cI["gexp-intext-is-refresh"];
               this.wa.cI["gexp-intext-is-fallback"] = (trigger === "fallback" || this._displayRenderState?.isFallback || sentinelRetryContext?.isFallback === true) ? "true" : "false";
+              this.wa.cI["gexp-intext-fallback"] = this.wa.cI["gexp-intext-is-fallback"];
               logIntext(`[Intext:Auction:${this.node.id}] Status injected: refresh=${this.wa.cI["gexp-intext-is-refresh"]}, fallback=${this.wa.cI["gexp-intext-is-fallback"]}`);
           }
           if (this.prebidStarted) return;
@@ -8262,6 +8396,7 @@ class RandomStrategy extends WindowArray {
           if (sentinelRetryContext) {
             this.node.mergeIntextTelemetry({
               "gexp-intext-is-fallback": sentinelRetryContext.isFallback ? "true" : "false",
+              "gexp-intext-fallback": sentinelRetryContext.isFallback ? "true" : "false",
               "gexp-intext-sentinel-retry-forced-request-type": "display",
               "gexp-intext-sentinel-retry-preserved-fallback": sentinelRetryContext.isFallback ? "true" : "false",
               "gexp-intext-sentinel-retry-original-decision-mode": sentinelRetryContext.originalDecisionMode || "unknown",
@@ -9110,6 +9245,21 @@ class RandomStrategy extends WindowArray {
             this.node.wa.cI["gexp-intext-video-failed"] = "true";
             logIntext(`[Intext:Slot:${this.node.id}] gexp-intext-video-failed=true injected into telemetry`);
           }
+          const videoErrorTelemetry = winner === "video"
+            ? {
+                "gexp-intext-video-failed": "true",
+                "gexp-intext-video-error-code": String(
+                  this.node?._intextTelemetryCycle?.["gexp-intext-video-error-code"] ||
+                  this.node?.wa?.cI?.["gexp-intext-video-error-code"] ||
+                  "unknown",
+                ),
+                "gexp-intext-video-error-message": String(
+                  this.node?._intextTelemetryCycle?.["gexp-intext-video-error-message"] ||
+                  this.node?.wa?.cI?.["gexp-intext-video-error-message"] ||
+                  "unknown",
+                ),
+              }
+            : {};
 
           if (!this._displayRenderState) this._displayRenderState = {};
           this._displayRenderState.isFallback = true;
@@ -9120,11 +9270,13 @@ class RandomStrategy extends WindowArray {
             this.node.beginVisualRender("fallback_started", "fallback");
             this.node.startIntextTelemetryCycle("fallback", {
               "gexp-intext-is-fallback": "true",
+              "gexp-intext-fallback": "true",
               "gexp-intext-video-failed": "true",
               "gexp-intext-request-type": "display",
               "gexp-intext-render-token": String(this.node._activeRenderToken || 0),
               "gexp-intext-render-attempt": String(this.node._renderTokenSeq || 0),
               "gexp-intext-visual-state": "fallback_started",
+              ...videoErrorTelemetry,
             });
           }
           const fallbackRenderToken = this.node._activeRenderToken;
@@ -10184,7 +10336,9 @@ class RandomStrategy extends WindowArray {
               "gexp-intext-display": "false",
               "gexp-intext-position": this.node.id,
               "gexp-intext-is-refresh": this.lastTrigger === "refresh" ? "true" : "false",
+              "gexp-intext-refresh": this.lastTrigger === "refresh" ? "true" : "false",
               "gexp-intext-is-fallback": this._displayRenderState?.isFallback === true ? "true" : "false",
+              "gexp-intext-fallback": this._displayRenderState?.isFallback === true ? "true" : "false",
             });
             this.node.wa.newImpression();
             
@@ -11644,6 +11798,12 @@ class RandomStrategy extends WindowArray {
               logIntext(
                 `[Intext:Video:IMA] ⏱ adtimeout — contrib-ads internal timeout`,
               );
+              this.node?.mergeIntextTelemetry?.({
+                "gexp-intext-video-failed": "true",
+                "gexp-intext-video-error-code": "timeout",
+                "gexp-intext-video-error-message": "video_ad_timeout",
+              });
+              this.node?.flushIntextTelemetryToCI?.();
               rejectBeforePlayback(new Error("contrib_ads_timeout"), "adtimeout");
             });
             this.player.on("adend", () => {
@@ -11720,6 +11880,7 @@ class RandomStrategy extends WindowArray {
                             "native_ad_error",
                           );
                         } else {
+                          markFastFallbackVideoError(errCode, errMsg, "native_ad_error");
                           markTerminal("native_ad_error");
                         }
                       },
