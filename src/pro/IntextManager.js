@@ -7196,7 +7196,7 @@ class IntextWaterfall {
         setTimeout(retry, intervalMs);
       };
 
-      setTimeout(retry, intervalMs);
+      retry();
     });
   }
 
