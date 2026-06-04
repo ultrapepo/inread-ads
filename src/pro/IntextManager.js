@@ -2179,6 +2179,7 @@ class IntextNode {
     this._destroyedOrResetToken = 0;
     this._renderTimers = [];
     this._intextTransitionBridge = null;
+    this._intextRealRenderTelemetryCommittedForToken = null;
   }
 
   getIntextNodeId() {
@@ -2891,6 +2892,74 @@ class IntextNode {
     }
   }
 
+  getIntextOffYTelemetry(prefix) {
+    try {
+      if (typeof this.waterfall?.getIntextOffYTelemetry === "function") {
+        return this.waterfall.getIntextOffYTelemetry(prefix);
+      }
+    } catch (e) { }
+    return {
+      [`${prefix}-sl-off-y`]: "unknown",
+      [`${prefix}-us-off-y`]: "unknown",
+    };
+  }
+
+  getIntextExpectedViewability(offYTelemetry, prefix, trigger) {
+    try {
+      if (typeof this.waterfall?.getIntextExpectedViewability === "function") {
+        return this.waterfall.getIntextExpectedViewability(offYTelemetry, prefix, trigger);
+      }
+    } catch (e) { }
+    return "unknown";
+  }
+
+  markIntextRealRenderTelemetry(phase, trigger = "unknown") {
+    try {
+      const renderToken = this._activeRenderToken || 0;
+      if (renderToken && this._intextRealRenderTelemetryCommittedForToken === renderToken) return;
+      this._intextRealRenderTelemetryCommittedForToken = renderToken || `cycle-${this._intextTelemetryCycleId || 0}`;
+
+      const realRenderOffYTelemetry = this.getIntextOffYTelemetry("gexp-intext-real-render");
+      const realRenderExpectedViewability = this.getIntextExpectedViewability(
+        realRenderOffYTelemetry,
+        "gexp-intext-real-render",
+        trigger,
+      );
+      const now = Date.now();
+      const fetchStartAt =
+        this.waterfall?.fetchStartAt ||
+        this.fetchStartAt ||
+        null;
+      const renderStartAt =
+        this.waterfall?.renderStartAt ||
+        this.renderStartAt ||
+        null;
+      const fetchToRealRenderMs =
+        fetchStartAt ? Math.max(0, now - fetchStartAt) : null;
+      const renderToRealRenderMs =
+        renderStartAt ? Math.max(0, now - renderStartAt) : null;
+
+      this.mergeIntextTelemetry({
+        "gexp-intext-real-render-phase": String(phase || "unknown"),
+        ...realRenderOffYTelemetry,
+        "gexp-intext-real-render-ev": realRenderExpectedViewability,
+        "gexp-intext-fetch-to-real-render-ms": fetchToRealRenderMs !== null ? String(fetchToRealRenderMs) : "unknown",
+        "gexp-intext-render-to-real-render-ms": renderToRealRenderMs !== null ? String(renderToRealRenderMs) : "unknown",
+      });
+      this.flushIntextTelemetryToCI?.();
+
+      if (typeof window !== "undefined" && window.gexpIntextDebug === true) {
+        logIntext(`[Intext:Telemetry:${this.id || this.node?.id}] real_render_telemetry`, {
+          phase,
+          usOffY: realRenderOffYTelemetry["gexp-intext-real-render-us-off-y"],
+          ev: realRenderExpectedViewability,
+          fetchToRealRenderMs,
+          renderToRealRenderMs,
+        });
+      }
+    } catch (e) { }
+  }
+
   getDisplayCreativeSizeFromEvent(event) {
     try {
       if (!event?.size || event.size.length < 2) return "unknown";
@@ -3219,7 +3288,7 @@ class IntextNode {
       forceDecisionMode: "display_only",
       fromRequestType: "display",
       isFallback:
-        this.waterfall._displayRenderState?.isFallback === true ||
+        this._intextTelemetryCycle?.["gexp-intext-fallback"] === "true" ||
         this.wa?.cI?.["gexp-intext-is-fallback"] === "true",
       originalDecisionMode: this.config?.decision?.mode || "unknown",
       sentinelLineItemId: event?.lineItemId != null ? String(event.lineItemId) : "unknown",
@@ -3313,6 +3382,12 @@ class IntextNode {
         "gexp-intext-render-us-off-y",
         "gexp-intext-fetch-ev",
         "gexp-intext-render-ev",
+        "gexp-intext-real-render-phase",
+        "gexp-intext-real-render-sl-off-y",
+        "gexp-intext-real-render-us-off-y",
+        "gexp-intext-real-render-ev",
+        "gexp-intext-fetch-to-real-render-ms",
+        "gexp-intext-render-to-real-render-ms",
         "gexp-intext-fetch-distance-px",
         "gexp-intext-render-distance-px",
         "gexp-intext-load-start-distance-px",
@@ -3490,6 +3565,12 @@ class IntextNode {
       "gexp-intext-render-us-off-y",
       "gexp-intext-fetch-ev",
       "gexp-intext-render-ev",
+      "gexp-intext-real-render-phase",
+      "gexp-intext-real-render-sl-off-y",
+      "gexp-intext-real-render-us-off-y",
+      "gexp-intext-real-render-ev",
+      "gexp-intext-fetch-to-real-render-ms",
+      "gexp-intext-render-to-real-render-ms",
       "gexp-intext-fetch-start-time-ms",
       "gexp-intext-render-start-time-ms",
       "gexp-intext-fetch-to-render-ms",
@@ -3606,6 +3687,8 @@ class IntextNode {
       "gexp-intext-telemetry-mode",
       "gexp-intext-telemetry-filtered",
       "gexp-intext-telemetry-commit-reason",
+      "gexp-intext-technical-refresh-lineitem",
+      "gexp-intext-technical-refresh-source",
       "advertiserId",
       "campaignId",
       "lineItemId",
@@ -5019,8 +5102,14 @@ class IntextNode {
         } catch (e) { }
         // -----------------------------------------------
 
-        const isRefresh = this.waterfall && (this.waterfall._cycleCount > 0 || this.waterfall.lastTrigger === "refresh");
-        const isFallback = this.waterfall && this.waterfall._displayRenderState?.isFallback === true;
+        const isRefresh =
+          this._intextTelemetryCycle?.["gexp-intext-refresh"] === "true" ||
+          this.waterfall?._intextTelemetryCycle?.["gexp-intext-refresh"] === "true" ||
+          this.waterfall?.lastTrigger === "refresh";
+        const isFallback =
+          this._intextTelemetryCycle?.["gexp-intext-fallback"] === "true" ||
+          this.waterfall?._intextTelemetryCycle?.["gexp-intext-fallback"] === "true" ||
+          this.waterfall?.lastTrigger === "fallback";
         this.mergeIntextTelemetry({
           "gexp-intext-request-type": "display",
           "gexp-intext": "true",
@@ -5517,6 +5606,7 @@ class IntextNode {
 
     try {
       this.container.open(this.lockedHeight);
+      this.markIntextRealRenderTelemetry("display-open", trigger);
       this.recordTelemetry("fill", { slotId: this.id, size: event.size });
 
       if (slotDoc) {
@@ -6823,9 +6913,16 @@ class IntextWaterfall {
       this._houseLineItemSentinelRetryContext = null;
     }
     if (this.wa && this.wa.cI) {
-      this.wa.cI["gexp-intext-is-refresh"] = (trigger === "refresh" || this.node._cycleCount > 0) ? "true" : "false";
+      const isRefresh =
+        trigger === "refresh" ||
+        this.node?._intextTelemetryCycle?.["gexp-intext-refresh"] === "true";
+      const isFallback =
+        trigger === "fallback" ||
+        this.node?._intextTelemetryCycle?.["gexp-intext-fallback"] === "true" ||
+        sentinelRetryContext?.isFallback === true;
+      this.wa.cI["gexp-intext-is-refresh"] = isRefresh ? "true" : "false";
       this.wa.cI["gexp-intext-refresh"] = this.wa.cI["gexp-intext-is-refresh"];
-      this.wa.cI["gexp-intext-is-fallback"] = (trigger === "fallback" || this._displayRenderState?.isFallback || sentinelRetryContext?.isFallback === true) ? "true" : "false";
+      this.wa.cI["gexp-intext-is-fallback"] = isFallback ? "true" : "false";
       this.wa.cI["gexp-intext-fallback"] = this.wa.cI["gexp-intext-is-fallback"];
       logIntext(`[Intext:Auction:${this.node.id}] Status injected: refresh=${this.wa.cI["gexp-intext-is-refresh"]}, fallback=${this.wa.cI["gexp-intext-is-fallback"]}`);
     }
@@ -8780,10 +8877,10 @@ class IntextWaterfall {
         "gexp-intext-video": "true",
         "gexp-intext-display": "false",
         "gexp-intext-position": this.node.id,
-        "gexp-intext-is-refresh": this.lastTrigger === "refresh" ? "true" : "false",
-        "gexp-intext-refresh": this.lastTrigger === "refresh" ? "true" : "false",
-        "gexp-intext-is-fallback": this._displayRenderState?.isFallback === true ? "true" : "false",
-        "gexp-intext-fallback": this._displayRenderState?.isFallback === true ? "true" : "false",
+        "gexp-intext-is-refresh": this._videoTiming?.trigger === "refresh" ? "true" : "false",
+        "gexp-intext-refresh": this._videoTiming?.trigger === "refresh" ? "true" : "false",
+        "gexp-intext-is-fallback": "false",
+        "gexp-intext-fallback": "false",
       });
       this.node.wa.newImpression();
 
@@ -10113,6 +10210,7 @@ class IntextVideoCreative {
         logIntext(`[Intext:Video:IMA] ✅ adstart — Arrancando...`);
         adStarted = true;
         adstartAt = Date.now();
+        this.node?.markIntextRealRenderTelemetry?.("video-adstart", this._videoTiming?.trigger || "unknown");
         if (this._videoTiming?.requestWinnerVideoAt) {
           logIntext(
             `[Intext:Video:${this.playerId}] timing request_winner_video_to_adstart=${adstartAt - this._videoTiming.requestWinnerVideoAt}ms trigger=${this._videoTiming?.trigger || "unknown"}`,
