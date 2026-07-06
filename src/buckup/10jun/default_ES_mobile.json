@@ -1,0 +1,4124 @@
+{
+    "enabled": true,
+    "telemetryProb": 3,
+    "pList": [
+        0.05,
+        0.1,
+        0.15,
+        0.2,
+        0.25,
+        0.3,
+        0.35,
+        0.4,
+        0.45,
+        0.5,
+        0.6,
+        0.75,
+        1,
+        1.25,
+        1.5,
+        1.75,
+        2,
+        2.25,
+        2.5,
+        2.75,
+        3,
+        3.25,
+        3.5,
+        3.75,
+        4
+    ],
+    "adexIds": [
+        2559776610
+    ],
+    "houseIds": [
+        5170458185,
+        81003777,
+        45125937,
+        4633770194,
+        5744742627,
+        4500591056,
+        4815141041,
+        51641577,
+        4591133191,
+        4527374566,
+        67317777,
+        4940779598,
+        47165697,
+        50339097
+    ],
+    "prebidIds": [
+        "5359233312",
+        "4406227815",
+        "4402193934",
+        "5180398781",
+        "83488497",
+        "83522457",
+        "4402208836",
+        "5354911588",
+        "5823135725"
+    ],
+    "reloadIds": [
+        4764613895,
+        4811457786,
+        79449777,
+        4717022388,
+        5359233312,
+        4402193934,
+        5180398781,
+        83488497,
+        83522457,
+        4402208836,
+        5354911588,
+        5170458185,
+        81003777,
+        45125937,
+        4633770194,
+        5744742627,
+        4500591056,
+        4815141041,
+        51641577,
+        4591133191,
+        4527374566,
+        67317777,
+        4940779598,
+        47165697,
+        50339097
+    ],
+    "reloadCampaignIds": [
+        2559776610,
+        483876297,
+        3038846356,
+        2098434238,
+        494913417,
+        494827977,
+        2106449176,
+        2108387998,
+        2106441352,
+        2106520950,
+        2106523863,
+        2667870692,
+        2668441436,
+        2668163671,
+        2668164637
+    ],
+    "positions": {
+        "r": {
+            "p": 3,
+            "rv": 1,
+            "ppbo": 0.2,
+            "tl": true,
+            "pbfr": 0.75,
+            "adexEscalation": [
+                4,
+                4,
+                4,
+                0
+            ],
+            "pbbp": false,
+            "mp": 2
+        },
+        "rb": {
+            "p": 3,
+            "rv": 1,
+            "ppbo": 0.1,
+            "hr": {
+                "tim": null,
+                "ov": true,
+                "pbtim": 2000,
+                "mr": 1,
+                "mintim": 5000
+            },
+            "ar": {
+                "tim": null,
+                "ov": true,
+                "pbtim": 2000,
+                "mr": 1,
+                "mintim": 5000
+            },
+            "rqpbtim": 2000,
+            "tl": true
+        },
+        "rc": {
+            "p": 2,
+            "rv": 0,
+            "ppbo": 0.05,
+            "hr": {
+                "tim": null,
+                "ov": true,
+                "pbtim": 2000,
+                "mr": 1,
+                "mintim": 5000
+            },
+            "ar": {
+                "tim": null,
+                "ov": true,
+                "pbtim": 2000,
+                "mr": 1,
+                "mintim": 5000
+            },
+            "rqpbtim": 2000,
+            "tl": true
+        },
+        "rd": {
+            "p": 1,
+            "rv": 0,
+            "ppbo": 0.05,
+            "hr": {
+                "tim": null,
+                "ov": true,
+                "pbtim": 2000,
+                "mr": 1,
+                "mintim": 5000
+            },
+            "ar": {
+                "tim": null,
+                "ov": true,
+                "pbtim": 2000,
+                "mr": 1,
+                "mintim": 5000
+            },
+            "rqpbtim": 2000,
+            "tl": true
+        },
+        "re": {
+            "p": 2,
+            "rv": 0,
+            "hr": {
+                "tim": null,
+                "ov": true,
+                "pbtim": 2000,
+                "mr": 1,
+                "mintim": 5000
+            },
+            "ar": {
+                "tim": null,
+                "ov": true,
+                "pbtim": 2000,
+                "mr": 1,
+                "mintim": 5000
+            },
+            "tl": true
+        },
+        "rf": {
+            "p": 2,
+            "rv": 0,
+            "hr": {
+                "tim": null,
+                "ov": true,
+                "pbtim": 2000,
+                "mr": 1,
+                "mintim": 5000
+            },
+            "ar": {
+                "tim": null,
+                "ov": true,
+                "pbtim": 2000,
+                "mr": 1,
+                "mintim": 5000
+            }
+        },
+        "rg": {
+            "p": 2,
+            "rv": 0,
+            "hr": {
+                "tim": null,
+                "ov": true,
+                "pbtim": 2000,
+                "mr": 1,
+                "mintim": 5000
+            },
+            "ar": {
+                "tim": null,
+                "ov": true,
+                "pbtim": 2000,
+                "mr": 1,
+                "mintim": 5000
+            }
+        },
+        "r-pnc": {
+            "p": 2,
+            "rv": 1,
+            "tl": true
+        },
+        "rb-pnc": {
+            "p": 2,
+            "rv": 1
+        },
+        "r-nata": {
+            "p": 2,
+            "rv": 1,
+            "hr": {
+                "tim": null,
+                "ov": true,
+                "pbtim": 2000,
+                "mr": 1,
+                "mintim": 5000
+            },
+            "ar": {
+                "tim": null,
+                "ov": true,
+                "pbtim": 2000,
+                "mr": 1,
+                "mintim": 5000
+            },
+            "tl": true
+        },
+        "r-nata-pnc": {
+            "p": 2,
+            "rv": 1
+        },
+        "m": {
+            "p": 4,
+            "rv": 1,
+            "tl": true,
+            "ar": {
+                "tim": null,
+                "ov": true,
+                "pbtim": 2000,
+                "mr": 1,
+                "mintim": 8000
+            },
+            "adexEscalation": [
+                3,
+                2,
+                2,
+                2
+            ],
+            "ppbo": 0.45,
+            "mp": 9,
+            "pbbp": false
+        },
+        "mb": {
+            "p": 4,
+            "rv": 1,
+            "hr": {
+                "tim": null,
+                "ov": true,
+                "pbtim": 2000,
+                "mr": 1,
+                "mintim": 5000
+            },
+            "ar": {
+                "tim": null,
+                "ov": true,
+                "pbtim": 2000,
+                "mr": 1,
+                "mintim": 5000
+            }
+        },
+        "m-pnc": {
+            "p": 2,
+            "rv": 1,
+            "tl": true
+        },
+        "si": {
+            "p": 2,
+            "rv": 1,
+            "mp": 0,
+            "tl": true
+        },
+        "sd": {
+            "p": 2,
+            "rv": 1,
+            "mp": 0,
+            "tl": true
+        },
+        "c990x50_320x50": {
+            "p": 1,
+            "rv": 1,
+            "hr": {
+                "tim": null,
+                "ov": true,
+                "pbtim": 2000,
+                "mr": 1,
+                "mintim": 5000
+            },
+            "ar": {
+                "tim": null,
+                "ov": true,
+                "pbtim": 2000,
+                "mr": 1,
+                "mintim": 5000
+            }
+        },
+        "c990x50_320x53c": {
+            "p": 1,
+            "rv": 1,
+            "hr": {
+                "tim": null,
+                "ov": true,
+                "pbtim": 2000,
+                "mr": 1,
+                "mintim": 5000
+            },
+            "ar": {
+                "tim": null,
+                "ov": true,
+                "pbtim": 2000,
+                "mr": 1,
+                "mintim": 5000
+            },
+            "tl": true
+        },
+        "c990x50_320x53d": {
+            "p": 1,
+            "rv": 1,
+            "hr": {
+                "tim": null,
+                "ov": true,
+                "pbtim": 2000,
+                "mr": 1,
+                "mintim": 5000
+            },
+            "ar": {
+                "tim": null,
+                "ov": true,
+                "pbtim": 2000,
+                "mr": 1,
+                "mintim": 5000
+            },
+            "tl": true
+        },
+        "gexp-intext": {
+            "p": 4,
+            "rv": 0,
+            "ppbo": 0.1,
+            "hr": {
+                "tim": null,
+                "ov": true,
+                "pbtim": 2000,
+                "mr": 1,
+                "mintim": 5000
+            },
+            "ar": {
+                "tim": null,
+                "ov": true,
+                "pbtim": 2000,
+                "mr": 1,
+                "mintim": 5000
+            },
+            "rqpbtim": 2000,
+            "tl": true
+        },
+        "gexp-intext-2": {
+            "p": 4,
+            "rv": 0,
+            "ppbo": 0.1,
+            "hr": {
+                "tim": null,
+                "ov": true,
+                "pbtim": 2000,
+                "mr": 1,
+                "mintim": 5000
+            },
+            "ar": {
+                "tim": null,
+                "ov": true,
+                "pbtim": 2000,
+                "mr": 1,
+                "mintim": 5000
+            },
+            "rqpbtim": 2000,
+            "tl": true
+        },
+        "gexp-inimage": {
+            "p": 4,
+            "rv": 0,
+            "ppbo": 0.1,
+            "hr": {
+                "tim": null,
+                "ov": true,
+                "pbtim": 2000,
+                "mr": 1,
+                "mintim": 5000
+            },
+            "ar": {
+                "tim": null,
+                "ov": true,
+                "pbtim": 2000,
+                "mr": 1,
+                "mintim": 5000
+            },
+            "rqpbtim": 2000,
+            "tl": true
+        },
+        "gexp-inimage-2": {
+            "p": 4,
+            "rv": 0,
+            "ppbo": 0.1,
+            "hr": {
+                "tim": null,
+                "ov": true,
+                "pbtim": 2000,
+                "mr": 1,
+                "mintim": 5000
+            },
+            "ar": {
+                "tim": null,
+                "ov": true,
+                "pbtim": 2000,
+                "mr": 1,
+                "mintim": 5000
+            },
+            "rqpbtim": 2000,
+            "tl": true
+        },
+        "gexp-inimage-3": {
+            "p": 4,
+            "rv": 0,
+            "ppbo": 0.1,
+            "hr": {
+                "tim": null,
+                "ov": true,
+                "pbtim": 2000,
+                "mr": 1,
+                "mintim": 5000
+            },
+            "ar": {
+                "tim": null,
+                "ov": true,
+                "pbtim": 2000,
+                "mr": 1,
+                "mintim": 5000
+            },
+            "rqpbtim": 2000,
+            "tl": true
+        },
+        "gexp-interstitial": {
+            "p": 4,
+            "rv": 0,
+            "ppbo": 0.1,
+            "hr": {
+                "tim": null,
+                "ov": true,
+                "pbtim": 2000,
+                "mr": 1,
+                "mintim": 5000
+            },
+            "ar": {
+                "tim": null,
+                "ov": true,
+                "pbtim": 2000,
+                "mr": 1,
+                "mintim": 5000
+            },
+            "rqpbtim": 2000,
+            "tl": true
+        },
+        "default": {
+            "p": 1,
+            "rv": 0,
+            "ppbo": 0.1,
+            "mp": 1,
+            "tl": false,
+            "rvp": 20,
+            "pbh": true,
+            "pbfr": 0.5,
+            "pbbp": true,
+            "rqpbtim": 4000,
+            "rlhpb": false,
+            "pbDefaultFloor": 0.1,
+            "pbLowBidThreshold": 0.5,
+            "pbLowBidPct": 200,
+            "pbHighBidPct": 50,
+            "rlpbov": null,
+            "adexEscalation": [
+                0,
+                2,
+                3,
+                5
+            ],
+            "adexMaxStep": 20,
+            "maxPriceMultiplier": 12,
+            "nhbsti": 1,
+            "houseStepDown": [
+                0.5,
+                0.5,
+                0.25
+            ],
+            "nbb": 1,
+            "blankReloadDelayMs": 3000,
+            "maxHouseOnReloads": 3,
+            "pbRequestTimeout": 1000,
+            "overridePrice": null,
+            "upgradePriceOnUnknown": 2,
+            "maxUnknownUpgrades": 1
+        }
+    },
+    "intextSites": {
+        "default": {
+            "general": {
+                "debug": false,
+                "domainFilter": {
+                    "enabled": true,
+                    "allowedDomains": [
+                        "telva",
+                        "marca",
+                        "expansion",
+                        "elmundo"
+                    ],
+                    "dataLayerObj": "ueDataLayer",
+                    "dataLayerProp": "be_page_domain"
+                },
+                "inclusions": {
+                    "keyValues": [],
+                    "sites": {
+                        "marca.com": {
+                            "keyValues": {
+                                "random1": [
+                                    "5",
+                                    "6"
+                                ]
+                            }
+                        },
+                        "telva.com": {
+                            "keyValues": {
+                                "random1": [
+                                    "5",
+                                    "6"
+                                ]
+                            }
+                        },
+                        "expansion.com": {
+                            "keyValues": {
+                                "random1": [
+                                    "5",
+                                    "6"
+                                ]
+                            }
+                        },
+                        "elmundo.es": {
+                            "keyValues": {
+                                "random1": [
+                                    "5",
+                                    "6"
+                                ]
+                            }
+                        }
+                    }
+                },
+                "allowedContentTypes": [
+                    "noticia",
+                    "directo",
+                    "noticia-especial",
+                    "cronica",
+                    "opinion"
+                ],
+                "dom": {
+                    "articleBodySelector": ".ue-c-article__body",
+                    "paragraphSelector": "p",
+                    "blockerSelector": ".ue-c-article__embed, .ue-c-article__image, .ue-c-ad"
+                },
+                "rules": {
+                    "placements": [
+                        [
+                            2,
+                            1
+                        ],
+                        [
+                            4,
+                            1
+                        ]
+                    ],
+                    "allowMultiple": true,
+                    "minCharacters": 50,
+                    "adjacencyAvoidance": {
+                        "enabled": true,
+                        "selector": ".ue-c-ad",
+                        "direction": "up",
+                        "allowDownwardShift": false,
+                        "fallbackToOriginal": true,
+                        "maxShiftParagraphs": 2,
+                        "minFinalParagraphIndexBySlot": {
+                            "gexp-intext": 1
+                        }
+                    }
+                },
+                "style": {
+                    "containerBackground": "transparent",
+                    "fixedHeight": "360px",
+                    "useBlur": false
+                },
+                "loading": {
+                    "rootMargin": "1000px 0px",
+                    "maxDelayMs": 1500,
+                    "fetchRootMargin": "1200px 0px",
+                    "renderRootMargin": "850px 0px",
+                    "maxFetchToRenderMs": 15000
+                },
+                "telemetry": {
+                    "mode": "standard"
+                },
+                "display": {
+                    "adUnitPath": "telva\/belleza\/n",
+                    "sizes": [
+                        [
+                            300,
+                            250
+                        ],
+                        [
+                            300,
+                            300
+                        ],
+                        [
+                            320,
+                            100
+                        ],
+                        [
+                            300,
+                            600
+                        ],
+                        [
+                            960,
+                            540
+                        ],
+                        [
+                            970,
+                            90
+                        ],
+                        [
+                            980,
+                            90
+                        ],
+                        [
+                            970,
+                            250
+                        ],
+                        [
+                            980,
+                            250
+                        ],
+                        [
+                            120,
+                            600
+                        ],
+                        [
+                            120,
+                            1000
+                        ]
+                    ]
+                },
+                "video": {
+                    "enabled": true,
+                    "playerSize": [
+                        640,
+                        360
+                    ],
+                    "variantSelection": {
+                        "key": "random1",
+                        "values": {
+                            "5": "instream",
+                            "6": "outstream"
+                        },
+                        "fallback": "instream"
+                    },
+                    "profiles": {
+                        "instream": {
+                            "context": "instream",
+                            "plcmt": 1,
+                            "placement": 1,
+                            "mimes": [
+                                "video\/mp4",
+                                "application\/javascript"
+                            ],
+                            "protocols": [
+                                2,
+                                3,
+                                5,
+                                6,
+                                7
+                            ],
+                            "linearity": 1,
+                            "api": [
+                                1,
+                                2
+                            ],
+                            "battr": [
+                                13,
+                                14
+                            ],
+                            "skippable": true,
+                            "maxduration": 30,
+                            "minduration": 1,
+                            "playbackmethod": [
+                                3,
+                                4,
+                                5,
+                                6
+                            ]
+                        },
+                        "outstream": {
+                            "context": "outstream",
+                            "plcmt": 2,
+                            "placement": 3,
+                            "mimes": [
+                                "video\/mp4",
+                                "application\/javascript"
+                            ],
+                            "protocols": [
+                                2,
+                                3,
+                                5,
+                                6,
+                                7
+                            ],
+                            "linearity": 1,
+                            "api": [
+                                1,
+                                2
+                            ],
+                            "battr": [
+                                13,
+                                14
+                            ],
+                            "skippable": true,
+                            "maxduration": 30,
+                            "minduration": 1,
+                            "playbackmethod": [
+                                3,
+                                4,
+                                5,
+                                6
+                            ]
+                        }
+                    },
+                    "fastFallbackErrorCodes": [
+                        303,
+                        1005
+                    ],
+                    "fastFallbackOnEmptyVast": true
+                },
+                "prebidVideoCache": {
+                    "key1": "random1",
+                    "key2": "random2",
+                    "enabledRandom1": [
+                        "5",
+                        "6"
+                    ],
+                    "variants": {
+                        "1": {
+                            "mode": "default"
+                        },
+                        "2": {
+                            "mode": "default"
+                        },
+                        "3": {
+                            "mode": "default"
+                        },
+                        "4": {
+                            "mode": "default"
+                        },
+                        "5": {
+                            "mode": "default"
+                        },
+                        "6": {
+                            "mode": "default"
+                        },
+                        "7": {
+                            "mode": "default"
+                        }
+                    }
+                },
+                "slots": {
+                    "enabled": true,
+                    "maxSlots": 2,
+                    "enabledSlots": [
+                        0,
+                        1
+                    ]
+                },
+                "decision": {
+                    "mode": "auto",
+                    "minCpm": 1,
+                    "priorityBelowMin": "video"
+                },
+                "refreshCycle": {
+                    "enabled": true,
+                    "delayMs": 5000,
+                    "maxCycles": 3,
+                    "mode": "display_only",
+                    "bidStrategy": "fresh",
+                    "bidMaxAgeMs": 30000,
+                    "houseDelayMs": 3000,
+                    "cpcDelayMs": 3000,
+                    "adexDelayMs": 3500,
+                    "house1x1AutoRefresh": {
+                        "enabled": true,
+                        "delayMs": 100,
+                        "maxAttemptsPerCycle": 1,
+                        "maxAttemptsPerSlot": 3,
+                        "registerTelemetry": false,
+                        "requireHouse": true,
+                        "advertiserIds": [],
+                        "campaignIds": [],
+                        "lineItemIds": [
+                            "7234537665"
+                        ]
+                    }
+                },
+                "telemetryIds": {
+                    "prebid": [
+                        "83488497",
+                        "4402193934",
+                        "5907488782",
+                        "5823135725",
+                        "5619844792",
+                        "5180398781",
+                        "5354911588",
+                        "4406227815",
+                        "83522457",
+                        "5907334980",
+                        "5359233312",
+                        "4402208836"
+                    ],
+                    "amazon": [
+                        "55409457"
+                    ],
+                    "adex": [
+                        "2559776610",
+                        "2466799184"
+                    ]
+                },
+                "slotOverrides": {
+                    "gexp-intext": {
+                        "decision": {
+                            "mode": "auto"
+                        },
+                        "loading": {
+                            "rootMargin": "850px 0px",
+                            "maxDelayMs": 1500,
+                            "fetchRootMargin": "1200px 0px",
+                            "renderRootMargin": "850px 0px"
+                        }
+                    },
+                    "gexp-intext-2": {
+                        "decision": {
+                            "mode": "display_only"
+                        },
+                        "loading": {
+                            "rootMargin": "200px 0px",
+                            "maxDelayMs": null,
+                            "fetchRootMargin": "1000px 0px",
+                            "renderRootMargin": "200px 0px"
+                        }
+                    },
+                    "gexp-intext-3": {
+                        "decision": {
+                            "mode": "display_only"
+                        },
+                        "loading": {
+                            "fetchRootMargin": "1000px 0px",
+                            "renderRootMargin": "150px 0px",
+                            "maxDelayMs": null
+                        }
+                    },
+                    "pnc": {
+                        "loading": {
+                            "fetchRootMargin": "1000px 0px",
+                            "renderRootMargin": "150px 0px",
+                            "maxDelayMs": null
+                        }
+                    }
+                },
+                "prebid": {
+                    "waitForGlobalInitFlag": "ueInitPrebid",
+                    "globalInitWaitMs": 5000,
+                    "timeoutMs": 2500,
+                    "graceMs": 400,
+                    "excludedVideoBidders": [],
+                    "videoOrtb2ImpMode": "ext_only",
+                    "networks": {
+                        "default": {
+                            "aliases": {
+                                "rubicon_video": {
+                                    "bidder": "rubicon",
+                                    "useBaseGvlid": true
+                                },
+                                "msft_video": {
+                                    "bidder": "msft",
+                                    "useBaseGvlid": true
+                                },
+                                "criteo_video": {
+                                    "bidder": "criteo",
+                                    "useBaseGvlid": true
+                                },
+                                "pubmatic_video": {
+                                    "bidder": "pubmatic",
+                                    "useBaseGvlid": true
+                                },
+                                "richaudience_video": {
+                                    "bidder": "richaudience",
+                                    "useBaseGvlid": true
+                                },
+                                "equativ_video": {
+                                    "bidder": "equativ",
+                                    "useBaseGvlid": true
+                                },
+                                "ix_video": {
+                                    "bidder": "ix",
+                                    "useBaseGvlid": true
+                                },
+                                "ttd_video": {
+                                    "bidder": "ttd",
+                                    "useBaseGvlid": true
+                                }
+                            },
+                            "bidders": [
+                                {
+                                    "bidder": "msft",
+                                    "params": {
+                                        "placement_id": 11595043
+                                    }
+                                },
+                                {
+                                    "bidder": "rubicon",
+                                    "params": {
+                                        "zoneId": 663146,
+                                        "siteId": 142592,
+                                        "accountId": 15366,
+                                        "position": "atf"
+                                    }
+                                },
+                                {
+                                    "bidder": "criteo",
+                                    "params": {
+                                        "networkId": 1080,
+                                        "pubid": "108879"
+                                    }
+                                },
+                                {
+                                    "bidder": "equativ",
+                                    "params": {
+                                        "networkId": 1844,
+                                        "pageId": 648550,
+                                        "formatId": 54723,
+                                        "siteId": 99914
+                                    }
+                                },
+                                {
+                                    "bidder": "richaudience",
+                                    "params": {
+                                        "pid": "1b3RqFswab",
+                                        "supplyType": "site"
+                                    }
+                                },
+                                {
+                                    "bidder": "teads",
+                                    "params": {
+                                        "placementId": 202864,
+                                        "pageId": 187761
+                                    }
+                                },
+                                {
+                                    "bidder": "pubstack_server",
+                                    "params": {
+                                        "adUnitName": "marca_mobile_othersection_mpu1"
+                                    }
+                                },
+                                {
+                                    "bidder": "ttd",
+                                    "params": {
+                                        "supplySourceId": "unidad",
+                                        "publisherId": "1"
+                                    }
+                                },
+                                {
+                                    "bidder": "ix",
+                                    "params": {
+                                        "siteId": "1255727"
+                                    }
+                                },
+                                {
+                                    "bidder": "taboola",
+                                    "params": {
+                                        "publisherId": "1925071"
+                                    }
+                                }
+                            ],
+                            "videoBidders": [
+                                {
+                                    "bidder": "rubicon_video",
+                                    "params": {
+                                        "zoneId": 3460964,
+                                        "siteId": 96110,
+                                        "position": "atf",
+                                        "accountId": 15366,
+                                        "video": {
+                                            "size_id": 201
+                                        }
+                                    }
+                                },
+                                {
+                                    "bidder": "pubstack_server_video",
+                                    "params": {
+                                        "adUnitName": "marca_mobile_othersection_vidpr"
+                                    }
+                                },
+                                {
+                                    "bidder": "richaudience_video",
+                                    "params": {
+                                        "pid": "ImcSe2TtvR",
+                                        "supplyType": "site"
+                                    }
+                                },
+                                {
+                                    "bidder": "msft_video",
+                                    "params": {
+                                        "placement_id": 34117164
+                                    }
+                                },
+                                {
+                                    "bidder": "criteo_video",
+                                    "params": {
+                                        "networkId": "1080",
+                                        "pubid": "108879"
+                                    }
+                                },
+                                {
+                                    "bidder": "ttd_video",
+                                    "params": {
+                                        "supplySourceId": "unidad",
+                                        "publisherId": "1",
+                                        "placementId": "video"
+                                    }
+                                },
+                                {
+                                    "bidder": "equativ_video",
+                                    "params": {
+                                        "networkId": "1844",
+                                        "siteId": "99914",
+                                        "pageId": "648550",
+                                        "formatId": "40183"
+                                    }
+                                },
+                                {
+                                    "bidder": "ix_video",
+                                    "params": {
+                                        "siteId": "1255787"
+                                    }
+                                }
+                            ],
+                            "slotProfiles": {
+                                "gexp-intext": {
+                                    "bidders": [
+                                        {
+                                            "bidder": "msft",
+                                            "params": {
+                                                "placement_id": 11595043
+                                            }
+                                        },
+                                        {
+                                            "bidder": "rubicon",
+                                            "params": {
+                                                "zoneId": 663146,
+                                                "siteId": 142592,
+                                                "accountId": 15366,
+                                                "position": "atf"
+                                            }
+                                        },
+                                        {
+                                            "bidder": "criteo",
+                                            "params": {
+                                                "networkId": 1080,
+                                                "pubid": "108879"
+                                            }
+                                        },
+                                        {
+                                            "bidder": "equativ",
+                                            "params": {
+                                                "networkId": 1844,
+                                                "pageId": 648550,
+                                                "formatId": 54723,
+                                                "siteId": 99914
+                                            }
+                                        },
+                                        {
+                                            "bidder": "richaudience",
+                                            "params": {
+                                                "pid": "1b3RqFswab",
+                                                "supplyType": "site"
+                                            }
+                                        },
+                                        {
+                                            "bidder": "teads",
+                                            "params": {
+                                                "placementId": 202864,
+                                                "pageId": 187761
+                                            }
+                                        },
+                                        {
+                                            "bidder": "pubstack_server",
+                                            "params": {
+                                                "adUnitName": "marca_mobile_othersection_mpu1"
+                                            }
+                                        },
+                                        {
+                                            "bidder": "ttd",
+                                            "params": {
+                                                "supplySourceId": "unidad",
+                                                "publisherId": "1"
+                                            }
+                                        },
+                                        {
+                                            "bidder": "ix",
+                                            "params": {
+                                                "siteId": "1255727"
+                                            }
+                                        },
+                                        {
+                                            "bidder": "taboola",
+                                            "params": {
+                                                "publisherId": "1925071"
+                                            }
+                                        }
+                                    ],
+                                    "videoBidders": [
+                                        {
+                                            "bidder": "rubicon_video",
+                                            "params": {
+                                                "zoneId": 3460964,
+                                                "siteId": 96110,
+                                                "position": "atf",
+                                                "accountId": 15366,
+                                                "video": {
+                                                    "size_id": 201
+                                                }
+                                            }
+                                        },
+                                        {
+                                            "bidder": "pubstack_server_video",
+                                            "params": {
+                                                "adUnitName": "marca_mobile_othersection_vidpr"
+                                            }
+                                        },
+                                        {
+                                            "bidder": "richaudience_video",
+                                            "params": {
+                                                "pid": "ImcSe2TtvR",
+                                                "supplyType": "site"
+                                            }
+                                        },
+                                        {
+                                            "bidder": "msft_video",
+                                            "params": {
+                                                "placement_id": 34117164
+                                            }
+                                        },
+                                        {
+                                            "bidder": "criteo_video",
+                                            "params": {
+                                                "networkId": "1080",
+                                                "pubid": "108879"
+                                            }
+                                        },
+                                        {
+                                            "bidder": "ttd_video",
+                                            "params": {
+                                                "supplySourceId": "unidad",
+                                                "publisherId": "1",
+                                                "placementId": "video"
+                                            }
+                                        },
+                                        {
+                                            "bidder": "equativ_video",
+                                            "params": {
+                                                "networkId": "1844",
+                                                "siteId": "99914",
+                                                "pageId": "648550",
+                                                "formatId": "40183"
+                                            }
+                                        },
+                                        {
+                                            "bidder": "ix_video",
+                                            "params": {
+                                                "siteId": "1255787"
+                                            }
+                                        }
+                                    ]
+                                },
+                                "secondary": {
+                                    "bidders": [
+                                        {
+                                            "bidder": "msft",
+                                            "params": {
+                                                "placement_id": 34117164
+                                            }
+                                        },
+                                        {
+                                            "bidder": "rubicon",
+                                            "params": {
+                                                "zoneId": 663158,
+                                                "siteId": 142592,
+                                                "accountId": 15366,
+                                                "position": "btf"
+                                            }
+                                        },
+                                        {
+                                            "bidder": "criteo",
+                                            "params": {
+                                                "networkId": 1080,
+                                                "pubid": "108879"
+                                            }
+                                        },
+                                        {
+                                            "bidder": "equativ",
+                                            "params": {
+                                                "networkId": 1844,
+                                                "pageId": 648550,
+                                                "formatId": 40974,
+                                                "siteId": 99914
+                                            }
+                                        },
+                                        {
+                                            "bidder": "richaudience",
+                                            "params": {
+                                                "pid": "1LKWJIrbol",
+                                                "supplyType": "site"
+                                            }
+                                        },
+                                        {
+                                            "bidder": "teads",
+                                            "params": {
+                                                "placementId": 202864,
+                                                "pageId": 187761
+                                            }
+                                        },
+                                        {
+                                            "bidder": "pubstack_server",
+                                            "params": {
+                                                "adUnitName": "marca_mobile_othersection_vidpr"
+                                            }
+                                        },
+                                        {
+                                            "bidder": "ttd",
+                                            "params": {
+                                                "supplySourceId": "unidad",
+                                                "publisherId": "1"
+                                            }
+                                        },
+                                        {
+                                            "bidder": "ix",
+                                            "params": {
+                                                "siteId": "1255747"
+                                            }
+                                        },
+                                        {
+                                            "bidder": "taboola",
+                                            "params": {
+                                                "publisherId": "1925071"
+                                            }
+                                        }
+                                    ],
+                                    "videoBidders": [
+                                        {
+                                            "bidder": "rubicon_video",
+                                            "params": {
+                                                "zoneId": 3460964,
+                                                "siteId": 96110,
+                                                "position": "atf",
+                                                "accountId": 15366,
+                                                "video": {
+                                                    "size_id": 201
+                                                }
+                                            }
+                                        },
+                                        {
+                                            "bidder": "pubstack_server_video",
+                                            "params": {
+                                                "adUnitName": "marca_mobile_othersection_vidpr"
+                                            }
+                                        },
+                                        {
+                                            "bidder": "richaudience_video",
+                                            "params": {
+                                                "pid": "ImcSe2TtvR",
+                                                "supplyType": "site"
+                                            }
+                                        },
+                                        {
+                                            "bidder": "msft_video",
+                                            "params": {
+                                                "placement_id": 34117164
+                                            }
+                                        },
+                                        {
+                                            "bidder": "criteo_video",
+                                            "params": {
+                                                "networkId": "1080",
+                                                "pubid": "108879"
+                                            }
+                                        },
+                                        {
+                                            "bidder": "ttd_video",
+                                            "params": {
+                                                "supplySourceId": "unidad",
+                                                "publisherId": "1",
+                                                "placementId": "video"
+                                            }
+                                        },
+                                        {
+                                            "bidder": "equativ_video",
+                                            "params": {
+                                                "networkId": "1844",
+                                                "siteId": "99914",
+                                                "pageId": "648550",
+                                                "formatId": "40183"
+                                            }
+                                        },
+                                        {
+                                            "bidder": "ix_video",
+                                            "params": {
+                                                "siteId": "1255787"
+                                            }
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                },
+                "tam": {
+                    "pubID": "3537",
+                    "adServer": "googletag",
+                    "bidTimeout": 1500,
+                    "gdpr": {
+                        "enabled": true
+                    },
+                    "videoAdServer": "DFP",
+                    "deals": true
+                },
+                "contentTypes": {
+                    "directo": {
+                        "dom": {
+                            "articleBodySelector": ".ue-c-streamlive__body",
+                            "paragraphSelector": "article.ue-c-streamlive-comment",
+                            "blockerSelector": ".ue-c-ad"
+                        },
+                        "rules": {
+                            "placements": [
+                                [
+                                    2,
+                                    1
+                                ],
+                                [
+                                    4,
+                                    1
+                                ],
+                                [
+                                    6,
+                                    1
+                                ]
+                            ],
+                            "allowMultiple": true,
+                            "minCharacters": 0
+                        },
+                        "slots": {
+                            "enabled": true,
+                            "maxSlots": 3,
+                            "enabledSlots": [
+                                0,
+                                1,
+                                2
+                            ]
+                        },
+                        "decision": {
+                            "mode": "auto",
+                            "minCpm": 1,
+                            "priorityBelowMin": "video"
+                        },
+                        "refreshCycle": {
+                            "enabled": true,
+                            "delayMs": 3000,
+                            "maxCycles": 2,
+                            "mode": "display_only",
+                            "bidStrategy": "fresh",
+                            "houseDelayMs": 2000,
+                            "cpcDelayMs": 2000,
+                            "adexDelayMs": 3500,
+                            "house1x1AutoRefresh": {
+                                "enabled": true,
+                                "delayMs": 100,
+                                "maxAttemptsPerCycle": 1,
+                                "maxAttemptsPerSlot": 2,
+                                "registerTelemetry": false,
+                                "requireHouse": true,
+                                "advertiserIds": [],
+                                "campaignIds": [],
+                                "lineItemIds": [
+                                    "7234537665"
+                                ]
+                            }
+                        },
+                        "slotOverrides": {
+                            "gexp-intext-2": {
+                                "decision": {
+                                    "mode": "display_only"
+                                },
+                                "loading": {
+                                    "rootMargin": "250px 0px",
+                                    "maxDelayMs": null,
+                                    "fetchRootMargin": "1000px 0px",
+                                    "renderRootMargin": "250px 0px"
+                                }
+                            },
+                            "gexp-intext-3": {
+                                "decision": {
+                                    "mode": "display_only"
+                                },
+                                "loading": {
+                                    "rootMargin": "250px 0px",
+                                    "maxDelayMs": null,
+                                    "fetchRootMargin": "1000px 0px",
+                                    "renderRootMargin": "250px 0px"
+                                }
+                            },
+                            "pnc": {
+                                "loading": {
+                                    "fetchRootMargin": "1000px 0px",
+                                    "renderRootMargin": "250px 0px",
+                                    "maxDelayMs": null
+                                }
+                            }
+                        },
+                        "exclusions": {
+                            "disableAll": false,
+                            "adUnitPaths": [],
+                            "keyValues": [],
+                            "disableSlots": {
+                                "always": [],
+                                "rules": []
+                            }
+                        }
+                    }
+                },
+                "exclusions": {
+                    "disableAll": false,
+                    "adUnitPaths": [],
+                    "keyValues": {
+                        "newsid": [
+                            ""
+                        ],
+                        "tag": [
+                            "bloqueo-publi"
+                        ],
+                        "t": [
+                            ""
+                        ]
+                    },
+                    "disableSlots": {
+                        "always": [],
+                        "rules": []
+                    }
+                },
+                "infiniteScroll": {
+                    "enabled": true,
+                    "mainSelector": "main[data-ue-navindex]",
+                    "maxArticles": 5,
+                    "overrides": {
+                        "slots": {
+                            "enabled": true,
+                            "maxSlots": 1,
+                            "enabledSlots": [
+                                0
+                            ]
+                        },
+                        "decision": {
+                            "mode": "display_only",
+                            "minCpm": 1,
+                            "priorityBelowMin": "display"
+                        },
+                        "refreshCycle": {
+                            "enabled": true,
+                            "delayMs": 3000,
+                            "maxCycles": 2,
+                            "mode": "display_only",
+                            "bidStrategy": "fresh",
+                            "houseDelayMs": 2000,
+                            "cpcDelayMs": 2000,
+                            "adexDelayMs": 3500,
+                            "house1x1AutoRefresh": {
+                                "enabled": true,
+                                "delayMs": 100,
+                                "maxAttemptsPerCycle": 1,
+                                "maxAttemptsPerSlot": 2,
+                                "registerTelemetry": false,
+                                "requireHouse": true,
+                                "advertiserIds": [],
+                                "campaignIds": [],
+                                "lineItemIds": [
+                                    "7234537665"
+                                ]
+                            }
+                        },
+                        "slotOverrides": []
+                    },
+                    "exclusions": {
+                        "disableAll": false,
+                        "adUnitPaths": [],
+                        "keyValues": [],
+                        "disableSlots": {
+                            "always": [],
+                            "rules": []
+                        }
+                    }
+                },
+                "networks": {
+                    "21626337071": {
+                        "tam": {
+                            "enabled": false
+                        }
+                    }
+                },
+                "loadingExperiments": {
+                    "enabled": true,
+                    "key": "random1",
+                    "variants": {
+                        "5": {
+                            "name": "test-b",
+                            "slots": {
+                                "gexp-intext": {
+                                    "loading": {
+                                        "fetchRootMargin": "1200px 0px",
+                                        "renderRootMargin": "750px 0px",
+                                        "maxDelayMs": 7000
+                                    }
+                                },
+                                "gexp-intext-2": {
+                                    "loading": {
+                                        "fetchRootMargin": "1000px 0px",
+                                        "renderRootMargin": "200px 0px",
+                                        "maxDelayMs": null
+                                    }
+                                },
+                                "gexp-intext-3": {
+                                    "loading": {
+                                        "fetchRootMargin": "1000px 0px",
+                                        "renderRootMargin": "200px 0px",
+                                        "maxDelayMs": null
+                                    }
+                                },
+                                "pnc": {
+                                    "loading": {
+                                        "fetchRootMargin": "1000px 0px",
+                                        "renderRootMargin": "200px 0px",
+                                        "maxDelayMs": null
+                                    }
+                                }
+                            }
+                        },
+                        "6": {
+                            "name": "control",
+                            "slots": {
+                                "gexp-intext": {
+                                    "loading": {
+                                        "fetchRootMargin": "1200px 0px",
+                                        "renderRootMargin": "850px 0px",
+                                        "maxDelayMs": 1500
+                                    }
+                                },
+                                "gexp-intext-2": {
+                                    "loading": {
+                                        "fetchRootMargin": "1000px 0px",
+                                        "renderRootMargin": "250px 0px",
+                                        "maxDelayMs": null
+                                    }
+                                },
+                                "gexp-intext-3": {
+                                    "loading": {
+                                        "fetchRootMargin": "1000px 0px",
+                                        "renderRootMargin": "250px 0px",
+                                        "maxDelayMs": null
+                                    }
+                                },
+                                "pnc": {
+                                    "loading": {
+                                        "fetchRootMargin": "1000px 0px",
+                                        "renderRootMargin": "250px 0px",
+                                        "maxDelayMs": null
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "overrides": [
+                {
+                    "if": [
+                        "device:mobile"
+                    ],
+                    "then": {
+                        "display": {
+                            "sizes": [
+                                [
+                                    300,
+                                    250
+                                ],
+                                [
+                                    300,
+                                    300
+                                ],
+                                [
+                                    336,
+                                    280
+                                ],
+                                [
+                                    320,
+                                    100
+                                ],
+                                [
+                                    320,
+                                    50
+                                ],
+                                [
+                                    300,
+                                    600
+                                ],
+                                [
+                                    970,
+                                    90
+                                ],
+                                [
+                                    980,
+                                    90
+                                ],
+                                [
+                                    970,
+                                    250
+                                ],
+                                [
+                                    980,
+                                    250
+                                ],
+                                [
+                                    120,
+                                    600
+                                ],
+                                [
+                                    120,
+                                    1000
+                                ]
+                            ]
+                        },
+                        "rules": {
+                            "placements": [
+                                [
+                                    2,
+                                    1
+                                ],
+                                [
+                                    4,
+                                    1
+                                ]
+                            ]
+                        }
+                    }
+                }
+            ]
+        }
+    },
+    "inimageSites": {
+        "default": {
+            "general": {
+                "debug": false,
+                "domainFilter": {
+                    "enabled": true,
+                    "allowedDomains": [
+                        "telva",
+                        "marca"
+                    ],
+                    "dataLayerObj": "ueDataLayer",
+                    "dataLayerProp": "be_page_domain"
+                },
+                "inclusions": {
+                    "keyValues": {
+                        "newsid": [
+                            "69bbe63601a2f1b5478b4597",
+                            "698dda7d22601d87168b45da",
+                            "6998415322601d777c8b45aa"
+                        ]
+                    }
+                },
+                "allowedContentTypes": [
+                    "noticia",
+                    "directo",
+                    "noticia-especial",
+                    "cronica",
+                    "opinion"
+                ],
+                "dom": {
+                    "mainColumnSelector": ".ue-l-article__main-column",
+                    "figureSelector": "figure",
+                    "pictureSelector": "picture",
+                    "imageSelector": "img",
+                    "blockerSelector": ".ue-c-ad"
+                },
+                "eligibility": {
+                    "minImageWidth": 300,
+                    "minImageHeight": 180,
+                    "requireLoadedImage": true,
+                    "skipIfHidden": true
+                },
+                "slots": {
+                    "enabled": true,
+                    "maxSlots": 1,
+                    "enabledSlots": [
+                        0
+                    ],
+                    "mode": "first_image_only"
+                },
+                "overlay": {
+                    "anchor": "bottom-right",
+                    "offsetRight": 0,
+                    "offsetBottom": 0,
+                    "maxOverlayWidthRatio": 0.5,
+                    "maxOverlayHeightRatio": 0.5,
+                    "minScale": 0.82,
+                    "maxScale": 1,
+                    "showLabel": true,
+                    "label": "Publicidad",
+                    "zIndex": 20
+                },
+                "loading": {
+                    "rootMargin": "1000px 0px",
+                    "maxDelayMs": 1500
+                },
+                "display": {
+                    "adUnitPath": "telva\/belleza\/n",
+                    "sizes": [
+                        [
+                            300,
+                            250
+                        ],
+                        [
+                            300,
+                            300
+                        ],
+                        [
+                            336,
+                            280
+                        ],
+                        [
+                            320,
+                            100
+                        ],
+                        [
+                            320,
+                            50
+                        ]
+                    ]
+                },
+                "refreshCycle": {
+                    "enabled": true,
+                    "delayMs": 5000,
+                    "maxCycles": 2,
+                    "bidStrategy": "fresh",
+                    "bidMaxAgeMs": 30000,
+                    "houseDelayMs": 2000,
+                    "cpcDelayMs": 2000,
+                    "adexDelayMs": 3500
+                },
+                "prebid": {
+                    "timeoutMs": 1500,
+                    "graceMs": 200,
+                    "networks": {
+                        "default": {
+                            "aliases": [],
+                            "bidders": [
+                                {
+                                    "bidder": "appnexus",
+                                    "params": {
+                                        "placementId": "11595057"
+                                    }
+                                },
+                                {
+                                    "bidder": "rubicon",
+                                    "params": {
+                                        "zoneId": 663050,
+                                        "siteId": 142576,
+                                        "accountId": 15366,
+                                        "position": "btf"
+                                    }
+                                },
+                                {
+                                    "bidder": "criteo",
+                                    "params": {
+                                        "networkId": 1080,
+                                        "pubid": "108879"
+                                    }
+                                },
+                                {
+                                    "bidder": "smartadserver",
+                                    "params": {
+                                        "pageId": 648549,
+                                        "formatId": 40859,
+                                        "siteId": 99913,
+                                        "domain": "https:\/\/prg.smartadserver.com"
+                                    }
+                                },
+                                {
+                                    "bidder": "equativ",
+                                    "params": {
+                                        "networkId": 1844,
+                                        "pageId": 648549,
+                                        "formatId": 40859,
+                                        "siteId": 99913
+                                    }
+                                },
+                                {
+                                    "bidder": "richaudience",
+                                    "params": {
+                                        "pid": "463Y4dJxIO",
+                                        "supplyType": "site"
+                                    }
+                                },
+                                {
+                                    "bidder": "teads",
+                                    "params": {
+                                        "placementId": 202864,
+                                        "pageId": 187761
+                                    }
+                                },
+                                {
+                                    "bidder": "pubmatic",
+                                    "params": {
+                                        "publisherId": "161984",
+                                        "adSlot": "4525457"
+                                    }
+                                },
+                                {
+                                    "bidder": "ttd",
+                                    "params": {
+                                        "supplySourceId": "unidad",
+                                        "publisherId": "1"
+                                    }
+                                },
+                                {
+                                    "bidder": "ix",
+                                    "params": {
+                                        "siteId": "1255677"
+                                    }
+                                },
+                                {
+                                    "bidder": "taboola",
+                                    "params": {
+                                        "publisherId": "1925071"
+                                    }
+                                }
+                            ]
+                        },
+                        "21626337071": {
+                            "aliases": [],
+                            "bidders": [
+                                {
+                                    "bidder": "appnexus",
+                                    "params": {
+                                        "placementId": 37306510
+                                    }
+                                },
+                                {
+                                    "bidder": "sovrn",
+                                    "params": {
+                                        "tagid": 1306015
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                },
+                "tam": {
+                    "enabled": true,
+                    "pubID": "3537",
+                    "adServer": "googletag",
+                    "bidTimeout": 1000,
+                    "gdpr": {
+                        "enabled": true
+                    },
+                    "deals": true
+                },
+                "contentTypes": {
+                    "directo": {
+                        "slots": {
+                            "enabled": true,
+                            "maxSlots": 2,
+                            "enabledSlots": [
+                                0,
+                                1
+                            ],
+                            "mode": "multi"
+                        }
+                    }
+                },
+                "exclusions": {
+                    "disableAll": false,
+                    "adUnitPaths": [],
+                    "keyValues": {
+                        "newsid": [
+                            ""
+                        ],
+                        "tag": [
+                            "bloqueo-publi"
+                        ],
+                        "t": [
+                            ""
+                        ]
+                    },
+                    "disableSlots": {
+                        "always": [],
+                        "rules": []
+                    }
+                },
+                "infiniteScroll": {
+                    "enabled": true,
+                    "mainSelector": "main[data-ue-navindex]",
+                    "maxArticles": 5,
+                    "overrides": {
+                        "slots": {
+                            "enabled": true,
+                            "maxSlots": 1,
+                            "enabledSlots": [
+                                0
+                            ],
+                            "mode": "first_image_only"
+                        },
+                        "refreshCycle": {
+                            "enabled": true,
+                            "delayMs": 3000,
+                            "maxCycles": 2,
+                            "bidStrategy": "fresh",
+                            "houseDelayMs": 2000,
+                            "cpcDelayMs": 2000,
+                            "adexDelayMs": 3500
+                        }
+                    },
+                    "exclusions": {
+                        "disableAll": false,
+                        "adUnitPaths": [],
+                        "keyValues": [],
+                        "disableSlots": {
+                            "always": [],
+                            "rules": []
+                        }
+                    }
+                },
+                "networks": {
+                    "21626337071": {
+                        "tam": {
+                            "enabled": false
+                        }
+                    }
+                }
+            },
+            "overrides": [
+                {
+                    "if": [
+                        "device:mobile"
+                    ],
+                    "then": {
+                        "overlay": {
+                            "maxOverlayWidthRatio": 0.55,
+                            "maxOverlayHeightRatio": 0.55,
+                            "minScale": 0.86,
+                            "maxScale": 1
+                        },
+                        "display": {
+                            "sizes": [
+                                [
+                                    300,
+                                    250
+                                ],
+                                [
+                                    300,
+                                    300
+                                ],
+                                [
+                                    320,
+                                    100
+                                ],
+                                [
+                                    320,
+                                    50
+                                ]
+                            ]
+                        }
+                    }
+                }
+            ]
+        }
+    },
+    "interstitialSites": {
+        "default": {
+            "general": {
+                "debug": false,
+                "domainFilter": {
+                    "enabled": true,
+                    "allowedDomains": [
+                        "telva",
+                        "marca"
+                    ],
+                    "dataLayerObj": "ueDataLayer",
+                    "dataLayerProp": "be_page_domain"
+                },
+                "inclusions": {
+                    "keyValues": {
+                        "newsid": [
+                            "69bbe63601a2f1b5478b4597",
+                            "698dda7d22601d87168b45da",
+                            "6998415322601d777c8b45aa"
+                        ]
+                    }
+                },
+                "exclusions": {
+                    "disableAll": false,
+                    "adUnitPaths": [],
+                    "keyValues": {
+                        "newsid": [
+                            ""
+                        ],
+                        "tag": [
+                            "bloqueo-publi"
+                        ],
+                        "t": [
+                            ""
+                        ]
+                    }
+                },
+                "allowedContentTypes": [
+                    "noticia",
+                    "directo",
+                    "noticia-especial",
+                    "cronica",
+                    "opinion"
+                ],
+                "deviceTargeting": {
+                    "desktop": true,
+                    "mobile": true
+                },
+                "trigger": {
+                    "delayMs": 10000,
+                    "pageVisibleOnly": true
+                },
+                "storage": {
+                    "respectCooldown": true,
+                    "ignoreCooldownWhenDebug": true,
+                    "cooldownMs": 28800000,
+                    "lastShownAtKey": "gexp_interstitial_last_shown_at"
+                },
+                "ui": {
+                    "countdownSeconds": 3,
+                    "backdropColor": "rgba(90, 90, 90, 0.58)",
+                    "zIndex": 2147483000,
+                    "maxWidth": "960px",
+                    "maxHeight": "90vh"
+                },
+                "decision": {
+                    "mode": "auto",
+                    "minCpm": 1,
+                    "priorityBelowMin": "only_video"
+                },
+                "display": {
+                    "adUnitPath": "telva\/belleza\/n",
+                    "sizes": [
+                        [
+                            300,
+                            250
+                        ],
+                        [
+                            300,
+                            300
+                        ],
+                        [
+                            300,
+                            600
+                        ],
+                        [
+                            336,
+                            280
+                        ],
+                        [
+                            640,
+                            360
+                        ]
+                    ]
+                },
+                "video": {
+                    "enabled": true,
+                    "allowDirectVastFallback": false,
+                    "prepareTimeoutMs": 25000,
+                    "imaTimeoutMs": 30000,
+                    "playerSize": [
+                        640,
+                        360
+                    ],
+                    "variantSelection": {
+                        "key": "random1",
+                        "values": {
+                            "5": "instream",
+                            "6": "outstream"
+                        },
+                        "fallback": "instream"
+                    },
+                    "profiles": {
+                        "instream": {
+                            "context": "instream",
+                            "plcmt": 1,
+                            "placement": 1,
+                            "mimes": [
+                                "video\/mp4",
+                                "application\/javascript"
+                            ],
+                            "protocols": [
+                                2,
+                                3,
+                                5,
+                                6,
+                                7
+                            ],
+                            "linearity": 1,
+                            "api": [
+                                1,
+                                2
+                            ],
+                            "battr": [
+                                13,
+                                14
+                            ],
+                            "skippable": true,
+                            "maxduration": 30,
+                            "minduration": 1,
+                            "playbackmethod": [
+                                6
+                            ]
+                        },
+                        "outstream": {
+                            "context": "outstream",
+                            "plcmt": 2,
+                            "placement": 3,
+                            "mimes": [
+                                "video\/mp4",
+                                "application\/javascript"
+                            ],
+                            "protocols": [
+                                2,
+                                3,
+                                5,
+                                6,
+                                7
+                            ],
+                            "linearity": 1,
+                            "api": [
+                                1,
+                                2
+                            ],
+                            "battr": [
+                                13,
+                                14
+                            ],
+                            "skippable": true,
+                            "maxduration": 30,
+                            "minduration": 1,
+                            "playbackmethod": [
+                                6
+                            ]
+                        }
+                    }
+                },
+                "prebid": {
+                    "timeoutMs": 1500,
+                    "graceMs": 200,
+                    "networks": {
+                        "default": {
+                            "aliases": {
+                                "rubicon_video": "rubicon",
+                                "appnexus_video": "appnexus",
+                                "criteo_video": "criteo",
+                                "pubmatic_video": "pubmatic",
+                                "smartadserver_video": "smartadserver",
+                                "ix_video": "ix",
+                                "ttd_video": "ttd"
+                            },
+                            "bidders": [
+                                {
+                                    "bidder": "appnexus",
+                                    "params": {
+                                        "placementId": "11595057"
+                                    }
+                                },
+                                {
+                                    "bidder": "rubicon",
+                                    "params": {
+                                        "zoneId": 663050,
+                                        "siteId": 142576,
+                                        "accountId": 15366,
+                                        "position": "btf"
+                                    }
+                                },
+                                {
+                                    "bidder": "criteo",
+                                    "params": {
+                                        "networkId": 1080,
+                                        "pubid": "108879"
+                                    }
+                                },
+                                {
+                                    "bidder": "smartadserver",
+                                    "params": {
+                                        "pageId": 648549,
+                                        "formatId": 40859,
+                                        "siteId": 99913,
+                                        "domain": "https:\/\/prg.smartadserver.com"
+                                    }
+                                },
+                                {
+                                    "bidder": "equativ",
+                                    "params": {
+                                        "networkId": 1844,
+                                        "pageId": 648549,
+                                        "formatId": 40859,
+                                        "siteId": 99913
+                                    }
+                                },
+                                {
+                                    "bidder": "richaudience",
+                                    "params": {
+                                        "pid": "463Y4dJxIO",
+                                        "supplyType": "site"
+                                    }
+                                },
+                                {
+                                    "bidder": "teads",
+                                    "params": {
+                                        "placementId": 202864,
+                                        "pageId": 187761
+                                    }
+                                },
+                                {
+                                    "bidder": "pubmatic",
+                                    "params": {
+                                        "publisherId": "161984",
+                                        "adSlot": "4525457"
+                                    }
+                                },
+                                {
+                                    "bidder": "ttd",
+                                    "params": {
+                                        "supplySourceId": "unidad",
+                                        "publisherId": "1"
+                                    }
+                                },
+                                {
+                                    "bidder": "ix",
+                                    "params": {
+                                        "siteId": "1255677"
+                                    }
+                                },
+                                {
+                                    "bidder": "taboola",
+                                    "params": {
+                                        "publisherId": "1925071"
+                                    }
+                                }
+                            ],
+                            "videoBidders": [
+                                {
+                                    "bidder": "rubicon_video",
+                                    "params": {
+                                        "zoneId": 3460964,
+                                        "siteId": 96110,
+                                        "position": "atf",
+                                        "accountId": 15366,
+                                        "video": {
+                                            "size_id": 201
+                                        }
+                                    }
+                                },
+                                {
+                                    "bidder": "pubmatic_video",
+                                    "params": {
+                                        "publisherId": "161984",
+                                        "adSlot": "6112271"
+                                    }
+                                },
+                                {
+                                    "bidder": "richaudience",
+                                    "params": {
+                                        "pid": "ImcSe2TtvR",
+                                        "supplyType": "site"
+                                    }
+                                },
+                                {
+                                    "bidder": "appnexus_video",
+                                    "params": {
+                                        "placementId": 34117164
+                                    }
+                                },
+                                {
+                                    "bidder": "criteo_video",
+                                    "params": {
+                                        "networkId": "1080",
+                                        "pubid": "108879"
+                                    }
+                                },
+                                {
+                                    "bidder": "ttd_video",
+                                    "params": {
+                                        "supplySourceId": "unidad",
+                                        "publisherId": "1",
+                                        "placementId": "video"
+                                    }
+                                },
+                                {
+                                    "bidder": "smartadserver_video",
+                                    "params": {
+                                        "siteId": "99913",
+                                        "pageId": "648549",
+                                        "formatId": "40183",
+                                        "domain": "\/\/prg.smartadserver.com"
+                                    }
+                                },
+                                {
+                                    "bidder": "ix_video",
+                                    "params": {
+                                        "siteId": "1255722"
+                                    }
+                                }
+                            ]
+                        },
+                        "21626337071": {
+                            "aliases": [],
+                            "bidders": [
+                                {
+                                    "bidder": "appnexus",
+                                    "params": {
+                                        "placementId": 37306510
+                                    }
+                                },
+                                {
+                                    "bidder": "sovrn",
+                                    "params": {
+                                        "tagid": 1306015
+                                    }
+                                }
+                            ],
+                            "videoBidders": []
+                        }
+                    }
+                },
+                "tam": {
+                    "enabled": true,
+                    "pubID": "3537",
+                    "adServer": "googletag",
+                    "bidTimeout": 1000,
+                    "gdpr": {
+                        "enabled": true
+                    },
+                    "videoAdServer": "DFP",
+                    "deals": true
+                },
+                "networks": {
+                    "21626337071": {
+                        "tam": {
+                            "enabled": false
+                        }
+                    }
+                }
+            },
+            "overrides": [
+                {
+                    "if": [
+                        "device:mobile"
+                    ],
+                    "then": {
+                        "display": {
+                            "sizes": [
+                                [
+                                    300,
+                                    250
+                                ],
+                                [
+                                    300,
+                                    300
+                                ],
+                                [
+                                    300,
+                                    600
+                                ],
+                                [
+                                    320,
+                                    100
+                                ],
+                                [
+                                    320,
+                                    50
+                                ]
+                            ]
+                        },
+                        "ui": {
+                            "maxWidth": "92vw",
+                            "maxHeight": "85vh"
+                        }
+                    }
+                }
+            ]
+        }
+    },
+    "ext": {
+        "sites": {
+            "p1": {
+                "mc-mv2": {
+                    "ES": {
+                        "c990x50_320x53c": [],
+                        "c990x50_320x53d": [],
+                        "gexp-intext": [],
+                        "gexp-intext-2": [],
+                        "gexp-intext-pnc-1": [],
+                        "m": [],
+                        "m-pnc": [],
+                        "r": []
+                    }
+                }
+            },
+            "pp2": {
+                "mc-mv2": {
+                    "DE": {
+                        "c990x50_320x53c": 1,
+                        "gexp-intext-2": 0,
+                        "m": 8,
+                        "r": 9,
+                        "r-nata": 2,
+                        "rb": 9,
+                        "rc": 3,
+                        "rd": 7,
+                        "re": 10,
+                        "c990x50_320x53d": 3,
+                        "gexp-intext": 0,
+                        "rf": 5,
+                        "rg": 9
+                    },
+                    "ES": {
+                        "c990x50_320x53c": 1,
+                        "c990x50_320x53d": 2,
+                        "gexp-intext": 4,
+                        "gexp-intext-2": 0,
+                        "m": 2,
+                        "m-pnc": 0,
+                        "r": 8,
+                        "r-nata": 2,
+                        "r-pnc": 1,
+                        "rb": 5,
+                        "rc": 5,
+                        "rd": 2,
+                        "re": 7,
+                        "rf": 4,
+                        "rg": 2
+                    },
+                    "NL": {
+                        "c990x50_320x53c": 0,
+                        "m": 5,
+                        "r": 3,
+                        "r-nata": 0,
+                        "rb": 4,
+                        "rc": 2,
+                        "rd": 2,
+                        "re": 4,
+                        "c990x50_320x53d": 0,
+                        "gexp-intext": 0,
+                        "gexp-intext-2": 0,
+                        "rf": 5,
+                        "rg": 4
+                    },
+                    "US": {
+                        "gexp-intext-2": 2,
+                        "m": 0,
+                        "r": 12,
+                        "rb": 14,
+                        "rc": 13,
+                        "rd": 12,
+                        "re": 13,
+                        "gexp-intext": 0,
+                        "r-nata": 9,
+                        "c990x50_320x53c": 10,
+                        "c990x50_320x53d": 6,
+                        "m-pnc": 0,
+                        "r-pnc": 0,
+                        "rf": 11,
+                        "rg": 9
+                    },
+                    "CH": {
+                        "c990x50_320x53c": 0,
+                        "c990x50_320x53d": 0,
+                        "m": 7,
+                        "r": 8,
+                        "r-nata": 0,
+                        "rb": 4,
+                        "rc": 4,
+                        "rd": 4,
+                        "re": 8,
+                        "rf": 10,
+                        "rg": 10,
+                        "gexp-intext": 0,
+                        "gexp-intext-2": 0,
+                        "m-pnc": 0,
+                        "r-pnc": 0
+                    },
+                    "GB": {
+                        "c990x50_320x53c": 0,
+                        "c990x50_320x53d": 0,
+                        "m": 8,
+                        "r": 9,
+                        "rb": 10,
+                        "rc": 9,
+                        "r-nata": 2,
+                        "rf": 7,
+                        "gexp-intext-2": 0,
+                        "rd": 9,
+                        "re": 9,
+                        "rg": 3,
+                        "gexp-intext": 2,
+                        "m-pnc": 0,
+                        "r-pnc": 1
+                    },
+                    "BE": {
+                        "c990x50_320x53c": 0,
+                        "m": 7,
+                        "r": 6,
+                        "r-nata": 0,
+                        "rb": 6,
+                        "rc": 5,
+                        "rd": 2,
+                        "re": 5,
+                        "c990x50_320x53d": 2,
+                        "gexp-intext-2": 0,
+                        "rf": 5,
+                        "rg": 5
+                    },
+                    "CA": {
+                        "m": 10,
+                        "m-pnc": 0,
+                        "r": 9,
+                        "r-pnc": 0,
+                        "rb": 10,
+                        "rc": 4,
+                        "c990x50_320x53c": 3,
+                        "r-nata": 0,
+                        "rd": 5,
+                        "c990x50_320x53d": 3,
+                        "re": 4,
+                        "rf": 3,
+                        "gexp-intext": 0,
+                        "gexp-intext-2": 2,
+                        "rg": 8
+                    },
+                    "FR": {
+                        "c990x50_320x53c": 0,
+                        "m": 2,
+                        "r": 4,
+                        "r-nata": 0,
+                        "rb": 2,
+                        "rc": 3,
+                        "rd": 2,
+                        "re": 5,
+                        "c990x50_320x53d": 0,
+                        "rg": 2,
+                        "gexp-intext": 0,
+                        "gexp-intext-2": 0,
+                        "m-pnc": 0,
+                        "r-pnc": 0,
+                        "rf": 4
+                    },
+                    "PT": {
+                        "c990x50_320x53c": 0,
+                        "m": 4,
+                        "r": 3,
+                        "rb": 1,
+                        "rc": 1,
+                        "rd": 1,
+                        "re": 4,
+                        "c990x50_320x53d": 0,
+                        "gexp-intext-2": 0,
+                        "r-nata": 0,
+                        "rf": 5,
+                        "gexp-intext": 2,
+                        "rg": 7
+                    }
+                },
+                "p_mc-mv2": {
+                    "ES": {
+                        "rc": 0
+                    },
+                    "US": {
+                        "rc": 13
+                    },
+                    "FR": {
+                        "rc": 6
+                    }
+                },
+                "telva-mv": {
+                    "DE": {
+                        "m": 10,
+                        "r": 3,
+                        "r-nata": 2,
+                        "rb": 9,
+                        "rd": 3,
+                        "re": 3,
+                        "rc": 8
+                    },
+                    "ES": {
+                        "m": 3,
+                        "r": 9,
+                        "rc": 5,
+                        "rd": 6,
+                        "rb": 0,
+                        "re": 4,
+                        "gexp-intext": 1,
+                        "gexp-intext-2": 2,
+                        "mb": 0,
+                        "r-nata": 0
+                    },
+                    "NL": {
+                        "m": 6,
+                        "r": 5,
+                        "rc": 5,
+                        "gexp-intext": 0,
+                        "r-nata": 0,
+                        "rb": 7,
+                        "rd": 6,
+                        "re": 0
+                    },
+                    "US": {
+                        "m": 0,
+                        "r": 1,
+                        "r-nata": 7,
+                        "rb": 0,
+                        "rc": 5,
+                        "re": 14,
+                        "rd": 7
+                    },
+                    "CH": {
+                        "rb": 11,
+                        "m": 7,
+                        "r": 3,
+                        "rc": 1,
+                        "r-nata": 2,
+                        "rd": 5,
+                        "re": 3,
+                        "gexp-intext": 0
+                    },
+                    "GB": {
+                        "m": 7,
+                        "r": 8,
+                        "rb": 9,
+                        "rc": 3,
+                        "rd": 0,
+                        "re": 1,
+                        "r-nata": 0
+                    },
+                    "BE": {
+                        "m": 7,
+                        "r": 3,
+                        "r-nata": 0,
+                        "rb": 6,
+                        "rc": 5,
+                        "rd": 0,
+                        "re": 0
+                    },
+                    "CA": {
+                        "r": 3,
+                        "m": 7,
+                        "rb": 3,
+                        "rc": 3,
+                        "rd": 0,
+                        "re": 0,
+                        "r-nata": 3
+                    },
+                    "FR": {
+                        "m": 0,
+                        "r-nata": 0,
+                        "re": 2,
+                        "gexp-intext-2": 1,
+                        "r": 9,
+                        "rb": 2,
+                        "rc": 4,
+                        "rd": 9
+                    },
+                    "PT": {
+                        "m": 4,
+                        "r": 2,
+                        "r-nata": 0,
+                        "rb": 5,
+                        "rd": 2,
+                        "re": 2,
+                        "gexp-intext-2": 0,
+                        "rc": 3
+                    }
+                },
+                "mc-mx-mv": {
+                    "DE": {
+                        "r": 3,
+                        "r-nata": 0,
+                        "c990x50_320x53c": 2,
+                        "m": 10,
+                        "rb": 3,
+                        "rc": 2,
+                        "rd": 0
+                    },
+                    "ES": {
+                        "m": 4,
+                        "r": 4,
+                        "r-nata": 0,
+                        "rb": 1,
+                        "rd": 1,
+                        "c990x50_320x53c": 1,
+                        "gexp-intext": 1,
+                        "gexp-intext-2": 3,
+                        "rc": 3,
+                        "re": 3
+                    },
+                    "NL": {
+                        "m": 3,
+                        "r": 0,
+                        "r-nata": 0,
+                        "rb": 0,
+                        "rc": 0
+                    },
+                    "US": {
+                        "m": 0,
+                        "r": 12,
+                        "rb": 1,
+                        "re": 14,
+                        "rc": 13,
+                        "c990x50_320x53c": 3,
+                        "gexp-intext": 19,
+                        "gexp-intext-2": 0,
+                        "r-nata": 0,
+                        "rd": 2
+                    },
+                    "CH": {
+                        "c990x50_320x53c": 0,
+                        "m": 0,
+                        "r": 0,
+                        "r-nata": 0,
+                        "rb": 1,
+                        "rc": 0,
+                        "rd": 0
+                    },
+                    "GB": {
+                        "c990x50_320x53c": 3,
+                        "m": 3,
+                        "r": 1,
+                        "rb": 10,
+                        "rc": 7,
+                        "rd": 4
+                    },
+                    "BE": {
+                        "m": 0,
+                        "r": 2,
+                        "r-nata": 0,
+                        "rb": 0,
+                        "rc": 0
+                    },
+                    "CA": {
+                        "m": 9,
+                        "r": 7,
+                        "rb": 4,
+                        "r-nata": 0,
+                        "rc": 0,
+                        "rd": 2
+                    },
+                    "FR": {
+                        "m": 0,
+                        "r": 0,
+                        "r-nata": 0,
+                        "rb": 1,
+                        "rc": 1,
+                        "rd": 0,
+                        "re": 0
+                    },
+                    "PT": {
+                        "m": 0,
+                        "r": 2,
+                        "r-nata": 0,
+                        "rb": 2,
+                        "rc": 2,
+                        "rd": 3,
+                        "re": 2
+                    }
+                }
+            },
+            "vv": {
+                "mc-mv2": {
+                    "portada": [
+                        {
+                            "f": {
+                                "f": 0
+                            }
+                        },
+                        {
+                            "f": {
+                                "f": 5
+                            }
+                        },
+                        {
+                            "f": {
+                                "f": 5
+                            }
+                        },
+                        {
+                            "f": {
+                                "f": 0,
+                                "t": 0
+                            }
+                        },
+                        {
+                            "f": {
+                                "f": 5
+                            }
+                        },
+                        {
+                            "f": {
+                                "f": 5
+                            }
+                        },
+                        {
+                            "f": {
+                                "f": 5,
+                                "t": 0
+                            },
+                            "t": {
+                                "t": 100
+                            }
+                        },
+                        {
+                            "f": {
+                                "f": 85,
+                                "t": 65
+                            }
+                        },
+                        {
+                            "f": {
+                                "f": 25,
+                                "t": 30
+                            },
+                            "t": {
+                                "t": 65
+                            }
+                        },
+                        {
+                            "f": {
+                                "f": 30,
+                                "t": 100
+                            }
+                        },
+                        {
+                            "f": {
+                                "f": 35
+                            },
+                            "t": {
+                                "t": 0
+                            }
+                        },
+                        {
+                            "f": {
+                                "f": 35,
+                                "t": 100
+                            }
+                        },
+                        {
+                            "f": {
+                                "f": 35
+                            }
+                        },
+                        {
+                            "f": {
+                                "f": 30
+                            }
+                        },
+                        {
+                            "f": {
+                                "f": 30
+                            }
+                        },
+                        {
+                            "f": {
+                                "f": 25
+                            }
+                        },
+                        {
+                            "f": {
+                                "f": 20
+                            }
+                        },
+                        {
+                            "f": {
+                                "f": 20
+                            }
+                        },
+                        {
+                            "f": {
+                                "f": 15
+                            }
+                        },
+                        {
+                            "f": {
+                                "f": 10
+                            }
+                        },
+                        {
+                            "f": {
+                                "f": 5
+                            }
+                        }
+                    ],
+                    "noticia": [
+                        {
+                            "f": {
+                                "f": 0
+                            }
+                        },
+                        {
+                            "f": {
+                                "f": 0
+                            }
+                        },
+                        {
+                            "f": {
+                                "f": 30
+                            }
+                        },
+                        {
+                            "f": {
+                                "f": 45
+                            }
+                        },
+                        {
+                            "f": {
+                                "f": 10
+                            }
+                        },
+                        {
+                            "f": {
+                                "f": 20
+                            }
+                        },
+                        {
+                            "f": {
+                                "f": 35,
+                                "t": 40
+                            }
+                        },
+                        {
+                            "f": {
+                                "f": 90,
+                                "t": 100
+                            }
+                        },
+                        {
+                            "f": {
+                                "f": 40,
+                                "t": 80
+                            }
+                        },
+                        {
+                            "f": {
+                                "f": 45,
+                                "t": 30
+                            },
+                            "t": {
+                                "t": 100
+                            }
+                        },
+                        {
+                            "f": {
+                                "f": 50,
+                                "t": 25
+                            },
+                            "t": {
+                                "t": 100
+                            }
+                        },
+                        {
+                            "f": {
+                                "f": 60
+                            }
+                        },
+                        {
+                            "f": {
+                                "f": 50
+                            }
+                        },
+                        {
+                            "f": {
+                                "f": 50
+                            }
+                        },
+                        {
+                            "f": {
+                                "f": 40
+                            }
+                        },
+                        {
+                            "f": {
+                                "f": 30
+                            }
+                        },
+                        {
+                            "f": {
+                                "f": 35
+                            }
+                        },
+                        {
+                            "f": {
+                                "f": 25
+                            }
+                        },
+                        {
+                            "f": {
+                                "f": 25
+                            }
+                        },
+                        {
+                            "f": {
+                                "f": 10
+                            }
+                        },
+                        {
+                            "f": {
+                                "f": 5,
+                                "t": 0
+                            }
+                        }
+                    ],
+                    "portadilla": {
+                        "0": {
+                            "f": {
+                                "f": 0
+                            }
+                        },
+                        "2": {
+                            "f": {
+                                "f": 0
+                            }
+                        },
+                        "3": {
+                            "f": {
+                                "f": 0
+                            }
+                        },
+                        "4": {
+                            "f": {
+                                "f": 0
+                            }
+                        },
+                        "5": {
+                            "f": {
+                                "f": 0
+                            }
+                        },
+                        "6": {
+                            "f": {
+                                "f": 0
+                            }
+                        },
+                        "7": {
+                            "f": {
+                                "f": 85,
+                                "t": 100
+                            }
+                        },
+                        "8": {
+                            "f": {
+                                "f": 80,
+                                "t": 0
+                            }
+                        },
+                        "9": {
+                            "f": {
+                                "f": 50
+                            }
+                        },
+                        "10": {
+                            "f": {
+                                "f": 50
+                            }
+                        },
+                        "11": {
+                            "f": {
+                                "f": 35
+                            }
+                        },
+                        "12": {
+                            "f": {
+                                "f": 45
+                            }
+                        },
+                        "13": {
+                            "f": {
+                                "f": 30
+                            }
+                        },
+                        "14": {
+                            "f": {
+                                "f": 15
+                            }
+                        },
+                        "15": {
+                            "f": {
+                                "f": 20
+                            }
+                        },
+                        "16": {
+                            "f": {
+                                "f": 30
+                            }
+                        },
+                        "17": {
+                            "f": {
+                                "f": 15
+                            }
+                        },
+                        "18": {
+                            "f": {
+                                "f": 5
+                            }
+                        },
+                        "19": {
+                            "f": {
+                                "f": 10
+                            }
+                        },
+                        "20": {
+                            "f": {
+                                "f": 5
+                            }
+                        }
+                    },
+                    "directo": [
+                        {
+                            "f": {
+                                "f": 30
+                            }
+                        },
+                        {
+                            "f": {
+                                "f": 0
+                            }
+                        },
+                        {
+                            "f": {
+                                "f": 100
+                            }
+                        },
+                        {
+                            "f": {
+                                "f": 30
+                            }
+                        },
+                        {
+                            "f": {
+                                "f": 0
+                            }
+                        },
+                        {
+                            "f": {
+                                "f": 0
+                            }
+                        },
+                        {
+                            "f": {
+                                "f": 20
+                            }
+                        },
+                        {
+                            "f": {
+                                "f": 90
+                            }
+                        },
+                        {
+                            "f": {
+                                "f": 25,
+                                "t": 100
+                            }
+                        },
+                        {
+                            "f": {
+                                "f": 65,
+                                "t": 0
+                            },
+                            "t": {
+                                "t": 0
+                            }
+                        },
+                        {
+                            "f": {
+                                "f": 20
+                            }
+                        },
+                        {
+                            "f": {
+                                "f": 30
+                            }
+                        },
+                        {
+                            "f": {
+                                "f": 50
+                            }
+                        },
+                        {
+                            "f": {
+                                "f": 55
+                            }
+                        },
+                        {
+                            "f": {
+                                "f": 60
+                            }
+                        },
+                        {
+                            "f": {
+                                "f": 60
+                            }
+                        },
+                        {
+                            "f": {
+                                "f": 65
+                            }
+                        },
+                        {
+                            "f": {
+                                "f": 55
+                            }
+                        },
+                        {
+                            "f": {
+                                "f": 35
+                            }
+                        },
+                        {
+                            "f": {
+                                "f": 0
+                            }
+                        },
+                        {
+                            "f": {
+                                "f": 5
+                            }
+                        }
+                    ],
+                    "pagecontent": {
+                        "7": {
+                            "f": {
+                                "f": 90
+                            },
+                            "t": {
+                                "t": 100
+                            }
+                        }
+                    },
+                    "portadilla-nc": [
+                        {
+                            "f": {
+                                "f": 0
+                            }
+                        },
+                        {
+                            "f": {
+                                "f": 0
+                            }
+                        },
+                        {
+                            "f": {
+                                "f": 30
+                            }
+                        },
+                        {
+                            "f": {
+                                "f": 0
+                            }
+                        },
+                        {
+                            "f": {
+                                "f": 0
+                            }
+                        },
+                        {
+                            "f": {
+                                "f": 65
+                            }
+                        },
+                        {
+                            "f": {
+                                "f": 0
+                            }
+                        },
+                        {
+                            "f": {
+                                "f": 90
+                            }
+                        },
+                        {
+                            "f": {
+                                "f": 20
+                            }
+                        },
+                        {
+                            "f": {
+                                "f": 50
+                            }
+                        },
+                        {
+                            "f": {
+                                "f": 35
+                            }
+                        },
+                        {
+                            "f": {
+                                "f": 45
+                            }
+                        },
+                        {
+                            "f": {
+                                "f": 60
+                            }
+                        },
+                        {
+                            "f": {
+                                "f": 70
+                            }
+                        },
+                        {
+                            "f": {
+                                "f": 75
+                            }
+                        },
+                        {
+                            "f": {
+                                "f": 65
+                            }
+                        },
+                        {
+                            "f": {
+                                "f": 70
+                            }
+                        },
+                        {
+                            "f": {
+                                "f": 65
+                            }
+                        },
+                        {
+                            "f": {
+                                "f": 70
+                            }
+                        },
+                        {
+                            "f": {
+                                "f": 75
+                            }
+                        },
+                        {
+                            "f": {
+                                "f": 80
+                            }
+                        }
+                    ],
+                    "videoct": {
+                        "8": {
+                            "f": {
+                                "f": 30
+                            }
+                        },
+                        "9": {
+                            "f": {
+                                "f": 45
+                            }
+                        },
+                        "10": {
+                            "f": {
+                                "f": 30
+                            }
+                        },
+                        "11": {
+                            "f": {
+                                "f": 20
+                            }
+                        },
+                        "12": {
+                            "f": {
+                                "f": 25
+                            }
+                        },
+                        "13": {
+                            "f": {
+                                "f": 0
+                            }
+                        }
+                    },
+                    "cronica": {
+                        "0": {
+                            "f": {
+                                "f": 0
+                            }
+                        },
+                        "7": {
+                            "f": {
+                                "f": 85
+                            }
+                        },
+                        "9": {
+                            "f": {
+                                "f": 0
+                            }
+                        },
+                        "10": {
+                            "f": {
+                                "f": 100
+                            }
+                        },
+                        "11": {
+                            "f": {
+                                "f": 50
+                            }
+                        },
+                        "12": {
+                            "f": {
+                                "f": 0
+                            }
+                        },
+                        "13": {
+                            "f": {
+                                "f": 20
+                            }
+                        },
+                        "14": {
+                            "f": {
+                                "f": 50
+                            }
+                        },
+                        "15": {
+                            "f": {
+                                "f": 5
+                            }
+                        },
+                        "16": {
+                            "f": {
+                                "f": 15
+                            }
+                        },
+                        "17": {
+                            "f": {
+                                "f": 0
+                            }
+                        },
+                        "18": {
+                            "f": {
+                                "f": 0
+                            }
+                        },
+                        "19": {
+                            "f": {
+                                "f": 10
+                            }
+                        },
+                        "20": {
+                            "f": {
+                                "f": 0
+                            }
+                        }
+                    },
+                    "opinion": {
+                        "7": {
+                            "f": {
+                                "f": 90
+                            }
+                        },
+                        "11": {
+                            "f": {
+                                "f": 50
+                            }
+                        },
+                        "12": {
+                            "f": {
+                                "f": 80
+                            }
+                        },
+                        "13": {
+                            "f": {
+                                "f": 55
+                            }
+                        },
+                        "15": {
+                            "f": {
+                                "f": 0
+                            }
+                        },
+                        "16": {
+                            "f": {
+                                "f": 80
+                            }
+                        },
+                        "17": {
+                            "f": {
+                                "f": 50
+                            }
+                        },
+                        "18": {
+                            "f": {
+                                "f": 30
+                            }
+                        },
+                        "19": {
+                            "f": {
+                                "f": 10
+                            }
+                        },
+                        "20": {
+                            "f": {
+                                "f": 10
+                            }
+                        }
+                    },
+                    "resultados": {
+                        "7": {
+                            "f": {
+                                "f": 85
+                            }
+                        }
+                    },
+                    "album": []
+                },
+                "p_mc-mv2": {
+                    "portadilla": {
+                        "0": {
+                            "f": {
+                                "f": 0
+                            }
+                        },
+                        "3": {
+                            "f": {
+                                "f": 0
+                            }
+                        },
+                        "9": {
+                            "f": {
+                                "f": 100
+                            }
+                        },
+                        "10": {
+                            "f": {
+                                "f": 85
+                            }
+                        },
+                        "11": {
+                            "f": {
+                                "f": 65
+                            }
+                        },
+                        "12": {
+                            "f": {
+                                "f": 25
+                            }
+                        },
+                        "13": {
+                            "f": {
+                                "f": 30
+                            }
+                        },
+                        "14": {
+                            "f": {
+                                "f": 30
+                            }
+                        },
+                        "15": {
+                            "f": {
+                                "f": 25
+                            }
+                        },
+                        "16": {
+                            "f": {
+                                "f": 0
+                            }
+                        },
+                        "17": {
+                            "f": {
+                                "f": 10
+                            }
+                        },
+                        "18": {
+                            "f": {
+                                "f": 25
+                            }
+                        },
+                        "19": {
+                            "f": {
+                                "f": 10
+                            }
+                        },
+                        "20": {
+                            "f": {
+                                "f": 0
+                            }
+                        }
+                    },
+                    "noticia": {
+                        "12": {
+                            "f": {
+                                "f": 0
+                            }
+                        },
+                        "14": {
+                            "f": {
+                                "f": 65
+                            }
+                        },
+                        "15": {
+                            "f": {
+                                "f": 0
+                            }
+                        },
+                        "16": {
+                            "f": {
+                                "f": 0
+                            }
+                        },
+                        "17": {
+                            "f": {
+                                "f": 10
+                            }
+                        },
+                        "18": {
+                            "f": {
+                                "f": 5
+                            }
+                        },
+                        "20": {
+                            "f": {
+                                "f": 0
+                            }
+                        }
+                    }
+                },
+                "telva-mv": {
+                    "noticia": {
+                        "7": {
+                            "f": {
+                                "f": 85
+                            },
+                            "t": {
+                                "t": 70
+                            }
+                        },
+                        "8": {
+                            "f": {
+                                "f": 30,
+                                "t": 0
+                            },
+                            "t": {
+                                "t": 50
+                            }
+                        },
+                        "10": {
+                            "f": {
+                                "f": 0
+                            }
+                        },
+                        "12": {
+                            "f": {
+                                "f": 30
+                            }
+                        },
+                        "13": {
+                            "f": {
+                                "f": 55
+                            }
+                        },
+                        "14": {
+                            "f": {
+                                "f": 25
+                            }
+                        },
+                        "15": {
+                            "f": {
+                                "f": 20
+                            }
+                        },
+                        "16": {
+                            "f": {
+                                "f": 20
+                            }
+                        },
+                        "17": {
+                            "f": {
+                                "f": 50
+                            }
+                        },
+                        "18": {
+                            "f": {
+                                "f": 35
+                            }
+                        },
+                        "19": {
+                            "f": {
+                                "f": 10
+                            }
+                        },
+                        "20": {
+                            "f": {
+                                "f": 10
+                            }
+                        }
+                    },
+                    "portada": {
+                        "0": {
+                            "f": {
+                                "f": 0
+                            }
+                        },
+                        "3": {
+                            "f": {
+                                "f": 0
+                            }
+                        },
+                        "5": {
+                            "f": {
+                                "f": 0
+                            }
+                        },
+                        "6": {
+                            "f": {
+                                "t": 0
+                            }
+                        },
+                        "7": {
+                            "f": {
+                                "f": 80,
+                                "t": 100
+                            }
+                        },
+                        "8": {
+                            "f": {
+                                "f": 0
+                            }
+                        },
+                        "10": {
+                            "f": {
+                                "f": 0
+                            }
+                        },
+                        "11": {
+                            "f": {
+                                "f": 0
+                            }
+                        },
+                        "12": {
+                            "f": {
+                                "f": 0
+                            }
+                        },
+                        "13": {
+                            "f": {
+                                "f": 0
+                            }
+                        },
+                        "14": {
+                            "f": {
+                                "f": 50
+                            }
+                        },
+                        "15": {
+                            "f": {
+                                "f": 50
+                            }
+                        },
+                        "16": {
+                            "f": {
+                                "f": 25
+                            }
+                        },
+                        "17": {
+                            "f": {
+                                "f": 50
+                            }
+                        },
+                        "19": {
+                            "f": {
+                                "f": 65
+                            }
+                        },
+                        "20": {
+                            "f": {
+                                "f": 20
+                            }
+                        }
+                    },
+                    "album": {
+                        "7": {
+                            "f": {
+                                "f": 75
+                            },
+                            "t": {
+                                "t": 100
+                            }
+                        }
+                    }
+                },
+                "mc-mx-mv": {
+                    "noticia": {
+                        "0": {
+                            "f": {
+                                "f": 0
+                            }
+                        },
+                        "2": {
+                            "f": {
+                                "f": 0
+                            }
+                        },
+                        "4": {
+                            "f": {
+                                "f": 0
+                            }
+                        },
+                        "5": {
+                            "f": {
+                                "f": 0
+                            }
+                        },
+                        "6": {
+                            "f": {
+                                "f": 0
+                            }
+                        },
+                        "7": {
+                            "f": {
+                                "f": 95
+                            }
+                        },
+                        "8": {
+                            "f": {
+                                "f": 0
+                            }
+                        },
+                        "9": {
+                            "f": {
+                                "f": 30
+                            }
+                        },
+                        "10": {
+                            "f": {
+                                "f": 0
+                            }
+                        },
+                        "11": {
+                            "f": {
+                                "f": 40
+                            }
+                        },
+                        "12": {
+                            "f": {
+                                "f": 65
+                            }
+                        },
+                        "13": {
+                            "f": {
+                                "f": 70
+                            }
+                        },
+                        "14": {
+                            "f": {
+                                "f": 35
+                            }
+                        },
+                        "15": {
+                            "f": {
+                                "f": 50
+                            }
+                        },
+                        "16": {
+                            "f": {
+                                "f": 30
+                            }
+                        },
+                        "17": {
+                            "f": {
+                                "f": 75
+                            }
+                        },
+                        "18": {
+                            "f": {
+                                "f": 30
+                            }
+                        },
+                        "19": {
+                            "f": {
+                                "f": 0
+                            }
+                        },
+                        "20": {
+                            "f": {
+                                "f": 0
+                            }
+                        }
+                    },
+                    "portada": {
+                        "7": {
+                            "f": {
+                                "f": 90
+                            }
+                        },
+                        "10": {
+                            "f": {
+                                "f": 50
+                            }
+                        },
+                        "11": {
+                            "f": {
+                                "f": 25
+                            }
+                        },
+                        "12": {
+                            "f": {
+                                "f": 40
+                            }
+                        },
+                        "13": {
+                            "f": {
+                                "f": 45
+                            }
+                        },
+                        "14": {
+                            "f": {
+                                "f": 40
+                            }
+                        },
+                        "17": {
+                            "f": {
+                                "f": 0
+                            }
+                        }
+                    },
+                    "portadilla": {
+                        "7": {
+                            "f": {
+                                "f": 100
+                            }
+                        },
+                        "10": {
+                            "f": {
+                                "f": 100
+                            }
+                        },
+                        "11": {
+                            "f": {
+                                "f": 100
+                            }
+                        },
+                        "12": {
+                            "f": {
+                                "f": 0
+                            }
+                        },
+                        "17": {
+                            "f": {
+                                "f": 0
+                            }
+                        },
+                        "20": {
+                            "f": {
+                                "f": 0
+                            }
+                        }
+                    }
+                },
+                "mc-coches-mv": {
+                    "noticia": {
+                        "0": {
+                            "f": {
+                                "f": 0
+                            }
+                        },
+                        "1": {
+                            "f": {
+                                "f": 0
+                            }
+                        },
+                        "4": {
+                            "f": {
+                                "f": 0
+                            }
+                        },
+                        "7": {
+                            "f": {
+                                "f": 100
+                            }
+                        },
+                        "10": {
+                            "f": {
+                                "f": 0
+                            }
+                        },
+                        "14": {
+                            "f": {
+                                "f": 0
+                            }
+                        },
+                        "16": {
+                            "f": {
+                                "f": 75
+                            }
+                        },
+                        "17": {
+                            "f": {
+                                "f": 50
+                            }
+                        },
+                        "18": {
+                            "f": {
+                                "f": 40
+                            }
+                        },
+                        "19": {
+                            "f": {
+                                "f": 0
+                            }
+                        },
+                        "20": {
+                            "f": {
+                                "f": 0
+                            }
+                        }
+                    },
+                    "portadilla": {
+                        "7": {
+                            "f": {
+                                "f": 100
+                            }
+                        },
+                        "12": {
+                            "f": {
+                                "f": 100
+                            }
+                        },
+                        "17": {
+                            "f": {
+                                "f": 0
+                            }
+                        },
+                        "18": {
+                            "f": {
+                                "f": 0
+                            }
+                        },
+                        "20": {
+                            "f": {
+                                "f": 0
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "config_version": "6a2974ed3f39d",
+    "npTelemetryProb": 0
+}
