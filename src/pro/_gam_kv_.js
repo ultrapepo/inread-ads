@@ -1870,6 +1870,17 @@ class RandomStrategy extends WindowArray {
                 return;
               }
 
+              if (this.shouldBlockIntextByFallbackBlankControl()) {
+                logIntext(`[IntextManager] intext_blocked_by_fallback_blank_cookie`);
+                if (this.gexp?.statsG) {
+                  this.gexp.statsG.addRequiredVariable(
+                    "gexp-intext-block-reason",
+                    "fallback-blank-cookie",
+                  );
+                }
+                return;
+              }
+
               this.createIntextPositions();
 
               const infiniteScrollTypes = ["noticia", "noticia-especial"];
@@ -2118,7 +2129,7 @@ class RandomStrategy extends WindowArray {
             override.forceExclusionsRawValue = normalizedForceExclusions || null;
             override.forceExclusions = ["1", "true", "yes"].includes(normalizedForceExclusions);
 
-            if (normalizedRandom1 === "5" || normalizedRandom1 === "6") {
+            if (["5", "6", "7", "8", "9", "10"].includes(normalizedRandom1)) {
               override.random1 = normalizedRandom1;
               override.random1Value = normalizedRandom1;
             } else if (normalizedRandom1 === "default") {
@@ -2148,6 +2159,101 @@ class RandomStrategy extends WindowArray {
           } catch (e) {
             return disabled;
           }
+        }
+
+        getFallbackBlankControlConfig() {
+          return this.siteConfig?.fallbackBlankControl || {};
+        }
+
+        getEndOfDayDate() {
+          const end = new Date();
+          end.setHours(23, 59, 59, 999);
+          return end;
+        }
+
+        readFallbackBlankCounter() {
+          const cfg = this.getFallbackBlankControlConfig();
+          const key = cfg.counterStorageKey || "gexp_intext_fallback_blank_count";
+          const empty = { count: 0, expiresAt: this.getEndOfDayDate().getTime(), updatedAt: 0 };
+          try {
+            if (typeof window === "undefined" || !window.localStorage) return empty;
+            const raw = window.localStorage.getItem(key);
+            if (!raw) return empty;
+            const parsed = JSON.parse(raw);
+            const expiresAt = Number(parsed?.expiresAt) || 0;
+            if (expiresAt > 0 && Date.now() > expiresAt) {
+              window.localStorage.removeItem(key);
+              return empty;
+            }
+            return {
+              count: Number(parsed?.count) || 0,
+              expiresAt: expiresAt || empty.expiresAt,
+              updatedAt: Number(parsed?.updatedAt) || 0,
+            };
+          } catch (e) {
+            try { window.localStorage.removeItem(key); } catch (removeErr) {}
+            return empty;
+          }
+        }
+
+        writeFallbackBlankCounter(count) {
+          const cfg = this.getFallbackBlankControlConfig();
+          const key = cfg.counterStorageKey || "gexp_intext_fallback_blank_count";
+          const payload = {
+            count: Number(count) || 0,
+            expiresAt: this.getEndOfDayDate().getTime(),
+            updatedAt: Date.now(),
+          };
+          try {
+            if (typeof window !== "undefined" && window.localStorage) {
+              window.localStorage.setItem(key, JSON.stringify(payload));
+            }
+          } catch (e) {}
+          return payload;
+        }
+
+        incrementFallbackBlankCounter() {
+          const counter = this.readFallbackBlankCounter();
+          const next = this.writeFallbackBlankCounter((Number(counter.count) || 0) + 1);
+          const threshold = Number(this.getFallbackBlankControlConfig().threshold ?? 1);
+          if (threshold > 0 && next.count >= threshold) {
+            this.setTeadsBlockCookie();
+          }
+          return next;
+        }
+
+        setTeadsBlockCookie() {
+          const cfg = this.getFallbackBlankControlConfig();
+          const name = cfg.blockCookieName || "gexp_intext_teads_block";
+          try {
+            if (typeof document === "undefined") return;
+            const expires = this.getEndOfDayDate().toUTCString();
+            document.cookie = `${encodeURIComponent(name)}=1; expires=${expires}; path=/; SameSite=Lax`;
+          } catch (e) {}
+        }
+
+        hasTeadsBlockCookie() {
+          const cfg = this.getFallbackBlankControlConfig();
+          const name = cfg.blockCookieName || "gexp_intext_teads_block";
+          try {
+            if (typeof document === "undefined" || typeof document.cookie !== "string") return false;
+            return document.cookie
+              .split(";")
+              .some((part) => {
+                const eqIndex = part.indexOf("=");
+                const cookieName = (eqIndex >= 0 ? part.slice(0, eqIndex) : part).trim();
+                const cookieValue = eqIndex >= 0 ? part.slice(eqIndex + 1).trim() : "";
+                return decodeURIComponent(cookieName) === name && decodeURIComponent(cookieValue) === "1";
+              });
+          } catch (e) {
+            return false;
+          }
+        }
+
+        shouldBlockIntextByFallbackBlankControl() {
+          const cfg = this.getFallbackBlankControlConfig();
+          if (cfg.enabled !== true) return false;
+          return this.hasTeadsBlockCookie();
         }
 
         markIntextQaCookieApplied() {
@@ -2286,7 +2392,7 @@ class RandomStrategy extends WindowArray {
             };
           }
 
-          if (override.random1Value === "5" || override.random1Value === "6") {
+          if (["5", "6", "7", "8", "9", "10"].includes(override.random1Value)) {
             return {
               value: override.random1Value,
               source: "qa-cookie",
@@ -3735,6 +3841,7 @@ class RandomStrategy extends WindowArray {
           this._renderTimers = [];
           this._intextTransitionBridge = null;
           this._intextRealRenderTelemetryCommittedForToken = null;
+          this._fallbackBlankControlCountedTokens = new Set();
         }
 
         getIntextNodeId() {
@@ -3745,6 +3852,78 @@ class RandomStrategy extends WindowArray {
           return this.placement?.placementIndex != null
             ? this.placement.placementIndex
             : this.slotIndex;
+        }
+
+        maybeIncrementFallbackBlankControl(event, context = {}) {
+          const cfg = this.manager?.getFallbackBlankControlConfig?.() || {};
+          if (cfg.enabled !== true) return false;
+          if (Number(this.slotIndex) + 1 !== Number(cfg.slotIndex ?? 1)) return false;
+
+          const trigger = context.trigger || "unknown";
+          if (trigger !== "fallback") return false;
+          if (cfg.ignoreRefresh !== false) {
+            const isRefresh =
+              this._intextTelemetryCycle?.["gexp-intext-refresh"] === "true" ||
+              this.waterfall?.lastTrigger === "refresh" ||
+              trigger === "refresh";
+            if (isRefresh) return false;
+          }
+          if (trigger === "house-1x1-refresh") return false;
+          if (cfg.onlyFirstLoad !== false && (this._cycleCount || 0) > 0) return false;
+
+          const renderToken = context.renderToken || this._activeRenderToken || 0;
+          if (renderToken && this._fallbackBlankControlCountedTokens.has(renderToken)) return false;
+
+          const videoFailed =
+            this._intextTelemetryCycle?.["gexp-intext-video-failed"] === "true" ||
+            this.wa?.cI?.["gexp-intext-video-failed"] === "true";
+          const videoToDisplayFallback =
+            this._intextTelemetryCycle?.["gexp-intext-is-fallback"] === "true" ||
+            this._intextTelemetryCycle?.["gexp-intext-fallback"] === "true" ||
+            this.wa?.cI?.["gexp-intext-is-fallback"] === "true" ||
+            this.wa?.cI?.["gexp-intext-fallback"] === "true";
+          if (cfg.onlyVideoFallbackDisplay !== false && !(videoFailed && videoToDisplayFallback)) return false;
+
+          const house1x1Cfg = this.getHouse1x1AutoRefreshConfig?.();
+          const isEmptyDisplay = event?.isEmpty === true;
+          const isSentinelHouse =
+            this.isHouseLineItemSentinel?.(event) === true ||
+            this.isHouse1x1EventMatch?.(event, house1x1Cfg) === true;
+          const isHouseDisplay = (() => {
+            if (!event || event.isEmpty === true) return false;
+            const lineItemType = String(event.lineItemType || "").toLowerCase();
+            if (lineItemType === "house") return true;
+            try {
+              return this.manager?.gexp?.isHouse?.(event.campaignId, event.lineItemId, event.advertiserId) === true;
+            } catch (e) {
+              return false;
+            }
+          })();
+
+          const shouldCount =
+            (cfg.countEmptyDisplay === true && isEmptyDisplay) ||
+            (cfg.countHouseDisplay === true && isHouseDisplay) ||
+            (cfg.countSentinelHouse === true && isSentinelHouse);
+          if (!shouldCount) return false;
+
+          if (renderToken) this._fallbackBlankControlCountedTokens.add(renderToken);
+          const counter = this.manager.incrementFallbackBlankCounter();
+          this.mergeIntextTelemetry?.({
+            "gexp-intext-fallback-blank-control-counted": "true",
+            "gexp-intext-fallback-blank-control-count": String(counter.count),
+            "gexp-intext-fallback-blank-control-source": String(context.source || "unknown"),
+          });
+          this.flushIntextTelemetryToCI?.();
+          logIntext(`[Intext:Display:${this.id}] fallback_blank_control_incremented`, {
+            count: counter.count,
+            threshold: cfg.threshold,
+            source: context.source || "unknown",
+            renderToken,
+            isEmptyDisplay,
+            isHouseDisplay,
+            isSentinelHouse,
+          });
+          return true;
         }
 
         beginVisualRender(source = "unknown", trigger = "unknown") {
@@ -6750,6 +6929,12 @@ class RandomStrategy extends WindowArray {
                   `[Intext:Display:${this.id}] initial slotRenderEnded — isEmpty: ${event.isEmpty}, size: ${JSON.stringify(event.size)}, is1x1: ${is1x1}, hasContent: ${hasContent}`,
                 );
 
+                this.maybeIncrementFallbackBlankControl(event, {
+                  trigger,
+                  renderToken,
+                  source: "display_initial_slotRenderEnded",
+                });
+
                 if (this.isHouse1x1AutoRefreshCandidate(event)) {
                   this.handleHouse1x1AutoRefresh(event, renderToken);
                   resolve({ filled: false, event, is1x1, suppressed: true, retrying: true, sentinelLineItemId: event?.lineItemId });
@@ -9385,7 +9570,7 @@ class RandomStrategy extends WindowArray {
             `%c[Intext:Slot:${this.node.id}:${this.node.id}] ═══ FALLBACK → ${loser.toUpperCase()} ═══`,
             "color:#FF5722;font-weight:bold",
           );
-          const fallbackSuccess = await this._requestFormat(loser, fallbackRenderToken);
+          const fallbackSuccess = await this._requestFormat(loser, fallbackRenderToken, "fallback");
           if (!this.node.isActiveRenderToken(fallbackRenderToken, "requestWinner:after_fallback_format", "fallback")) return;
 
           if (fallbackSuccess === "retrying" || fallbackSuccess === "closed") {
@@ -9404,16 +9589,17 @@ class RandomStrategy extends WindowArray {
           }
         }
 
-        async _requestFormat(format, renderToken = this.node._activeRenderToken) {
+        async _requestFormat(format, renderToken = this.node._activeRenderToken, triggerOverride = null) {
           if (format === "display") {
-            return await this._requestDisplay(renderToken);
+            return await this._requestDisplay(renderToken, triggerOverride);
           } else {
-            return await this._requestVideo(renderToken);
+            return await this._requestVideo(renderToken, triggerOverride);
           }
         }
 
-        async _requestDisplay(renderToken = this.node._activeRenderToken) {
-          if (!this.node.isActiveRenderToken(renderToken, "_requestDisplay:start", this.lastTrigger || "unknown")) return false;
+        async _requestDisplay(renderToken = this.node._activeRenderToken, triggerOverride = null) {
+          const requestTrigger = triggerOverride || this.lastTrigger || "unknown";
+          if (!this.node.isActiveRenderToken(renderToken, "_requestDisplay:start", requestTrigger)) return false;
           const tamConfig = this.getTAMConfiguration();
           if (tamConfig) {
             logIntext(
@@ -9432,13 +9618,13 @@ class RandomStrategy extends WindowArray {
           logIntext(
             `[Intext:Slot:${this.node.id}] ├─ GAM Display: requesting GPT slot...`,
           );
-          if (!this.node.isActiveRenderToken(renderToken, "_requestDisplay:after_tam", this.lastTrigger || "unknown")) return false;
+          if (!this.node.isActiveRenderToken(renderToken, "_requestDisplay:after_tam", requestTrigger)) return false;
           const displayResult = await this.node.askDisplay(
             this._lastDisplayBid,
             renderToken,
-            this.lastTrigger || "unknown",
+            requestTrigger,
           );
-          if (displayResult.stale === true || !this.node.isActiveRenderToken(renderToken, "_requestDisplay:after_askDisplay", this.lastTrigger || "unknown")) return "closed";
+          if (displayResult.stale === true || !this.node.isActiveRenderToken(renderToken, "_requestDisplay:after_askDisplay", requestTrigger)) return "closed";
 
           if (displayResult.retrying === true) {
             logIntext(
@@ -9470,8 +9656,9 @@ class RandomStrategy extends WindowArray {
           }
         }
 
-        async _requestVideo(renderToken = this.node._activeRenderToken) {
-          if (!this.node.isActiveRenderToken(renderToken, "_requestVideo:start", this.lastTrigger || "unknown")) return false;
+        async _requestVideo(renderToken = this.node._activeRenderToken, triggerOverride = null) {
+          const requestTrigger = triggerOverride || this.lastTrigger || "unknown";
+          if (!this.node.isActiveRenderToken(renderToken, "_requestVideo:start", requestTrigger)) return false;
           const tamVideoConfig = this.getTAMVideoConfiguration();
           if (tamVideoConfig) {
             logIntext(
@@ -9487,13 +9674,13 @@ class RandomStrategy extends WindowArray {
             );
           }
 
-          if (!this.node.isActiveRenderToken(renderToken, "_requestVideo:after_tam", this.lastTrigger || "unknown")) return false;
+          if (!this.node.isActiveRenderToken(renderToken, "_requestVideo:after_tam", requestTrigger)) return false;
           const gamVideoTagUrl = this.buildGAMVideoTagUrl();
           logIntext(
             `[Intext:Slot:${this.node.id}] ├─ GAM Video: building player...`,
           );
-          const videoPlayed = await this.node.buildAndPlayVideo(gamVideoTagUrl, renderToken, this.lastTrigger || "unknown");
-          if (!this.node.isActiveRenderToken(renderToken, "_requestVideo:after_buildAndPlayVideo", this.lastTrigger || "unknown")) return false;
+          const videoPlayed = await this.node.buildAndPlayVideo(gamVideoTagUrl, renderToken, requestTrigger);
+          if (!this.node.isActiveRenderToken(renderToken, "_requestVideo:after_buildAndPlayVideo", requestTrigger)) return false;
           if (videoPlayed) {
             logIntext(
               `[Intext:Slot:${this.node.id}] ├─ GAM Video: FILL ✅ — playing`,
@@ -9541,7 +9728,7 @@ class RandomStrategy extends WindowArray {
                  const restoreRenderToken = renderToken;
                  const elToRestore = dEl;
                  requestAnimationFrame(() => {
-                   if (!this.node.isActiveRenderToken(restoreRenderToken, "video_failure_restore_display_raf", this.lastTrigger || "unknown")) return;
+                   if (!this.node.isActiveRenderToken(restoreRenderToken, "video_failure_restore_display_raf", requestTrigger)) return;
                    if (!elToRestore.isConnected || this.node.container?.getElement?.() !== elToRestore) return;
                    elToRestore.style.transition = "";
                  });

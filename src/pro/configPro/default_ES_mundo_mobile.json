@@ -544,6 +544,20 @@
         "default": {
             "general": {
                 "debug": false,
+                "fallbackBlankControl": {
+                    "enabled": false,
+                    "counterStorageKey": "gexp_intext_fallback_blank_count",
+                    "blockCookieName": "gexp_intext_teads_block",
+                    "threshold": 1,
+                    "expireAtEndOfDay": true,
+                    "slotIndex": 1,
+                    "onlyFirstLoad": true,
+                    "ignoreRefresh": true,
+                    "onlyVideoFallbackDisplay": true,
+                    "countEmptyDisplay": true,
+                    "countHouseDisplay": true,
+                    "countSentinelHouse": true
+                },
                 "domainFilter": {
                     "enabled": true,
                     "allowedDomains": [
@@ -562,7 +576,11 @@
                             "keyValues": {
                                 "random1": [
                                     "5",
-                                    "6"
+                                    "6",
+                                    "7",
+                                    "8",
+                                    "9",
+                                    "10"
                                 ]
                             }
                         },
@@ -570,7 +588,11 @@
                             "keyValues": {
                                 "random1": [
                                     "5",
-                                    "6"
+                                    "6",
+                                    "7",
+                                    "8",
+                                    "9",
+                                    "10"
                                 ]
                             }
                         },
@@ -578,7 +600,11 @@
                             "keyValues": {
                                 "random1": [
                                     "5",
-                                    "6"
+                                    "6",
+                                    "7",
+                                    "8",
+                                    "9",
+                                    "10"
                                 ]
                             }
                         },
@@ -586,7 +612,11 @@
                             "keyValues": {
                                 "random1": [
                                     "5",
-                                    "6"
+                                    "6",
+                                    "7",
+                                    "8",
+                                    "9",
+                                    "10"
                                 ]
                             }
                         }
@@ -695,7 +725,11 @@
                         "key": "random1",
                         "values": {
                             "5": "instream",
-                            "6": "outstream"
+                            "6": "outstream",
+                            "7": "instream",
+                            "8": "outstream",
+                            "9": "instream",
+                            "10": "outstream"
                         },
                         "fallback": "instream"
                     },
@@ -780,7 +814,11 @@
                     "key2": "random2",
                     "enabledRandom1": [
                         "5",
-                        "6"
+                        "6",
+                        "7",
+                        "8",
+                        "9",
+                        "10"
                     ],
                     "variants": {
                         "1": {
@@ -802,6 +840,15 @@
                             "mode": "default"
                         },
                         "7": {
+                            "mode": "default"
+                        },
+                        "8": {
+                            "mode": "default"
+                        },
+                        "9": {
+                            "mode": "default"
+                        },
+                        "10": {
                             "mode": "default"
                         }
                     }
@@ -916,57 +963,36 @@
                         "default": {
                             "aliases": {
                                 "rubicon_video": {
-
                                     "bidder": "rubicon",
-
                                     "useBaseGvlid": true
-
                                 },
                                 "msft_video": {
-
                                     "bidder": "msft",
-
                                     "useBaseGvlid": true
-
                                 },
                                 "criteo_video": {
-
                                     "bidder": "criteo",
-
                                     "useBaseGvlid": true
-
                                 },
                                 "pubstack_server_video": {
-
                                     "bidder": "pubstack_server",
-
                                     "useBaseGvlid": true
-
                                 },
                                 "richaudience_video": {
-
                                     "bidder": "richaudience",
-
                                     "useBaseGvlid": true
-
                                 },
                                 "equativ_video": {
                                     "bidder": "equativ",
                                     "useBaseGvlid": true
                                 },
                                 "ix_video": {
-
                                     "bidder": "ix",
-
                                     "useBaseGvlid": true
-
                                 },
                                 "ttd_video": {
-
                                     "bidder": "ttd",
-
                                     "useBaseGvlid": true
-
                                 }
                             },
                             "bidders": [
@@ -1800,7 +1826,7 @@
                     "maxDelayMs": 1500
                 },
                 "display": {
-                    "adUnitPath": "telva\/belleza\/n",
+                    "adUnitPath": "telva/belleza/n",
                     "sizes": [
                         [
                             300,
@@ -1869,7 +1895,7 @@
                                         "pageId": 648549,
                                         "formatId": 40859,
                                         "siteId": 99913,
-                                        "domain": "https:\/\/prg.smartadserver.com"
+                                        "domain": "https://prg.smartadserver.com"
                                     }
                                 },
                                 {
@@ -2133,7 +2159,7 @@
                     "priorityBelowMin": "only_video"
                 },
                 "display": {
-                    "adUnitPath": "telva\/belleza\/n",
+                    "adUnitPath": "telva/belleza/n",
                     "sizes": [
                         [
                             300,
@@ -2180,8 +2206,8 @@
                             "plcmt": 1,
                             "placement": 1,
                             "mimes": [
-                                "video\/mp4",
-                                "application\/javascript"
+                                "video/mp4",
+                                "application/javascript"
                             ],
                             "protocols": [
                                 2,
@@ -2211,8 +2237,8 @@
                             "plcmt": 2,
                             "placement": 3,
                             "mimes": [
-                                "video\/mp4",
-                                "application\/javascript"
+                                "video/mp4",
+                                "application/javascript"
                             ],
                             "protocols": [
                                 2,
@@ -2282,7 +2308,7 @@
                                         "pageId": 648549,
                                         "formatId": 40859,
                                         "siteId": 99913,
-                                        "domain": "https:\/\/prg.smartadserver.com"
+                                        "domain": "https://prg.smartadserver.com"
                                     }
                                 },
                                 {
@@ -2389,7 +2415,7 @@
                                         "siteId": "99913",
                                         "pageId": "648549",
                                         "formatId": "40183",
-                                        "domain": "\/\/prg.smartadserver.com"
+                                        "domain": "//prg.smartadserver.com"
                                     }
                                 },
                                 {
