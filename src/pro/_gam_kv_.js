@@ -3899,44 +3899,23 @@ class RandomStrategy extends WindowArray {
             this.flushIntextTelemetryToCI?.();
           };
 
-          if (cfg.enabled !== true) {
-            recordFallbackBlankControlTelemetry("disabled");
-            return false;
-          }
-          if (Number(this.slotIndex) + 1 !== Number(cfg.slotIndex ?? 1)) {
-            recordFallbackBlankControlTelemetry("slot-index-mismatch");
-            return false;
-          }
+          if (cfg.enabled !== true) return false;
+          if (Number(this.slotIndex) + 1 !== Number(cfg.slotIndex ?? 1)) return false;
 
           const trigger = context.trigger || "unknown";
-          if (trigger !== "fallback") {
-            recordFallbackBlankControlTelemetry("trigger-not-fallback");
-            return false;
-          }
+          if (trigger !== "fallback") return false;
           if (cfg.ignoreRefresh !== false) {
             const isRefresh =
               this._intextTelemetryCycle?.["gexp-intext-refresh"] === "true" ||
               this.waterfall?.lastTrigger === "refresh" ||
               trigger === "refresh";
-            if (isRefresh) {
-              recordFallbackBlankControlTelemetry("refresh-ignored");
-              return false;
-            }
+            if (isRefresh) return false;
           }
-          if (trigger === "house-1x1-refresh") {
-            recordFallbackBlankControlTelemetry("house-1x1-refresh-ignored");
-            return false;
-          }
-          if (cfg.onlyFirstLoad !== false && (this._cycleCount || 0) > 0) {
-            recordFallbackBlankControlTelemetry("not-first-load");
-            return false;
-          }
+          if (trigger === "house-1x1-refresh") return false;
+          if (cfg.onlyFirstLoad !== false && (this._cycleCount || 0) > 0) return false;
 
           const renderToken = context.renderToken || this._activeRenderToken || 0;
-          if (renderToken && this._fallbackBlankControlCountedTokens.has(renderToken)) {
-            recordFallbackBlankControlTelemetry("render-token-already-counted");
-            return false;
-          }
+          if (renderToken && this._fallbackBlankControlCountedTokens.has(renderToken)) return false;
 
           const videoFailed =
             this._intextTelemetryCycle?.["gexp-intext-video-failed"] === "true" ||
@@ -3946,10 +3925,7 @@ class RandomStrategy extends WindowArray {
             this._intextTelemetryCycle?.["gexp-intext-fallback"] === "true" ||
             this.wa?.cI?.["gexp-intext-is-fallback"] === "true" ||
             this.wa?.cI?.["gexp-intext-fallback"] === "true";
-          if (cfg.onlyVideoFallbackDisplay !== false && !(videoFailed && videoToDisplayFallback)) {
-            recordFallbackBlankControlTelemetry(videoFailed ? "not-video-to-display-fallback" : "video-not-failed");
-            return false;
-          }
+          if (cfg.onlyVideoFallbackDisplay !== false && !(videoFailed && videoToDisplayFallback)) return false;
 
           const house1x1Cfg = this.getHouse1x1AutoRefreshConfig?.();
           const isEmptyDisplay = event?.isEmpty === true;
@@ -3971,10 +3947,7 @@ class RandomStrategy extends WindowArray {
             (cfg.countEmptyDisplay === true && isEmptyDisplay) ||
             (cfg.countHouseDisplay === true && isHouseDisplay) ||
             (cfg.countSentinelHouse === true && isSentinelHouse);
-          if (!shouldCount) {
-            recordFallbackBlankControlTelemetry("display-not-empty-house-or-sentinel");
-            return false;
-          }
+          if (!shouldCount) return false;
 
           if (renderToken) this._fallbackBlankControlCountedTokens.add(renderToken);
           const counter = this.manager.incrementFallbackBlankCounter();
