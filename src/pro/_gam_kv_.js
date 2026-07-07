@@ -9645,7 +9645,7 @@ class RandomStrategy extends WindowArray {
             logIntext(
               `[Intext:Slot:${this.node.id}] ├─ GAM Display: FILL ✅ (size: ${JSON.stringify(displayResult.event?.size)})`,
             );
-            this.node.showDisplay(displayResult, renderToken, this.lastTrigger || "unknown");
+            this.node.showDisplay(displayResult, renderToken, requestTrigger);
             return true;
           } else {
             logIntext(
