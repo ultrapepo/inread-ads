@@ -1873,6 +1873,14 @@ class RandomStrategy extends WindowArray {
               if (this.shouldBlockIntextByFallbackBlankControl()) {
                 logIntext(`[IntextManager] intext_blocked_by_fallback_blank_cookie`);
                 if (this.gexp?.statsG) {
+                  const fallbackBlankTelemetry = this.getFallbackBlankControlTelemetry({
+                    "gexp-intext-fallback-blank-control-source": "manager_pre_createIntextPositions",
+                    "gexp-intext-fallback-blank-control-reason": "fallback-blank-cookie",
+                    "gexp-intext-fallback-blank-control-blocked": "true",
+                  });
+                  Object.entries(fallbackBlankTelemetry).forEach(([key, value]) => {
+                    this.gexp.statsG.addRequiredVariable(key, value);
+                  });
                   this.gexp.statsG.addRequiredVariable(
                     "gexp-intext-block-reason",
                     "fallback-blank-cookie",
@@ -2254,6 +2262,24 @@ class RandomStrategy extends WindowArray {
           const cfg = this.getFallbackBlankControlConfig();
           if (cfg.enabled !== true) return false;
           return this.hasTeadsBlockCookie();
+        }
+
+        getFallbackBlankControlTelemetry(extra = {}) {
+          const cfg = this.getFallbackBlankControlConfig();
+          const counter = this.readFallbackBlankCounter();
+          const hasCookie = this.hasTeadsBlockCookie();
+          return {
+            "gexp-intext-fallback-blank-control-enabled": cfg.enabled === true ? "true" : "false",
+            "gexp-intext-fallback-blank-control-threshold": String(cfg.threshold ?? 1),
+            "gexp-intext-fallback-blank-control-cookie": hasCookie ? "true" : "false",
+            "gexp-intext-fallback-blank-control-count": String(counter.count || 0),
+            "gexp-intext-fallback-blank-control-counted": "false",
+            "gexp-intext-fallback-blank-control-source": "baseline",
+            "gexp-intext-fallback-blank-control-reason": "baseline",
+            "gexp-intext-fallback-blank-control-cookie-set": "false",
+            "gexp-intext-fallback-blank-control-blocked": "false",
+            ...extra,
+          };
         }
 
         markIntextQaCookieApplied() {
@@ -3856,23 +3882,61 @@ class RandomStrategy extends WindowArray {
 
         maybeIncrementFallbackBlankControl(event, context = {}) {
           const cfg = this.manager?.getFallbackBlankControlConfig?.() || {};
-          if (cfg.enabled !== true) return false;
-          if (Number(this.slotIndex) + 1 !== Number(cfg.slotIndex ?? 1)) return false;
+          const source = String(context.source || "unknown");
+          const recordFallbackBlankControlTelemetry = (reason, counted = false, counter = null, cookieSet = false) => {
+            const telemetryExtra = {
+              "gexp-intext-fallback-blank-control-counted": counted ? "true" : "false",
+              "gexp-intext-fallback-blank-control-source": source,
+              "gexp-intext-fallback-blank-control-reason": reason,
+              "gexp-intext-fallback-blank-control-cookie-set": cookieSet ? "true" : "false",
+            };
+            if (counter?.count != null) {
+              telemetryExtra["gexp-intext-fallback-blank-control-count"] = String(counter.count);
+            }
+            this.mergeIntextTelemetry?.({
+              ...this.manager?.getFallbackBlankControlTelemetry?.(telemetryExtra),
+            });
+            this.flushIntextTelemetryToCI?.();
+          };
+
+          if (cfg.enabled !== true) {
+            recordFallbackBlankControlTelemetry("disabled");
+            return false;
+          }
+          if (Number(this.slotIndex) + 1 !== Number(cfg.slotIndex ?? 1)) {
+            recordFallbackBlankControlTelemetry("slot-index-mismatch");
+            return false;
+          }
 
           const trigger = context.trigger || "unknown";
-          if (trigger !== "fallback") return false;
+          if (trigger !== "fallback") {
+            recordFallbackBlankControlTelemetry("trigger-not-fallback");
+            return false;
+          }
           if (cfg.ignoreRefresh !== false) {
             const isRefresh =
               this._intextTelemetryCycle?.["gexp-intext-refresh"] === "true" ||
               this.waterfall?.lastTrigger === "refresh" ||
               trigger === "refresh";
-            if (isRefresh) return false;
+            if (isRefresh) {
+              recordFallbackBlankControlTelemetry("refresh-ignored");
+              return false;
+            }
           }
-          if (trigger === "house-1x1-refresh") return false;
-          if (cfg.onlyFirstLoad !== false && (this._cycleCount || 0) > 0) return false;
+          if (trigger === "house-1x1-refresh") {
+            recordFallbackBlankControlTelemetry("house-1x1-refresh-ignored");
+            return false;
+          }
+          if (cfg.onlyFirstLoad !== false && (this._cycleCount || 0) > 0) {
+            recordFallbackBlankControlTelemetry("not-first-load");
+            return false;
+          }
 
           const renderToken = context.renderToken || this._activeRenderToken || 0;
-          if (renderToken && this._fallbackBlankControlCountedTokens.has(renderToken)) return false;
+          if (renderToken && this._fallbackBlankControlCountedTokens.has(renderToken)) {
+            recordFallbackBlankControlTelemetry("render-token-already-counted");
+            return false;
+          }
 
           const videoFailed =
             this._intextTelemetryCycle?.["gexp-intext-video-failed"] === "true" ||
@@ -3882,7 +3946,10 @@ class RandomStrategy extends WindowArray {
             this._intextTelemetryCycle?.["gexp-intext-fallback"] === "true" ||
             this.wa?.cI?.["gexp-intext-is-fallback"] === "true" ||
             this.wa?.cI?.["gexp-intext-fallback"] === "true";
-          if (cfg.onlyVideoFallbackDisplay !== false && !(videoFailed && videoToDisplayFallback)) return false;
+          if (cfg.onlyVideoFallbackDisplay !== false && !(videoFailed && videoToDisplayFallback)) {
+            recordFallbackBlankControlTelemetry(videoFailed ? "not-video-to-display-fallback" : "video-not-failed");
+            return false;
+          }
 
           const house1x1Cfg = this.getHouse1x1AutoRefreshConfig?.();
           const isEmptyDisplay = event?.isEmpty === true;
@@ -3904,20 +3971,23 @@ class RandomStrategy extends WindowArray {
             (cfg.countEmptyDisplay === true && isEmptyDisplay) ||
             (cfg.countHouseDisplay === true && isHouseDisplay) ||
             (cfg.countSentinelHouse === true && isSentinelHouse);
-          if (!shouldCount) return false;
+          if (!shouldCount) {
+            recordFallbackBlankControlTelemetry("display-not-empty-house-or-sentinel");
+            return false;
+          }
 
           if (renderToken) this._fallbackBlankControlCountedTokens.add(renderToken);
           const counter = this.manager.incrementFallbackBlankCounter();
-          this.mergeIntextTelemetry?.({
-            "gexp-intext-fallback-blank-control-counted": "true",
-            "gexp-intext-fallback-blank-control-count": String(counter.count),
-            "gexp-intext-fallback-blank-control-source": String(context.source || "unknown"),
-          });
-          this.flushIntextTelemetryToCI?.();
+          const threshold = Number(cfg.threshold ?? 1);
+          const cookieSet = threshold > 0 && Number(counter.count) >= threshold;
+          const reason = isEmptyDisplay ? "empty-display" : (isSentinelHouse ? "sentinel-house" : "house-display");
+          recordFallbackBlankControlTelemetry(reason, true, counter, cookieSet);
           logIntext(`[Intext:Display:${this.id}] fallback_blank_control_incremented`, {
             count: counter.count,
             threshold: cfg.threshold,
-            source: context.source || "unknown",
+            source,
+            reason,
+            cookieSet,
             renderToken,
             isEmptyDisplay,
             isHouseDisplay,
@@ -5147,6 +5217,15 @@ class RandomStrategy extends WindowArray {
               "gexp-intext-loading-key-source",
               "gexp-intext-loading-lookup-slot",
               "gexp-intext-loading-fallback-reason",
+              "gexp-intext-fallback-blank-control-enabled",
+              "gexp-intext-fallback-blank-control-threshold",
+              "gexp-intext-fallback-blank-control-cookie",
+              "gexp-intext-fallback-blank-control-count",
+              "gexp-intext-fallback-blank-control-counted",
+              "gexp-intext-fallback-blank-control-source",
+              "gexp-intext-fallback-blank-control-reason",
+              "gexp-intext-fallback-blank-control-cookie-set",
+              "gexp-intext-fallback-blank-control-blocked",
               "gexp-intext-paragraph-index",
               "gexp-intext-paragraph-number",
               "gexp-intext-placement-rule",
@@ -5287,6 +5366,15 @@ class RandomStrategy extends WindowArray {
             "gexp-intext-qa-cookie-force-exclusions",
             "gexp-intext-qa-cookie-exclusions-bypassed",
             "gexp-intext-qa-cookie-exclusions-bypass-source",
+            "gexp-intext-fallback-blank-control-enabled",
+            "gexp-intext-fallback-blank-control-threshold",
+            "gexp-intext-fallback-blank-control-cookie",
+            "gexp-intext-fallback-blank-control-count",
+            "gexp-intext-fallback-blank-control-counted",
+            "gexp-intext-fallback-blank-control-source",
+            "gexp-intext-fallback-blank-control-reason",
+            "gexp-intext-fallback-blank-control-cookie-set",
+            "gexp-intext-fallback-blank-control-blocked",
             "gexp-intext-fetch-root-margin",
             "gexp-intext-render-root-margin",
             "gexp-intext-max-delay-ms",
@@ -5493,6 +5581,7 @@ class RandomStrategy extends WindowArray {
             "gexp-intext-loading-lookup-slot": String(loadingExperiment.lookupSlot || this.id || "unknown"),
             "gexp-intext-loading-fallback-reason": String(loadingExperiment.fallbackReason || "none"),
             ...this.manager?.getIntextQaCookieTelemetry?.(qaCookieApplied),
+            ...this.manager?.getFallbackBlankControlTelemetry?.(),
             "gexp-intext-fetch-root-margin": String(this.config?.loading?.fetchRootMargin || this.config?.loading?.renderRootMargin || this.config?.loading?.rootMargin || "200px 0px"),
             "gexp-intext-render-root-margin": String(this.config?.loading?.renderRootMargin || this.config?.loading?.rootMargin || "200px 0px"),
             "gexp-intext-max-delay-ms": hasTimer ? String(maxDelayMs) : "disabled",
