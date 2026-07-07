@@ -545,7 +545,7 @@
             "general": {
                 "debug": false,
                 "fallbackBlankControl": {
-                    "enabled": false,
+                    "enabled": true,
                     "counterStorageKey": "gexp_intext_fallback_blank_count",
                     "blockCookieName": "gexp_intext_teads_block",
                     "threshold": 1,
