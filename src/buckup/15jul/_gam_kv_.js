@@ -1748,65 +1748,6 @@ class RandomStrategy extends WindowArray {
       const groupIntext = (...args) => { if (window.gexpIntextDebug) console.groupCollapsed(...formatLog(args, badgeLog)); };
       const groupEndIntext = () => { if (window.gexpIntextDebug) console.groupEnd(); };
 
-      const INTEXT_RANDOM_KEYS = Object.freeze(["random1", "random2", "random3", "random4"]);
-      const INTEXT_TELEMETRY_STANDARD_FIELDS = Object.freeze([
-        "gexp-intext-telemetry-event-type",
-        "gexp-intext-opportunity-id",
-        "gexp-intext-manager-event-id",
-        "gexp-intext-decision",
-        "gexp-intext-decision-reason",
-        "gexp-intext-decision-scope",
-        "gexp-intext-fallback-blank-event-id",
-        "gexp-intext-fallback-blank-control-enabled",
-        "gexp-intext-fallback-blank-control-threshold",
-        "gexp-intext-fallback-blank-control-cookie",
-        "gexp-intext-fallback-blank-control-count",
-        "gexp-intext-fallback-blank-control-counted",
-        "gexp-intext-fallback-blank-control-source",
-        "gexp-intext-fallback-blank-control-reason",
-        "gexp-intext-fallback-blank-control-cookie-set",
-        "gexp-intext-fallback-blank-control-blocked",
-        "gexp-intext-fallback-blank-control-counter-before",
-        "gexp-intext-fallback-blank-control-counter-after",
-        "gexp-intext-fallback-blank-control-threshold-reached",
-        "gexp-intext-fallback-blank-control-cookie-set-attempted",
-        "gexp-intext-fallback-blank-control-cookie-set-confirmed",
-        "gexp-intext-fallback-blank-control-cookie-set-error",
-        "gexp-intext-random-source",
-        "gexp-intext-random1-effective",
-        "gexp-intext-random2-effective",
-        "gexp-intext-random3-effective",
-        "gexp-intext-random4-effective",
-        "gexp-intext-random-consistency-slots",
-        "gexp-intext-random-consistency-page",
-        "gexp-intext-random-mismatch-corrected",
-        "gexp-intext-random-expected",
-        "gexp-intext-random-observed",
-        "gexp-intext-diagnostic-key",
-        "gexp-intext-diagnostic-context",
-        "gexp-intext-lifecycle-event",
-        "gexp-intext-lifecycle-payload",
-        "gexp-intext-reference-slot-id",
-        "gexp-intext-reference-slot-position",
-        "gexp-intext-telemetry-sampled",
-        "gexp-intext-telemetry-sampling-modulo",
-        "gexp-intext-telemetry-sample-weight",
-        "slot-id",
-        "slot-index",
-        "cycle-id",
-        "render-token",
-        "pvid",
-        "navIndex",
-        "domain",
-        "contentType",
-        "timestamp",
-        "tlm_rid",
-        "random1",
-        "random2",
-        "random3",
-        "random4",
-      ]);
-
       class IntextManager {
         constructor(config, gexpInstance) {
           this.config = config;
@@ -1819,10 +1760,6 @@ class RandomStrategy extends WindowArray {
           this._intextQaCookieApplied = false;
           this._intextQaCookieExclusionsBypassed = false;
           this._intextQaCookieExclusionsBypassSource = "none";
-          this.intextRandomSnapshot = null;
-          this._intextSyntheticEventKeys = new Set();
-          this._intextOpportunityDecisionKeys = new Set();
-          this._intextPageviewId = this.resolveIntextPvid();
           this.adUnitPath = this.extractStaticAdUnitPath();
           this.networkId = this.config?.networkId || "99071977";
           ensureBaseStyles();
@@ -1925,21 +1862,6 @@ class RandomStrategy extends WindowArray {
               if (!this.isContentTypeAllowed(this.siteConfig, this.siteContext.contentType, "[IntextManager]")) {
                 return;
               }
-              const snapshot = this.captureIntextRandomSnapshot();
-              if (!this.validateIntextRandomSnapshot(snapshot)) {
-                this.registerIntextManagerDecision({
-                  navIndex: 0,
-                  scope: "initial",
-                  decision: "blocked",
-                  reason: "random-snapshot-invalid",
-                });
-                this.registerIntextDiagnosticEvent({
-                  diagnosticKey: "random-snapshot-invalid",
-                  "gexp-intext-decision": "blocked",
-                  "gexp-intext-decision-reason": "random-snapshot-invalid",
-                });
-                return;
-              }
               if (this.isBlockedByExclusions()) {
                 return;
               }
@@ -1950,21 +1872,23 @@ class RandomStrategy extends WindowArray {
 
               if (this.shouldBlockIntextByFallbackBlankControl()) {
                 logIntext(`[IntextManager] intext_blocked_by_fallback_blank_cookie`);
-                this.registerIntextManagerDecision({
-                  navIndex: 0,
-                  scope: "initial",
-                  decision: "blocked",
-                  reason: "fallback-blank-cookie",
-                });
+                if (this.gexp?.statsG) {
+                  const fallbackBlankTelemetry = this.getFallbackBlankControlTelemetry({
+                    "gexp-intext-fallback-blank-control-source": "manager_pre_createIntextPositions",
+                    "gexp-intext-fallback-blank-control-reason": "fallback-blank-cookie",
+                    "gexp-intext-fallback-blank-control-blocked": "true",
+                  });
+                  Object.entries(fallbackBlankTelemetry).forEach(([key, value]) => {
+                    this.gexp.statsG.addRequiredVariable(key, value);
+                  });
+                  this.gexp.statsG.addRequiredVariable(
+                    "gexp-intext-block-reason",
+                    "fallback-blank-cookie",
+                  );
+                }
                 return;
               }
 
-              this.registerIntextManagerDecision({
-                navIndex: 0,
-                scope: "initial",
-                decision: "allowed",
-                reason: "passed",
-              });
               this.createIntextPositions();
 
               const infiniteScrollTypes = ["noticia", "noticia-especial"];
@@ -1979,228 +1903,6 @@ class RandomStrategy extends WindowArray {
           } else {
             launchIntextPositions();
           }
-        }
-
-        createIntextTelemetryId(prefix = "intext") {
-          try {
-            if (typeof window !== "undefined" && typeof window.crypto?.randomUUID === "function") {
-              return `${prefix}:${window.crypto.randomUUID()}`;
-            }
-          } catch (e) {}
-          this._intextTelemetryIdSequence = (this._intextTelemetryIdSequence || 0) + 1;
-          return `${prefix}:${Date.now()}:${this._intextTelemetryIdSequence}:${Math.random().toString(36).slice(2, 10)}`;
-        }
-
-        resolveIntextPvid() {
-          const candidates = [
-            typeof window !== "undefined" ? window.pvid : null,
-            typeof window !== "undefined" ? window.pageViewId : null,
-            typeof window !== "undefined" ? window.ueDataLayer?.pvid : null,
-            typeof window !== "undefined" ? window.utag_data?.pvid : null,
-          ];
-          const existing = candidates.find((value) => value !== undefined && value !== null && value !== "");
-          return existing ? String(existing) : this.createIntextTelemetryId("intext-pvid");
-        }
-
-        captureIntextRandomSnapshot() {
-          if (this.intextRandomSnapshot) return this.intextRandomSnapshot;
-          try {
-            this.intextRandomSnapshot = Object.freeze({
-              random1: String(this.gexp.getRandom(1)),
-              random2: String(this.gexp.getRandom(2)),
-              random3: String(this.gexp.getRandom(3)),
-              random4: String(this.gexp.getRandom(4)),
-              source: "gexp-slot-random-snapshot",
-            });
-          } catch (e) {
-            this.intextRandomSnapshot = Object.freeze({
-              random1: "",
-              random2: "",
-              random3: "",
-              random4: "",
-              source: "gexp-slot-random-snapshot",
-            });
-          }
-          return this.intextRandomSnapshot;
-        }
-
-        validateIntextRandomSnapshot(snapshot = this.intextRandomSnapshot) {
-          if (!snapshot || !Object.isFrozen(snapshot)) return false;
-          if (!INTEXT_RANDOM_KEYS.every((key) => snapshot[key] !== undefined && snapshot[key] !== null && snapshot[key] !== "")) {
-            return false;
-          }
-          const random1 = Number(snapshot.random1);
-          return Number.isInteger(random1) && random1 >= 1 && random1 <= 20;
-        }
-
-        validateIntextRandomSnapshotStability(context = "runtime") {
-          const snapshot = this.intextRandomSnapshot;
-          if (!this.validateIntextRandomSnapshot(snapshot)) return false;
-          let current = null;
-          try {
-            current = {
-              random1: String(this.gexp.getRandom(1)),
-              random2: String(this.gexp.getRandom(2)),
-              random3: String(this.gexp.getRandom(3)),
-              random4: String(this.gexp.getRandom(4)),
-            };
-          } catch (e) {
-            return false;
-          }
-          const stable = INTEXT_RANDOM_KEYS.every((key) => current[key] === snapshot[key]);
-          if (!stable) {
-            this.registerIntextDiagnosticEvent({
-              diagnosticKey: `gexp-random-changed-after-snapshot:${context}`,
-              "gexp-intext-diagnostic-context": String(context),
-              "gexp-intext-random-expected": JSON.stringify(snapshot),
-              "gexp-intext-random-observed": JSON.stringify(current),
-            });
-          }
-          return stable;
-        }
-
-        getIntextRandomValue(key) {
-          if (!INTEXT_RANDOM_KEYS.includes(String(key))) return null;
-          const snapshot = this.intextRandomSnapshot;
-          return snapshot && snapshot[key] !== undefined ? String(snapshot[key]) : null;
-        }
-
-        getIntextRuleTargetingValue(key, pageTargeting = null) {
-          const snapshotValue = this.getIntextRandomValue(key);
-          if (INTEXT_RANDOM_KEYS.includes(String(key))) return snapshotValue;
-          return pageTargeting?.[key];
-        }
-
-        getIntextRandomTelemetry() {
-          const snapshot = this.intextRandomSnapshot || {};
-          return {
-            "gexp-intext-random-source": String(snapshot.source || "unresolved"),
-            "gexp-intext-random1-effective": String(snapshot.random1 || ""),
-            "gexp-intext-random2-effective": String(snapshot.random2 || ""),
-            "gexp-intext-random3-effective": String(snapshot.random3 || ""),
-            "gexp-intext-random4-effective": String(snapshot.random4 || ""),
-            random1: String(snapshot.random1 || ""),
-            random2: String(snapshot.random2 || ""),
-            random3: String(snapshot.random3 || ""),
-            random4: String(snapshot.random4 || ""),
-          };
-        }
-
-        normalizeIntextDiagnosticTargetingValue(value) {
-          if (Array.isArray(value)) return value.length ? String(value[0]) : null;
-          if (value === undefined || value === null || value === "") return null;
-          return String(value);
-        }
-
-        getIntextRandomConsistencyDiagnostics(context = "manager-decision") {
-          const snapshot = this.intextRandomSnapshot;
-          let slotConsistency = "slots-not-present";
-          let pageConsistency = "page-not-present";
-          let referenceSlotId = "none";
-          let referenceSlotPosition = "none";
-          try {
-            const slots = googletag?.pubads?.().getSlots?.() || [];
-            const reference = slots.find((slot) => {
-              const id = String(slot?.getSlotElementId?.() || "");
-              return id && !id.startsWith("gexp-intext") && INTEXT_RANDOM_KEYS.every((key) =>
-                this.normalizeIntextDiagnosticTargetingValue(slot?.getTargeting?.(key)) !== null
-              );
-            });
-            if (reference) {
-              referenceSlotId = String(reference.getSlotElementId?.() || "unknown");
-              referenceSlotPosition = this.normalizeIntextDiagnosticTargetingValue(reference.getTargeting?.("p")) || "unknown";
-              slotConsistency = String(INTEXT_RANDOM_KEYS.every((key) =>
-                this.normalizeIntextDiagnosticTargetingValue(reference.getTargeting?.(key)) === String(snapshot?.[key] || "")
-              ));
-              if (slotConsistency === "false") {
-                this.registerIntextDiagnosticEvent({
-                  diagnosticKey: `normal-slot-random-mismatch:${referenceSlotId}:${context}`,
-                  "gexp-intext-diagnostic-context": context,
-                  "gexp-intext-reference-slot-id": referenceSlotId,
-                  "gexp-intext-reference-slot-position": referenceSlotPosition,
-                });
-              }
-            }
-          } catch (e) {}
-          try {
-            const pageTargeting = this.getPageCustomTargeting() || {};
-            const presentKeys = INTEXT_RANDOM_KEYS.filter((key) =>
-              this.normalizeIntextDiagnosticTargetingValue(pageTargeting[key]) !== null
-            );
-            if (presentKeys.length) {
-              pageConsistency = String(presentKeys.every((key) =>
-                this.normalizeIntextDiagnosticTargetingValue(pageTargeting[key]) === String(snapshot?.[key] || "")
-              ));
-            }
-          } catch (e) {}
-          return {
-            "gexp-intext-random-consistency-slots": slotConsistency,
-            "gexp-intext-random-consistency-page": pageConsistency,
-            "gexp-intext-reference-slot-id": referenceSlotId,
-            "gexp-intext-reference-slot-position": referenceSlotPosition,
-          };
-        }
-
-        registerIntextSyntheticEvent(eventType, payload = {}, dedupeKey = null) {
-          if (!this.gexp?.registerImpression) return false;
-          const eventKey = dedupeKey || `${eventType}:${payload["gexp-intext-opportunity-id"] || this.createIntextTelemetryId("event")}`;
-          if (this._intextSyntheticEventKeys.has(eventKey)) return false;
-          this._intextSyntheticEventKeys.add(eventKey);
-          if (this.gexp?.statsG?.telp === false) return false;
-          const event = {
-            "gexp-intext-telemetry-event-type": eventType,
-            "gexp-intext-telemetry-sampled": "true",
-            pvid: this._intextPageviewId,
-            domain: this.getHostnameNormalized(this.siteContext?.site),
-            contentType: String(payload.contentType || this.siteContext?.contentType || "unknown"),
-            timestamp: String(Date.now()),
-            tlm_rid: this.createIntextTelemetryId(eventType),
-            ...this.getIntextRandomTelemetry(),
-            ...payload,
-          };
-          if (typeof window !== "undefined" && window.gexpIntextDebug === true) {
-            const unknownFields = Object.keys(event).filter((key) =>
-              key.startsWith("gexp-intext-") && !INTEXT_TELEMETRY_STANDARD_FIELDS.includes(key)
-            );
-            if (unknownFields.length) {
-              warnIntext(`[IntextManager] intext_telemetry_fields_outside_standard_allowlist`, unknownFields);
-            }
-          }
-          this.gexp.registerImpression(event);
-          return true;
-        }
-
-        registerIntextManagerDecision({ navIndex = 0, scope = "initial", decision, reason, contentType = null } = {}) {
-          const opportunityId = `${this._intextPageviewId}:${Number(navIndex) || 0}`;
-          const dedupeKey = `${opportunityId}:manager-decision`;
-          if (this._intextOpportunityDecisionKeys.has(dedupeKey)) return false;
-          this._intextOpportunityDecisionKeys.add(dedupeKey);
-          const managerEventId = `${opportunityId}:manager-decision`;
-          return this.registerIntextSyntheticEvent("manager-decision", {
-            "gexp-intext-opportunity-id": opportunityId,
-            "gexp-intext-manager-event-id": managerEventId,
-            "gexp-intext-decision": String(decision || "blocked"),
-            "gexp-intext-decision-reason": String(reason || "random-slot-unresolved"),
-            "gexp-intext-decision-scope": String(scope),
-            navIndex: String(Number(navIndex) || 0),
-            contentType: String(contentType || this.siteContext?.contentType || "unknown"),
-            ...this.getFallbackBlankControlTelemetry(),
-            "gexp-intext-fallback-blank-control-blocked": reason === "fallback-blank-cookie" ? "true" : "false",
-            "gexp-intext-fallback-blank-control-source": "manager-decision",
-            "gexp-intext-fallback-blank-control-reason": reason === "fallback-blank-cookie" ? "fallback-blank-cookie" : "not-applicable",
-            ...this.getIntextRandomConsistencyDiagnostics(`manager-decision:${scope}:${navIndex}`),
-          }, dedupeKey);
-        }
-
-        registerIntextDiagnosticEvent({ diagnosticKey = "unknown", ...payload } = {}) {
-          return this.registerIntextSyntheticEvent("diagnostic", {
-            "gexp-intext-diagnostic-key": String(diagnosticKey),
-            ...payload,
-          }, `diagnostic:${diagnosticKey}`);
-        }
-
-        registerIntextFallbackBlankEvent(payload = {}, dedupeKey = null) {
-          return this.registerIntextSyntheticEvent("fallback-blank", payload, dedupeKey);
         }
 
         extractStaticAdUnitPath() {
@@ -2477,27 +2179,17 @@ class RandomStrategy extends WindowArray {
           return end;
         }
 
-        getFallbackBlankExpiryMs() {
-          const cfg = this.getFallbackBlankControlConfig();
-          if (cfg.expireAtEndOfDay !== false) return this.getEndOfDayDate().getTime();
-          const ttlMs = Number(cfg.ttlMs);
-          if (Number.isFinite(ttlMs) && ttlMs > 0) return Date.now() + ttlMs;
-          const maxAgeSeconds = Number(cfg.cookieMaxAgeSeconds);
-          if (Number.isFinite(maxAgeSeconds) && maxAgeSeconds > 0) return Date.now() + (maxAgeSeconds * 1000);
-          return this.getEndOfDayDate().getTime();
-        }
-
         readFallbackBlankCounter() {
           const cfg = this.getFallbackBlankControlConfig();
           const key = cfg.counterStorageKey || "gexp_intext_fallback_blank_count";
-          const empty = { count: 0, expiresAt: this.getFallbackBlankExpiryMs(), updatedAt: 0 };
+          const empty = { count: 0, expiresAt: this.getEndOfDayDate().getTime(), updatedAt: 0 };
           try {
             if (typeof window === "undefined" || !window.localStorage) return empty;
             const raw = window.localStorage.getItem(key);
             if (!raw) return empty;
             const parsed = JSON.parse(raw);
             const expiresAt = Number(parsed?.expiresAt) || 0;
-            if (!Number.isFinite(expiresAt) || expiresAt <= 0 || Date.now() > expiresAt) {
+            if (expiresAt > 0 && Date.now() > expiresAt) {
               window.localStorage.removeItem(key);
               return empty;
             }
@@ -2508,10 +2200,6 @@ class RandomStrategy extends WindowArray {
             };
           } catch (e) {
             try { window.localStorage.removeItem(key); } catch (removeErr) {}
-            this.registerIntextDiagnosticEvent?.({
-              diagnosticKey: "fallback-blank-counter-read-failed",
-              "gexp-intext-diagnostic-context": String(e?.message || e || "storage-read-failed"),
-            });
             return empty;
           }
         }
@@ -2521,19 +2209,14 @@ class RandomStrategy extends WindowArray {
           const key = cfg.counterStorageKey || "gexp_intext_fallback_blank_count";
           const payload = {
             count: Number(count) || 0,
-            expiresAt: this.getFallbackBlankExpiryMs(),
+            expiresAt: this.getEndOfDayDate().getTime(),
             updatedAt: Date.now(),
           };
           try {
             if (typeof window !== "undefined" && window.localStorage) {
               window.localStorage.setItem(key, JSON.stringify(payload));
             }
-          } catch (e) {
-            this.registerIntextDiagnosticEvent?.({
-              diagnosticKey: "fallback-blank-counter-write-failed",
-              "gexp-intext-diagnostic-context": String(e?.message || e || "storage-write-failed"),
-            });
-          }
+          } catch (e) {}
           return payload;
         }
 
@@ -2541,49 +2224,20 @@ class RandomStrategy extends WindowArray {
           const counter = this.readFallbackBlankCounter();
           const next = this.writeFallbackBlankCounter((Number(counter.count) || 0) + 1);
           const threshold = Number(this.getFallbackBlankControlConfig().threshold ?? 1);
-          const thresholdReached = threshold > 0 && next.count >= threshold;
-          const cookieWrite = thresholdReached
-            ? this.setTeadsBlockCookie(next.expiresAt)
-            : { attempted: false, confirmed: false, error: null, expiresAt: next.expiresAt };
-          if (cookieWrite.attempted && !cookieWrite.confirmed) {
-            this.registerIntextDiagnosticEvent({
-              diagnosticKey: `fallback-blank-cookie-write-failed:${next.updatedAt}`,
-              "gexp-intext-fallback-blank-control-cookie-set-attempted": "true",
-              "gexp-intext-fallback-blank-control-cookie-set-confirmed": "false",
-              "gexp-intext-fallback-blank-control-cookie-set-error": String(cookieWrite.error || "cookie-not-confirmed"),
-            });
+          if (threshold > 0 && next.count >= threshold) {
+            this.setTeadsBlockCookie();
           }
-          return {
-            count: next.count,
-            expiresAt: next.expiresAt,
-            updatedAt: next.updatedAt,
-            counterBefore: Number(counter.count) || 0,
-            counterAfter: Number(next.count) || 0,
-            thresholdReached,
-            cookieWrite,
-          };
+          return next;
         }
 
-        setTeadsBlockCookie(requestedExpiresAt = null) {
+        setTeadsBlockCookie() {
           const cfg = this.getFallbackBlankControlConfig();
           const name = cfg.blockCookieName || "gexp_intext_teads_block";
-          const expiresAt = Number(requestedExpiresAt) > Date.now()
-            ? Number(requestedExpiresAt)
-            : this.getFallbackBlankExpiryMs();
-          const result = { attempted: true, confirmed: false, error: null, expiresAt };
           try {
-            if (typeof document === "undefined") {
-              result.error = "document-unavailable";
-              return result;
-            }
-            const expires = new Date(expiresAt).toUTCString();
+            if (typeof document === "undefined") return;
+            const expires = this.getEndOfDayDate().toUTCString();
             document.cookie = `${encodeURIComponent(name)}=1; expires=${expires}; path=/; SameSite=Lax`;
-            result.confirmed = this.hasTeadsBlockCookie();
-            if (!result.confirmed) result.error = "cookie-not-confirmed";
-          } catch (e) {
-            result.error = e?.message || String(e);
-          }
-          return result;
+          } catch (e) {}
         }
 
         hasTeadsBlockCookie() {
@@ -2623,12 +2277,6 @@ class RandomStrategy extends WindowArray {
             "gexp-intext-fallback-blank-control-source": "baseline",
             "gexp-intext-fallback-blank-control-reason": "baseline",
             "gexp-intext-fallback-blank-control-cookie-set": "false",
-            "gexp-intext-fallback-blank-control-cookie-set-attempted": "false",
-            "gexp-intext-fallback-blank-control-cookie-set-confirmed": "false",
-            "gexp-intext-fallback-blank-control-cookie-set-error": "none",
-            "gexp-intext-fallback-blank-control-counter-before": String(counter.count || 0),
-            "gexp-intext-fallback-blank-control-counter-after": String(counter.count || 0),
-            "gexp-intext-fallback-blank-control-threshold-reached": "false",
             "gexp-intext-fallback-blank-control-blocked": "false",
             ...extra,
           };
@@ -2716,12 +2364,6 @@ class RandomStrategy extends WindowArray {
         }
 
         readIntextLoadingExperimentKeyResolution(key, context = null) {
-          const snapshotValue = this.getIntextRandomValue(key);
-          if (INTEXT_RANDOM_KEYS.includes(String(key))) {
-            return snapshotValue !== null
-              ? { value: snapshotValue, source: "gexp-slot-random-snapshot" }
-              : { value: null, source: "random-snapshot-unresolved" };
-          }
           const readFromMap = (map) => {
             if (!map || typeof map !== "object") return null;
             const value = map[key];
@@ -2767,7 +2409,7 @@ class RandomStrategy extends WindowArray {
         getEffectiveIntextTargetingResolution(key, context = null) {
           const original = this.readIntextLoadingExperimentKeyResolution(key, context);
           const override = this.intextQaCookieOverride;
-          if (INTEXT_RANDOM_KEYS.includes(String(key || "")) || String(key || "") !== "random1" || !override?.enabled) {
+          if (String(key || "") !== "random1" || !override?.enabled) {
             return {
               ...original,
               originalValue: original.value,
@@ -3215,7 +2857,7 @@ class RandomStrategy extends WindowArray {
             if (pageTargeting) {
               for (const [key, blockedValues] of Object.entries(excl.keyValues)) {
                 if (!Array.isArray(blockedValues) || blockedValues.length === 0) continue;
-                const rawPageValue = this.getIntextRuleTargetingValue(key, pageTargeting);
+                const rawPageValue = pageTargeting[key];
                 if (rawPageValue === undefined || rawPageValue === null) continue;
 
                 let pageValues;
@@ -3265,10 +2907,8 @@ class RandomStrategy extends WindowArray {
                   });
                   return true;
                 }
-                const rawPageValue = this.getIntextRuleTargetingValue(key, pageTargeting);
-                const effectiveValue = INTEXT_RANDOM_KEYS.includes(String(key))
-                  ? rawPageValue
-                  : effectiveResolution.qaCookieApplied === true
+                const rawPageValue = pageTargeting[key];
+                const effectiveValue = effectiveResolution.qaCookieApplied === true
                   ? effectiveResolution.value
                   : rawPageValue;
                 if (effectiveValue === undefined || effectiveValue === null) continue;
@@ -3398,7 +3038,7 @@ class RandomStrategy extends WindowArray {
                 if (pageTargeting) {
                   for (const [key, blockedValues] of Object.entries(rule.ifKeyValues)) {
                     if (!Array.isArray(blockedValues) || blockedValues.length === 0) continue;
-                    const rawVal = this.getIntextRuleTargetingValue(key, pageTargeting);
+                    const rawVal = pageTargeting[key];
                     if (rawVal === undefined || rawVal === null) continue;
 
                     let pageValues;
@@ -3535,10 +3175,8 @@ class RandomStrategy extends WindowArray {
             });
             this.nodes.forEach((n) => n.initialize());
           } catch (err) {
-            this.registerIntextDiagnosticEvent({
-              diagnosticKey: "create-intext-positions-failed",
-              "gexp-intext-diagnostic-context": String(err?.message || err),
-            });
+            if (this.gexp.statsG)
+              this.gexp.statsG.addRequiredVariable("intext_err", err.message);
             console.error("[IntextManager] Failed to create positions", err);
           }
         }
@@ -3710,26 +3348,6 @@ class RandomStrategy extends WindowArray {
           }
 
           logIntext(`[IntextManager:NavContinua] navcontinua_inclusions_allowed - navIndex=${navIndex}, allowed=true`);
-
-          if (this.shouldBlockIntextByFallbackBlankControl()) {
-            this.registerIntextManagerDecision({
-              navIndex,
-              scope: "navcontinua",
-              decision: "blocked",
-              reason: "fallback-blank-cookie",
-              contentType,
-            });
-            logIntext(`[IntextManager:NavContinua] navcontinua_blocked_by_fallback_blank_cookie`, { navIndex });
-            return;
-          }
-
-          this.registerIntextManagerDecision({
-            navIndex,
-            scope: "navcontinua",
-            decision: "allowed",
-            reason: "passed",
-            contentType,
-          });
 
           const pncSuffix = navIndex >= 1 ? `-pnc-${navIndex}` : '';
 
@@ -4250,8 +3868,6 @@ class RandomStrategy extends WindowArray {
           this._intextTransitionBridge = null;
           this._intextRealRenderTelemetryCommittedForToken = null;
           this._fallbackBlankControlCountedTokens = new Set();
-          this._fallbackBlankControlCountedEvents = new Set();
-          this._nodeActive = true;
         }
 
         getIntextNodeId() {
@@ -4267,9 +3883,24 @@ class RandomStrategy extends WindowArray {
         maybeIncrementFallbackBlankControl(event, context = {}) {
           const cfg = this.manager?.getFallbackBlankControlConfig?.() || {};
           const source = String(context.source || "unknown");
+          const recordFallbackBlankControlTelemetry = (reason, counted = false, counter = null, cookieSet = false) => {
+            const telemetryExtra = {
+              "gexp-intext-fallback-blank-control-counted": counted ? "true" : "false",
+              "gexp-intext-fallback-blank-control-source": source,
+              "gexp-intext-fallback-blank-control-reason": reason,
+              "gexp-intext-fallback-blank-control-cookie-set": cookieSet ? "true" : "false",
+            };
+            if (counter?.count != null) {
+              telemetryExtra["gexp-intext-fallback-blank-control-count"] = String(counter.count);
+            }
+            this.mergeIntextTelemetry?.({
+              ...this.manager?.getFallbackBlankControlTelemetry?.(telemetryExtra),
+            });
+            this.flushIntextTelemetryToCI?.();
+          };
+
           if (cfg.enabled !== true) return false;
           if (Number(this.slotIndex) + 1 !== Number(cfg.slotIndex ?? 1)) return false;
-          if (this._nodeActive !== true || !this.manager?.nodes?.includes?.(this)) return false;
 
           const trigger = context.trigger || "unknown";
           if (trigger !== "fallback") return false;
@@ -4284,20 +3915,7 @@ class RandomStrategy extends WindowArray {
           if (cfg.onlyFirstLoad !== false && (this._cycleCount || 0) > 0) return false;
 
           const renderToken = context.renderToken || this._activeRenderToken || 0;
-          const cycleId = Number(context.cycleId ?? this._intextTelemetryCycleId ?? 0);
-          if (!this.isActiveRenderToken(renderToken, "fallback_blank_control", trigger)) return false;
-          if (cycleId !== Number(this._intextTelemetryCycleId || 0)) {
-            this.manager?.registerIntextDiagnosticEvent?.({
-              diagnosticKey: `stale-fallback-blank-cycle:${this.id}:${cycleId}:${renderToken}`,
-              "gexp-intext-diagnostic-context": `expected-cycle:${this._intextTelemetryCycleId}`,
-              "slot-id": String(this.id),
-              "cycle-id": String(cycleId),
-              "render-token": String(renderToken),
-            });
-            return false;
-          }
-          const countedKey = `${this.id}:${cycleId}:${renderToken}`;
-          if (this._fallbackBlankControlCountedEvents.has(countedKey)) return false;
+          if (renderToken && this._fallbackBlankControlCountedTokens.has(renderToken)) return false;
 
           const videoFailed =
             this._intextTelemetryCycle?.["gexp-intext-video-failed"] === "true" ||
@@ -4331,42 +3949,19 @@ class RandomStrategy extends WindowArray {
             (cfg.countSentinelHouse === true && isSentinelHouse);
           if (!shouldCount) return false;
 
-          this._fallbackBlankControlCountedEvents.add(countedKey);
           if (renderToken) this._fallbackBlankControlCountedTokens.add(renderToken);
           const counter = this.manager.incrementFallbackBlankCounter();
           const threshold = Number(cfg.threshold ?? 1);
+          const cookieSet = threshold > 0 && Number(counter.count) >= threshold;
           const reason = isEmptyDisplay ? "empty-display" : (isSentinelHouse ? "sentinel-house" : "house-display");
-          const cookieWrite = counter.cookieWrite || {};
-          const eventId = `${this.manager._intextPageviewId}:${countedKey}`;
-          this.manager.registerIntextFallbackBlankEvent({
-            "gexp-intext-fallback-blank-event-id": eventId,
-            "gexp-intext-fallback-blank-control-counted": "true",
-            "gexp-intext-fallback-blank-control-reason": reason,
-            "gexp-intext-fallback-blank-control-source": source,
-            "gexp-intext-fallback-blank-control-counter-before": String(counter.counterBefore),
-            "gexp-intext-fallback-blank-control-counter-after": String(counter.counterAfter),
-            "gexp-intext-fallback-blank-control-count": String(counter.counterAfter),
-            "gexp-intext-fallback-blank-control-threshold": String(threshold),
-            "gexp-intext-fallback-blank-control-threshold-reached": counter.thresholdReached ? "true" : "false",
-            "gexp-intext-fallback-blank-control-cookie-set-attempted": cookieWrite.attempted ? "true" : "false",
-            "gexp-intext-fallback-blank-control-cookie-set-confirmed": cookieWrite.confirmed ? "true" : "false",
-            "gexp-intext-fallback-blank-control-cookie-set-error": String(cookieWrite.error || "none"),
-            "gexp-intext-fallback-blank-control-cookie-set": cookieWrite.confirmed ? "true" : "false",
-            "slot-id": String(this.id),
-            "slot-index": String(this.slotIndex),
-            "cycle-id": String(cycleId),
-            "render-token": String(renderToken),
-            navIndex: String(this.navIndex || 0),
-          }, `fallback-blank:${countedKey}`);
+          recordFallbackBlankControlTelemetry(reason, true, counter, cookieSet);
           logIntext(`[Intext:Display:${this.id}] fallback_blank_control_incremented`, {
-            counterBefore: counter.counterBefore,
-            counterAfter: counter.counterAfter,
+            count: counter.count,
             threshold: cfg.threshold,
             source,
             reason,
-            cookieSet: cookieWrite.confirmed === true,
+            cookieSet,
             renderToken,
-            cycleId,
             isEmptyDisplay,
             isHouseDisplay,
             isSentinelHouse,
@@ -4450,17 +4045,10 @@ class RandomStrategy extends WindowArray {
             "gexp-intext-stale-render-source": source,
             "gexp-intext-visual-state": this._visualState,
           });
-          this.manager?.registerIntextDiagnosticEvent?.({
-            diagnosticKey: `stale-callback:${this.id}:${this._intextTelemetryCycleId}:${oldToken}:${source}`,
-            "gexp-intext-diagnostic-context": String(source),
-            "slot-id": String(this.id),
-            "cycle-id": String(this._intextTelemetryCycleId || 0),
-            "render-token": String(oldToken || "missing"),
-          });
         }
 
         isActiveRenderToken(renderToken, source = "unknown", trigger = "unknown") {
-          if (this._nodeActive !== true || !renderToken || renderToken !== this._activeRenderToken) {
+          if (!renderToken || renderToken !== this._activeRenderToken) {
             this.logStaleRenderCallback(source, renderToken || "missing", trigger);
             return false;
           }
@@ -5659,7 +5247,6 @@ class RandomStrategy extends WindowArray {
               "gexp-intext-telemetry-mode",
               "gexp-intext-telemetry-filtered",
               "gexp-intext-telemetry-commit-reason",
-              ...INTEXT_TELEMETRY_STANDARD_FIELDS,
             ]);
           }
           return this._standardIntextTelemetryAllowlist;
@@ -5923,7 +5510,6 @@ class RandomStrategy extends WindowArray {
           const isRefresh = trigger === "refresh";
           const isFallback = trigger === "fallback";
           const cycle = {
-            "gexp-intext-telemetry-event-type": "slot-cycle",
             "gexp-intext-cycle-id": String(this._intextTelemetryCycleId),
             "gexp-intext-position": String(this.id || "unknown"),
             "gexp-intext-load-trigger": String(trigger || "unknown"),
@@ -5942,7 +5528,6 @@ class RandomStrategy extends WindowArray {
             "gexp-intext-render-token": String(this._activeRenderToken || 0),
             "gexp-intext-render-attempt": String(this._renderTokenSeq || 0),
             "gexp-intext-visual-state": String(this._visualState || "idle"),
-            ...this.manager?.getIntextRandomTelemetry?.(),
           };
           const initPageMs = this.getIntextInitPageMs();
           const startDistance = this.getIntextDistancePx();
@@ -6071,15 +5656,14 @@ class RandomStrategy extends WindowArray {
             if (isFinalReason && this._intextTelemetryFinalCommitted) return;
             if (closeReasons.has(reason) && this._intextTelemetryFinalCommitted) return;
             if (this._intextTelemetryCommittedForCycle && !isFinalReason && !closeReasons.has(reason)) return;
-            if (!this.wa?.cI) return;
+            if (!this.wa?.cI || !this.manager?.gexp?.registerImpression) return;
             this.flushIntextTelemetryToCI();
             this.applyIntextTelemetryToCI({ "gexp-intext-telemetry-commit-reason": reason });
-            this.ensureIntextCycleTelemetryIdentity();
-            this._intextTelemetryRegisteredByWindowArray = true;
+            this.manager.gexp.registerImpression(this.wa.cI);
             this._intextTelemetryCommittedForCycle = true;
             this._intextTelemetryCommittedReasons[reason] = true;
             if (isFinalReason) this._intextTelemetryFinalCommitted = true;
-            logIntext(`[Intext:Telemetry:${this.id}] telemetry_updated_without_duplicate_registration`, {
+            logIntext(`[Intext:Telemetry:${this.id}] telemetry_committed`, {
               cycleId: this._intextTelemetryCycleId,
               reason,
             });
@@ -6202,65 +5786,33 @@ class RandomStrategy extends WindowArray {
           return [];
         }
 
-        readIntextSlotRandoms(slot = null) {
+        restoreIntextRandomTargetingAfterGexpRequest(slot = null) {
           const targetSlot = slot || this.slot;
-          const observed = {};
-          INTEXT_RANDOM_KEYS.forEach((key) => {
-            observed[key] = this.normalizeHbValue(this.getSlotTargetingValueSafe(targetSlot, key));
-          });
-          return observed;
-        }
+          if (!targetSlot || typeof targetSlot.setTargeting !== "function") return;
 
-        applyIntextRandomSnapshotToSlot(slot = null) {
-          const targetSlot = slot || this.slot;
-          const snapshot = this.manager?.intextRandomSnapshot;
-          if (!targetSlot || !snapshot || typeof targetSlot.setTargeting !== "function") return false;
-          INTEXT_RANDOM_KEYS.forEach((key) => targetSlot.setTargeting(key, String(snapshot[key])));
-          const targetWindowArray = this.wa || this.manager?.gexp?.windows?.[this.id];
-          if (targetWindowArray?.cI) {
-            INTEXT_RANDOM_KEYS.forEach((key) => {
-              targetWindowArray.cI[key] = String(snapshot[key]);
-            });
-          }
-          return true;
-        }
+          const targetWindowArray = this.manager?.gexp?.windows?.[this.id];
+          const restored = {};
+          const sources = {};
+          ["random1", "random2", "random3", "random4"].forEach((key) => {
+            const pageKv = this.readIntextPageKv(key);
+            if (pageKv.value === null || pageKv.value === undefined || pageKv.value === "") return;
+            restored[key] = String(pageKv.value);
+            sources[key] = pageKv.source;
+            targetSlot.setTargeting(key, restored[key]);
 
-        assertIntextRandomSnapshotOnSlot(slot = null, context = "before-request") {
-          const targetSlot = slot || this.slot;
-          const snapshot = this.manager?.intextRandomSnapshot;
-          if (!targetSlot || !this.manager?.validateIntextRandomSnapshot?.(snapshot)) return false;
-          this.manager?.validateIntextRandomSnapshotStability?.(context);
-          const observed = this.readIntextSlotRandoms(targetSlot);
-          const mismatched = INTEXT_RANDOM_KEYS.some((key) => observed[key] !== String(snapshot[key]));
-          if (!mismatched) return true;
-          this.applyIntextRandomSnapshotToSlot(targetSlot);
-          this.mergeIntextTelemetry({
-            "gexp-intext-random-mismatch-corrected": "true",
-            "gexp-intext-random-source": snapshot.source,
-            "gexp-intext-random-expected": JSON.stringify(INTEXT_RANDOM_KEYS.reduce((acc, key) => ({ ...acc, [key]: snapshot[key] }), {})),
-            "gexp-intext-random-observed": JSON.stringify(observed),
+            if (targetWindowArray && targetWindowArray.cI) {
+              targetWindowArray.cI[key] = restored[key];
+            }
           });
-          this.manager?.registerIntextDiagnosticEvent?.({
-            diagnosticKey: `intext-slot-random-mismatch:${this.id}:${this._intextTelemetryCycleId}:${context}`,
-            "gexp-intext-diagnostic-context": String(context),
-            "gexp-intext-random-mismatch-corrected": "true",
-            "gexp-intext-random-expected": JSON.stringify(snapshot),
-            "gexp-intext-random-observed": JSON.stringify(observed),
-            "slot-id": String(this.id),
-            "cycle-id": String(this._intextTelemetryCycleId || 0),
-            "render-token": String(this._activeRenderToken || 0),
-          });
-          return INTEXT_RANDOM_KEYS.every((key) =>
-            this.normalizeHbValue(this.getSlotTargetingValueSafe(targetSlot, key)) === String(snapshot[key])
-          );
-        }
 
-        ensureIntextCycleTelemetryIdentity() {
-          if (!this.wa?.cI) return false;
-          if (!this.wa.cI.tlm_rid) this.wa.cI.tlm_rid = this.manager.createIntextTelemetryId("slot-cycle");
-          this.wa.cI["gexp-intext-telemetry-event-type"] = "slot-cycle";
-          Object.assign(this.wa.cI, this.manager.getIntextRandomTelemetry());
-          return true;
+          logIntext(`[Intext:Display:${this.id}] display_random_restored_after_gexp_request`, {
+            random1: restored.random1 || null,
+            random2: restored.random2 || null,
+            random3: restored.random3 || null,
+            random4: restored.random4 || null,
+            source: Object.entries(sources).map(([key, source]) => `${key}:${source}`).join(","),
+            slotCode: this.id || null,
+          });
         }
 
         normalizeIntextBidderCodeForGam(bidderCode) {
@@ -6449,7 +6001,8 @@ class RandomStrategy extends WindowArray {
 
           const fallbackTargeting = {};
           try {
-            Object.assign(fallbackTargeting, this.manager?.intextRandomSnapshot || {});
+            fallbackTargeting.random1 = gexp?.getRandom?.(1);
+            fallbackTargeting.random2 = gexp?.getRandom?.(2);
             fallbackTargeting.tlm = gexp?.statsG?.telp ? "1" : "0";
             fallbackTargeting.tlm_id = gexp?.statsG?.telId || "";
             fallbackTargeting.nvis =
@@ -6464,13 +6017,13 @@ class RandomStrategy extends WindowArray {
             finalTargeting["gexp-intext-navcont"] = String(this.navIndex);
           }
 
-          ["random1", "random2", "random3", "random4", "tag", "t", "tlm", "tlm_id", "nvis"].forEach((key) => {
-            const snapshotValue = this.manager?.getIntextRandomValue?.(key);
-            const preferredValue = INTEXT_RANDOM_KEYS.includes(key) ? snapshotValue : mergedTargeting[key];
+          ["random1", "random2", "tag", "t", "tlm", "tlm_id", "nvis"].forEach((key) => {
+            const pageKv = key.indexOf("random") === 0 ? this.readIntextPageKv(key) : { value: null, source: null };
+            const preferredValue = pageKv.value !== null ? pageKv.value : mergedTargeting[key];
             const fallbackValue = fallbackTargeting[key];
             if (preferredValue !== undefined && preferredValue !== null && preferredValue !== "") {
               finalTargeting[key] = String(preferredValue);
-              if (snapshotValue !== null) sourceLabels.push(`${key}:gexp-slot-random-snapshot`);
+              if (pageKv.value !== null) sourceLabels.push(`${key}:${pageKv.source}`);
             } else if (fallbackValue !== undefined && fallbackValue !== null && fallbackValue !== "") {
               finalTargeting[key] = String(fallbackValue);
             }
@@ -6498,6 +6051,10 @@ class RandomStrategy extends WindowArray {
           const keys = new Set([
             "p",
             "intext",
+            "random1",
+            "random2",
+            "random3",
+            "random4",
             "tlm",
             "tlm_id",
             "nvis",
@@ -6575,7 +6132,10 @@ class RandomStrategy extends WindowArray {
 
           const fallbackTargeting = {};
           try {
-            Object.assign(fallbackTargeting, this.manager?.intextRandomSnapshot || {});
+            fallbackTargeting.random1 = gexp?.getRandom?.(1);
+            fallbackTargeting.random2 = gexp?.getRandom?.(2);
+            fallbackTargeting.random3 = gexp?.getRandom?.(3);
+            fallbackTargeting.random4 = gexp?.getRandom?.(4);
             fallbackTargeting.tlm = gexp?.statsG?.telp ? "1" : "0";
             fallbackTargeting.tlm_id = gexp?.statsG?.telId || "";
             fallbackTargeting.nvis =
@@ -6607,12 +6167,12 @@ class RandomStrategy extends WindowArray {
             "rndp",
             "sj",
           ].forEach((key) => {
-            const snapshotValue = this.manager?.getIntextRandomValue?.(key);
-            const preferredValue = INTEXT_RANDOM_KEYS.includes(key) ? snapshotValue : mergedTargeting[key];
+            const pageKv = key.indexOf("random") === 0 ? this.readIntextPageKv(key) : { value: null, source: null };
+            const preferredValue = pageKv.value !== null ? pageKv.value : mergedTargeting[key];
             const fallbackValue = fallbackTargeting[key];
             if (preferredValue !== undefined && preferredValue !== null && preferredValue !== "") {
               finalTargeting[key] = String(preferredValue);
-              if (snapshotValue !== null) sourceLabels.push(`${key}:gexp-slot-random-snapshot`);
+              if (pageKv.value !== null) sourceLabels.push(`${key}:${pageKv.source}`);
             } else if (fallbackValue !== undefined && fallbackValue !== null && fallbackValue !== "") {
               finalTargeting[key] = String(fallbackValue);
             }
@@ -7315,7 +6875,6 @@ class RandomStrategy extends WindowArray {
               const preRequestDisplayTargeting = this.resolveDisplayRequestTargeting();
               this.clearDisplayRequestTargeting(this.slot);
               this.applyDisplayRequestTargeting(this.slot, preRequestDisplayTargeting.targeting);
-              this.applyIntextRandomSnapshotToSlot(this.slot);
               if (window.apstag && window.apstag.targetingKeys) {
                 const tamKeys = window.apstag.targetingKeys();
                 if (tamKeys && tamKeys[this.id]) {
@@ -7358,9 +6917,7 @@ class RandomStrategy extends WindowArray {
                 "gexp-intext-fallback": isFallback ? "true" : "false",
               });
               this.manager.gexp.request(this.slot);
-              this.ensureIntextCycleTelemetryIdentity();
-              this.applyIntextRandomSnapshotToSlot(this.slot);
-              this.assertIntextRandomSnapshotOnSlot(this.slot, "after-gexp-request");
+              this.restoreIntextRandomTargetingAfterGexpRequest(this.slot);
               const postCoreSlotTargeting = this.getSlotTargetingMapSafe(this.slot);
               const finalDisplayTargeting = this.resolveDisplayRequestTargeting(postCoreSlotTargeting);
 
@@ -7394,8 +6951,6 @@ class RandomStrategy extends WindowArray {
                   });
                 }
               }
-              this.applyIntextRandomSnapshotToSlot(this.slot);
-              this.assertIntextRandomSnapshotOnSlot(this.slot, "after-final-display-targeting");
 
               const initialRenderHandler = (event) => {
                 if (event.slot !== this.slot) return;
@@ -7710,11 +7265,6 @@ class RandomStrategy extends WindowArray {
                 `[Intext:Display:${this.id}] display_gam_request_targeting_final`,
                 this.getDisplayGamRequestTargetingFinal(this.slot),
               );
-              if (!this.isActiveRenderToken(renderToken, "askDisplay:before_refresh", trigger)) {
-                resolve({ filled: false, event: null, stale: true });
-                return;
-              }
-              this.assertIntextRandomSnapshotOnSlot(this.slot, "immediately-before-gpt-refresh");
               googletag.pubads().refresh([this.slot]);
             });
           });
@@ -8397,19 +7947,11 @@ class RandomStrategy extends WindowArray {
         }
 
         recordTelemetry(eventName, payload = {}) {
-          this.mergeIntextTelemetry({
-            "gexp-intext-lifecycle-event": String(eventName || "unknown"),
-            "gexp-intext-lifecycle-payload": JSON.stringify(payload || {}),
-          });
-          this.flushIntextTelemetryToCI();
-          if (eventName === "error") {
-            this.manager?.registerIntextDiagnosticEvent?.({
-              diagnosticKey: `creative-error:${this.id}:${this._intextTelemetryCycleId}`,
-              "gexp-intext-diagnostic-context": String(payload?.reason || "unknown"),
-              "slot-id": String(this.id),
-              "cycle-id": String(this._intextTelemetryCycleId || 0),
-              "render-token": String(this._activeRenderToken || 0),
-            });
+          if (this.manager.gexp.statsG) {
+            this.manager.gexp.statsG.addVariable(
+              `intext_${eventName}`,
+              JSON.stringify(payload),
+            );
           }
         }
 
@@ -8420,7 +7962,6 @@ class RandomStrategy extends WindowArray {
             cycleId: this._intextTelemetryCycleId,
             visualState: this._visualState,
           });
-          this._nodeActive = false;
           this.invalidateVisualCallbacks("reset");
           this.state = "idle";
           this.clearDisplayLayoutGuard();
@@ -10320,16 +9861,25 @@ class RandomStrategy extends WindowArray {
             },
           ];
 
-          let resolvedValue = this.node?.manager?.getIntextRandomValue?.(selectionKey);
-          let resolvedSource = resolvedValue !== null ? "gexp-slot-random-snapshot" : null;
-          if (resolvedValue === null && !INTEXT_RANDOM_KEYS.includes(String(selectionKey))) {
-            for (const source of candidateSources) {
-              const candidateValue = this.normalizeIntextTargetingValue(source.map?.[selectionKey]);
-              if (candidateValue == null) continue;
-              resolvedValue = candidateValue;
-              resolvedSource = source.label;
-              break;
-            }
+          let resolvedValue = null;
+          let resolvedSource = null;
+          for (const source of candidateSources) {
+            const candidateValue = this.normalizeIntextTargetingValue(source.map?.[selectionKey]);
+            if (candidateValue == null) continue;
+            resolvedValue = candidateValue;
+            resolvedSource = source.label;
+            break;
+          }
+
+          if (resolvedValue == null) {
+            try {
+              if (selectionKey === "random1") {
+                resolvedValue = this.gexp?.getRandom?.(1) != null
+                  ? String(this.gexp.getRandom(1))
+                  : null;
+                resolvedSource = "gexp_runtime_fallback";
+              }
+            } catch (e) {}
           }
 
           const variantName = selectionMap[String(resolvedValue)] || fallbackVariant;
@@ -10346,7 +9896,7 @@ class RandomStrategy extends WindowArray {
             nodeId: this.node?.id || null,
             slotCode,
             key: selectionKey,
-            random1: String(this.node?.manager?.intextRandomSnapshot?.random1 || ""),
+            random1: selectionKey === "random1" ? resolvedValue : this.normalizeIntextTargetingValue(this.node?.scopedContext?.targeting?.random1),
             detectedValue: resolvedValue,
             variant: variantName,
             fallback: fallbackVariant,
@@ -10980,7 +10530,6 @@ class RandomStrategy extends WindowArray {
         }
 
         buildGAMVideoTagUrl() {
-          this.node?.manager?.validateIntextRandomSnapshotStability?.("immediately-before-video-request");
           const networkId = this.node.scopedContext?.networkId || this.node.manager.networkId;
           const adUnitPath = this.getVideoAdUnitPath();
           const videoId = this.node.videoId;
@@ -11138,7 +10687,6 @@ class RandomStrategy extends WindowArray {
               "gexp-intext-fallback": "false",
             });
             this.node.wa.newImpression();
-            this.node.ensureIntextCycleTelemetryIdentity();
             
             if (this.node.wa.cI) {
                 // Video only: gexp-intext-video (no refresh/fallback as per user request)
@@ -11150,10 +10698,6 @@ class RandomStrategy extends WindowArray {
                 logIntext(`[Intext:Video:${this.node.id}] video_telemetry_registered`, { keys: Object.keys(custTargeting) });
             }
           }
-
-          INTEXT_RANDOM_KEYS.forEach((key) => {
-            addCustParam(key, this.node?.manager?.intextRandomSnapshot?.[key]);
-          });
 
           logIntext(
             `[Intext:Auction:${this.node.id}] intext_video_gam_request_targeting_final`,
@@ -11318,8 +10862,6 @@ class RandomStrategy extends WindowArray {
         }
 
         getIntextPageTargetingValue(key) {
-          const snapshotValue = this.node?.manager?.getIntextRandomValue?.(key);
-          if (INTEXT_RANDOM_KEYS.includes(String(key))) return snapshotValue ?? "";
           const readValue = (source) => {
             if (source === undefined || source === null || source === "") return null;
             if (typeof source === "object") {
@@ -11360,8 +10902,8 @@ class RandomStrategy extends WindowArray {
 
           const key1 = cfg.key1 || "random1";
           const key2 = cfg.key2 || "random2";
-          const random1 = String(this.node?.manager?.getIntextRandomValue?.(key1) ?? "");
-          const random2 = String(this.node?.manager?.getIntextRandomValue?.(key2) ?? "");
+          const random1 = String(this.getIntextPageTargetingValue(key1) ?? "");
+          const random2 = String(this.getIntextPageTargetingValue(key2) ?? "");
           const enabledRandom1 = (cfg.enabledRandom1 || ["5", "6"]).map(String);
 
           if (!enabledRandom1.includes(random1)) {
