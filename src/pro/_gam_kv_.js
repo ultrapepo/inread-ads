@@ -1778,9 +1778,12 @@ class RandomStrategy extends WindowArray {
         "gexp-intext-random3-effective",
         "gexp-intext-random4-effective",
         "gexp-intext-random-consistency-slots",
+        "gexp-intext-random-slots-found",
         "gexp-intext-random-slots-checked",
+        "gexp-intext-random-slots-unresolved-count",
         "gexp-intext-random-slots-mismatch-count",
         "gexp-intext-random-mismatch-slot-ids",
+        "gexp-intext-random-unresolved-slot-ids",
         "gexp-intext-random-mismatch-corrected",
         "gexp-intext-random-expected",
         "gexp-intext-random-observed",
@@ -1804,6 +1807,28 @@ class RandomStrategy extends WindowArray {
         "gexp-intext-parent-tlm-rid",
         "gexp-intext-cycle-finalized-after-early-flush",
         "gexp-intext-telemetry-commit-reason",
+        "gexp-intext-request-type",
+        "gexp-intext-video",
+        "gexp-intext-display",
+        "gexp-intext-is-refresh",
+        "gexp-intext-refresh",
+        "gexp-intext-is-fallback",
+        "gexp-intext-fallback",
+        "gexp-intext-video-failed",
+        "gexp-intext-video-error-code",
+        "gexp-intext-video-error-message",
+        "gexp-intext-ad-rendered-logical",
+        "gexp-intext-ad-filled-logical",
+        "gexp-intext-gam-line-item-type",
+        "gexp-intext-gam-event-size",
+        "gexp-intext-render-layout",
+        "adFilled",
+        "adRendered",
+        "isEmpty",
+        "lineItemId",
+        "creativeId",
+        "campaignId",
+        "advertiserId",
         "slot-id",
         "slot-index",
         "cycle-id",
@@ -1831,8 +1856,6 @@ class RandomStrategy extends WindowArray {
           this.baseSiteConfig = this.siteConfig ? JSON.parse(JSON.stringify(this.siteConfig)) : null;
           this.intextQaCookieOverride = this.readIntextQaCookieOverride();
           this._intextQaCookieApplied = false;
-          this._intextQaCookieExclusionsBypassed = false;
-          this._intextQaCookieExclusionsBypassSource = "none";
           this.intextRandomSnapshot = null;
           this._intextSyntheticEventKeys = new Set();
           this._intextOpportunityDecisionKeys = new Set();
@@ -1887,14 +1910,7 @@ class RandomStrategy extends WindowArray {
                     });
                 }
 
-                if (this.intextQaCookieOverride?.enabled && !filter.allowedDomains.some(domain => currentDomain.includes(domain))) {
-                    this.markIntextQaCookieApplied();
-                    logIntext(`[IntextManager] intext_qa_cookie_force_allow_applied`, {
-                      key: "domainFilter.allowedDomains",
-                      forcedValue: "qa-cookie",
-                      originalValue: currentDomain || "unknown",
-                    });
-                } else if (!filter.allowedDomains.some(domain => currentDomain.includes(domain))) {
+                if (!filter.allowedDomains.some(domain => currentDomain.includes(domain))) {
                     logIntext(`🛑 [IntextManager] Ejecución bloqueada. Dominio '${currentDomain}' no permitido.`);                   
                     return;
                 }
@@ -1905,18 +1921,7 @@ class RandomStrategy extends WindowArray {
             window.gexpIntextDebug = true;
           }
 
-          if (!this.gexp.isEnabled()) {
-            if (this.intextQaCookieOverride?.enabled) {
-              this.markIntextQaCookieApplied();
-              logIntext(`[IntextManager] intext_qa_cookie_force_allow_applied`, {
-                key: "gexp.isEnabled",
-                forcedValue: "qa-cookie",
-                originalValue: "false",
-              });
-            } else {
-              return;
-            }
-          }
+          if (!this.gexp.isEnabled()) return;
 
           const allowedTypes = this.siteConfig.allowedContentTypes || [];
           if (allowedTypes.length > 0 && !allowedTypes.includes(this.siteContext.contentType)) {
@@ -1925,16 +1930,8 @@ class RandomStrategy extends WindowArray {
           }
 
           if (this.siteConfig?.exclusions?.disableAll === true) {
-            if (this.isIntextQaExclusionsBypassEnabled()) {
-              this.markIntextQaExclusionsBypassApplied("constructor");
-              logIntext(`[IntextManager] intext_qa_cookie_exclusions_bypass_applied`, {
-                key: "exclusions.disableAll",
-                source: "constructor",
-              });
-            } else {
-              logIntext(`[IntextManager] ❌ BLOCKED by exclusions.disableAll = true`);
-              return;
-            }
+            logIntext(`[IntextManager] ❌ BLOCKED by exclusions.disableAll = true`);
+            return;
           }
           const launchIntextPositions = () => {
             googletag.cmd.push(() => {
@@ -2040,13 +2037,85 @@ class RandomStrategy extends WindowArray {
           return this.resolveIntextNewsIdentity(rootElement, scopedContext).id;
         }
 
-        captureIntextContentIdentity(navIndex = 0, rootElement = null, scopedContext = null) {
+        getPreviousResolvedIntextNewsId(navIndex) {
+          const current = Number(navIndex) || 0;
+          let previous = null;
+          this._intextContentIdentityByNavIndex?.forEach?.((identity, index) => {
+            if (Number(index) < current && identity?.resolved && (!previous || Number(index) > previous.index)) {
+              previous = { index: Number(index), id: String(identity.newsId) };
+            }
+          });
+          return previous?.id || null;
+        }
+
+        getScopedIntextNewsIdentityCandidate(mainElement, scopedContext = null) {
+          const readAttribute = (element, name) => {
+            try {
+              const value = element?.getAttribute?.(name);
+              return value !== undefined && value !== null && value !== "" ? String(value) : null;
+            } catch (e) {
+              return null;
+            }
+          };
+          const attributes = ["data-ue-news-id", "data-news-id", "data-article-id"];
+          for (const attribute of attributes) {
+            const value = readAttribute(mainElement, attribute);
+            if (value) return { id: value, source: `root:${attribute}`, scoped: true };
+          }
+          for (const attribute of attributes) {
+            let descendant = null;
+            try { descendant = mainElement?.querySelector?.(`[${attribute}]`) || null; } catch (e) {}
+            const value = readAttribute(descendant, attribute);
+            if (value) return { id: value, source: `descendant:${attribute}`, scoped: true };
+          }
+          if (scopedContext?.be_page_newsID !== undefined && scopedContext?.be_page_newsID !== null && scopedContext.be_page_newsID !== "") {
+            return { id: String(scopedContext.be_page_newsID), source: "scopedContext.be_page_newsID", scoped: true };
+          }
+          const scopedSlots = this.getScopedSlotsForRoot(mainElement);
+          for (const slot of scopedSlots) {
+            for (const key of ["be_page_newsID", "be_page_newsid", "newsID", "news_id", "article_id"]) {
+              const value = this.normalizeIntextDiagnosticTargetingValue(slot?.getTargeting?.(key));
+              if (value !== null) {
+                return { id: value, source: `scoped-slot:${slot?.getSlotElementId?.() || "unknown"}:${key}`, scoped: true };
+              }
+            }
+          }
+          const ueValue = typeof window !== "undefined" ? window.ueDataLayer?.be_page_newsID : null;
+          if (ueValue !== undefined && ueValue !== null && ueValue !== "") {
+            return { id: String(ueValue), source: "ueDataLayer.be_page_newsID", scoped: false };
+          }
+          const utagValue = typeof window !== "undefined" ? window.utag_data?.be_page_newsID : null;
+          if (utagValue !== undefined && utagValue !== null && utagValue !== "") {
+            return { id: String(utagValue), source: "utag_data.be_page_newsID", scoped: false };
+          }
+          return null;
+        }
+
+        async resolveScopedIntextNewsIdentity(mainElement, navIndex, scopedContext = null) {
+          const normalizedNavIndex = Number(navIndex) || 0;
+          const previousNewsId = this.getPreviousResolvedIntextNewsId(normalizedNavIndex);
+          const waitMs = Math.max(0, Number(this.siteConfig?.infiniteScroll?.contentIdentityWaitMs ?? 500));
+          const pollMs = Math.max(10, Number(this.siteConfig?.infiniteScroll?.contentIdentityPollMs ?? 50));
+          const startedAt = Date.now();
+          while (true) {
+            const candidate = this.getScopedIntextNewsIdentityCandidate(mainElement, scopedContext);
+            if (candidate && (candidate.scoped || !previousNewsId || candidate.id !== previousNewsId)) {
+              return Object.freeze({ id: candidate.id, source: candidate.source, resolved: true });
+            }
+            if (Date.now() - startedAt >= waitMs) {
+              return Object.freeze({ id: null, source: "unresolved", resolved: false });
+            }
+            await new Promise((resolve) => setTimeout(resolve, Math.min(pollMs, waitMs - (Date.now() - startedAt))));
+          }
+        }
+
+        captureIntextContentIdentity(navIndex = 0, rootElement = null, scopedContext = null, resolvedIdentity = null) {
           const normalizedNavIndex = Number(navIndex) || 0;
           if (this._intextContentIdentityByNavIndex?.has(normalizedNavIndex)) {
             return this._intextContentIdentityByNavIndex.get(normalizedNavIndex);
           }
           if (!this._intextContentIdentityByNavIndex) this._intextContentIdentityByNavIndex = new Map();
-          const resolved = this.resolveIntextNewsIdentity(rootElement, scopedContext);
+          const resolved = resolvedIdentity || this.resolveIntextNewsIdentity(rootElement, scopedContext);
           const identity = Object.freeze({
             id: resolved.id || `unknown-news:${normalizedNavIndex}`,
             newsId: resolved.id || null,
@@ -2057,7 +2126,7 @@ class RandomStrategy extends WindowArray {
           this._intextContentIdentityByNavIndex.set(normalizedNavIndex, identity);
           if (!identity.resolved) {
             this.registerIntextDiagnosticEvent({
-              diagnosticKey: "content-id-unresolved",
+              diagnosticKey: `content-id-unresolved:${normalizedNavIndex}`,
               navIndex: String(normalizedNavIndex),
               "gexp-intext-diagnostic-context": `navIndex:${normalizedNavIndex}`,
             });
@@ -2065,9 +2134,13 @@ class RandomStrategy extends WindowArray {
           return identity;
         }
 
-        resolveOptionalIntextSlotPvid() {
+        resolveOptionalIntextSlotPvid(rootElement = null, scopedContext = null) {
           try {
-            const slots = googletag?.pubads?.().getSlots?.() || [];
+            const slots = rootElement
+              ? this.getScopedSlotsForRoot(rootElement)
+              : (Array.isArray(scopedContext?.scopedSlots)
+                ? scopedContext.scopedSlots
+                : (googletag?.pubads?.().getSlots?.() || []));
             for (const slot of slots) {
               const slotId = String(slot?.getSlotElementId?.() || "");
               if (!slotId || slotId.startsWith("gexp-intext")) continue;
@@ -2183,15 +2256,17 @@ class RandomStrategy extends WindowArray {
         getIntextRandomConsistencyDiagnostics(context = "manager-decision", navIndex = 0) {
           const snapshot = this.intextRandomSnapshot;
           let slotConsistency = "slots-not-present";
+          let slotsFound = 0;
           let slotsChecked = 0;
           const mismatchSlotIds = [];
+          const unresolvedSlotIds = [];
           try {
             const slots = googletag?.pubads?.().getSlots?.() || [];
             const normalSlots = slots.filter((slot) => {
               const id = String(slot?.getSlotElementId?.() || "");
               return id && !id.startsWith("gexp-intext");
             });
-            slotsChecked = normalSlots.length;
+            slotsFound = normalSlots.length;
             normalSlots.forEach((slot) => {
               const slotId = String(slot.getSlotElementId?.() || "unknown");
               const position = this.normalizeIntextDiagnosticTargetingValue(slot.getTargeting?.("p")) || "unknown";
@@ -2199,6 +2274,15 @@ class RandomStrategy extends WindowArray {
               INTEXT_RANDOM_KEYS.forEach((key) => {
                 observed[key] = this.normalizeIntextDiagnosticTargetingValue(slot.getTargeting?.(key));
               });
+              const ready = INTEXT_RANDOM_KEYS.every((key) => {
+                const value = observed[key];
+                return value !== null && /^\d+$/.test(value) && Number(value) >= 1 && Number(value) <= 20;
+              });
+              if (!ready) {
+                unresolvedSlotIds.push(slotId);
+                return;
+              }
+              slotsChecked += 1;
               const matches = INTEXT_RANDOM_KEYS.every((key) => observed[key] === String(snapshot?.[key] || ""));
               if (!matches) {
                 mismatchSlotIds.push(slotId);
@@ -2214,13 +2298,17 @@ class RandomStrategy extends WindowArray {
                 });
               }
             });
-            if (slotsChecked > 0) slotConsistency = mismatchSlotIds.length ? "false" : "true";
+            if (slotsFound > 0 && slotsChecked === 0) slotConsistency = "slots-not-ready";
+            else if (slotsChecked > 0) slotConsistency = mismatchSlotIds.length ? "false" : "true";
           } catch (e) {}
           return {
             "gexp-intext-random-consistency-slots": slotConsistency,
+            "gexp-intext-random-slots-found": String(slotsFound),
             "gexp-intext-random-slots-checked": String(slotsChecked),
+            "gexp-intext-random-slots-unresolved-count": String(unresolvedSlotIds.length),
             "gexp-intext-random-slots-mismatch-count": String(mismatchSlotIds.length),
             "gexp-intext-random-mismatch-slot-ids": mismatchSlotIds.length ? mismatchSlotIds.join(",") : "none",
+            "gexp-intext-random-unresolved-slot-ids": unresolvedSlotIds.length ? unresolvedSlotIds.join(",") : "none",
           };
         }
 
@@ -2243,27 +2331,32 @@ class RandomStrategy extends WindowArray {
           if (this._intextTelemetrySampled !== true) return false;
           const navIndex = Number(payload.navIndex) || 0;
           const identity = this.captureIntextContentIdentity(navIndex, payload.rootElement || null, payload.scopedContext || null);
-          const optionalPvid = this.resolveOptionalIntextSlotPvid();
+          const optionalPvid = this.resolveOptionalIntextSlotPvid(payload.rootElement || null, payload.scopedContext || null);
           const event = {
-            "gexp-intext-telemetry-event-type": eventType,
+            ...payload,
+            navIndex: String(navIndex),
+            domain: this.getHostnameNormalized(this.siteContext?.site),
+            contentType: String(payload.contentType || this.siteContext?.contentType || "unknown"),
             "gexp-intext-telemetry-sampled": "true",
+            "gexp-intext-telemetry-event-type": eventType,
             "gexp-intext-page-instance-id": this._intextPageInstanceId,
             "gexp-intext-content-id": identity.id,
             "gexp-intext-content-id-source": identity.source,
-            be_page_newsID: identity.newsId || identity.id,
-            "gexp-intext-reference-slot-pvid": optionalPvid || "unavailable",
-            navIndex: String(navIndex),
-            domain: this.getHostnameNormalized(this.siteContext?.site),
             country: this.resolveIntextCountry(),
-            contentType: String(payload.contentType || this.siteContext?.contentType || "unknown"),
             timestamp: String(Date.now()),
             tlm_rid: this.createIntextTelemetryId(eventType),
             ...this.getIntextRandomTelemetry(),
-            ...payload,
           };
           delete event.rootElement;
           delete event.scopedContext;
-          if (optionalPvid) event.pvid = optionalPvid;
+          delete event.be_page_newsID;
+          delete event.pvid;
+          delete event["gexp-intext-reference-slot-pvid"];
+          if (identity.resolved && identity.newsId) event.be_page_newsID = identity.newsId;
+          if (optionalPvid) {
+            event.pvid = optionalPvid;
+            event["gexp-intext-reference-slot-pvid"] = optionalPvid;
+          }
           if (typeof window !== "undefined" && window.gexpIntextDebug === true) {
             const unknownFields = Object.keys(event).filter((key) =>
               key.startsWith("gexp-intext-") && !INTEXT_TELEMETRY_STANDARD_FIELDS.includes(key)
@@ -2500,15 +2593,7 @@ class RandomStrategy extends WindowArray {
         }
 
         readIntextQaCookieOverride() {
-          const disabled = {
-            enabled: false,
-            random1: "none",
-            random1Value: null,
-            defaultForced: false,
-            invalidValue: null,
-            forceExclusions: false,
-            forceExclusionsRawValue: null,
-          };
+          const disabled = { enabled: false };
 
           try {
             if (typeof document === "undefined" || typeof document.cookie !== "string") return disabled;
@@ -2530,54 +2615,8 @@ class RandomStrategy extends WindowArray {
             const enabled = ["1", "true", "yes"].includes(forceValue);
             if (!enabled) return disabled;
 
-            const rawRandom1 = cookies.gexp_intext_force_random1;
-            const normalizedRandom1 = rawRandom1 === undefined || rawRandom1 === null
-              ? "none"
-              : String(rawRandom1).trim().toLowerCase();
-            const override = {
-              enabled: true,
-              random1: "none",
-              random1Value: null,
-              defaultForced: false,
-              invalidValue: null,
-              forceExclusions: false,
-              forceExclusionsRawValue: null,
-            };
-
-            const rawForceExclusions = cookies.gexp_intext_force_exclusions;
-            const normalizedForceExclusions = rawForceExclusions === undefined || rawForceExclusions === null
-              ? ""
-              : String(rawForceExclusions).trim().toLowerCase();
-            override.forceExclusionsRawValue = normalizedForceExclusions || null;
-            override.forceExclusions = ["1", "true", "yes"].includes(normalizedForceExclusions);
-
-            if (["5", "6", "7", "8", "9", "10"].includes(normalizedRandom1)) {
-              override.random1 = normalizedRandom1;
-              override.random1Value = normalizedRandom1;
-            } else if (normalizedRandom1 === "default") {
-              override.random1 = "default";
-              override.defaultForced = true;
-            } else if (normalizedRandom1 !== "none" && normalizedRandom1 !== "") {
-              override.random1 = "invalid";
-              override.invalidValue = normalizedRandom1;
-              logIntext(`[IntextManager] intext_qa_cookie_override_invalid`, {
-                key: "gexp_intext_force_random1",
-                value: normalizedRandom1,
-              });
-            }
-
-            logIntext(`[IntextManager] intext_qa_cookie_override_detected`, {
-              enabled: true,
-              random1: override.random1,
-              forceExclusions: override.forceExclusions,
-            });
-            if (override.forceExclusions) {
-              logIntext(`[IntextManager] intext_qa_cookie_exclusions_bypass_detected`, {
-                key: "gexp_intext_force_exclusions",
-                value: override.forceExclusionsRawValue,
-              });
-            }
-            return override;
+            logIntext(`[IntextManager] intext_qa_cookie_inclusion_override_detected`, { enabled: true });
+            return { enabled: true };
           } catch (e) {
             return disabled;
           }
@@ -2755,29 +2794,13 @@ class RandomStrategy extends WindowArray {
           }
         }
 
-        isIntextQaExclusionsBypassEnabled() {
-          return this.intextQaCookieOverride?.enabled === true
-            && this.intextQaCookieOverride?.forceExclusions === true;
-        }
-
-        markIntextQaExclusionsBypassApplied(source = "unknown") {
-          if (!this.isIntextQaExclusionsBypassEnabled()) return;
-          this.markIntextQaCookieApplied();
-          this._intextQaCookieExclusionsBypassed = true;
-          this._intextQaCookieExclusionsBypassSource = source;
-        }
-
         getIntextQaCookieTelemetry(applied = this._intextQaCookieApplied) {
           const override = this.intextQaCookieOverride || {};
           return {
             "gexp-intext-qa-cookie-enabled": override.enabled ? "true" : "false",
-            "gexp-intext-qa-cookie-random1": String(override.random1 || "none"),
             "gexp-intext-qa-cookie-applied": applied ? "true" : "false",
             "gexp-intext-qa-inclusion-forced": this._intextQaInclusionForced === true ? "true" : "false",
             "gexp-intext-qa-original-random1": String(this.getIntextRandomValue("random1") || "unresolved"),
-            "gexp-intext-qa-cookie-force-exclusions": override.forceExclusions ? "true" : "false",
-            "gexp-intext-qa-cookie-exclusions-bypassed": this._intextQaCookieExclusionsBypassed ? "true" : "false",
-            "gexp-intext-qa-cookie-exclusions-bypass-source": String(this._intextQaCookieExclusionsBypassSource || "none"),
           };
         }
 
@@ -2883,38 +2906,6 @@ class RandomStrategy extends WindowArray {
 
         getEffectiveIntextTargetingResolution(key, context = null) {
           const original = this.readIntextLoadingExperimentKeyResolution(key, context);
-          const override = this.intextQaCookieOverride;
-          if (INTEXT_RANDOM_KEYS.includes(String(key || "")) || String(key || "") !== "random1" || !override?.enabled) {
-            return {
-              ...original,
-              originalValue: original.value,
-              qaCookieApplied: false,
-              qaCookieDefault: false,
-            };
-          }
-
-          if (["5", "6", "7", "8", "9", "10"].includes(override.random1Value)) {
-            return {
-              value: override.random1Value,
-              source: "qa-cookie",
-              originalValue: original.value,
-              originalSource: original.source,
-              qaCookieApplied: true,
-              qaCookieDefault: false,
-            };
-          }
-
-          if (override.defaultForced) {
-            return {
-              value: original.value,
-              source: "qa-cookie-default",
-              originalValue: original.value,
-              originalSource: original.source,
-              qaCookieApplied: true,
-              qaCookieDefault: true,
-            };
-          }
-
           return {
             ...original,
             originalValue: original.value,
@@ -2958,8 +2949,6 @@ class RandomStrategy extends WindowArray {
           let experimentResolved = false;
           let fallbackReason = "none";
           const lookupId = this.normalizeIntextLoadingSlotId(slotId);
-          const qaCookieLoadingDefault = keyResolution.qaCookieDefault === true;
-          const qaCookieLoadingApplied = keyResolution.qaCookieApplied === true;
 
           logIntext(`[IntextManager] loading_experiment_config_source_resolved`, {
             slotCode: slotId,
@@ -2969,33 +2958,8 @@ class RandomStrategy extends WindowArray {
             hasExperiments: Boolean(experiments),
           });
 
-          if (!qaCookieLoadingDefault && qaCookieLoadingApplied && key === "random1" && keyValue === "5") {
-            variantName = "test-b";
-          } else if (!qaCookieLoadingDefault && qaCookieLoadingApplied && key === "random1" && keyValue === "6") {
-            variantName = "control";
-          }
-          if (qaCookieLoadingApplied && !qaCookieLoadingDefault) {
-            this.markIntextQaCookieApplied();
-            logIntext(`[IntextManager] intext_qa_cookie_loading_variant_forced`, {
-              slotCode: slotId,
-              key,
-              forcedValue: keyValue,
-              originalValue: keyResolution.originalValue,
-              variant: variantName,
-            });
-          }
-
           if (!experiments) {
             fallbackReason = "experiments-not-found";
-          } else if (qaCookieLoadingDefault) {
-            fallbackReason = "qa-cookie-default";
-            this.markIntextQaCookieApplied();
-            logIntext(`[IntextManager] intext_qa_cookie_loading_default_forced`, {
-              slotCode: slotId,
-              key,
-              originalValue: keyResolution.originalValue,
-              keySource,
-            });
           } else if (experiments?.enabled !== true) {
             fallbackReason = "experiments-disabled";
           } else if (!keyValue) {
@@ -3060,7 +3024,7 @@ class RandomStrategy extends WindowArray {
           });
 
           loadingConfig._experiment = {
-            enabled: qaCookieLoadingDefault ? false : experiments?.enabled === true,
+            enabled: experiments?.enabled === true,
             resolved: experimentResolved,
             variant: variantName,
             key,
@@ -3068,13 +3032,11 @@ class RandomStrategy extends WindowArray {
             keySource,
             lookupSlot: lookupId,
             fallbackReason,
-            experimentName: qaCookieLoadingDefault
-              ? "default"
-              : (experiments?.name || experiments?.experiment || experiments?.id || (experiments?.enabled === true ? "loadingExperiments" : "none")),
+            experimentName: experiments?.name || experiments?.experiment || experiments?.id || (experiments?.enabled === true ? "loadingExperiments" : "none"),
             configSource: experimentResolution.source,
-            qaCookieEnabled: this.intextQaCookieOverride?.enabled === true,
-            qaCookieApplied: qaCookieLoadingApplied,
-            qaCookieRandom1: this.intextQaCookieOverride?.random1 || "none",
+            qaCookieEnabled: false,
+            qaCookieApplied: false,
+            qaCookieRandom1: "none",
           };
 
           return loadingConfig;
@@ -3293,16 +3255,6 @@ class RandomStrategy extends WindowArray {
 
         isBlockedByExclusions(context = null) {
           const hostname = this.getHostnameNormalized(context?.hostname || this.siteContext?.site);
-          if (this.isIntextQaExclusionsBypassEnabled()) {
-            this.markIntextQaExclusionsBypassApplied(context?.navIndex !== undefined && context?.navIndex !== null ? "navcontinua" : "isBlockedByExclusions");
-            logIntext(`[IntextManager] intext_qa_cookie_exclusions_bypass_applied`, {
-              hostname,
-              contentType: context?.contentType || this.siteContext?.contentType,
-              navIndex: context?.navIndex,
-              source: "isBlockedByExclusions",
-            });
-            return false;
-          }
           const excl = this.resolveScopedRuleBlock(
             context?.siteConfig?.exclusions || this.siteConfig?.exclusions,
             hostname,
@@ -3366,6 +3318,16 @@ class RandomStrategy extends WindowArray {
             hostname,
           );
           if (!inc) return true;
+          if (this.intextQaCookieOverride?.enabled === true) {
+            this.markIntextQaCookieApplied();
+            this._intextQaInclusionForced = true;
+            logIntext(`[IntextManager] intext_qa_cookie_force_allow_applied`, {
+              key: "inclusions",
+              forcedValue: "inclusion-only",
+              originalValue: this.getIntextRandomValue("random1"),
+            });
+            return true;
+          }
 
           if (inc.keyValues && typeof inc.keyValues === 'object' && Object.keys(inc.keyValues).length > 0) {
             let pageTargeting = null;
@@ -3506,15 +3468,6 @@ class RandomStrategy extends WindowArray {
         }
         
         isSlotDisabledByExclusion(index, context = null) {
-          if (this.isIntextQaExclusionsBypassEnabled()) {
-            this.markIntextQaExclusionsBypassApplied(context?.navIndex !== undefined && context?.navIndex !== null ? "navcontinua" : "isSlotDisabledByExclusion");
-            logIntext(`[IntextManager] intext_qa_cookie_slot_exclusion_bypass_applied`, {
-              slotIndex: index,
-              navIndex: context?.navIndex,
-              source: "isSlotDisabledByExclusion",
-            });
-            return false;
-          }
           const siteConfig = context?.siteConfig || this.siteConfig;
           const ds = siteConfig?.exclusions?.disableSlots;
           if (!ds) return false;
@@ -3774,6 +3727,7 @@ class RandomStrategy extends WindowArray {
           if (!isConfig?.enabled) return;
 
           this._processedNavIndexes = new Set([0]);
+          this._pendingNavIndexes = new Set();
           this._navContinuaNodes = [];
 
           const observer = new MutationObserver((mutations) => {
@@ -3788,34 +3742,14 @@ class RandomStrategy extends WindowArray {
                 for (const mainEl of mains) {
                   const navIndex = parseInt(mainEl.dataset.ueNavindex, 10);
                   if (isNaN(navIndex) || navIndex === 0) continue;
-                  if (this._processedNavIndexes.has(navIndex)) continue;
-                  if (this._processedNavIndexes.size > (isConfig.maxArticles || 5)) {
+                  if (this._processedNavIndexes.has(navIndex) || this._pendingNavIndexes.has(navIndex)) continue;
+                  if ((this._processedNavIndexes.size + this._pendingNavIndexes.size) > (isConfig.maxArticles || 5)) {
                     logIntext(`[IntextManager:NavContinua] Max articles reached (${isConfig.maxArticles || 5}), ignoring navIndex=${navIndex}`);
                     continue;
                   }
 
-                  this._processedNavIndexes.add(navIndex);
+                  this.processIntextNavCandidate(mainEl, navIndex);
                   logIntext(`[IntextManager:NavContinua] 🆕 New article detected: navIndex=${navIndex}`);
-
-                  requestAnimationFrame(() => {
-                    googletag.cmd.push(() => {
-                      const allSlots = googletag.pubads().getSlots();
-                      const mainSlots = allSlots.filter(s => {
-                        const el = document.getElementById(s.getSlotElementId());
-                        return el && mainEl.contains(el);
-                      });
-                      const ncTargeting = mainSlots.some(s => {
-                        const val = s.getTargeting('nc');
-                        if (Array.isArray(val)) return val.includes('1');
-                        return val === '1';
-                      });
-                      if (!ncTargeting) {
-                        logIntext(`[IntextManager:NavContinua] ❌ navIndex=${navIndex} skipped — no GPT slot with nc='1' targeting found in new main`);
-                        return;
-                      }
-                      this.onNewArticleDetected(mainEl, navIndex);
-                    });
-                  });
                 }
               }
             }
@@ -3825,12 +3759,58 @@ class RandomStrategy extends WindowArray {
           logIntext('[IntextManager:NavContinua] 👁️ MutationObserver started');
         }
 
-        onNewArticleDetected(mainElement, navIndex) {
+        getScopedIntextNcSlots(mainElement) {
+          return this.getScopedSlotsForRoot(mainElement).filter((slot) => {
+            const value = slot?.getTargeting?.("nc");
+            return Array.isArray(value) ? value.map(String).includes("1") : String(value || "") === "1";
+          });
+        }
+
+        async waitForIntextNavContext(mainElement) {
+          const isConfig = this.siteConfig?.infiniteScroll || {};
+          const timeoutMs = Math.max(0, Number(isConfig.contextWaitMs ?? 1000));
+          const pollMs = Math.max(10, Number(isConfig.contextPollMs ?? 50));
+          const startedAt = Date.now();
+          while (true) {
+            const slots = this.getScopedIntextNcSlots(mainElement);
+            if (slots.length) return slots;
+            if (Date.now() - startedAt >= timeoutMs) return [];
+            await new Promise((resolve) => setTimeout(resolve, Math.min(pollMs, timeoutMs - (Date.now() - startedAt))));
+          }
+        }
+
+        async processIntextNavCandidate(mainElement, navIndex) {
+          const normalizedNavIndex = Number(navIndex) || 0;
+          if (!normalizedNavIndex || this._processedNavIndexes?.has(normalizedNavIndex) || this._pendingNavIndexes?.has(normalizedNavIndex)) return false;
+          if (!this._pendingNavIndexes) this._pendingNavIndexes = new Set();
+          if (!this._processedNavIndexes) this._processedNavIndexes = new Set([0]);
+          this._pendingNavIndexes.add(normalizedNavIndex);
+          try {
+            const scopedSlots = await this.waitForIntextNavContext(mainElement);
+            if (!scopedSlots.length) {
+              this.registerIntextDiagnosticEvent({
+                diagnosticKey: `navcontinua-context-timeout:${normalizedNavIndex}`,
+                navIndex: String(normalizedNavIndex),
+                "gexp-intext-diagnostic-context": `navIndex:${normalizedNavIndex}`,
+              });
+              this._processedNavIndexes.add(normalizedNavIndex);
+              return false;
+            }
+            const decided = await this.onNewArticleDetected(mainElement, normalizedNavIndex);
+            if (decided) this._processedNavIndexes.add(normalizedNavIndex);
+            return decided;
+          } finally {
+            this._pendingNavIndexes.delete(normalizedNavIndex);
+          }
+        }
+
+        async onNewArticleDetected(mainElement, navIndex) {
           const isConfig = this.siteConfig?.infiniteScroll;
-          if (!isConfig) return;
+          if (!isConfig) return false;
 
           const scopedContext = this.resolveScopedAdContext(mainElement);
-          const contentIdentity = this.captureIntextContentIdentity(navIndex, mainElement, scopedContext);
+          const resolvedIdentity = await this.resolveScopedIntextNewsIdentity(mainElement, navIndex, scopedContext);
+          const contentIdentity = this.captureIntextContentIdentity(navIndex, mainElement, scopedContext, resolvedIdentity);
           const contentType = scopedContext.contentType || this.detectContentType(mainElement);
           logIntext(`[IntextManager:NavContinua] navIndex=${navIndex}: content type = "${contentType}"`);
 
@@ -3843,7 +3823,7 @@ class RandomStrategy extends WindowArray {
             scrollConfig = IntextManager.deepMerge(scrollConfig, isConfig.overrides);
           }
           if (!this.isContentTypeAllowed(scrollConfig, contentType, "[IntextManager:NavContinua]")) {
-            return;
+            return false;
           }
 
           const scopedRuleContext = {
@@ -3859,18 +3839,18 @@ class RandomStrategy extends WindowArray {
             logIntext(
               `[IntextManager:NavContinua] navcontinua_exclusions_blocked - navIndex=${navIndex}, adUnitPath=${scopedRuleContext.adUnitPath || "missing"}`,
             );
-            return;
+            return false;
           }
 
           if (!this.isAllowedByInclusions(scopedRuleContext)) {
             logIntext(`[IntextManager:NavContinua] navcontinua_inclusions_allowed - navIndex=${navIndex}, allowed=false`);
-            return;
+            return false;
           }
 
           logIntext(`[IntextManager:NavContinua] navcontinua_inclusions_allowed - navIndex=${navIndex}, allowed=true`);
 
           if (this.shouldBlockIntextByFallbackBlankControl()) {
-            this.registerIntextManagerDecision({
+            const registered = this.registerIntextManagerDecision({
               navIndex,
               scope: "navcontinua",
               decision: "blocked",
@@ -3880,13 +3860,13 @@ class RandomStrategy extends WindowArray {
               scopedContext: scopedRuleContext,
             });
             logIntext(`[IntextManager:NavContinua] navcontinua_blocked_by_fallback_blank_cookie`, { navIndex });
-            return;
+            return registered;
           }
 
           const pncSuffix = navIndex >= 1 ? `-pnc-${navIndex}` : '';
           const placement = this.createIntextPositionsScoped(mainElement, scrollConfig, pncSuffix, navIndex, scopedRuleContext);
 
-          this.registerIntextManagerDecision({
+          return this.registerIntextManagerDecision({
             navIndex,
             scope: "navcontinua",
             decision: "allowed",
@@ -5916,11 +5896,7 @@ class RandomStrategy extends WindowArray {
             "gexp-intext-loading-lookup-slot",
             "gexp-intext-loading-fallback-reason",
             "gexp-intext-qa-cookie-enabled",
-            "gexp-intext-qa-cookie-random1",
             "gexp-intext-qa-cookie-applied",
-            "gexp-intext-qa-cookie-force-exclusions",
-            "gexp-intext-qa-cookie-exclusions-bypassed",
-            "gexp-intext-qa-cookie-exclusions-bypass-source",
             "gexp-intext-fallback-blank-control-enabled",
             "gexp-intext-fallback-blank-control-threshold",
             "gexp-intext-fallback-blank-control-cookie",
@@ -6132,10 +6108,8 @@ class RandomStrategy extends WindowArray {
           const hasTimer = typeof maxDelayMs === "number" && Number.isFinite(maxDelayMs) && maxDelayMs >= 0;
           const loadingExperiment = this.config?.loading?._experiment || {};
           const adjacencyMeta = this.placement?.adjacencyMeta || {};
-          const qaCookieApplied = this.manager?._intextQaCookieApplied === true || loadingExperiment.qaCookieApplied === true;
-          const loadingExperimentValue = loadingExperiment.qaCookieEnabled
-            ? String(loadingExperiment.experimentName || (loadingExperiment.qaCookieRandom1 === "default" ? "default" : "none"))
-            : (loadingExperiment.enabled ? "true" : "false");
+          const qaCookieApplied = this.manager?._intextQaInclusionForced === true;
+          const loadingExperimentValue = loadingExperiment.enabled ? "true" : "false";
           Object.assign(cycle, {
             "gexp-intext-root-margin": String(this.config?.loading?.renderRootMargin || this.config?.loading?.rootMargin || "200px 0px"),
             "gexp-intext-timer-delay-ms": hasTimer ? String(maxDelayMs) : "disabled",
@@ -6260,7 +6234,28 @@ class RandomStrategy extends WindowArray {
             const rowIsPending = !Array.isArray(statsRows) || statsRows.includes(this.wa.cI);
             if (isFinalReason && !rowIsPending) {
               const finalDedupeKey = `slot-cycle-final:${parentTelemetryId}:${reason}`;
+              const finalSource = {
+                ...(this.wa.cI || {}),
+                ...(this._intextTelemetryCycle || {}),
+                ...(this._pendingIntextTelemetry || {}),
+              };
+              const finalDeltaFields = [
+                "gexp-intext-request-type", "gexp-intext-video", "gexp-intext-display",
+                "gexp-intext-is-refresh", "gexp-intext-refresh", "gexp-intext-is-fallback",
+                "gexp-intext-fallback", "gexp-intext-video-failed", "gexp-intext-video-error-code",
+                "gexp-intext-video-error-message", "gexp-intext-ad-rendered-logical",
+                "gexp-intext-ad-filled-logical", "gexp-intext-gam-line-item-type",
+                "gexp-intext-gam-event-size", "gexp-intext-render-layout", "adFilled",
+                "adRendered", "isEmpty", "lineItemId", "creativeId", "campaignId", "advertiserId",
+              ];
+              const finalDelta = {};
+              finalDeltaFields.forEach((key) => {
+                if (finalSource[key] !== undefined && finalSource[key] !== null && finalSource[key] !== "") {
+                  finalDelta[key] = String(finalSource[key]);
+                }
+              });
               this.manager?.registerIntextSyntheticEvent?.("slot-cycle-final", {
+                ...finalDelta,
                 "gexp-intext-parent-tlm-rid": parentTelemetryId,
                 "gexp-intext-cycle-finalized-after-early-flush": "true",
                 "gexp-intext-telemetry-commit-reason": String(reason),

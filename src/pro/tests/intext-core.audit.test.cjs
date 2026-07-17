@@ -318,7 +318,7 @@ audit(75, 'no se genera pvid artificial y el pvid de slot es opcional', () => {
   const { manager, rows } = managerFixture();
   delete normalSlot.targeting.pvid;
   manager.registerIntextManagerDecision({ decision:'allowed', reason:'passed' });
-  assert.equal(rows.at(-1)['gexp-intext-reference-slot-pvid'], 'unavailable');
+  assert.ok(!Object.hasOwn(rows.at(-1), 'gexp-intext-reference-slot-pvid'));
   assert.ok(!Object.hasOwn(rows.at(-1), 'pvid'));
   normalSlot.targeting.pvid = ['real-slot-pvid'];
   const next = managerFixture();
@@ -414,4 +414,54 @@ test('configuración comercial Intext activa conserva cohort y fallbackBlankCont
       expireAtEndOfDay:cfg.fallbackBlankControl.expireAtEndOfDay,
     }, { enabled:true,slotIndex:1,threshold:1,onlyFirstLoad:true,ignoreRefresh:true,onlyVideoFallbackDisplay:true,countEmptyDisplay:true,countHouseDisplay:true,countSentinelHouse:true,expireAtEndOfDay:true });
   }
+});
+
+audit(85, 'PNC no congela el DataLayer anterior', async () => {
+  const { manager }=managerFixture(); manager.siteConfig.infiniteScroll={contentIdentityWaitMs:20,contentIdentityPollMs:5}; manager.getScopedSlotsForRoot=()=>[];
+  manager.captureIntextContentIdentity(0,null,null,{id:'987654',source:'ueDataLayer.be_page_newsID',resolved:true});
+  const identity=await manager.resolveScopedIntextNewsIdentity({getAttribute:()=>null,querySelector:()=>null},1,{});
+  assert.deepEqual([identity.resolved,identity.source],[false,'unresolved']);
+});
+audit(86, 'PNC captura el ID que aparece unos milisegundos despues', async () => {
+  const { manager }=managerFixture(); manager.siteConfig.infiniteScroll={contentIdentityWaitMs:80,contentIdentityPollMs:5}; manager.getScopedSlotsForRoot=()=>[];
+  manager.captureIntextContentIdentity(0,null,null,{id:'987654',source:'ueDataLayer.be_page_newsID',resolved:true});
+  setTimeout(()=>{context.window.ueDataLayer.be_page_newsID='987655';},10);
+  const identity=await manager.resolveScopedIntextNewsIdentity({getAttribute:()=>null,querySelector:()=>null},1,{});
+  assert.deepEqual([identity.id,identity.source],['987655','ueDataLayer.be_page_newsID']); context.window.ueDataLayer.be_page_newsID='987654';
+});
+audit(87, 'dos articulos PNC conservan IDs scoped diferentes', async () => {
+  const { manager }=managerFixture(); manager.getScopedSlotsForRoot=()=>[]; const rootWithId=id=>({getAttribute:key=>key==='data-news-id'?id:null,querySelector:()=>null});
+  const a=await manager.resolveScopedIntextNewsIdentity(rootWithId('pnc-1'),1,{}); const b=await manager.resolveScopedIntextNewsIdentity(rootWithId('pnc-2'),2,{}); assert.notEqual(a.id,b.id);
+});
+audit(88, 'dos PNC sin ID generan diagnostics distintos y omiten newsID', () => {
+  const {manager,rows}=managerFixture(); const unresolved={id:null,source:'unresolved',resolved:false}; manager.captureIntextContentIdentity(1,null,null,unresolved); manager.captureIntextContentIdentity(2,null,null,unresolved);
+  const diagnostics=rows.filter(row=>row['gexp-intext-telemetry-event-type']==='diagnostic'); assert.deepEqual(diagnostics.map(row=>row['gexp-intext-diagnostic-key']),['content-id-unresolved:1','content-id-unresolved:2']); diagnostics.forEach(row=>assert.ok(!Object.hasOwn(row,'be_page_newsID')));
+});
+audit(89, 'slot normal sin randoms queda unresolved y no mismatch', () => {
+  const empty={...normalSlot,id:'normal-empty',targeting:{p:['m']}}; const saved=gptSlots.splice(0,gptSlots.length,empty); const {manager,rows}=managerFixture(); const d=manager.getIntextRandomConsistencyDiagnostics('unresolved'); gptSlots.splice(0,gptSlots.length,...saved);
+  assert.deepEqual([d['gexp-intext-random-consistency-slots'],d['gexp-intext-random-slots-found'],d['gexp-intext-random-slots-checked'],d['gexp-intext-random-slots-unresolved-count'],d['gexp-intext-random-slots-mismatch-count']],['slots-not-ready','1','0','1','0']); assert.equal(rows.length,0);
+});
+audit(90, 'slot ready diferente cuenta como mismatch', () => {
+  const different={...normalSlot,id:'normal-different',targeting:{...normalSlot.targeting,random1:['6']}}; gptSlots.push(different); const d=managerFixture().manager.getIntextRandomConsistencyDiagnostics('ready-mismatch'); gptSlots.pop(); assert.deepEqual([d['gexp-intext-random-consistency-slots'],d['gexp-intext-random-slots-mismatch-count']],['false','1']);
+});
+audit(91, 'slots ready y unresolved se clasifican simultaneamente', () => {
+  const unresolved={...normalSlot,id:'normal-late',targeting:{random1:['5']}}; gptSlots.push(unresolved); const d=managerFixture().manager.getIntextRandomConsistencyDiagnostics('mixed'); gptSlots.pop(); assert.deepEqual([d['gexp-intext-random-consistency-slots'],d['gexp-intext-random-slots-checked'],d['gexp-intext-random-slots-unresolved-count']],['true','1','1']);
+});
+audit(92, 'payload no sobrescribe random1 canonico', () => { const {manager,rows}=managerFixture(); manager.registerIntextSyntheticEvent('diagnostic',{random1:'99'},'protected-random'); assert.equal(rows.at(-1).random1,'5'); });
+audit(93, 'payload no sobrescribe pageInstanceId canonico', () => { const {manager,rows}=managerFixture(); manager.registerIntextSyntheticEvent('diagnostic',{'gexp-intext-page-instance-id':'fake'},'protected-page'); assert.equal(rows.at(-1)['gexp-intext-page-instance-id'],manager._intextPageInstanceId); });
+audit(94, 'PVID PNC procede del slot scoped', () => { const {manager}=managerFixture(); const scoped={id:'scoped',getSlotElementId(){return this.id;},getTargeting:key=>key==='pvid'?['pnc-pvid']:[]}; manager.getScopedSlotsForRoot=()=>[scoped]; assert.equal(manager.resolveOptionalIntextSlotPvid({},{}),'pnc-pvid'); });
+audit(95, 'sin slot scoped no reutiliza pvid inicial', () => { normalSlot.targeting.pvid=['initial-pvid']; const {manager}=managerFixture(); manager.getScopedSlotsForRoot=()=>[]; assert.equal(manager.resolveOptionalIntextSlotPvid({},{}),null); delete normalSlot.targeting.pvid; });
+audit(96, 'flush temprano seguido de render crea slot-cycle-final', () => { const {node,manager,rows}=nodeFixture(); node.ensureIntextCycleTelemetryIdentity(); manager.gexp.statsG.rows.length=0; node.commitIntextTelemetry('display-render-ended'); assert.equal(rows.filter(row=>row['gexp-intext-telemetry-event-type']==='slot-cycle-final').length,1); });
+audit(97, 'slot-cycle-final transporta creative line item y resultado', () => {
+  const {node,manager,rows}=nodeFixture(); node.ensureIntextCycleTelemetryIdentity(); Object.assign(node.wa.cI,{creativeId:'creative-7',lineItemId:'line-8',adFilled:'true',adRendered:'true'}); Object.assign(node._intextTelemetryCycle,{'gexp-intext-ad-filled-logical':'true','gexp-intext-render-layout':'fluid'}); manager.gexp.statsG.rows.length=0; node.commitIntextTelemetry('display-render-ended'); const final=rows.at(-1); assert.deepEqual([final.creativeId,final.lineItemId,final.adFilled,final['gexp-intext-render-layout']],['creative-7','line-8','true','fluid']);
+});
+audit(98, 'nc=1 tardio procesa el articulo antes del timeout', async () => {
+  const {manager}=managerFixture(); manager.siteConfig.infiniteScroll={contextWaitMs:80,contextPollMs:5}; manager._processedNavIndexes=new Set([0]); manager._pendingNavIndexes=new Set(); let checks=0,decisions=0; manager.getScopedIntextNcSlots=()=>++checks>2?[{}]:[]; manager.onNewArticleDetected=async()=>{decisions+=1;return true;}; assert.equal(await manager.processIntextNavCandidate({},4),true); assert.deepEqual([decisions,manager._processedNavIndexes.has(4)],[1,true]);
+});
+audit(99, 'mismo navIndex no genera dos manager decisions', async () => {
+  const {manager}=managerFixture(); manager._processedNavIndexes=new Set([0]); manager._pendingNavIndexes=new Set(); manager.waitForIntextNavContext=async()=>[{}]; let decisions=0; manager.onNewArticleDetected=async()=>{decisions+=1;return true;}; await manager.processIntextNavCandidate({},5); await manager.processIntextNavCandidate({},5); assert.equal(decisions,1);
+});
+audit(100, 'video display fallback y refresh mantienen snapshot', () => { const {node}=nodeFixture(); for(const phase of ['video','display','fallback','refresh']){node.slot.values.random1=['20'];node.assertIntextRandomSnapshotOnSlot(node.slot,phase);assert.equal(node.slot.getTargeting('random1')[0],'5');} });
+audit(101, 'cambios solo dentro del core Intext y tests', () => {
+  const changed=execFileSync('git',['diff','--name-only'],{cwd:repoRoot,encoding:'utf8'}).trim().split(/\r?\n/).filter(Boolean); assert.deepEqual(changed.sort(),['src/pro/_gam_kv_.js','src/pro/tests/intext-core.audit.test.cjs'].sort());
 });
