@@ -48,6 +48,7 @@ const normalSlot = {
   getSlotElementId() { return this.id; },
   getTargeting(key) { return this.targeting[key] || []; },
 };
+const gptSlots = [normalSlot];
 const context = vm.createContext({
   console,
   Date,
@@ -67,17 +68,21 @@ const context = vm.createContext({
   setTimeout,
   clearTimeout,
   requestAnimationFrame: (fn) => fn(),
-  window: { location: { hostname: 'www.marca.com', href: 'https://www.marca.com/a' }, localStorage },
+  window: {
+    location: { hostname: 'www.marca.com', href: 'https://www.marca.com/a' },
+    localStorage,
+    ueDataLayer: { be_page_newsID: '987654', be_page_country: 'ES' },
+  },
   document,
-  googletag: { pubads: () => ({ getSlots: () => [normalSlot] }) },
+  googletag: { pubads: () => ({ getSlots: () => gptSlots }) },
   logIntext() {},
   warnIntext() {},
   errorIntext() {},
   ensureBaseStyles() {},
 });
+const intextConstants = between(source, 'const INTEXT_RANDOM_KEYS', 'class IntextManager');
 vm.runInContext(`
-  const INTEXT_RANDOM_KEYS = Object.freeze(["random1", "random2", "random3", "random4"]);
-  const INTEXT_TELEMETRY_STANDARD_FIELDS = Object.freeze([]);
+  ${intextConstants}
   this.IntextManager = ${classSource('IntextManager', 'IntextPlacementEngine')};
   this.IntextNode = ${classSource('IntextNode', 'IntextContainer')};
   this.IntextWaterfall = ${classSource('IntextWaterfall', 'IntextVideoCreative')};
@@ -97,7 +102,7 @@ function managerFixture(randoms = ['5', '2', '3', '4']) {
   manager.siteContext = { site: 'www.marca.com', contentType: 'noticia' };
   manager.gexp = {
     getRandom: (index) => randoms[index - 1],
-    statsG: { telp: true, telId: 'pvid-test' },
+    statsG: { telp: true, telId: 'pvid-test', rows: [] },
     registerImpression: (row) => rows.push(row),
     windows: {},
     isHouse: () => false,
@@ -105,7 +110,13 @@ function managerFixture(randoms = ['5', '2', '3', '4']) {
   manager.nodes = [];
   manager._intextSyntheticEventKeys = new Set();
   manager._intextOpportunityDecisionKeys = new Set();
-  manager._intextPageviewId = 'pvid-test';
+  manager._intextContentIdentityByNavIndex = new Map();
+  manager._intextTelemetrySampled = true;
+  Object.defineProperty(manager, '_intextPageInstanceId', {
+    value: manager.createIntextTelemetryId('intext-page'),
+    writable: false,
+    configurable: false,
+  });
   manager.getPageCustomTargeting = () => ({ random1: '19', random2: '19', random3: '19', random4: '19' });
   manager.getHostnameNormalized = (value) => String(value || '').replace(/^www\./, '');
   manager.captureIntextRandomSnapshot();
@@ -135,6 +146,7 @@ function nodeFixture() {
   manager.nodes.push(node);
   node.slot = slotFixture();
   node.wa = { cI: {}, slot: node.slot };
+  manager.gexp.statsG.rows.push(node.wa.cI);
   node._activeRenderToken = 7;
   node._intextTelemetryCycleId = 1;
   node._intextTelemetryCycle = { 'gexp-intext-video-failed': 'true', 'gexp-intext-is-fallback': 'true' };
@@ -181,7 +193,7 @@ audit(19, 'navegación continua conserva snapshot', () => assert.match(source, /
 audit(20, 'clear targeting no elimina randoms', () => { const { node } = nodeFixture(); assert.ok(!node.getDisplayRequestTargetingKeysToClear(node.slot).some(k => /^random[1-4]$/.test(k))); });
 audit(21, 'divergencia se corrige antes de request', () => { const { node } = nodeFixture(); node.slot.values.random4=['20']; assert.equal(node.assertIntextRandomSnapshotOnSlot(node.slot, 'before'), true); assert.equal(node.slot.getTargeting('random4')[0], '4'); });
 audit(22, 'random de página no sobrescribe snapshot', () => { const { node } = nodeFixture(); assert.equal(node.resolveDisplayRequestTargeting().targeting.random1, '5'); });
-audit(23, 'divergencia de página es solo diagnóstico', () => { const { manager } = managerFixture(); const d = manager.getIntextRandomConsistencyDiagnostics(); assert.equal(d['gexp-intext-random-consistency-page'], 'false'); assert.equal(manager.intextRandomSnapshot.random1, '5'); });
+audit(23, 'no existe consistencia contra página', () => { const { manager } = managerFixture(); const d = manager.getIntextRandomConsistencyDiagnostics(); assert.ok(!Object.hasOwn(d, 'gexp-intext-random-consistency-page')); assert.ok(!source.includes('gexp-intext-random-consistency-page')); });
 
 audit(24, 'sin cookie random1=5 permite creación', () => { cookieJar.clear(); const { manager, rows } = managerFixture(); manager.registerIntextManagerDecision({ decision:'allowed', reason:'passed' }); assert.equal(rows[0]['gexp-intext-decision'], 'allowed'); });
 audit(25, 'cookie y random1=5 bloquea una vez', () => { const { manager, rows } = managerFixture(); manager.registerIntextManagerDecision({ decision:'blocked', reason:'fallback-blank-cookie' }); manager.registerIntextManagerDecision({ decision:'blocked', reason:'fallback-blank-cookie' }); assert.equal(rows.length, 1); });
@@ -193,7 +205,7 @@ audit(29, 'navIndex repetido se deduplica', () => assert.match(source, /_process
 audit(30, 'un bloqueo genera una fila', () => { const { manager, rows }=managerFixture(); manager.registerIntextManagerDecision({decision:'blocked',reason:'fallback-blank-cookie'}); manager.registerIntextManagerDecision({decision:'blocked',reason:'fallback-blank-cookie'}); assert.equal(rows.length,1); });
 audit(31, 'filas normales no heredan estados Intext', () => assert.doesNotMatch(between(source, 'class IntextManager', 'class WPromise'), /addRequiredVariable|statsG\.addVariable/));
 audit(32, 'allowed genera una manager-decision', () => { const { manager, rows }=managerFixture(); manager.registerIntextManagerDecision({decision:'allowed',reason:'passed'}); assert.equal(rows.filter(r=>r['gexp-intext-telemetry-event-type']==='manager-decision').length,1); });
-audit(33, 'tipos de evento están separados', () => ['manager-decision','slot-cycle','fallback-blank','diagnostic'].forEach(v=>assert.ok(source.includes(`"${v}"`))));
+audit(33, 'tipos de evento están separados', () => ['manager-decision','slot-cycle','slot-cycle-final','fallback-blank','diagnostic'].forEach(v=>assert.ok(source.includes(`"${v}"`))));
 audit(34, 'baseline queda en slot-cycle', () => assert.match(between(source, 'startIntextTelemetryCycle(', 'mergeIntextTelemetry('), /getFallbackBlankControlTelemetry/));
 audit(35, 'baseline no es oportunidad', () => assert.doesNotMatch(between(source, 'registerIntextManagerDecision(', 'registerIntextDiagnosticEvent('), /"baseline"/));
 audit(36, 'campos standard están en allowlist', () => ['gexp-intext-opportunity-id','gexp-intext-fallback-blank-event-id','gexp-intext-random1-effective'].forEach(k=>assert.ok(source.includes(`"${k}"`))));
@@ -229,8 +241,163 @@ audit(60, 'BFCache no duplica manager decisions', () => { const {manager,rows}=m
 audit(61, '_gam_kv_.js tiene sintaxis válida', () => execFileSync(process.execPath,['--check',path.join(root,'_gam_kv_.js')]));
 audit(62, 'default_ES_mobile.json es JSON válido', () => ['configPro/default_ES_mobile.json','configPro/pro/default_ES_mobile.json','baseConfigPro/default_ES_mobile.json'].forEach(f=>JSON.parse(fs.readFileSync(path.join(root,f),'utf8'))));
 audit(63, 'no hay referencias a helper eliminado', () => assert.ok(!source.includes('restoreIntextRandomTargetingAfterGexpRequest')));
-audit(64, 'campos standard emitidos están allowlisted', () => { const block=between(source,'const INTEXT_TELEMETRY_STANDARD_FIELDS','class IntextManager'); ['gexp-intext-manager-event-id','gexp-intext-fallback-blank-control-cookie-set-confirmed','gexp-intext-random-consistency-page'].forEach(k=>assert.ok(block.includes(k))); });
+audit(64, 'campos standard emitidos están allowlisted', () => { const block=between(source,'const INTEXT_TELEMETRY_STANDARD_FIELDS','class IntextManager'); ['gexp-intext-manager-event-id','gexp-intext-fallback-blank-control-cookie-set-confirmed','gexp-intext-page-instance-id','gexp-intext-parent-tlm-rid'].forEach(k=>assert.ok(block.includes(k))); });
 audit(65, 'no hay escrituras random desde targeting de página', () => { assert.equal((source.match(/readIntextPageKv\(/g)||[]).length,1); assert.doesNotMatch(source,/setTargeting\(key, restored\[key\]\)/); });
+
+audit(66, 'cohort random no consulta targeting de página', () => {
+  const { manager } = managerFixture();
+  manager.resolveScopedRuleBlock = x => x;
+  manager.getPageCustomTargeting = () => { throw new Error('page random lookup forbidden'); };
+  assert.equal(manager.isAllowedByInclusions({ siteConfig: { inclusions: { keyValues: { random1: ['5'] } } } }), true);
+});
+audit(67, 'getPageCustomTargeting filtra random1..4 sin leer sus valores', () => {
+  const { manager } = managerFixture();
+  const targeting = { foo: 'bar' };
+  Object.defineProperty(targeting, 'random1', { enumerable: true, get() { throw new Error('random1 read'); } });
+  assert.equal(JSON.stringify(IntextManager.prototype.getPageCustomTargeting.call(manager, { targeting })), JSON.stringify({ foo: 'bar' }));
+  assert.equal(IntextManager.prototype.getPageCustomTargeting.call(manager, 'random1'), null);
+});
+audit(68, 'se comprueban todos los slots normales', () => {
+  const second = { ...normalSlot, id: 'normal-slot-2', targeting: { ...normalSlot.targeting, random4: ['20'] } };
+  gptSlots.push(second);
+  const { manager } = managerFixture();
+  const d = manager.getIntextRandomConsistencyDiagnostics('all-slots');
+  assert.deepEqual([d['gexp-intext-random-slots-checked'], d['gexp-intext-random-slots-mismatch-count'], d['gexp-intext-random-consistency-slots']], ['2','1','false']);
+  assert.equal(d['gexp-intext-random-mismatch-slot-ids'], 'normal-slot-2');
+  assert.equal(second.targeting.random4[0], '20');
+  gptSlots.pop();
+});
+audit(69, 'snapshot inválido rechaza los cuatro valores', () => {
+  for (const bad of ['', 'undefined', 'null', 'NaN', '0', '21', '1.5']) {
+    const { manager } = managerFixture(['5','2','3','4']);
+    manager.intextRandomSnapshot = Object.freeze({ random1:'5', random2:'2', random3:bad, random4:'4', source:'gexp-slot-random-snapshot' });
+    assert.equal(manager.validateIntextRandomSnapshot(), false, bad);
+  }
+});
+
+audit(70, 'be_page_newsID se resuelve desde ueDataLayer', () => {
+  const { manager } = managerFixture();
+  assert.equal(manager.resolveIntextNewsId(), '987654');
+  assert.equal(manager.resolveIntextNewsIdentity().source, 'ueDataLayer.be_page_newsID');
+});
+audit(71, 'be_page_newsID usa fallback utag_data', () => {
+  const previous = context.window.ueDataLayer;
+  context.window.ueDataLayer = {};
+  context.window.utag_data = { be_page_newsID: 'utag-42' };
+  const { manager } = managerFixture();
+  assert.equal(manager.resolveIntextNewsId(), 'utag-42');
+  context.window.ueDataLayer = previous;
+  delete context.window.utag_data;
+});
+audit(72, 'pageInstanceId es único, inmutable y sólo vive en memoria', () => {
+  storage.clear();
+  const a = managerFixture().manager;
+  const b = managerFixture().manager;
+  assert.notEqual(a._intextPageInstanceId, b._intextPageInstanceId);
+  assert.equal(Object.getOwnPropertyDescriptor(a, '_intextPageInstanceId').writable, false);
+  assert.equal(storage.size, 0);
+});
+audit(73, 'misma noticia con navIndex distinto crea oportunidades distintas', () => {
+  const { manager, rows } = managerFixture();
+  manager.registerIntextManagerDecision({ navIndex:0, decision:'allowed', reason:'passed' });
+  manager.registerIntextManagerDecision({ navIndex:1, decision:'allowed', reason:'passed' });
+  const ids = rows.filter(r => r['gexp-intext-telemetry-event-type'] === 'manager-decision').map(r => r['gexp-intext-opportunity-id']);
+  assert.equal(new Set(ids).size, 2);
+  assert.ok(ids[0].endsWith(':987654:0'));
+  assert.ok(ids[1].endsWith(':987654:1'));
+});
+audit(74, 'artículos PNC priorizan su content id scoped', () => {
+  const { manager } = managerFixture();
+  const rootA = { getAttribute: key => key === 'data-news-id' ? 'pnc-a' : null };
+  const rootB = { getAttribute: key => key === 'data-article-id' ? 'pnc-b' : null };
+  assert.equal(manager.captureIntextContentIdentity(1, rootA).id, 'pnc-a');
+  assert.equal(manager.captureIntextContentIdentity(2, rootB).id, 'pnc-b');
+});
+audit(75, 'no se genera pvid artificial y el pvid de slot es opcional', () => {
+  assert.ok(!source.includes('intext-pvid'));
+  const { manager, rows } = managerFixture();
+  delete normalSlot.targeting.pvid;
+  manager.registerIntextManagerDecision({ decision:'allowed', reason:'passed' });
+  assert.equal(rows.at(-1)['gexp-intext-reference-slot-pvid'], 'unavailable');
+  assert.ok(!Object.hasOwn(rows.at(-1), 'pvid'));
+  normalSlot.targeting.pvid = ['real-slot-pvid'];
+  const next = managerFixture();
+  next.manager.registerIntextManagerDecision({ decision:'allowed', reason:'passed' });
+  assert.equal(next.rows.at(-1).pvid, 'real-slot-pvid');
+  delete normalSlot.targeting.pvid;
+});
+
+audit(76, 'blocked sólo aparece en manager-decision', () => {
+  const { manager, rows } = managerFixture();
+  manager.registerIntextManagerDecision({ decision:'blocked', reason:'fallback-blank-cookie' });
+  assert.equal(rows.at(-1)['gexp-intext-fallback-blank-control-blocked'], 'true');
+  assert.ok(!Object.hasOwn(manager.getFallbackBlankControlTelemetry(), 'gexp-intext-fallback-blank-control-blocked'));
+  const { node } = nodeFixture();
+  node.startIntextTelemetryCycle('initial');
+  assert.ok(!Object.hasOwn(node._intextTelemetryCycle, 'gexp-intext-fallback-blank-control-blocked'));
+});
+audit(77, 'allowlist standard elimina campos sintéticos desconocidos sin mutar original', () => {
+  const { manager, rows } = managerFixture();
+  const payload = { navIndex:'0', forbidden_field:'secret', 'gexp-intext-decision':'allowed' };
+  manager.registerIntextSyntheticEvent('diagnostic', payload, 'allowlist-test');
+  assert.ok(!Object.hasOwn(rows.at(-1), 'forbidden_field'));
+  assert.equal(payload.forbidden_field, 'secret');
+});
+audit(78, 'eventos sintéticos incluyen contexto común y sampling estable', () => {
+  const { manager, rows } = managerFixture();
+  manager.registerIntextManagerDecision({ decision:'allowed', reason:'passed' });
+  const row = rows.at(-1);
+  ['gexp-intext-page-instance-id','gexp-intext-content-id','be_page_newsID','navIndex','domain','country','contentType','timestamp','random1','random2','random3','random4'].forEach(k => assert.ok(Object.hasOwn(row,k), k));
+  assert.equal(row.country, 'ES');
+  assert.equal(row['gexp-intext-telemetry-sampled'], 'true');
+});
+audit(79, 'slot-cycle comparte sampling y no contiene blocked', () => {
+  const { node } = nodeFixture();
+  node.startIntextTelemetryCycle('refresh');
+  assert.equal(node._intextTelemetryCycle['gexp-intext-telemetry-sampled'], 'true');
+  assert.ok(!Object.hasOwn(node._intextTelemetryCycle, 'gexp-intext-fallback-blank-control-blocked'));
+});
+
+audit(80, 'ciclo pendiente se actualiza sin duplicarse', () => {
+  const { node, manager, rows } = nodeFixture();
+  node.commitIntextTelemetry('display-render-ended');
+  assert.equal(rows.filter(r => r['gexp-intext-telemetry-event-type'] === 'slot-cycle-final').length, 0);
+  assert.equal(manager.gexp.statsG.rows.length, 1);
+});
+audit(81, 'flush temprano genera un único slot-cycle-final con parent tlm rid', () => {
+  const { node, manager, rows } = nodeFixture();
+  node.ensureIntextCycleTelemetryIdentity();
+  const parent = node.wa.cI.tlm_rid;
+  manager.gexp.statsG.rows.length = 0;
+  node.commitIntextTelemetry('display-render-ended');
+  node.commitIntextTelemetry('display-render-ended');
+  const finals = rows.filter(r => r['gexp-intext-telemetry-event-type'] === 'slot-cycle-final');
+  assert.equal(finals.length, 1);
+  assert.equal(finals[0]['gexp-intext-parent-tlm-rid'], parent);
+  assert.equal(finals[0]['gexp-intext-cycle-finalized-after-early-flush'], 'true');
+});
+audit(82, 'QA fuerza sólo inclusión y conserva random real', () => {
+  const { manager } = managerFixture(['11','2','3','4']);
+  manager.resolveScopedRuleBlock = x => x;
+  manager.intextQaCookieOverride = { enabled:true, random1Value:'5' };
+  manager.getPageCustomTargeting = () => { throw new Error('page targeting forbidden'); };
+  assert.equal(manager.isAllowedByInclusions({ siteConfig:{ inclusions:{ keyValues:{ random1:['5'] } } } }), true);
+  assert.equal(manager.intextRandomSnapshot.random1, '11');
+  assert.deepEqual(manager.getIntextQaCookieTelemetry(true)['gexp-intext-qa-original-random1'], '11');
+});
+audit(83, 'manager-decision distingue oportunidad y placement', () => {
+  const { manager, rows } = managerFixture();
+  manager.registerIntextManagerDecision({ decision:'allowed', reason:'passed', placement:{ result:'no-valid-placement', found:0, created:0 } });
+  const row = rows.at(-1);
+  assert.deepEqual([row['gexp-intext-decision'], row['gexp-intext-placement-result'], row['gexp-intext-placements-created']], ['allowed','no-valid-placement','0']);
+});
+audit(84, 'mismo artículo PNC detectado dos veces produce una decisión', () => {
+  const { manager, rows } = managerFixture();
+  const root = { getAttribute: key => key === 'data-news-id' ? 'same-pnc' : null };
+  manager.registerIntextManagerDecision({ navIndex:3, decision:'allowed', reason:'passed', rootElement:root });
+  manager.registerIntextManagerDecision({ navIndex:3, decision:'allowed', reason:'passed', rootElement:root });
+  assert.equal(rows.filter(r => r['gexp-intext-telemetry-event-type'] === 'manager-decision').length, 1);
+});
 
 test('configuración comercial Intext activa conserva cohort y fallbackBlankControl', () => {
   for (const file of ['configPro/default_ES_mobile.json','configPro/pro/default_ES_mobile.json']) {
