@@ -1589,6 +1589,45 @@ class RandomStrategy extends WindowArray {
             margin-top: 16px;
             margin-bottom: 36px !important;
         }
+        .gexp-intext-pip-player {
+            position: fixed !important;
+            z-index: var(--gexp-intext-pip-z-index, 100000) !important;
+            width: var(--gexp-intext-pip-width, 360px) !important;
+            max-width: var(--gexp-intext-pip-max-width, 90vw) !important;
+            height: auto !important;
+            aspect-ratio: 16 / 9;
+            right: var(--gexp-intext-pip-right, 16px) !important;
+            bottom: var(--gexp-intext-pip-bottom, 16px) !important;
+            left: auto !important;
+            top: auto !important;
+            margin: 0 !important;
+            box-shadow: 0 6px 24px rgba(0, 0, 0, 0.35);
+            background: #000;
+            transform: translateZ(0);
+        }
+        .gexp-intext-slot.gexp-intext-pip-active {
+            overflow: visible !important;
+        }
+        .gexp-intext-pip-close {
+            position: absolute;
+            top: 6px;
+            right: 6px;
+            z-index: 20;
+            width: 28px;
+            height: 28px;
+            border: 0;
+            border-radius: 50%;
+            background: rgba(0, 0, 0, 0.72);
+            color: #fff;
+            cursor: pointer;
+            font-size: 20px;
+            line-height: 28px;
+            text-align: center;
+        }
+        .gexp-intext-pip-close:focus-visible {
+            outline: 2px solid #fff;
+            outline-offset: 2px;
+        }
         .gexp-intext-slot.gexp-intext-layout-wide-standard {
             display: flex;
             align-items: center;
@@ -1846,6 +1885,7 @@ class RandomStrategy extends WindowArray {
         "video_complete",
         "video_skipped",
         "video_timeout",
+        "video_pip_dismissed",
       ]);
 
       const resolveIntextDebugMetricFormat = (metricName, explicitFormat, nodeState) => {
@@ -2090,9 +2130,10 @@ class RandomStrategy extends WindowArray {
             const data = entry.args?.[0] || {};
             const metric = String(data.metric || entry.message.slice(16));
             const key = `${data.slotId || "unknown"}:${data.cycleId ?? "unknown"}:${data.renderToken ?? "unknown"}`;
-            const group = groups[key] ||= { slotId: data.slotId || "unknown", cycleId: data.cycleId ?? null, renderToken: data.renderToken ?? null, navIndex: data.navIndex ?? null, display: {}, video: {}, overall: {}, flags: {}, _times: {}, _data: {} };
+            const group = groups[key] ||= { slotId: data.slotId || "unknown", cycleId: data.cycleId ?? null, renderToken: data.renderToken ?? null, navIndex: data.navIndex ?? null, display: {}, video: {}, overall: {}, flags: {}, _times: {}, _data: {}, _events: {} };
             group._times[metric] ??= entry.timestamp;
             group._data[metric] ??= data;
+            (group._events[metric] ||= []).push({ ...data, timestamp: data.timestamp ?? entry.timestamp });
             const viewPercentage = data.viewabilityPercentage;
             if (viewPercentage != null && Number.isFinite(Number(viewPercentage))) {
               const percentage = Number(viewPercentage);
@@ -2148,6 +2189,33 @@ class RandomStrategy extends WindowArray {
               firstFrameToRevealMs: delta(t, "video_first_frame", "video_player_revealed"),
               startedToCompleteMs: delta(t, "video_ima_started", "video_complete"),
             });
+            const pipEntries = group._events.video_pip_entered || [];
+            const pipReturns = group._events.video_pip_returned_inline || [];
+            const pipDismissals = group._events.video_pip_dismissed || [];
+            const pipReplacements = group._events.video_pip_replaced || [];
+            const pipEnded = group._events.video_pip_video_ended || [];
+            const pipExits = [...pipReturns, ...pipDismissals, ...pipEnded]
+              .sort((a, b) => Number(a.timestamp || 0) - Number(b.timestamp || 0));
+            const firstPipEntry = pipEntries[0] || {};
+            const lastPipExit = pipExits[pipExits.length - 1] || {};
+            const totalFloatingMs = pipExits.reduce(
+              (max, event) => Math.max(max, Number(event.accumulatedPipVisibleMs) || 0),
+              0,
+            );
+            group.video.pip = {
+              enabled: group._data.cycle_started?.pipEnabled === true || pipEntries.length > 0,
+              entered: pipEntries.length > 0,
+              entryCount: pipEntries.length,
+              returnedInlineCount: pipReturns.length,
+              dismissed: pipDismissals.length > 0,
+              replaced: pipReplacements.length > 0,
+              endedWhileActive: pipEnded.length > 0,
+              totalFloatingMs,
+              firstEntryPlayedPct: firstPipEntry.playedPct ?? null,
+              lastExitPlayedPct: lastPipExit.playedPct ?? null,
+              firstEntryIntersectionRatio: firstPipEntry.anchorIntersectionRatio ?? null,
+              lastExitReason: lastPipExit.reason ?? null,
+            };
             const startedData = group._data.video_ima_started || {};
             const firstFrameData = group._data.video_first_frame || {};
             const revealData = group._data.video_player_revealed || {};
@@ -2172,9 +2240,34 @@ class RandomStrategy extends WindowArray {
               fallbackAfterStarted: group.video.fallback ? (group.video.imaStarted && t.video_fallback_started >= t.video_ima_started) : "not-applicable",
               displayRenderedButNeverViewable: group.display.renderEnded ? !group.display.impressionViewable : "not-applicable",
               displayOpenedOutsideViewport: !group.display.opened ? "not-applicable" : (displayOpenViewability.percentage === null ? "unknown" : displayOpenViewability.percentage <= 0),
+              pipEnteredBeforeFirstFrame: pipEntries.some((event) =>
+                t.video_first_frame == null || Number(event.timestamp) < Number(t.video_first_frame)
+              ),
+              pipEnteredBeforeReveal: pipEntries.some((event) =>
+                t.video_player_revealed == null || Number(event.timestamp) < Number(t.video_player_revealed)
+              ),
+              pipEnteredWithPageHidden: pipEntries.some((event) => event.documentVisibility !== "visible"),
+              pipRemainedAfterVideoEnd: pipEnded.some((endedEvent) =>
+                pipEntries.some((entryEvent) => {
+                  const enteredAt = Number(entryEvent.timestamp);
+                  const endedAt = Number(endedEvent.timestamp);
+                  if (enteredAt > endedAt) return false;
+                  return !pipReturns.some((returnEvent) => {
+                    const returnedAt = Number(returnEvent.timestamp);
+                    return returnedAt >= enteredAt && returnedAt <= endedAt;
+                  });
+                })
+              ),
+              multiplePipPlayersDetected: pipEntries.some((event) => event.multiplePipPlayersDetected === true),
+              pipDismissedButReenteredSameToken: pipDismissals.some((dismissedEvent) =>
+                pipEntries.some((entryEvent) =>
+                  Number(entryEvent.timestamp) > Number(dismissedEvent.timestamp)
+                )
+              ),
             });
             delete group._times;
             delete group._data;
+            delete group._events;
           });
           return { totalEntries: intextDebugLogBuffer.entries.length, slotsAndCycles: Object.values(groups) };
         };
@@ -2286,6 +2379,12 @@ class RandomStrategy extends WindowArray {
         "be_page_newsID",
         "gexp-intext-qa-inclusion-forced",
         "gexp-intext-qa-original-random1",
+        "gexp-intext-qa-cookie-enabled",
+        "gexp-intext-qa-cookie-random1",
+        "gexp-intext-qa-cookie-applied",
+        "gexp-intext-qa-cookie-force-exclusions",
+        "gexp-intext-qa-cookie-exclusions-bypassed",
+        "gexp-intext-qa-cookie-exclusions-bypass-source",
         "gexp-intext-placement-result",
         "gexp-intext-placements-found",
         "gexp-intext-placements-created",
@@ -2341,11 +2440,15 @@ class RandomStrategy extends WindowArray {
           this.baseSiteConfig = this.siteConfig ? JSON.parse(JSON.stringify(this.siteConfig)) : null;
           this.intextQaCookieOverride = this.readIntextQaCookieOverride();
           this._intextQaCookieApplied = false;
+          this._intextQaInclusionForced = false;
+          this._intextQaCookieExclusionsBypassed = false;
+          this._intextQaCookieExclusionsBypassSource = null;
           this.intextRandomSnapshot = null;
           this._intextSyntheticEventKeys = new Set();
           this._intextOpportunityDecisionKeys = new Set();
           this._intextContentIdentityByNavIndex = new Map();
           this._intextTelemetrySampled = this.gexp?.statsG?.telp === true;
+          this._activeIntextPipNode = null;
           Object.defineProperty(this, "_intextPageInstanceId", {
             value: this.createIntextTelemetryId("intext-page"),
             writable: false,
@@ -2396,9 +2499,22 @@ class RandomStrategy extends WindowArray {
                     });
                 }
 
-                if (!filter.allowedDomains.some(domain => currentDomain.includes(domain))) {
+                if (
+                  !filter.allowedDomains.some(domain => currentDomain.includes(domain))
+                  && this.intextQaCookieOverride?.enabled !== true
+                ) {
                     logIntext(`🛑 [IntextManager] Ejecución bloqueada. Dominio '${currentDomain}' no permitido.`);                   
                     return;
+                }
+                if (
+                  !filter.allowedDomains.some(domain => currentDomain.includes(domain))
+                  && this.intextQaCookieOverride?.enabled === true
+                ) {
+                  this.markIntextQaCookieApplied();
+                  logIntext(`[IntextManager] intext_qa_cookie_force_allow_applied`, {
+                    key: "domainFilter.allowedDomains",
+                    currentDomain,
+                  });
                 }
             }
           }
@@ -2407,7 +2523,17 @@ class RandomStrategy extends WindowArray {
             window.gexpIntextDebug = true;
           }
 
-          if (!this.gexp.isEnabled()) return;
+          if (!this.gexp.isEnabled()) {
+            if (this.intextQaCookieOverride?.enabled === true) {
+              this.markIntextQaCookieApplied();
+              logIntext(`[IntextManager] intext_qa_cookie_force_allow_applied`, {
+                key: "gexp.isEnabled",
+                originalValue: false,
+              });
+            } else {
+              return;
+            }
+          }
 
           const allowedTypes = this.siteConfig.allowedContentTypes || [];
           if (allowedTypes.length > 0 && !allowedTypes.includes(this.siteContext.contentType)) {
@@ -2416,8 +2542,12 @@ class RandomStrategy extends WindowArray {
           }
 
           if (this.siteConfig?.exclusions?.disableAll === true) {
-            logIntext(`[IntextManager] ❌ BLOCKED by exclusions.disableAll = true`);
-            return;
+            if (this.isIntextQaExclusionsBypassEnabled()) {
+              this.markIntextQaExclusionsBypassApplied("constructor-exclusions.disableAll");
+            } else {
+              logIntext(`[IntextManager] ❌ BLOCKED by exclusions.disableAll = true`);
+              return;
+            }
           }
           const launchIntextPositions = () => {
             googletag.cmd.push(() => {
@@ -2593,6 +2723,23 @@ class RandomStrategy extends WindowArray {
             }
             await new Promise((resolve) => setTimeout(resolve, Math.min(pollMs, waitMs - (Date.now() - startedAt))));
           }
+        }
+
+        requestActiveIntextPip(node) {
+          if (!node) return false;
+          const previousNode = this._activeIntextPipNode;
+          if (previousNode === node) return true;
+          if (previousNode) {
+            previousNode.exitIntextPip?.("replaced-by-another-slot");
+          }
+          this._activeIntextPipNode = node;
+          return true;
+        }
+
+        releaseActiveIntextPip(node) {
+          if (this._activeIntextPipNode !== node) return false;
+          this._activeIntextPipNode = null;
+          return true;
         }
 
         captureIntextContentIdentity(navIndex = 0, rootElement = null, scopedContext = null, resolvedIdentity = null) {
@@ -3084,7 +3231,17 @@ class RandomStrategy extends WindowArray {
         }
 
         readIntextQaCookieOverride() {
-          const disabled = { enabled: false };
+          const disabled = {
+            enabled: false,
+            forceRawValue: null,
+            random1: "none",
+            random1Value: null,
+            random1RawValue: null,
+            defaultForced: false,
+            invalidRandom1Value: null,
+            forceExclusions: false,
+            forceExclusionsRawValue: null,
+          };
 
           try {
             if (typeof document === "undefined" || typeof document.cookie !== "string") return disabled;
@@ -3102,12 +3259,53 @@ class RandomStrategy extends WindowArray {
               }
             });
 
-            const forceValue = String(cookies.gexp_intext_force || "").trim().toLowerCase();
+            const forceRawValue = cookies.gexp_intext_force ?? null;
+            const forceValue = String(forceRawValue || "").trim().toLowerCase();
             const enabled = ["1", "true", "yes"].includes(forceValue);
-            if (!enabled) return disabled;
+            const random1RawValue = cookies.gexp_intext_force_random1 ?? null;
+            const normalizedRandom1 = String(random1RawValue || "").trim().toLowerCase();
+            const validRandom1Values = ["5", "6", "7", "8", "9", "10"];
+            const defaultForced = normalizedRandom1 === "default";
+            const random1Value = validRandom1Values.includes(normalizedRandom1)
+              ? normalizedRandom1
+              : null;
+            const invalidRandom1Value = normalizedRandom1 && !random1Value && !defaultForced
+              ? normalizedRandom1
+              : null;
+            const forceExclusionsRawValue = cookies.gexp_intext_force_exclusions ?? null;
+            const forceExclusionsValue = String(forceExclusionsRawValue || "").trim().toLowerCase();
+            const forceExclusions = enabled && ["1", "true", "yes"].includes(forceExclusionsValue);
+            const override = {
+              enabled,
+              forceRawValue,
+              random1: random1Value || (defaultForced ? "default" : "none"),
+              random1Value,
+              random1RawValue,
+              defaultForced,
+              invalidRandom1Value,
+              forceExclusions,
+              forceExclusionsRawValue,
+            };
 
-            logIntext(`[IntextManager] intext_qa_cookie_inclusion_override_detected`, { enabled: true });
-            return { enabled: true };
+            if (forceRawValue !== null || random1RawValue !== null || forceExclusionsRawValue !== null) {
+              logIntext(`[IntextManager] intext_qa_cookie_override_detected`, {
+                enabled,
+                random1: override.random1,
+                forceExclusions,
+              });
+            }
+            if (invalidRandom1Value) {
+              logIntext(`[IntextManager] intext_qa_cookie_override_invalid`, {
+                cookie: "gexp_intext_force_random1",
+                value: invalidRandom1Value,
+              });
+            }
+            if (forceExclusions) {
+              logIntext(`[IntextManager] intext_qa_cookie_exclusions_bypass_detected`, {
+                disableSlotsBypass: true,
+              });
+            }
+            return override;
           } catch (e) {
             return disabled;
           }
@@ -3285,13 +3483,38 @@ class RandomStrategy extends WindowArray {
           }
         }
 
+        isIntextQaExclusionsBypassEnabled() {
+          return this.intextQaCookieOverride?.enabled === true
+            && this.intextQaCookieOverride?.forceExclusions === true;
+        }
+
+        markIntextQaExclusionsBypassApplied(source = "unknown") {
+          if (!this.isIntextQaExclusionsBypassEnabled()) return;
+          this.markIntextQaCookieApplied();
+          this._intextQaCookieExclusionsBypassed = true;
+          this._intextQaCookieExclusionsBypassSource = String(source || "unknown");
+          logIntext(`[IntextManager] intext_qa_cookie_exclusions_bypass_applied`, {
+            source: this._intextQaCookieExclusionsBypassSource,
+            disableSlotsBypass: true,
+          });
+        }
+
         getIntextQaCookieTelemetry(applied = this._intextQaCookieApplied) {
           const override = this.intextQaCookieOverride || {};
           return {
             "gexp-intext-qa-cookie-enabled": override.enabled ? "true" : "false",
+            "gexp-intext-qa-cookie-random1": String(
+              override.random1Value || (override.defaultForced ? "default" : "none"),
+            ),
             "gexp-intext-qa-cookie-applied": applied ? "true" : "false",
             "gexp-intext-qa-inclusion-forced": this._intextQaInclusionForced === true ? "true" : "false",
             "gexp-intext-qa-original-random1": String(this.getIntextRandomValue("random1") || "unresolved"),
+            "gexp-intext-qa-cookie-force-exclusions": override.forceExclusions ? "true" : "false",
+            "gexp-intext-qa-cookie-exclusions-bypassed":
+              this._intextQaCookieExclusionsBypassed === true ? "true" : "false",
+            "gexp-intext-qa-cookie-exclusions-bypass-source": String(
+              this._intextQaCookieExclusionsBypassSource || "none",
+            ),
           };
         }
 
@@ -3397,6 +3620,36 @@ class RandomStrategy extends WindowArray {
 
         getEffectiveIntextTargetingResolution(key, context = null) {
           const original = this.readIntextLoadingExperimentKeyResolution(key, context);
+          const override = this.intextQaCookieOverride || {};
+          if (String(key) === "random1" && override.enabled === true) {
+            if (override.random1Value) {
+              this.markIntextQaCookieApplied();
+              logIntext(`[IntextManager] intext_qa_cookie_random1_applied`, {
+                value: override.random1Value,
+                originalValue: original.value,
+              });
+              return {
+                value: override.random1Value,
+                source: "qa-cookie",
+                originalValue: original.value,
+                qaCookieApplied: true,
+                qaCookieDefault: false,
+              };
+            }
+            if (override.defaultForced === true) {
+              this.markIntextQaCookieApplied();
+              logIntext(`[IntextManager] intext_qa_cookie_default_applied`, {
+                originalValue: original.value,
+              });
+              return {
+                ...original,
+                source: "qa-cookie-default",
+                originalValue: original.value,
+                qaCookieApplied: true,
+                qaCookieDefault: true,
+              };
+            }
+          }
           return {
             ...original,
             originalValue: original.value,
@@ -3440,6 +3693,8 @@ class RandomStrategy extends WindowArray {
           let experimentResolved = false;
           let fallbackReason = "none";
           const lookupId = this.normalizeIntextLoadingSlotId(slotId);
+          const qaCookieLoadingDefault = keyResolution.qaCookieDefault === true;
+          const qaCookieLoadingApplied = keyResolution.qaCookieApplied === true;
 
           logIntext(`[IntextManager] loading_experiment_config_source_resolved`, {
             slotCode: slotId,
@@ -3451,6 +3706,8 @@ class RandomStrategy extends WindowArray {
 
           if (!experiments) {
             fallbackReason = "experiments-not-found";
+          } else if (qaCookieLoadingDefault) {
+            fallbackReason = "qa-cookie-default";
           } else if (experiments?.enabled !== true) {
             fallbackReason = "experiments-disabled";
           } else if (!keyValue) {
@@ -3515,7 +3772,7 @@ class RandomStrategy extends WindowArray {
           });
 
           loadingConfig._experiment = {
-            enabled: experiments?.enabled === true,
+            enabled: qaCookieLoadingDefault ? false : experiments?.enabled === true,
             resolved: experimentResolved,
             variant: variantName,
             key,
@@ -3523,11 +3780,13 @@ class RandomStrategy extends WindowArray {
             keySource,
             lookupSlot: lookupId,
             fallbackReason,
-            experimentName: experiments?.name || experiments?.experiment || experiments?.id || (experiments?.enabled === true ? "loadingExperiments" : "none"),
+            experimentName: qaCookieLoadingDefault
+              ? "default"
+              : (experiments?.name || experiments?.experiment || experiments?.id || (experiments?.enabled === true ? "loadingExperiments" : "none")),
             configSource: experimentResolution.source,
-            qaCookieEnabled: false,
-            qaCookieApplied: false,
-            qaCookieRandom1: "none",
+            qaCookieEnabled: this.intextQaCookieOverride?.enabled === true,
+            qaCookieApplied: qaCookieLoadingApplied,
+            qaCookieRandom1: this.intextQaCookieOverride?.random1 || "none",
           };
 
           return loadingConfig;
@@ -3745,6 +4004,12 @@ class RandomStrategy extends WindowArray {
         }
 
         isBlockedByExclusions(context = null) {
+          if (this.isIntextQaExclusionsBypassEnabled()) {
+            this.markIntextQaExclusionsBypassApplied(
+              context?.navIndex > 0 ? "navcontinua-exclusions" : "exclusions",
+            );
+            return false;
+          }
           const hostname = this.getHostnameNormalized(context?.hostname || this.siteContext?.site);
           const excl = this.resolveScopedRuleBlock(
             context?.siteConfig?.exclusions || this.siteConfig?.exclusions,
@@ -3959,6 +4224,12 @@ class RandomStrategy extends WindowArray {
         }
         
         isSlotDisabledByExclusion(index, context = null) {
+          if (this.isIntextQaExclusionsBypassEnabled()) {
+            this.markIntextQaExclusionsBypassApplied(
+              context?.navIndex > 0 ? "navcontinua-disableSlots" : "disableSlots",
+            );
+            return false;
+          }
           const siteConfig = context?.siteConfig || this.siteConfig;
           const ds = siteConfig?.exclusions?.disableSlots;
           if (!ds) return false;
@@ -4896,6 +5167,20 @@ class RandomStrategy extends WindowArray {
           this._fallbackBlankControlCountedTokens = new Set();
           this._fallbackBlankControlCountedEvents = new Set();
           this._nodeActive = true;
+          this._intextPipState = "inline";
+          this._intextPipDismissedRenderToken = null;
+          this._intextPipEnteredAt = null;
+          this._intextPipVisibleMs = 0;
+          this._intextPipEntryCount = 0;
+          this._intextPipAnchorEverVisible = false;
+          this._intextPipFirstFrameConfirmed = false;
+          this._intextPipPlayerRevealed = false;
+          this._intextPipCloseButton = null;
+          this._intextPipCloseHandler = null;
+          this._intextPipPlayerElement = null;
+          this._intextPipOriginalInlineStyles = null;
+          this._intextPipLastIntersectionRatio = null;
+          this._intextPipLastExitPlayedPct = null;
           if (window.gexpIntextDebug) {
             intextDebugCollector.attachManager(this.manager);
             intextDebugCollector.recordTimeline("created", { node: this, slotId: this.id });
@@ -4910,6 +5195,421 @@ class RandomStrategy extends WindowArray {
           return this.placement?.placementIndex != null
             ? this.placement.placementIndex
             : this.slotIndex;
+        }
+
+        getIntextPipConfig() {
+          const source = this.config?.video?.pip || {};
+          const number = (value, fallback, min, max) => {
+            const parsed = Number(value);
+            return Number.isFinite(parsed) ? Math.min(max, Math.max(min, parsed)) : fallback;
+          };
+          const enterIntersectionRatio = number(source.enterIntersectionRatio, 0.05, 0, 0.95);
+          let returnIntersectionRatio = number(source.returnIntersectionRatio, 0.35, 0, 1);
+          if (returnIntersectionRatio <= enterIntersectionRatio) {
+            returnIntersectionRatio = Math.min(1, enterIntersectionRatio + 0.05);
+          }
+          const config = {
+            enabled: source.enabled === true,
+            mode: source.mode === "floating" ? source.mode : "floating",
+            enabledDesktop: source.enabledDesktop !== false,
+            enabledMobile: source.enabledMobile === true,
+            position: source.position === "bottom-right" ? source.position : "bottom-right",
+            widthDesktop: number(source.widthDesktop, 360, 160, 960),
+            widthMobile: number(source.widthMobile, 280, 160, 640),
+            maxWidthViewportRatio: number(source.maxWidthViewportRatio, 0.9, 0.25, 1),
+            right: number(source.right, 16, 0, 200),
+            bottom: number(source.bottom, 16, 0, 200),
+            zIndex: number(source.zIndex, 100000, 1, 1000000),
+            enterIntersectionRatio,
+            returnIntersectionRatio,
+            onlyAfterFirstFrame: source.onlyAfterFirstFrame !== false,
+            requireInitialViewport: source.requireInitialViewport !== false,
+            showCloseButton: source.showCloseButton !== false,
+            singleActive: source.singleActive !== false,
+            closeBehavior: source.closeBehavior === "return-inline-and-dismiss-cycle"
+              ? source.closeBehavior
+              : "return-inline-and-dismiss-cycle",
+          };
+          return Object.freeze ? Object.freeze(config) : { ...config };
+        }
+
+        isIntextPipMobileDevice() {
+          try {
+            const dl = (typeof window !== "undefined" && (window.ueDataLayer || window.utag_data)) || {};
+            if (dl.device_category === "mobile" || dl.be_page_site_version === "mobile") return true;
+            if (dl.device_category === "desktop" || dl.be_page_site_version === "desktop") return false;
+            return this.manager?.gexp?.isMobileDevice?.() === true;
+          } catch (e) {
+            return false;
+          }
+        }
+
+        isIntextPipEnabled() {
+          const pip = this.getIntextPipConfig();
+          const isMobile = this.isIntextPipMobileDevice();
+          const renderTokenValid =
+            Number(this._activeRenderToken) > 0 &&
+            this._activeRenderToken === this._renderTokenSeq;
+          return (
+            pip.enabled === true &&
+            pip.mode === "floating" &&
+            (isMobile ? pip.enabledMobile : pip.enabledDesktop) &&
+            this._nodeActive === true &&
+            this.state === "video" &&
+            Boolean(this.videoContainer?.getElement?.()) &&
+            this._intextPipState !== "destroyed" &&
+            renderTokenValid
+          );
+        }
+
+        getIntextPipPlayerElement() {
+          try {
+            const player = this.activeCreative?.player;
+            const playerEl = typeof player?.el === "function" ? player.el() : null;
+            if (playerEl) return playerEl;
+            if (player?.element) return player.element;
+            const videoContainer = this.videoContainer?.getElement?.();
+            const videoJs = videoContainer?.querySelector?.(".video-js");
+            if (videoJs) return videoJs;
+            const video = videoContainer?.querySelector?.("video");
+            return video?.closest?.(".video-js") || null;
+          } catch (e) {
+            return null;
+          }
+        }
+
+        getIntextPipPlaybackData() {
+          const player = this.activeCreative?.player;
+          const media = this.activeCreative?._adMediaEl;
+          const read = (candidate, fallback = null) => {
+            try {
+              const value = typeof candidate === "function" ? candidate() : candidate;
+              const parsed = Number(value);
+              return Number.isFinite(parsed) ? parsed : fallback;
+            } catch (e) {
+              return fallback;
+            }
+          };
+          const currentTime = read(media?.currentTime, read(() => player?.currentTime?.(), 0));
+          const duration = read(
+            media?.duration,
+            read(() => player?.duration?.(), read(this.activeCreative?._lastAdDuration, 0)),
+          );
+          const playedPct = duration > 0
+            ? Math.max(0, Math.min(100, Math.round((currentTime / duration) * 10000) / 100))
+            : null;
+          return { currentTime, duration, playedPct };
+        }
+
+        recordIntextPipEvent(metric, reason = "unknown", extra = {}) {
+          const playback = this.getIntextPipPlaybackData();
+          const payload = {
+            node: this,
+            source: reason,
+            slotId: this.id,
+            slotIndex: this.slotIndex,
+            navIndex: this.navIndex,
+            cycleId: this._intextTelemetryCycleId,
+            renderToken: this._activeRenderToken,
+            reason,
+            pipState: this._intextPipState,
+            currentTime: playback.currentTime,
+            duration: playback.duration,
+            playedPct: playback.playedPct,
+            anchorIntersectionRatio: this._intextPipLastIntersectionRatio,
+            documentVisibility: String(document?.visibilityState || "unknown"),
+            entryCount: this._intextPipEntryCount,
+            accumulatedPipVisibleMs: this._intextPipVisibleMs,
+            ...extra,
+          };
+          if (typeof window !== "undefined" && window.gexpIntextDebug === true) {
+            intextDebugCollector.recordMetric(metric, payload);
+          }
+          return payload;
+        }
+
+        getIntextPipEntryBlockReason() {
+          const pip = this.getIntextPipConfig();
+          if (!this.isIntextPipEnabled()) return "disabled-or-inactive";
+          if (this._intextPipState !== "inline") return `state-${this._intextPipState}`;
+          if (this._intextPipDismissedRenderToken === this._activeRenderToken) return "dismissed-render-token";
+          if (!this.activeCreative || this.activeCreative?._aborted) return "creative-unavailable";
+          if (!this.getIntextPipPlayerElement()) return "player-unavailable";
+          const playback = this.getIntextPipPlaybackData();
+          const media = this.activeCreative?._adMediaEl;
+          let playerEnded = false;
+          try { playerEnded = this.activeCreative?.player?.ended?.() === true; } catch (e) {}
+          if (media?.ended === true || playerEnded || this.activeCreative?._videoEndHandled === true) return "video-ended";
+          if (
+            this.state === "error" ||
+            this._displayRequestInFlight === true ||
+            this._visualState === "fallback_started" ||
+            this._intextTelemetryCycle?.["gexp-intext-video-failed"] === "true"
+          ) return "error-or-fallback";
+          if (pip.onlyAfterFirstFrame && !this._intextPipFirstFrameConfirmed) return "first-frame-pending";
+          if (!this._intextPipPlayerRevealed) return "player-not-revealed";
+          if (pip.requireInitialViewport && !this._intextPipAnchorEverVisible) return "anchor-never-visible";
+          if (typeof document !== "undefined" && document.visibilityState !== "visible") return "document-hidden";
+          if (
+            this._intextPipLastIntersectionRatio === null ||
+            this._intextPipLastIntersectionRatio > pip.enterIntersectionRatio
+          ) return "anchor-still-visible";
+          const loader = this.videoContainer?.getElement?.()?.querySelector?.(".gexp-intext-loader");
+          if (loader) {
+            let loaderVisible = loader.style?.display === "flex" || loader.style?.display === "block";
+            try {
+              if (typeof window.getComputedStyle === "function") {
+                loaderVisible = loaderVisible || window.getComputedStyle(loader)?.display !== "none";
+              }
+            } catch (e) {}
+            if (loaderVisible) return "loader-visible";
+          }
+          if (playback.duration > 0 && playback.currentTime >= playback.duration) return "video-ended";
+          return null;
+        }
+
+        canEnterIntextPip() {
+          const reason = this.getIntextPipEntryBlockReason();
+          if (!reason) return true;
+          const pip = this.getIntextPipConfig();
+          if (
+            pip.enabled &&
+            this._intextPipLastIntersectionRatio !== null &&
+            this._intextPipLastIntersectionRatio <= pip.enterIntersectionRatio
+          ) {
+            this.recordIntextPipEvent("video_pip_entry_blocked", reason);
+          }
+          return false;
+        }
+
+        enterIntextPip(reason = "anchor-left-viewport", intersectionEntry = null) {
+          if (
+            intersectionEntry &&
+            Number.isFinite(Number(intersectionEntry.intersectionRatio))
+          ) {
+            this._intextPipLastIntersectionRatio = Number(intersectionEntry.intersectionRatio);
+          }
+          if (!this.canEnterIntextPip()) return false;
+          const renderToken = this._activeRenderToken;
+          const pip = this.getIntextPipConfig();
+          const playerElement = this.getIntextPipPlayerElement();
+          const videoWrapper = this.videoContainer?.getElement?.();
+          if (!playerElement || !videoWrapper || !this.isActiveRenderToken(renderToken, "enterIntextPip", reason)) {
+            return false;
+          }
+          if (pip.singleActive && this.manager?.requestActiveIntextPip?.(this) === false) return false;
+          if (!this.isActiveRenderToken(renderToken, "enterIntextPip:after-manager", reason)) {
+            this.manager?.releaseActiveIntextPip?.(this);
+            return false;
+          }
+
+          const cssVariables = [
+            "--gexp-intext-pip-width",
+            "--gexp-intext-pip-max-width",
+            "--gexp-intext-pip-right",
+            "--gexp-intext-pip-bottom",
+            "--gexp-intext-pip-z-index",
+          ];
+          const originalVariables = {};
+          cssVariables.forEach((name) => {
+            originalVariables[name] = {
+              value: playerElement.style?.getPropertyValue?.(name) || "",
+              priority: playerElement.style?.getPropertyPriority?.(name) || "",
+            };
+          });
+          const wrapperRect = videoWrapper.getBoundingClientRect?.();
+          const wrapperHeight = Number(wrapperRect?.height) || Number(this.lockedHeight) || 0;
+          const originalMinHeight = videoWrapper.style?.minHeight || "";
+          const explicitHeight = Number.parseFloat(videoWrapper.style?.height || "");
+          const minHeightApplied = wrapperHeight > 0 && !(Number.isFinite(explicitHeight) && explicitHeight > 0);
+          this._intextPipOriginalInlineStyles = {
+            renderToken,
+            playerElement,
+            videoWrapper,
+            originalVariables,
+            originalMinHeight,
+            minHeightApplied,
+          };
+          if (minHeightApplied) videoWrapper.style.minHeight = `${wrapperHeight}px`;
+
+          const configuredWidth = this.isIntextPipMobileDevice() ? pip.widthMobile : pip.widthDesktop;
+          const viewportWidth = Number(window?.innerWidth);
+          const finalWidth = Math.min(
+            configuredWidth,
+            Number.isFinite(viewportWidth) && viewportWidth > 0
+              ? viewportWidth * pip.maxWidthViewportRatio
+              : configuredWidth,
+          );
+          playerElement.style?.setProperty?.("--gexp-intext-pip-width", `${Math.round(finalWidth)}px`);
+          playerElement.style?.setProperty?.("--gexp-intext-pip-max-width", `${pip.maxWidthViewportRatio * 100}vw`);
+          playerElement.style?.setProperty?.("--gexp-intext-pip-right", `${pip.right}px`);
+          playerElement.style?.setProperty?.("--gexp-intext-pip-bottom", `${pip.bottom}px`);
+          playerElement.style?.setProperty?.("--gexp-intext-pip-z-index", String(pip.zIndex));
+          playerElement.classList?.add?.("gexp-intext-pip-player");
+          videoWrapper.classList?.add?.("gexp-intext-pip-active");
+          this._intextPipPlayerElement = playerElement;
+
+          if (pip.showCloseButton && !this._intextPipCloseButton) {
+            const button = document.createElement("button");
+            button.type = "button";
+            button.className = "gexp-intext-pip-close";
+            button.setAttribute("aria-label", "Cerrar reproductor flotante");
+            button.textContent = "×";
+            this._intextPipCloseHandler = (event) => {
+              event.preventDefault();
+              event.stopPropagation();
+              this.dismissIntextPip();
+            };
+            button.addEventListener("click", this._intextPipCloseHandler);
+            playerElement.appendChild(button);
+            this._intextPipCloseButton = button;
+          }
+
+          this._intextPipState = "floating";
+          this._intextPipEnteredAt = Date.now();
+          this._intextPipEntryCount += 1;
+          const playback = this.getIntextPipPlaybackData();
+          this.mergeIntextTelemetry({
+            "gexp-intext-pip-enabled": "true",
+            "gexp-intext-pip-entered": "true",
+            "gexp-intext-pip-entry-count": String(this._intextPipEntryCount),
+            "gexp-intext-pip-entry-played-pct": playback.playedPct === null ? "unknown" : String(playback.playedPct),
+          });
+          let multiplePipPlayersDetected = false;
+          try {
+            multiplePipPlayersDetected =
+              document.querySelectorAll?.(".gexp-intext-pip-player")?.length > 1;
+          } catch (e) {}
+          this.recordIntextPipEvent("video_pip_entered", reason, {
+            multiplePipPlayersDetected,
+          });
+          return true;
+        }
+
+        exitIntextPip(reason = "return-inline") {
+          const wasFloating = this._intextPipState === "floating";
+          const styles = this._intextPipOriginalInlineStyles;
+          if (wasFloating && this._intextPipEnteredAt !== null) {
+            this._intextPipVisibleMs += Math.max(0, Date.now() - this._intextPipEnteredAt);
+          }
+          this._intextPipEnteredAt = null;
+
+          const button = this._intextPipCloseButton;
+          if (button) {
+            try {
+              if (this._intextPipCloseHandler) button.removeEventListener("click", this._intextPipCloseHandler);
+              button.remove?.();
+            } catch (e) {}
+          }
+          this._intextPipCloseButton = null;
+          this._intextPipCloseHandler = null;
+
+          const playerElement = styles?.playerElement || this._intextPipPlayerElement;
+          const videoWrapper = styles?.videoWrapper || this.videoContainer?.getElement?.();
+          playerElement?.classList?.remove?.("gexp-intext-pip-player");
+          videoWrapper?.classList?.remove?.("gexp-intext-pip-active");
+          if (styles?.originalVariables && playerElement?.style) {
+            Object.entries(styles.originalVariables).forEach(([name, original]) => {
+              if (original.value) {
+                playerElement.style.setProperty(name, original.value, original.priority);
+              } else {
+                playerElement.style.removeProperty(name);
+              }
+            });
+          }
+          if (styles?.minHeightApplied && videoWrapper?.style) {
+            videoWrapper.style.minHeight = styles.originalMinHeight;
+          }
+          this._intextPipOriginalInlineStyles = null;
+          this._intextPipPlayerElement = null;
+          this.manager?.releaseActiveIntextPip?.(this);
+
+          if (wasFloating) {
+            const playback = this.getIntextPipPlaybackData();
+            this._intextPipLastExitPlayedPct = playback.playedPct;
+            this.mergeIntextTelemetry({
+              "gexp-intext-pip-visible-ms": String(Math.round(this._intextPipVisibleMs)),
+              "gexp-intext-pip-last-exit-reason": String(reason),
+              "gexp-intext-pip-exit-played-pct": playback.playedPct === null ? "unknown" : String(playback.playedPct),
+            });
+            this._intextPipState = "inline";
+            this.recordIntextPipEvent("video_pip_returned_inline", reason);
+            if (reason === "replaced-by-another-slot") {
+              this.recordIntextPipEvent("video_pip_replaced", reason);
+            }
+          }
+          return wasFloating;
+        }
+
+        dismissIntextPip() {
+          const renderToken = this._activeRenderToken;
+          if (!this.isActiveRenderToken(renderToken, "dismissIntextPip", "user-dismissed")) return false;
+          const wasFloating = this.exitIntextPip("user-dismissed");
+          this._intextPipDismissedRenderToken = renderToken;
+          this._intextPipState = "dismissed";
+          this.mergeIntextTelemetry({ "gexp-intext-pip-dismissed": "true" });
+          this.recordIntextPipEvent("video_pip_dismissed", "user-dismissed");
+          return wasFloating;
+        }
+
+        cleanupIntextPip(reason = "cleanup") {
+          const wasFloating = this._intextPipState === "floating";
+          this.exitIntextPip(reason);
+          if (wasFloating || this._intextPipCloseButton || this._intextPipPlayerElement) {
+            this.recordIntextPipEvent("video_pip_cleanup", reason);
+          }
+          return wasFloating;
+        }
+
+        resetIntextPipForRenderToken(renderToken) {
+          this.cleanupIntextPip("stale-render-token");
+          this._intextPipState = "inline";
+          this._intextPipDismissedRenderToken = null;
+          this._intextPipEnteredAt = null;
+          this._intextPipVisibleMs = 0;
+          this._intextPipEntryCount = 0;
+          this._intextPipAnchorEverVisible = false;
+          this._intextPipFirstFrameConfirmed = false;
+          this._intextPipPlayerRevealed = false;
+          this._intextPipCloseButton = null;
+          this._intextPipCloseHandler = null;
+          this._intextPipPlayerElement = null;
+          this._intextPipOriginalInlineStyles = null;
+          this._intextPipLastIntersectionRatio = null;
+          this._intextPipLastExitPlayedPct = null;
+          return renderToken;
+        }
+
+        maybeEnterIntextPipFromLastIntersection() {
+          const pip = this.getIntextPipConfig();
+          if (
+            this._intextPipLastIntersectionRatio !== null &&
+            this._intextPipLastIntersectionRatio <= pip.enterIntersectionRatio
+          ) {
+            return this.enterIntextPip("eligibility-confirmed-after-viewport-exit");
+          }
+          return false;
+        }
+
+        handleIntextPipIntersection(entry) {
+          if (!entry) return false;
+          if (!this.isIntextPipEnabled()) return false;
+          const ratio = Number(entry.intersectionRatio);
+          this._intextPipLastIntersectionRatio = Number.isFinite(ratio) ? Math.min(1, Math.max(0, ratio)) : 0;
+          const pip = this.getIntextPipConfig();
+          if (entry.isIntersecting === true && this._intextPipLastIntersectionRatio > pip.enterIntersectionRatio) {
+            this._intextPipAnchorEverVisible = true;
+          }
+          if (this._intextPipState === "floating") {
+            if (this._intextPipLastIntersectionRatio >= pip.returnIntersectionRatio) {
+              return this.exitIntextPip("anchor-returned");
+            }
+            return false;
+          }
+          if (this._intextPipLastIntersectionRatio <= pip.enterIntersectionRatio) {
+            return this.enterIntextPip("anchor-left-viewport", entry);
+          }
+          return false;
         }
 
         maybeIncrementFallbackBlankControl(event, context = {}) {
@@ -5030,6 +5730,7 @@ class RandomStrategy extends WindowArray {
           this._displayRequestInFlight = false;
           this._lastVisualCycleId = this._intextTelemetryCycleId;
           this._visualState = source;
+          this.resetIntextPipForRenderToken(this._activeRenderToken);
           this.mergeIntextTelemetry({
             "gexp-intext-render-token": String(this._activeRenderToken),
             "gexp-intext-render-attempt": String(this._renderTokenSeq),
@@ -5061,6 +5762,7 @@ class RandomStrategy extends WindowArray {
         }
 
         invalidateVisualCallbacks(source = "unknown") {
+          this.cleanupIntextPip(source === "reset" ? "reset" : "stale-render-token");
           this._destroyedOrResetToken += 1;
           this._renderTokenSeq += 1;
           this._activeRenderToken = this._renderTokenSeq;
@@ -6302,6 +7004,15 @@ class RandomStrategy extends WindowArray {
               "gexp-intext-video-fast-fallback-reason",
               "gexp-intext-video-before-playback",
               "gexp-intext-video-viewport-exit-played-pct",
+              "gexp-intext-pip-enabled",
+              "gexp-intext-pip-entered",
+              "gexp-intext-pip-entry-count",
+              "gexp-intext-pip-visible-ms",
+              "gexp-intext-pip-dismissed",
+              "gexp-intext-pip-ended-while-active",
+              "gexp-intext-pip-last-exit-reason",
+              "gexp-intext-pip-entry-played-pct",
+              "gexp-intext-pip-exit-played-pct",
               "gexp-intext-sentinel",
               "gexp-intext-sentinel-lineitem",
               "gexp-intext-sentinel-retry-attempt-slot",
@@ -6377,6 +7088,15 @@ class RandomStrategy extends WindowArray {
             "gexp-intext-type",
             "gexp-intext-creative-size",
             "gexp-intext-video-viewport-exit-played-pct",
+            "gexp-intext-pip-enabled",
+            "gexp-intext-pip-entered",
+            "gexp-intext-pip-entry-count",
+            "gexp-intext-pip-visible-ms",
+            "gexp-intext-pip-dismissed",
+            "gexp-intext-pip-ended-while-active",
+            "gexp-intext-pip-last-exit-reason",
+            "gexp-intext-pip-entry-played-pct",
+            "gexp-intext-pip-exit-played-pct",
             "gexp-intext-video-failed",
             "gexp-intext-video-error-code",
             "gexp-intext-video-error-msg",
@@ -6406,7 +7126,13 @@ class RandomStrategy extends WindowArray {
             "gexp-intext-loading-lookup-slot",
             "gexp-intext-loading-fallback-reason",
             "gexp-intext-qa-cookie-enabled",
+            "gexp-intext-qa-cookie-random1",
             "gexp-intext-qa-cookie-applied",
+            "gexp-intext-qa-inclusion-forced",
+            "gexp-intext-qa-original-random1",
+            "gexp-intext-qa-cookie-force-exclusions",
+            "gexp-intext-qa-cookie-exclusions-bypassed",
+            "gexp-intext-qa-cookie-exclusions-bypass-source",
             "gexp-intext-fallback-blank-control-enabled",
             "gexp-intext-fallback-blank-control-threshold",
             "gexp-intext-fallback-blank-control-cookie",
@@ -6567,7 +7293,11 @@ class RandomStrategy extends WindowArray {
           this._intextTelemetryCycleId += 1;
           if (typeof window !== "undefined" && window.gexpIntextDebug === true) {
             this._intextDebugTimings = { cycleStartedAt: null, requestStartedAt: null, imaLoadedAt: null, startedAt: null, firstFrameAt: null, completedAt: null };
-            intextDebugCollector.recordMetric("cycle_started", { node: this, trigger });
+            intextDebugCollector.recordMetric("cycle_started", {
+              node: this,
+              trigger,
+              pipEnabled: this.getIntextPipConfig().enabled === true,
+            });
           }
           this._pendingIntextTelemetry = {};
           this._intextViewportEnterAt = null;
@@ -6606,6 +7336,15 @@ class RandomStrategy extends WindowArray {
             "gexp-intext-fallback": isFallback ? "true" : "false",
             "gexp-intext-ever-in-viewport": "false",
             "gexp-intext-viewport-visible-ms": "0",
+            "gexp-intext-pip-enabled": this.getIntextPipConfig().enabled === true ? "true" : "false",
+            "gexp-intext-pip-entered": "false",
+            "gexp-intext-pip-entry-count": "0",
+            "gexp-intext-pip-visible-ms": "0",
+            "gexp-intext-pip-dismissed": "false",
+            "gexp-intext-pip-ended-while-active": "false",
+            "gexp-intext-pip-last-exit-reason": "none",
+            "gexp-intext-pip-entry-played-pct": "unknown",
+            "gexp-intext-pip-exit-played-pct": "unknown",
             "gexp-intext-render-waited-for-fetch": "false",
             "gexp-intext-render-wait-for-fetch-ms": "0",
             "gexp-intext-pending-auction-used": "false",
@@ -6626,7 +7365,7 @@ class RandomStrategy extends WindowArray {
           const hasTimer = typeof maxDelayMs === "number" && Number.isFinite(maxDelayMs) && maxDelayMs >= 0;
           const loadingExperiment = this.config?.loading?._experiment || {};
           const adjacencyMeta = this.placement?.adjacencyMeta || {};
-          const qaCookieApplied = this.manager?._intextQaInclusionForced === true;
+          const qaCookieApplied = this.manager?._intextQaCookieApplied === true;
           const loadingExperimentValue = loadingExperiment.enabled ? "true" : "false";
           Object.assign(cycle, {
             "gexp-intext-root-margin": String(this.config?.loading?.renderRootMargin || this.config?.loading?.rootMargin || "200px 0px"),
@@ -6817,13 +7556,18 @@ class RandomStrategy extends WindowArray {
 
         setupIntextViewportTelemetryObserver() {
           try {
-            const el = this.getIntextTelemetryElement();
+            const pipEnabled = this.isIntextPipEnabled();
+            const el = pipEnabled
+              ? this.videoContainer?.getElement?.()
+              : this.getIntextTelemetryElement();
             if (!el || typeof IntersectionObserver === "undefined") return;
             if (this._intextViewportObserver && this._intextViewportObservedEl === el) return;
             this.teardownIntextViewportTelemetryObserver();
             this._intextViewportObservedEl = el;
             this.mergeIntextTelemetry(this.getIntextTelemetryElementMeta(el));
+            const observerRenderToken = this._activeRenderToken;
             this._intextViewportObserver = new IntersectionObserver((entries) => {
+              if (observerRenderToken !== this._activeRenderToken || this._nodeActive !== true) return;
               const entry = entries && entries[0];
               if (!entry) return;
               if (window.gexpIntextDebug) {
@@ -6838,6 +7582,7 @@ class RandomStrategy extends WindowArray {
                   isIntersecting: entry.isIntersecting === true,
                 });
               }
+              this.handleIntextPipIntersection(entry);
               if (entry.isIntersecting) {
                 this.mergeIntextTelemetry({ "gexp-intext-ever-in-viewport": "true" });
                 if (!this._intextViewportEnterAt && document.visibilityState === "visible") {
@@ -6852,7 +7597,16 @@ class RandomStrategy extends WindowArray {
                   }
                 }
               }
-            }, { threshold: 0.1 });
+            }, {
+              threshold: pipEnabled
+                ? Array.from(new Set([
+                    0,
+                    this.getIntextPipConfig().enterIntersectionRatio,
+                    this.getIntextPipConfig().returnIntersectionRatio,
+                    1,
+                  ])).sort((a, b) => a - b)
+                : 0.1,
+            });
             this._intextViewportObserver.observe(el);
           } catch (e) {}
         }
@@ -8548,6 +9302,9 @@ class RandomStrategy extends WindowArray {
 
         async showDisplay(displayResult, renderToken = this._activeRenderToken, trigger = "unknown") {
           if (!this.isActiveRenderToken(renderToken, "showDisplay:start", trigger)) return false;
+          if (trigger === "fallback" || this._intextPipState === "floating") {
+            this.cleanupIntextPip(trigger === "fallback" ? "video-fallback" : "container-close");
+          }
           const viewportState = await this.waitForViewport(renderToken, "showDisplay:waitForViewport");
           if (viewportState === "stale" || !this.isActiveRenderToken(renderToken, "showDisplay:afterViewport", trigger)) return false;
 
@@ -9019,7 +9776,6 @@ class RandomStrategy extends WindowArray {
             const loader = containerEl.querySelector(".gexp-intext-loader");
             if (loader) loader.style.display = "none";
 
-            this.activeCreative?.destroy?.();
             const videoErrorRawMessage = String(err?.message || err || "unknown");
             const videoErrorCode =
               videoErrorRawMessage === "video_ad_timeout" || videoErrorRawMessage === "contrib_ads_timeout"
@@ -9030,6 +9786,8 @@ class RandomStrategy extends WindowArray {
                     "unknown",
                   );
             const videoErrorMessage = videoErrorCode === "timeout" ? "video_ad_timeout" : videoErrorRawMessage;
+            this.cleanupIntextPip(videoErrorCode === "timeout" ? "video-timeout" : "video-error");
+            this.activeCreative?.destroy?.();
             this.mergeIntextTelemetry({
               "gexp-intext-load-end-distance-px": this.getIntextDistancePx(),
               "gexp-intext-video-failed": "true",
@@ -9049,6 +9807,16 @@ class RandomStrategy extends WindowArray {
         
         onVideoEnded(renderToken = this._activeRenderToken) {
           if (!this.isActiveRenderToken(renderToken, "onVideoEnded", this.waterfall?.lastTrigger || "unknown")) return;
+          const endedWhilePip = this._intextPipState === "floating";
+          this.exitIntextPip("video-ended");
+          this._intextPipState = "ended";
+          if (endedWhilePip) {
+            this.mergeIntextTelemetry({
+              "gexp-intext-pip-ended-while-active": "true",
+              "gexp-intext-pip-last-exit-reason": "video-ended",
+            });
+            this.recordIntextPipEvent("video_pip_video_ended", "video-ended");
+          }
           logIntext(`[Intext:Video:${this.videoId}] 🔄 Video playback ended`);
 
           const refreshCfg = this.config.refreshCycle;
@@ -9080,6 +9848,7 @@ class RandomStrategy extends WindowArray {
           if (!el) {
              this.trackRenderTimer(setTimeout(() => {
                  if (!this.isActiveRenderToken(renderToken, "video_refresh_missing_el_timer", "refresh")) return;
+                 this.cleanupIntextPip("refresh");
                  this.activeCreative?.destroy?.();
                  this.activeCreative = null;
                  this.waterfall.prebidStarted = false;
@@ -9105,6 +9874,7 @@ class RandomStrategy extends WindowArray {
              logIntext(
                `[Intext:Video:${this.videoId}] 🔄 Visible time reached (${targetIntervalMs}ms) -> Starting refresh cycle ${this._cycleCount}/${refreshCfg.maxCycles} (mode: ${refreshCfg.mode || "display_only"})`,
              );
+             this.cleanupIntextPip("refresh");
              this.activeCreative?.destroy?.();
              this.activeCreative = null;
              this.waterfall.prebidStarted = false;
@@ -9162,6 +9932,7 @@ class RandomStrategy extends WindowArray {
         }
         
         closeAll() {
+          this.cleanupIntextPip("container-close");
           logIntext(
             `[Intext:Slot:${this.id}] ⬜ No fill — keeping space open (blank) to avoid CLS`,
           );
@@ -9213,6 +9984,7 @@ class RandomStrategy extends WindowArray {
         }
 
         handleCreativeError(reason) {
+          this.cleanupIntextPip("video-error");
           this.state = "error";
           this.recordTelemetry("error", { reason });
           this.container.close({ destroy: false });
@@ -9243,6 +10015,8 @@ class RandomStrategy extends WindowArray {
             cycleId: this._intextTelemetryCycleId,
             visualState: this._visualState,
           });
+          this.cleanupIntextPip("node-destroy");
+          this._intextPipState = "destroyed";
           this._nodeActive = false;
           this.invalidateVisualCallbacks("reset");
           this.state = "idle";
@@ -10894,6 +11668,9 @@ class RandomStrategy extends WindowArray {
             this.node.wa.cI["gexp-intext-video-failed"] = "true";
             logIntext(`[Intext:Slot:${this.node.id}] gexp-intext-video-failed=true injected into telemetry`);
           }
+          if (winner === "video") {
+            this.node.cleanupIntextPip?.("video-fallback");
+          }
           const videoErrorTelemetry = winner === "video"
             ? {
                 "gexp-intext-video-failed": "true",
@@ -11212,8 +11989,16 @@ class RandomStrategy extends WindowArray {
           const fallbackVariant = selection.fallback || "instream";
           const slotCode = this.node?.id || this.node?.videoId || "gexp-intext";
 
-          let resolvedValue = this.node?.manager?.getIntextRandomValue?.(selectionKey);
-          let resolvedSource = resolvedValue !== null ? "gexp-slot-random-snapshot" : null;
+          const effectiveResolution = this.node?.manager?.getEffectiveIntextTargetingResolution?.(
+            selectionKey,
+            this.node?.scopedContext || null,
+          );
+          let resolvedValue = effectiveResolution?.qaCookieDefault === true
+            ? null
+            : (effectiveResolution?.value ?? this.node?.manager?.getIntextRandomValue?.(selectionKey));
+          let resolvedSource = effectiveResolution?.qaCookieDefault === true
+            ? "qa-cookie-default"
+            : (effectiveResolution?.source || (resolvedValue !== null ? "gexp-slot-random-snapshot" : null));
           if (resolvedValue === null && !INTEXT_RANDOM_KEYS.includes(String(selectionKey))) {
             const candidateSources = [
               {
@@ -13158,6 +13943,10 @@ class RandomStrategy extends WindowArray {
                 mediaElement: this._adMediaEl,
                 element: el,
               });
+              if (this.isRenderTokenActive(`IntextVideoCreative.revealed:${source}`)) {
+                this.node._intextPipPlayerRevealed = true;
+                this.node.maybeEnterIntextPipFromLastIntersection?.();
+              }
               settle("resolve");
             };
 
@@ -13189,6 +13978,10 @@ class RandomStrategy extends WindowArray {
                 currentTime,
                 mediaElement: this._adMediaEl,
               });
+              if (this.isRenderTokenActive(`IntextVideoCreative.firstFrame:${source}`)) {
+                this.node._intextPipFirstFrameConfirmed = true;
+                this.node.maybeEnterIntextPipFromLastIntersection?.();
+              }
               return true;
             };
 
@@ -13453,6 +14246,7 @@ class RandomStrategy extends WindowArray {
                 imaErrorMessage: errMsg,
               });
               logIntext(`[Intext:Video:IMA] player_adserror - code: ${normalizedErrCode}, msg: ${errMsg}`);
+              this.node?.cleanupIntextPip?.("video-error");
 
               if (!firstFramePlayed) {
                  markFastFallbackVideoError(normalizedErrCode, errMsg, "player_adserror");
@@ -13639,6 +14433,7 @@ class RandomStrategy extends WindowArray {
                         logIntext(
                           `[Intext:Video:IMA:Native] native_ad_error - code=${errCode}, msg=${errMsg}, vast=${err?.getVastErrorCode?.()}`,
                         );
+                        this.node?.cleanupIntextPip?.("video-error");
                         if (!firstFramePlayed) {
                           markFastFallbackVideoError(errCode, errMsg, "native_ad_error");
                           rejectBeforePlayback(

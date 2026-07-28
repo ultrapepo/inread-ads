@@ -1,0 +1,257 @@
+{
+  "reference": "default_ES_mobile.json",
+  "generatedAt": "2026-07-28T11:04:18.9380204+02:00",
+  "pipBaselineProtected": true,
+  "files": [
+    {
+      "file": "configPro/default_ES_desktop.json",
+      "changed": false,
+      "added": [],
+      "updated": [],
+      "preserved": [
+        "domainFilter.allowedDomains sin marca",
+        "inclusions.sites sin marca.com",
+        "configuración desktop y PNC"
+      ],
+      "notApplicable": [
+        "marca.com no pertenece al alcance de esta configuración desktop",
+        "video.pip no existe en la referencia canónica"
+      ],
+      "pip": {
+        "present": false,
+        "enabledByDefault": false,
+        "overridesPreserved": []
+      },
+      "warnings": []
+    },
+    {
+      "file": "configPro/default_ES_mobile.json",
+      "changed": false,
+      "added": [],
+      "updated": [],
+      "preserved": [
+        "referencia canónica",
+        "cohorte random1 5-10",
+        "configuración mobile y PNC"
+      ],
+      "notApplicable": [
+        "no requiere sincronización contra sí misma",
+        "video.pip no está materializado en JSON"
+      ],
+      "pip": {
+        "present": false,
+        "enabledByDefault": false,
+        "overridesPreserved": []
+      },
+      "warnings": []
+    },
+    {
+      "file": "configPro/default_ES_mundo_desktop.json",
+      "changed": false,
+      "added": [],
+      "updated": [],
+      "preserved": [
+        "exclusions.keyValues.isPremium",
+        "aliases Prebid propios",
+        "configuración desktop y PNC"
+      ],
+      "notApplicable": [
+        "aliases Prebid de la referencia son específicos de red",
+        "video.pip no existe en la referencia canónica"
+      ],
+      "pip": {
+        "present": false,
+        "enabledByDefault": false,
+        "overridesPreserved": []
+      },
+      "warnings": []
+    },
+    {
+      "file": "configPro/default_ES_mundo_mobile.json",
+      "changed": false,
+      "added": [],
+      "updated": [],
+      "preserved": [
+        "exclusions.keyValues.isPremium",
+        "aliases Prebid propios",
+        "configuración mobile y PNC"
+      ],
+      "notApplicable": [
+        "aliases Prebid de la referencia son específicos de red",
+        "video.pip no existe en la referencia canónica"
+      ],
+      "pip": {
+        "present": false,
+        "enabledByDefault": false,
+        "overridesPreserved": []
+      },
+      "warnings": []
+    },
+    {
+      "file": "configPro/default_expansion_ES.json",
+      "changed": false,
+      "added": [],
+      "updated": [],
+      "preserved": [
+        "aliases Prebid propios",
+        "configuración Expansion y PNC"
+      ],
+      "notApplicable": [
+        "aliases Prebid de la referencia son específicos de red",
+        "video.pip no existe en la referencia canónica"
+      ],
+      "pip": {
+        "present": false,
+        "enabledByDefault": false,
+        "overridesPreserved": []
+      },
+      "warnings": []
+    },
+    {
+      "file": "configPro/default_LATAM.json",
+      "changed": false,
+      "added": [],
+      "updated": [],
+      "preserved": [
+        "name LATAM",
+        "orden propio de refreshCycle",
+        "configuración LATAM y PNC"
+      ],
+      "notApplicable": [
+        "ext y config_version exclusivos de configuraciones ES",
+        "video.pip no existe en la referencia canónica"
+      ],
+      "pip": {
+        "present": false,
+        "enabledByDefault": false,
+        "overridesPreserved": []
+      },
+      "warnings": []
+    },
+    {
+      "file": "configPro/pro/default_ES_desktop.json",
+      "changed": false,
+      "added": [],
+      "updated": [],
+      "preserved": [
+        "domainFilter.allowedDomains sin marca",
+        "inclusions.sites sin marca.com",
+        "configuración pro desktop y PNC"
+      ],
+      "notApplicable": [
+        "marca.com no pertenece al alcance de esta configuración desktop",
+        "video.pip no existe en la referencia canónica"
+      ],
+      "pip": {
+        "present": false,
+        "enabledByDefault": false,
+        "overridesPreserved": []
+      },
+      "warnings": []
+    },
+    {
+      "file": "configPro/pro/default_ES_mobile.json",
+      "changed": false,
+      "added": [],
+      "updated": [],
+      "preserved": [
+        "réplica pro de la referencia",
+        "cohorte random1 5-10",
+        "configuración pro mobile y PNC"
+      ],
+      "notApplicable": [
+        "no faltan mejoras comunes",
+        "video.pip no está materializado en JSON"
+      ],
+      "pip": {
+        "present": false,
+        "enabledByDefault": false,
+        "overridesPreserved": []
+      },
+      "warnings": []
+    },
+    {
+      "file": "configPro/pro/default_ES_mundo_desktop.json",
+      "changed": false,
+      "added": [],
+      "updated": [],
+      "preserved": [
+        "reloadLineItemIds",
+        "exclusions.keyValues.isPremium",
+        "aliases Prebid y PNC propios"
+      ],
+      "notApplicable": [
+        "aliases Prebid de la referencia son específicos de red",
+        "video.pip no existe en la referencia canónica"
+      ],
+      "pip": {
+        "present": false,
+        "enabledByDefault": false,
+        "overridesPreserved": []
+      },
+      "warnings": []
+    },
+    {
+      "file": "configPro/pro/default_ES_mundo_mobile.json",
+      "changed": false,
+      "added": [],
+      "updated": [],
+      "preserved": [
+        "reloadLineItemIds",
+        "exclusions.keyValues.isPremium",
+        "aliases Prebid y PNC propios"
+      ],
+      "notApplicable": [
+        "aliases Prebid de la referencia son específicos de red",
+        "video.pip no existe en la referencia canónica"
+      ],
+      "pip": {
+        "present": false,
+        "enabledByDefault": false,
+        "overridesPreserved": []
+      },
+      "warnings": []
+    },
+    {
+      "file": "configPro/pro/default_expansion_ES.json",
+      "changed": false,
+      "added": [],
+      "updated": [],
+      "preserved": [
+        "aliases Prebid propios",
+        "configuración pro Expansion y PNC"
+      ],
+      "notApplicable": [
+        "aliases Prebid de la referencia son específicos de red",
+        "video.pip no existe en la referencia canónica"
+      ],
+      "pip": {
+        "present": false,
+        "enabledByDefault": false,
+        "overridesPreserved": []
+      },
+      "warnings": []
+    },
+    {
+      "file": "configPro/pro/default_LATAM.json",
+      "changed": false,
+      "added": [],
+      "updated": [],
+      "preserved": [
+        "name LATAM",
+        "orden propio de refreshCycle",
+        "configuración pro LATAM y PNC"
+      ],
+      "notApplicable": [
+        "ext y config_version exclusivos de configuraciones ES",
+        "video.pip no existe en la referencia canónica"
+      ],
+      "pip": {
+        "present": false,
+        "enabledByDefault": false,
+        "overridesPreserved": []
+      },
+      "warnings": []
+    }
+  ]
+}

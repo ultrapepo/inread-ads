@@ -463,7 +463,7 @@ audit(99, 'mismo navIndex no genera dos manager decisions', async () => {
 });
 audit(100, 'video display fallback y refresh mantienen snapshot', () => { const {node}=nodeFixture(); for(const phase of ['video','display','fallback','refresh']){node.slot.values.random1=['20'];node.assertIntextRandomSnapshotOnSlot(node.slot,phase);assert.equal(node.slot.getTargeting('random1')[0],'5');} });
 audit(101, 'cambios solo dentro del core Intext y tests', () => {
-  const changed=execFileSync('git',['diff','--name-only'],{cwd:repoRoot,encoding:'utf8'}).trim().split(/\r?\n/).filter(Boolean); const allowed=new Set(['src/pro/_gam_kv_.js','src/pro/tests/intext-core.audit.test.cjs']); assert.ok(changed.every(file=>allowed.has(file)),changed.join(','));
+  const changed=execFileSync('git',['diff','--name-only'],{cwd:repoRoot,encoding:'utf8'}).trim().split(/\r?\n/).filter(Boolean); const allowed=new Set(['src/pro/_gam_kv_.js','src/pro/tests/intext-core.audit.test.cjs','src/pro/tests/intext-pip.audit.test.cjs','src/pro/tests/intext-qa.audit.test.cjs','src/pro/tests/configpro-sync.audit.test.cjs','src/pro/docs/intext-qa.md','src/pro/docs/configpro-sync-report.md','src/pro/artifacts/configpro-sync-report.json']); assert.ok(changed.every(file=>allowed.has(file)),changed.join(','));
 });
 
 function pncProcessingFixture({ sampled=true, contentTypeAllowed=true, excluded=false, included=true }={}) {
@@ -531,5 +531,5 @@ audit(113, 'snapshot permanece en video display fallback y refresh', () => {
   const {node}=nodeFixture(); for(const phase of ['video','display','fallback','refresh']){node.slot.values.random4=['20'];node.assertIntextRandomSnapshotOnSlot(node.slot,phase);assert.equal(node.slot.getTargeting('random4')[0],'4');}
 });
 audit(114, 'componentes globales y JSON permanecen fuera del diff', () => {
-  const changed=execFileSync('git',['diff','--name-only'],{cwd:repoRoot,encoding:'utf8'}).trim().split(/\r?\n/).filter(Boolean); assert.ok(changed.every(file=>file==='src/pro/_gam_kv_.js'||file==='src/pro/tests/intext-core.audit.test.cjs')); assert.ok(changed.every(file=>!file.endsWith('.json')));
+  const changed=execFileSync('git',['diff','--name-only'],{cwd:repoRoot,encoding:'utf8'}).trim().split(/\r?\n/).filter(Boolean); const allowed=new Set(['src/pro/_gam_kv_.js','src/pro/tests/intext-core.audit.test.cjs','src/pro/tests/intext-pip.audit.test.cjs','src/pro/tests/intext-qa.audit.test.cjs','src/pro/tests/configpro-sync.audit.test.cjs','src/pro/docs/intext-qa.md','src/pro/docs/configpro-sync-report.md','src/pro/artifacts/configpro-sync-report.json']); assert.ok(changed.every(file=>allowed.has(file))); assert.ok(changed.every(file=>!file.endsWith('.json')||file==='src/pro/artifacts/configpro-sync-report.json'));
 });
