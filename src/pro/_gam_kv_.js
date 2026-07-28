@@ -7501,6 +7501,7 @@ class RandomStrategy extends WindowArray {
             const finalReasons = new Set([
               "display-render-ended",
               "video-rendered",
+              "video-ended",
               "video-error",
               "no-fill",
               "house-1x1-max-attempts",
@@ -9858,6 +9859,10 @@ class RandomStrategy extends WindowArray {
             });
             this.recordIntextPipEvent("video_pip_video_ended", "video-ended");
           }
+          this.flushIntextTelemetryToCI({
+            register: true,
+            reason: "video-ended",
+          });
           logIntext(`[Intext:Video:${this.videoId}] 🔄 Video playback ended`);
 
           const refreshCfg = this.config.refreshCycle;

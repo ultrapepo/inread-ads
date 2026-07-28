@@ -152,11 +152,30 @@ const context = vm.createContext({
   errorIntext() {},
   intextDebugCollector: { attachManager() {}, recordTimeline() {}, recordMetric() {} },
 });
+const telemetryStandardFieldsSource = between(
+  source,
+  'const INTEXT_TELEMETRY_STANDARD_FIELDS',
+  '\n\n      class IntextManager',
+);
 vm.runInContext(`
+  ${telemetryStandardFieldsSource}
   this.IntextManager = ${classSource('IntextManager', 'IntextPlacementEngine')};
   this.IntextNode = ${classSource('IntextNode', 'IntextContainer')};
 `, context);
 const { IntextManager, IntextNode } = context;
+
+const pipTelemetryFields = [
+  'gexp-intext-pip-enabled',
+  'gexp-intext-pip-effective-enabled',
+  'gexp-intext-pip-entered',
+  'gexp-intext-pip-entry-count',
+  'gexp-intext-pip-visible-ms',
+  'gexp-intext-pip-dismissed',
+  'gexp-intext-pip-ended-while-active',
+  'gexp-intext-pip-last-exit-reason',
+  'gexp-intext-pip-entry-played-pct',
+  'gexp-intext-pip-exit-played-pct',
+];
 
 function nodeFixture(pipOverrides = {}, id = 'gexp-intext') {
   const wrapper = elementFixture({ id: `${id}-video`, classes: ['gexp-intext-slot', 'is-open'], height: 360 });
@@ -228,6 +247,69 @@ function nodeFixture(pipOverrides = {}, id = 'gexp-intext') {
   node.mergeIntextTelemetry = (payload) => Object.assign(telemetry, payload);
   node.getIntextTelemetryElementMeta = () => ({});
   return { node, manager, wrapper, playerRoot, video, loader, media, telemetry };
+}
+
+function telemetryFlowFixture({
+  refreshEnabled = false,
+  maxCycles = 3,
+  parentTelemetryId = 'tlm-parent-1',
+} = {}) {
+  const fixture = nodeFixture();
+  const { node, manager } = fixture;
+  const events = [];
+  const order = [];
+  const syntheticKeys = new Set();
+
+  node.mergeIntextTelemetry = IntextNode.prototype.mergeIntextTelemetry;
+  node.config.refreshCycle = {
+    enabled: refreshEnabled,
+    maxCycles,
+    videoIntervalMs: 0,
+    mode: 'display_only',
+  };
+  node.wa = { cI: { tlm_rid: parentTelemetryId } };
+  manager.gexp.statsG = { rows: [node.wa.cI] };
+  manager.getIntextRandomTelemetry = () => ({});
+  manager.gexp.registerImpression = () => {
+    throw new Error('the original telemetry row must not be registered again');
+  };
+  manager.registerIntextSyntheticEvent = (eventType, payload, dedupeKey) => {
+    if (dedupeKey && syntheticKeys.has(dedupeKey)) return false;
+    if (dedupeKey) syntheticKeys.add(dedupeKey);
+    events.push({ eventType, payload, dedupeKey });
+    order.push('slot-cycle-final');
+    return true;
+  };
+  manager.onSlotComplete = () => order.push('slot-complete');
+  node.waterfall = {
+    lastTrigger: 'initial',
+    prebidStarted: true,
+    startAuction(trigger) {
+      order.push(`startAuction:${trigger}`);
+      node.startIntextTelemetryCycle(trigger);
+      order.push(`startIntextTelemetryCycle:${trigger}`);
+    },
+  };
+  node.startIntextTelemetryCycle('initial');
+  node.mergeIntextTelemetry({
+    'gexp-intext-request-type': 'video',
+    'gexp-intext-video': 'true',
+    'gexp-intext-display': 'false',
+  });
+
+  return { ...fixture, events, order };
+}
+
+function commitEarlyAndSendOriginalRow(fixture) {
+  fixture.node.flushIntextTelemetryToCI({
+    register: true,
+    reason: 'video-rendered',
+  });
+  assert.equal(
+    fixture.node.wa.cI['gexp-intext-telemetry-commit-reason'],
+    'video-rendered',
+  );
+  fixture.manager.gexp.statsG.rows.splice(0);
 }
 
 function makeEligible(fixture) {
@@ -464,4 +546,144 @@ test('57-63. PIP off y core display/fallback/refresh/debugger conservan sus ruta
 test('64-65. sintaxis y whitespace son válidos', () => {
   assert.doesNotThrow(() => new vm.Script(source));
   assert.doesNotMatch(source, /^(<<<<<<<|=======|>>>>>>>)/m);
+});
+
+test('66-73. video-ended emite el delta PIP completo antes de iniciar refresh', async () => {
+  const fixture = telemetryFlowFixture({ refreshEnabled: true });
+  commitEarlyAndSendOriginalRow(fixture);
+  makeEligible(fixture);
+  assert.equal(
+    fixture.node.handleIntextPipIntersection({ isIntersecting: false, intersectionRatio: 0 }),
+    true,
+  );
+  fixture.node._intextPipEnteredAt = Date.now() - 1250;
+  fixture.node.videoContainer.getElement = () => null;
+
+  fixture.node.onVideoEnded();
+
+  assert.equal(fixture.events.length, 1);
+  const finalEvent = fixture.events[0];
+  assert.equal(finalEvent.eventType, 'slot-cycle-final');
+  assert.equal(finalEvent.dedupeKey, 'slot-cycle-final:tlm-parent-1');
+  assert.equal(finalEvent.payload['gexp-intext-parent-tlm-rid'], 'tlm-parent-1');
+  assert.equal(finalEvent.payload['gexp-intext-cycle-finalized-after-early-flush'], 'true');
+  assert.equal(finalEvent.payload['gexp-intext-telemetry-commit-reason'], 'video-ended');
+  pipTelemetryFields.forEach((field) => assert.ok(field in finalEvent.payload, field));
+  assert.equal(finalEvent.payload['gexp-intext-pip-entered'], 'true');
+  assert.equal(finalEvent.payload['gexp-intext-pip-entry-count'], '1');
+  assert.ok(Number(finalEvent.payload['gexp-intext-pip-visible-ms']) >= 1250);
+  assert.equal(finalEvent.payload['gexp-intext-pip-dismissed'], 'false');
+  assert.equal(finalEvent.payload['gexp-intext-pip-ended-while-active'], 'true');
+  assert.equal(finalEvent.payload['gexp-intext-pip-last-exit-reason'], 'video-ended');
+  assert.equal(finalEvent.payload['gexp-intext-pip-entry-played-pct'], '40');
+  assert.equal(finalEvent.payload['gexp-intext-pip-exit-played-pct'], '40');
+
+  await new Promise((resolve) => setTimeout(resolve, 10));
+  assert.deepEqual(fixture.order.slice(0, 3), [
+    'slot-cycle-final',
+    'startAuction:refresh',
+    'startIntextTelemetryCycle:refresh',
+  ]);
+  assert.equal(fixture.node._intextTelemetryCycle['gexp-intext-load-trigger'], 'refresh');
+});
+
+test('74-76. la fila original pendiente se actualiza sin evento sintético', () => {
+  const fixture = telemetryFlowFixture({ refreshEnabled: false });
+  fixture.node.flushIntextTelemetryToCI({
+    register: true,
+    reason: 'video-rendered',
+  });
+  const originalRow = fixture.node.wa.cI;
+  makeEligible(fixture);
+  fixture.node.handleIntextPipIntersection({ isIntersecting: false, intersectionRatio: 0 });
+  fixture.node.onVideoEnded();
+
+  assert.equal(fixture.manager.gexp.statsG.rows[0], originalRow);
+  assert.equal(fixture.events.length, 0);
+  assert.equal(originalRow['gexp-intext-pip-ended-while-active'], 'true');
+  assert.equal(originalRow['gexp-intext-pip-last-exit-reason'], 'video-ended');
+});
+
+test('77-80. refresh deshabilitado y cierres posteriores quedan deduplicados', () => {
+  const fixture = telemetryFlowFixture({ refreshEnabled: false });
+  commitEarlyAndSendOriginalRow(fixture);
+  fixture.node.onVideoEnded();
+  fixture.node.flushIntextTelemetryToCI({ register: true, reason: 'close-all' });
+  fixture.node.flushIntextTelemetryToCI({ register: true, reason: 'destroy' });
+
+  assert.equal(fixture.events.length, 1);
+  assert.equal(fixture.events[0].payload['gexp-intext-telemetry-commit-reason'], 'video-ended');
+  assert.equal(fixture.order.includes('slot-complete'), true);
+  assert.equal(fixture.order.some((entry) => entry.startsWith('startAuction:')), false);
+});
+
+test('81-83. maxCycles conserva el delta y cierra después de video-ended', () => {
+  const fixture = telemetryFlowFixture({ refreshEnabled: true, maxCycles: 1 });
+  commitEarlyAndSendOriginalRow(fixture);
+  makeEligible(fixture);
+  fixture.node.handleIntextPipIntersection({ isIntersecting: false, intersectionRatio: 0 });
+  fixture.node.onVideoEnded();
+
+  assert.equal(fixture.events.length, 1);
+  assert.equal(fixture.events[0].payload['gexp-intext-pip-ended-while-active'], 'true');
+  assert.deepEqual(fixture.order.slice(0, 2), ['slot-cycle-final', 'slot-complete']);
+  assert.equal(fixture.order.some((entry) => entry.startsWith('startAuction:')), false);
+});
+
+test('84-86. final sin entrada PIP registra los defaults false/0/none', () => {
+  const fixture = telemetryFlowFixture({ refreshEnabled: false });
+  commitEarlyAndSendOriginalRow(fixture);
+  fixture.node.onVideoEnded();
+
+  const payload = fixture.events[0].payload;
+  assert.equal(payload['gexp-intext-pip-entered'], 'false');
+  assert.equal(payload['gexp-intext-pip-entry-count'], '0');
+  assert.equal(payload['gexp-intext-pip-visible-ms'], '0');
+  assert.equal(payload['gexp-intext-pip-dismissed'], 'false');
+  assert.equal(payload['gexp-intext-pip-ended-while-active'], 'false');
+  assert.equal(payload['gexp-intext-pip-last-exit-reason'], 'none');
+});
+
+test('87-89. dismiss previo conserva dismissed, duración y último motivo', () => {
+  const fixture = telemetryFlowFixture({ refreshEnabled: false });
+  commitEarlyAndSendOriginalRow(fixture);
+  makeEligible(fixture);
+  fixture.node.handleIntextPipIntersection({ isIntersecting: false, intersectionRatio: 0 });
+  fixture.node._intextPipEnteredAt = Date.now() - 800;
+  fixture.node.dismissIntextPip();
+  fixture.node.onVideoEnded();
+
+  const payload = fixture.events[0].payload;
+  assert.equal(payload['gexp-intext-pip-dismissed'], 'true');
+  assert.equal(payload['gexp-intext-pip-ended-while-active'], 'false');
+  assert.equal(payload['gexp-intext-pip-last-exit-reason'], 'user-dismissed');
+  assert.ok(Number(payload['gexp-intext-pip-visible-ms']) >= 800);
+});
+
+test('90-93. retorno inline conserva duración/motivo y PIP no registra impresiones', () => {
+  const fixture = telemetryFlowFixture({ refreshEnabled: false });
+  commitEarlyAndSendOriginalRow(fixture);
+  makeEligible(fixture);
+  fixture.node.handleIntextPipIntersection({ isIntersecting: false, intersectionRatio: 0 });
+  fixture.node._intextPipEnteredAt = Date.now() - 600;
+  fixture.node.exitIntextPip('anchor-returned');
+  fixture.node.onVideoEnded();
+
+  const payload = fixture.events[0].payload;
+  assert.equal(payload['gexp-intext-pip-ended-while-active'], 'false');
+  assert.equal(payload['gexp-intext-pip-last-exit-reason'], 'anchor-returned');
+  assert.ok(Number(payload['gexp-intext-pip-visible-ms']) >= 600);
+  assert.equal(fixture.events.length, 1);
+});
+
+test('94-96. contrato fuente mantiene video-ended, flush y dedupe por parentTelemetryId', () => {
+  const commit = between(source, 'commitIntextTelemetry(reason', 'accumulateIntextViewportVisibleMs()');
+  const onEnded = between(source, 'onVideoEnded(renderToken', 'closeAll()');
+  assert.match(commit, /"video-ended"/);
+  assert.match(commit, /const finalDedupeKey = `slot-cycle-final:\$\{parentTelemetryId\}`/);
+  assert.doesNotMatch(commit, /slot-cycle-final:\$\{parentTelemetryId\}:\$\{reason\}/);
+  assert.ok(
+    onEnded.indexOf('reason: "video-ended"') <
+      onEnded.indexOf('const refreshCfg = this.config.refreshCycle'),
+  );
 });
