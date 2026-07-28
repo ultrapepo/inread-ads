@@ -567,6 +567,12 @@
         "default": {
             "general": {
                 "debug": false,
+                "gam": {
+                    "networkIdMode": "auto",
+                    "networkId": null,
+                    "displayAdUnitPath": null,
+                    "videoAdUnitPath": null
+                },
                 "fallbackBlankControl": {
                     "enabled": true,
                     "counterStorageKey": "gexp_intext_fallback_blank_count",
@@ -746,6 +752,24 @@
                     ],
                     "pip": {
                         "enabled": false,
+                        "slots": {
+                            "default": false,
+                            "gexp-intext": true,
+                            "gexp-intext-2": false,
+                            "gexp-intext-3": false,
+                            "pnc": false
+                        },
+                        "inclusions": {
+                            "enabled": false,
+                            "sites": [],
+                            "keyValues": {}
+                        },
+                        "exclusions": {
+                            "enabled": false,
+                            "disableAll": false,
+                            "sites": [],
+                            "keyValues": {}
+                        },
                         "mode": "floating",
                         "enabledDesktop": true,
                         "enabledMobile": false,

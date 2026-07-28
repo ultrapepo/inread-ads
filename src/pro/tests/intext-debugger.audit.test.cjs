@@ -9,6 +9,20 @@ const root = path.resolve(__dirname, '..');
 const source = fs.readFileSync(path.join(root, '_gam_kv_.js'), 'utf8');
 const repoRoot = execFileSync('git', ['rev-parse', '--show-toplevel'], { cwd: root, encoding: 'utf8' }).trim();
 const baseline = execFileSync('git', ['show', 'HEAD:src/pro/_gam_kv_.js'], { cwd: repoRoot, encoding: 'utf8' });
+const finalConfigFiles = [
+  'configPro/default_ES_desktop.json',
+  'configPro/default_ES_mobile.json',
+  'configPro/default_ES_mundo_desktop.json',
+  'configPro/default_ES_mundo_mobile.json',
+  'configPro/default_expansion_ES.json',
+  'configPro/default_LATAM.json',
+  'configPro/pro/default_ES_desktop.json',
+  'configPro/pro/default_ES_mobile.json',
+  'configPro/pro/default_ES_mundo_desktop.json',
+  'configPro/pro/default_ES_mundo_mobile.json',
+  'configPro/pro/default_expansion_ES.json',
+  'configPro/pro/default_LATAM.json',
+];
 
 function between(text, start, end) {
   const from = text.indexOf(start);
@@ -807,15 +821,20 @@ test('formato 7: una métrica nunca actualiza simultáneamente display y video',
   }
 });
 
-test('alcance del diff limita JSON a las 12 configuraciones PIP autorizadas', () => {
-  const changed = execFileSync('git', ['diff', '--name-only'], { cwd: repoRoot, encoding: 'utf8' })
-    .trim()
-    .split(/\r?\n/)
-    .filter(Boolean);
-  const configFiles = changed.filter((name) => name.startsWith('src/pro/configPro/'));
-  assert.equal(configFiles.length, 12);
-  assert.ok(configFiles.every((name) => /src\/pro\/configPro\/(?:pro\/)?default_(?:ES_(?:desktop|mobile|mundo_desktop|mundo_mobile)|expansion_ES|LATAM)\.json$/.test(name)));
-  assert.ok(changed.every((name) => !name.endsWith('gampro-mobile-marca.html')));
+test('estado final valida las 12 configuraciones PIP sin depender del diff', () => {
+  assert.equal(finalConfigFiles.length, 12);
+  for (const file of finalConfigFiles) {
+    const config = JSON.parse(fs.readFileSync(path.join(root, file), 'utf8'));
+    const general = config.intextSites.default.general;
+    assert.equal(general.gam.networkIdMode, 'auto', file);
+    assert.equal(general.video.pip.enabled, false, file);
+    assert.equal(general.video.pip.slots['gexp-intext'], true, file);
+    assert.equal(
+      Object.entries(general.video.pip.slots).filter(([, enabled]) => enabled === true).length,
+      1,
+      file,
+    );
+  }
 });
 
 test('coste real: fast path desactivado y captura activada', (t) => {

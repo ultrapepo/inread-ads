@@ -158,6 +158,7 @@ const telemetryStandardFieldsSource = between(
   '\n\n      class IntextManager',
 );
 vm.runInContext(`
+  const INTEXT_RANDOM_KEYS = Object.freeze(["random1", "random2", "random3", "random4"]);
   ${telemetryStandardFieldsSource}
   this.IntextManager = ${classSource('IntextManager', 'IntextPlacementEngine')};
   this.IntextNode = ${classSource('IntextNode', 'IntextContainer')};
@@ -230,12 +231,13 @@ function nodeFixture(pipOverrides = {}, id = 'gexp-intext') {
   node._renderTokenSeq = 1;
   node.lockedHeight = 360;
   node._intextTelemetryCycle = {};
-  const media = { currentTime: 12, duration: 30, ended: false };
+  const media = { currentTime: 12, duration: 30, ended: false, paused: false, readyState: 4 };
   const player = {
     el: () => playerRoot,
     currentTime: () => media.currentTime,
     duration: () => media.duration,
     ended: () => media.ended,
+    paused: () => media.paused,
   };
   node.activeCreative = {
     player,
@@ -468,7 +470,15 @@ test('35-39. error, timeout, fallback y destroy limpian clases y referencias', (
 
 test('40-44. manager permite un único PIP y libera sin detener al anterior', () => {
   const first = nodeFixture({}, 'gexp-intext');
-  const second = nodeFixture({}, 'gexp-intext-2');
+  const second = nodeFixture({
+    slots: {
+      default: false,
+      'gexp-intext': true,
+      'gexp-intext-2': true,
+      'gexp-intext-3': false,
+      pnc: false,
+    },
+  }, 'gexp-intext-2');
   second.node.manager = first.manager;
   makeEligible(first);
   makeEligible(second);
@@ -557,7 +567,6 @@ test('66-73. video-ended emite el delta PIP completo antes de iniciar refresh', 
     true,
   );
   fixture.node._intextPipEnteredAt = Date.now() - 1250;
-  fixture.node.videoContainer.getElement = () => null;
 
   fixture.node.onVideoEnded();
 
@@ -578,6 +587,8 @@ test('66-73. video-ended emite el delta PIP completo antes de iniciar refresh', 
   assert.equal(finalEvent.payload['gexp-intext-pip-entry-played-pct'], '40');
   assert.equal(finalEvent.payload['gexp-intext-pip-exit-played-pct'], '40');
 
+  const refreshObserver = lastObserver;
+  refreshObserver.callback([{ isIntersecting: true, intersectionRatio: 1 }]);
   await new Promise((resolve) => setTimeout(resolve, 10));
   assert.deepEqual(fixture.order.slice(0, 3), [
     'slot-cycle-final',
@@ -686,4 +697,214 @@ test('94-96. contrato fuente mantiene video-ended, flush y dedupe por parentTele
     onEnded.indexOf('reason: "video-ended"') <
       onEnded.indexOf('const refreshCfg = this.config.refreshCycle'),
   );
+});
+
+test('97-101. playback pausado/terminado/sin player bloquea y playing permite PIP', () => {
+  const paused = nodeFixture();
+  makeEligible(paused);
+  paused.media.paused = true;
+  paused.node._intextPipLastIntersectionRatio = 0;
+  assert.equal(paused.node.getIntextPipEntryBlockReason(), 'video-not-playing');
+  assert.equal(paused.node.enterIntextPip(), false);
+
+  paused.media.paused = false;
+  paused.node.setIntextPipPlaybackActive(true, 'test-playing');
+  assert.equal(paused.node._intextPipState, 'floating');
+
+  const ended = nodeFixture();
+  makeEligible(ended);
+  ended.media.ended = true;
+  ended.node._intextPipLastIntersectionRatio = 0;
+  assert.equal(ended.node.getIntextPipEntryBlockReason(), 'video-ended');
+
+  const unavailable = nodeFixture();
+  makeEligible(unavailable);
+  unavailable.node.activeCreative = null;
+  unavailable.node._intextPipLastIntersectionRatio = 0;
+  assert.equal(unavailable.node.getIntextPipEntryBlockReason(), 'creative-unavailable');
+});
+
+test('102-105. resume fuera de viewport reevalúa sin debilitar first frame ni reveal', () => {
+  const fixture = nodeFixture();
+  makeEligible(fixture);
+  fixture.media.paused = true;
+  assert.equal(
+    fixture.node.handleIntextPipIntersection({ isIntersecting: false, intersectionRatio: 0 }),
+    false,
+  );
+  fixture.media.paused = false;
+  fixture.node.setIntextPipPlaybackActive(true, 'ima-resumed');
+  assert.equal(fixture.node._intextPipState, 'floating');
+
+  const firstFrame = nodeFixture();
+  firstFrame.node._intextPipPlayerRevealed = true;
+  firstFrame.node._intextPipAnchorEverVisible = true;
+  firstFrame.node._intextPipLastIntersectionRatio = 0;
+  firstFrame.node.setIntextPipPlaybackActive(true, 'test-playing');
+  assert.equal(firstFrame.node._intextPipState, 'inline');
+
+  const reveal = nodeFixture();
+  reveal.node._intextPipFirstFrameConfirmed = true;
+  reveal.node._intextPipAnchorEverVisible = true;
+  reveal.node._intextPipLastIntersectionRatio = 0;
+  reveal.node.setIntextPipPlaybackActive(true, 'test-playing');
+  assert.equal(reveal.node._intextPipState, 'inline');
+});
+
+test('106-109. fallback y loader bloquean nuevas entradas PIP', () => {
+  const fallback = nodeFixture();
+  makeEligible(fallback);
+  fallback.node._visualState = 'fallback_started';
+  fallback.node._intextPipLastIntersectionRatio = 0;
+  assert.equal(fallback.node.getIntextPipEntryBlockReason(), 'error-or-fallback');
+
+  const loader = nodeFixture();
+  makeEligible(loader);
+  loader.loader.style.display = 'flex';
+  loader.node._intextPipLastIntersectionRatio = 0;
+  assert.equal(loader.node.getIntextPipEntryBlockReason(), 'loader-visible');
+});
+
+test('110-117. master y mapa de slots permiten únicamente los slots configurados', () => {
+  assert.equal(nodeFixture({ enabled: false }).node.isIntextPipSlotEnabled(), true);
+  assert.equal(nodeFixture({ enabled: false }).node.isIntextPipEnabled(), false);
+  assert.equal(nodeFixture({}, 'gexp-intext').node.isIntextPipSlotEnabled(), true);
+  assert.equal(nodeFixture({}, 'gexp-intext-2').node.isIntextPipSlotEnabled(), false);
+  assert.equal(nodeFixture({}, 'gexp-intext-3').node.isIntextPipSlotEnabled(), false);
+  assert.equal(nodeFixture({}, 'gexp-intext-pnc-2').node.isIntextPipSlotEnabled(), false);
+  const second = nodeFixture({
+    slots: { default: false, 'gexp-intext': true, 'gexp-intext-2': true, pnc: false },
+  }, 'gexp-intext-2');
+  assert.equal(second.node.isIntextPipSlotEnabled(), true);
+  second.node.state = 'display';
+  assert.equal(second.node.isIntextPipEnabled(), false);
+});
+
+function targetingFixture(pipRules, { hostname = 'www.marca.com', targeting = {} } = {}) {
+  const fixture = nodeFixture(pipRules);
+  fixture.node.scopedContext = { hostname, targeting };
+  fixture.manager.getHostnameNormalized = (value) => String(value || '')
+    .toLowerCase()
+    .replace(/^https?:\/\//, '')
+    .replace(/^www\./, '')
+    .split('/')[0];
+  fixture.manager.getPageCustomTargeting = (contextValue) => contextValue?.targeting || {};
+  fixture.manager.getIntextRandomValue = (key) => (
+    key === 'random1' ? '5' : null
+  );
+  return fixture;
+}
+
+test('118-124. inclusions PIP validan site, KV y ambas dimensiones', () => {
+  assert.equal(targetingFixture({}).node.resolveIntextPipTargetingEligibility().allowed, true);
+  const siteRules = {
+    inclusions: { enabled: true, sites: ['marca.com'], keyValues: {} },
+  };
+  assert.equal(targetingFixture(siteRules).node.resolveIntextPipTargetingEligibility().allowed, true);
+  assert.equal(
+    targetingFixture(siteRules, { hostname: 'elmundo.es' }).node.resolveIntextPipTargetingEligibility().reason,
+    'pip-inclusion-site-not-matched',
+  );
+  const kvRules = {
+    inclusions: { enabled: true, sites: [], keyValues: { ct: ['n', 'o'] } },
+  };
+  assert.equal(
+    targetingFixture(kvRules, { targeting: { ct: 'n' } }).node.resolveIntextPipTargetingEligibility().allowed,
+    true,
+  );
+  assert.equal(
+    targetingFixture(kvRules, { targeting: { ct: 'v' } }).node.resolveIntextPipTargetingEligibility().reason,
+    'pip-inclusion-keyvalue-not-matched',
+  );
+  const combined = {
+    inclusions: { enabled: true, sites: ['marca.com'], keyValues: { ct: ['n'] } },
+  };
+  assert.equal(
+    targetingFixture(combined, { targeting: { ct: 'n' } }).node.resolveIntextPipTargetingEligibility().allowed,
+    true,
+  );
+  assert.equal(
+    targetingFixture(combined, { hostname: 'elmundo.es', targeting: { ct: 'n' } })
+      .node.resolveIntextPipTargetingEligibility().allowed,
+    false,
+  );
+});
+
+test('125-132. exclusions prevalecen y soportan arrays, comas, random y scoped PNC', () => {
+  const site = targetingFixture({
+    exclusions: { enabled: true, disableAll: false, sites: ['marca.com'], keyValues: {} },
+  });
+  assert.equal(site.node.resolveIntextPipTargetingEligibility().reason, 'pip-excluded-site');
+
+  const kv = targetingFixture({
+    exclusions: { enabled: true, disableAll: false, sites: [], keyValues: { section: ['economia'] } },
+  }, { targeting: { section: 'deportes,economia' } });
+  assert.equal(kv.node.resolveIntextPipTargetingEligibility().reason, 'pip-excluded-keyvalue');
+
+  const disabled = targetingFixture({
+    exclusions: { enabled: true, disableAll: true, sites: [], keyValues: {} },
+  });
+  assert.equal(disabled.node.resolveIntextPipTargetingEligibility().reason, 'pip-exclusions-disable-all');
+
+  const precedence = targetingFixture({
+    inclusions: { enabled: true, sites: ['marca.com'], keyValues: {} },
+    exclusions: { enabled: true, disableAll: false, sites: ['marca.com'], keyValues: {} },
+  });
+  assert.equal(precedence.node.resolveIntextPipTargetingEligibility().reason, 'pip-excluded-site');
+
+  const random = targetingFixture({
+    inclusions: { enabled: true, sites: [], keyValues: { random1: ['5', '6'] } },
+  });
+  assert.equal(random.node.resolveIntextPipTargetingEligibility().allowed, true);
+
+  const pnc = targetingFixture({
+    inclusions: { enabled: true, sites: [], keyValues: { ct: ['n'] } },
+  }, { targeting: { ct: ['o', 'n'] } });
+  pnc.node.id = 'gexp-intext-pnc-4';
+  assert.equal(pnc.node.resolveIntextPipTargetingEligibility().allowed, true);
+
+  pnc.manager.intextQaCookieOverride = { enabled: true, forceExclusions: true };
+  pnc.node.config.video.pip.exclusions = {
+    enabled: true,
+    disableAll: true,
+    sites: [],
+    keyValues: {},
+  };
+  assert.equal(pnc.node.resolveIntextPipTargetingEligibility().allowed, false);
+});
+
+test('133-138. refresh exige anchor e IntersectionObserver visible', () => {
+  const missing = telemetryFlowFixture({ refreshEnabled: true });
+  commitEarlyAndSendOriginalRow(missing);
+  missing.node.videoContainer.getElement = () => null;
+  missing.node.onVideoEnded();
+  assert.equal(missing.order.some((entry) => entry.startsWith('startAuction:')), false);
+  assert.equal(missing.node._intextTelemetryCycle['gexp-intext-refresh-blocked'], 'true');
+  assert.equal(
+    missing.node._intextTelemetryCycle['gexp-intext-refresh-blocked-reason'],
+    'refresh-anchor-missing',
+  );
+
+  const outside = telemetryFlowFixture({ refreshEnabled: true });
+  commitEarlyAndSendOriginalRow(outside);
+  outside.node.onVideoEnded();
+  const outsideObserver = lastObserver;
+  outsideObserver.callback([{ isIntersecting: false, intersectionRatio: 0 }]);
+  assert.equal(outside.order.some((entry) => entry.startsWith('startAuction:')), false);
+
+  documentFixture.visibilityState = 'hidden';
+  const hidden = telemetryFlowFixture({ refreshEnabled: true });
+  commitEarlyAndSendOriginalRow(hidden);
+  hidden.node.onVideoEnded();
+  const hiddenObserver = lastObserver;
+  hiddenObserver.callback([{ isIntersecting: true, intersectionRatio: 1 }]);
+  assert.equal(hidden.order.some((entry) => entry.startsWith('startAuction:')), false);
+  documentFixture.visibilityState = 'visible';
+  hiddenObserver.callback([{ isIntersecting: false, intersectionRatio: 0 }]);
+  hiddenObserver.callback([{ isIntersecting: true, intersectionRatio: 1 }]);
+  assert.equal(hidden.order.includes('startAuction:refresh'), true);
+
+  const onEnded = between(source, 'onVideoEnded(renderToken', 'closeAll()');
+  assert.doesNotMatch(onEnded, /video_refresh_missing_el_timer/);
+  assert.doesNotMatch(onEnded, /setTimeout\([\s\S]*startAuction\("refresh"\)/);
 });

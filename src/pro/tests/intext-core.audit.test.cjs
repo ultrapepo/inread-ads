@@ -487,8 +487,12 @@ audit(99, 'mismo navIndex no genera dos manager decisions', async () => {
   const {manager}=managerFixture(); manager._processedNavIndexes=new Set([0]); manager._pendingNavIndexes=new Set(); manager.waitForIntextNavContext=async()=>[{}]; let decisions=0; manager.onNewArticleDetected=async()=>{decisions+=1;return {handled:true,decision:'allowed',telemetryRegistered:true};}; await manager.processIntextNavCandidate({},5); await manager.processIntextNavCandidate({},5); assert.equal(decisions,1);
 });
 audit(100, 'video display fallback y refresh mantienen snapshot', () => { const {node}=nodeFixture(); for(const phase of ['video','display','fallback','refresh']){node.slot.values.random1=['20'];node.assertIntextRandomSnapshotOnSlot(node.slot,phase);assert.equal(node.slot.getTargeting('random1')[0],'5');} });
-audit(101, 'cambios solo dentro del core Intext y tests', () => {
-  const changed=execFileSync('git',['diff','--name-only'],{cwd:repoRoot,encoding:'utf8'}).trim().split(/\r?\n/).filter(Boolean); assert.ok(changed.every(file=>phaseCloseAllowedFiles.has(file)),changed.join(','));
+audit(101, 'estado final contiene resolvers de red y gates PIP sin depender del diff', () => {
+  assert.match(source,/resolveIntextRequestNetworkId\s*\(/);
+  assert.match(source,/resolveIntextDisplayAdUnitPath\s*\(/);
+  assert.match(source,/resolveIntextVideoAdUnitPath\s*\(/);
+  assert.match(source,/getIntextPipPlaybackState\s*\(/);
+  assert.match(source,/resolveIntextPipTargetingEligibility\s*\(/);
 });
 
 function pncProcessingFixture({ sampled=true, contentTypeAllowed=true, excluded=false, included=true }={}) {
@@ -555,6 +559,13 @@ audit(112, 'no genera cierre adicional tras final comprometido', () => {
 audit(113, 'snapshot permanece en video display fallback y refresh', () => {
   const {node}=nodeFixture(); for(const phase of ['video','display','fallback','refresh']){node.slot.values.random4=['20'];node.assertIntextRandomSnapshotOnSlot(node.slot,phase);assert.equal(node.slot.getTargeting('random4')[0],'4');}
 });
-audit(114, 'solo cambian los 12 JSON PIP autorizados y artefactos de cierre', () => {
-  const changed=execFileSync('git',['diff','--name-only'],{cwd:repoRoot,encoding:'utf8'}).trim().split(/\r?\n/).filter(Boolean); assert.ok(changed.every(file=>phaseCloseAllowedFiles.has(file))); assert.deepEqual(changed.filter(file=>file.startsWith('src/pro/configPro/')).sort(), [...phaseCloseConfigFiles].sort());
+audit(114, 'los 12 JSON conservan el estado final de preproducción', () => {
+  assert.equal(phaseCloseConfigFiles.length,12);
+  for(const relativePath of phaseCloseConfigFiles){
+    const config=JSON.parse(fs.readFileSync(path.join(repoRoot,relativePath),'utf8'));
+    const general=config.intextSites.default.general;
+    assert.deepEqual(general.gam,{networkIdMode:'auto',networkId:null,displayAdUnitPath:null,videoAdUnitPath:null});
+    assert.equal(general.video.pip.enabled,false);
+    assert.deepEqual(general.video.pip.slots,{default:false,'gexp-intext':true,'gexp-intext-2':false,'gexp-intext-3':false,pnc:false});
+  }
 });

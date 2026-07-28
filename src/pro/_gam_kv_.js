@@ -2403,8 +2403,29 @@ class RandomStrategy extends WindowArray {
         "gexp-intext-video-failed",
         "gexp-intext-video-error-code",
         "gexp-intext-video-error-message",
+        "gexp-intext-network-id-mode",
+        "gexp-intext-network-id-configured",
+        "gexp-intext-network-id-detected",
+        "gexp-intext-network-id-request",
+        "gexp-intext-network-id-source",
+        "gexp-intext-network-id-forced",
+        "gexp-intext-display-adunit-request",
+        "gexp-intext-video-adunit-request",
+        "gexp-intext-refresh-blocked",
+        "gexp-intext-refresh-blocked-reason",
         "gexp-intext-pip-enabled",
         "gexp-intext-pip-effective-enabled",
+        "gexp-intext-pip-slot-enabled",
+        "gexp-intext-pip-targeting-allowed",
+        "gexp-intext-pip-targeting-reason",
+        "gexp-intext-pip-inclusion-site-matched",
+        "gexp-intext-pip-inclusion-keyvalue-matched",
+        "gexp-intext-pip-exclusion-site-matched",
+        "gexp-intext-pip-exclusion-keyvalue-matched",
+        "gexp-intext-pip-targeting-matched-key",
+        "gexp-intext-pip-targeting-matched-value",
+        "gexp-intext-pip-playback-source",
+        "gexp-intext-pip-video-playing",
         "gexp-intext-pip-entered",
         "gexp-intext-pip-entry-count",
         "gexp-intext-pip-visible-ms",
@@ -2468,7 +2489,14 @@ class RandomStrategy extends WindowArray {
             enumerable: false,
           });
           this.adUnitPath = this.extractStaticAdUnitPath();
-          this.networkId = this.config?.networkId || "99071977";
+          this.detectedAdUnitPath = null;
+          this.detectedNetworkId = null;
+          this.configuredNetworkId = this.normalizeIntextNetworkId(
+            this.siteConfig?.gam?.networkId ?? this.config?.networkId,
+          );
+          this.requestNetworkId = null;
+          this.networkIdResolutionSource = "unresolved";
+          this.networkId = this.resolveIntextRequestNetworkId();
           if (window.gexpIntextDebug) intextDebugCollector.attachManager(this);
           ensureBaseStyles();
 
@@ -2563,7 +2591,7 @@ class RandomStrategy extends WindowArray {
           }
           const launchIntextPositions = () => {
             googletag.cmd.push(() => {
-              this.resolveAdUnit();
+              if (this.resolveAdUnit() === false) return;
               this.siteContext.contentType = this.detectContentType();
               logIntext(`[IntextManager] Detected content type: "${this.siteContext.contentType}"`);
 
@@ -3069,11 +3097,169 @@ class RandomStrategy extends WindowArray {
           if (typeof ueDFPData !== "undefined" && ueDFPData?.adSlots?.[0]?.adUnit) return ueDFPData.adSlots[0].adUnit;
           return this.config?.adUnit || "";
         }
+
+        normalizeIntextNetworkId(value) {
+          const normalized = String(value ?? "").trim();
+          return /^\d{3,20}$/.test(normalized) ? normalized : null;
+        }
+
+        normalizeIntextAdUnitPath(value, networkId = null) {
+          const parts = String(value ?? "").trim().replace(/^\/+|\/+$/g, "").split("/").filter(Boolean);
+          if (networkId && parts[0] === String(networkId)) parts.shift();
+          return parts.join("/");
+        }
+
+        getIntextGamConfig() {
+          return this.siteConfig?.gam || this.baseSiteConfig?.gam || {};
+        }
+
+        recordIntextNetworkDebug(metric, payload = {}) {
+          if (typeof window !== "undefined" && window.gexpIntextDebug === true) {
+            intextDebugCollector.recordMetric(metric, {
+              manager: this,
+              source: payload.source || this.networkIdResolutionSource,
+              ...payload,
+            });
+          }
+        }
+
+        resolveIntextRequestNetworkId(scopedContext = null) {
+          const gamConfig = this.getIntextGamConfig();
+          const mode = gamConfig.networkIdMode === "force" ? "force" : "auto";
+          const configured = this.normalizeIntextNetworkId(gamConfig.networkId);
+          const legacy = this.normalizeIntextNetworkId(this.config?.networkId);
+          const scopedDetected = this.normalizeIntextNetworkId(
+            scopedContext?.detectedNetworkId ?? scopedContext?.networkId,
+          );
+          const pageDetected = this.normalizeIntextNetworkId(this.detectedNetworkId);
+
+          this.configuredNetworkId = configured || legacy || null;
+          let requestNetworkId = null;
+          let source = "unresolved";
+
+          if (mode === "force") {
+            requestNetworkId = configured || legacy;
+            source = configured ? "gam-config-forced" : legacy ? "legacy-config-forced" : "force-invalid";
+            if (scopedDetected && requestNetworkId && scopedDetected !== requestNetworkId) {
+              this.recordIntextNetworkDebug("intext_network_scoped_ignored", {
+                source,
+                scopedNetworkId: scopedDetected,
+                requestNetworkId,
+              });
+            }
+            if (!requestNetworkId) {
+              this.requestNetworkId = null;
+              this.networkId = null;
+              this.networkIdResolutionSource = source;
+              logIntext("[IntextManager] intext_network_force_invalid");
+              this.recordIntextNetworkDebug("intext_network_force_invalid", {
+                source,
+                configuredNetworkId: gamConfig.networkId ?? null,
+                legacyNetworkId: this.config?.networkId ?? null,
+              });
+              this.registerIntextDiagnosticEvent?.({
+                diagnosticKey: "intext-network-force-invalid",
+                "gexp-intext-decision": "blocked",
+                "gexp-intext-decision-reason": "intext-network-force-invalid",
+              });
+              return null;
+            }
+          } else if (scopedDetected) {
+            requestNetworkId = scopedDetected;
+            source = "scoped-gpt-detected";
+          } else if (pageDetected) {
+            requestNetworkId = pageDetected;
+            source = "page-gpt-detected";
+          } else if (configured) {
+            requestNetworkId = configured;
+            source = "gam-config";
+          } else if (legacy) {
+            requestNetworkId = legacy;
+            source = "legacy-config";
+          } else {
+            requestNetworkId = "99071977";
+            source = "default";
+          }
+
+          this.requestNetworkId = requestNetworkId;
+          this.networkId = requestNetworkId;
+          this.networkIdResolutionSource = source;
+          const debugMetric = mode === "force" ? "intext_network_forced" : "intext_network_resolved";
+          this.recordIntextNetworkDebug(debugMetric, {
+            source,
+            mode,
+            configuredNetworkId: this.configuredNetworkId,
+            detectedNetworkId: scopedDetected || pageDetected,
+            requestNetworkId,
+          });
+          logIntext(`[IntextManager] ${debugMetric}`, {
+            mode,
+            source,
+            configuredNetworkId: this.configuredNetworkId,
+            detectedNetworkId: scopedDetected || pageDetected,
+            requestNetworkId,
+          });
+          return requestNetworkId;
+        }
+
+        getIntextNetworkTelemetry(scopedContext = null) {
+          const mode = this.getIntextGamConfig().networkIdMode === "force" ? "force" : "auto";
+          const scopedDetected = this.normalizeIntextNetworkId(
+            scopedContext?.detectedNetworkId ?? scopedContext?.networkId,
+          );
+          return {
+            "gexp-intext-network-id-mode": mode,
+            "gexp-intext-network-id-configured": String(this.configuredNetworkId || "none"),
+            "gexp-intext-network-id-detected": String(scopedDetected || this.detectedNetworkId || "none"),
+            "gexp-intext-network-id-request": String(this.requestNetworkId || "none"),
+            "gexp-intext-network-id-source": String(this.networkIdResolutionSource || "unresolved"),
+            "gexp-intext-network-id-forced": mode === "force" ? "true" : "false",
+          };
+        }
+
+        getIntextNetworkOverride(networkId = this.requestNetworkId) {
+          if (!networkId) return null;
+          return this.baseSiteConfig?.networks?.[networkId] || this.siteConfig?.networks?.[networkId] || null;
+        }
+
+        resolveIntextDisplayAdUnitPath(scopedContext = null) {
+          const requestNetworkId = this.resolveIntextRequestNetworkId(scopedContext);
+          if (!requestNetworkId) return null;
+          const gamConfig = this.getIntextGamConfig();
+          const networkOverride = this.getIntextNetworkOverride(requestNetworkId);
+          const resolved =
+            this.normalizeIntextAdUnitPath(gamConfig.displayAdUnitPath, requestNetworkId) ||
+            this.normalizeIntextAdUnitPath(networkOverride?.display?.adUnitPath, requestNetworkId) ||
+            this.normalizeIntextAdUnitPath(
+              scopedContext?.detectedAdUnitPath ?? scopedContext?.adUnitPath,
+              requestNetworkId,
+            ) ||
+            this.normalizeIntextAdUnitPath(this.detectedAdUnitPath, requestNetworkId) ||
+            this.normalizeIntextAdUnitPath(this.adUnitPath, requestNetworkId) ||
+            this.normalizeIntextAdUnitPath(this.siteConfig?.display?.adUnitPath, requestNetworkId);
+          return resolved || null;
+        }
+
+        resolveIntextVideoAdUnitPath(scopedContext = null) {
+          const requestNetworkId = this.resolveIntextRequestNetworkId(scopedContext);
+          if (!requestNetworkId) return null;
+          const gamConfig = this.getIntextGamConfig();
+          const networkOverride = this.getIntextNetworkOverride(requestNetworkId);
+          const configured =
+            this.normalizeIntextAdUnitPath(gamConfig.videoAdUnitPath, requestNetworkId) ||
+            this.normalizeIntextAdUnitPath(networkOverride?.video?.adUnitPath, requestNetworkId);
+          if (configured) return configured;
+          const displayPath = this.resolveIntextDisplayAdUnitPath(scopedContext);
+          if (!displayPath) return null;
+          const parts = displayPath.split("/").filter(Boolean);
+          if (parts.length) parts[parts.length - 1] = "video-intext";
+          return parts.join("/") || null;
+        }
         
         resolveAdUnit() {
           let source = "config_fallback";
           let resolvedPath = this.adUnitPath;
-          let resolvedNetworkId = this.networkId;
+          let resolvedNetworkId = null;
 
           try {
             const slots = googletag.pubads().getSlots();
@@ -3157,8 +3343,16 @@ class RandomStrategy extends WindowArray {
               source = "config_display_fallback";
           }
 
-          this.adUnitPath = resolvedPath;
-          this.networkId = resolvedNetworkId;
+          this.detectedAdUnitPath = this.normalizeIntextAdUnitPath(resolvedPath, resolvedNetworkId);
+          this.detectedNetworkId = this.normalizeIntextNetworkId(resolvedNetworkId);
+          const requestNetworkId = this.resolveIntextRequestNetworkId();
+          if (!requestNetworkId) return false;
+          this.adUnitPath =
+            this.resolveIntextDisplayAdUnitPath() ||
+            this.detectedAdUnitPath ||
+            this.normalizeIntextAdUnitPath(this.siteConfig?.display?.adUnitPath, requestNetworkId) ||
+            "";
+          this.networkId = requestNetworkId;
 
           const KNOWN_NETWORKS = {
             "99071977": "Unidad Editorial",
@@ -3169,11 +3363,13 @@ class RandomStrategy extends WindowArray {
           logIntext(`[IntextManager] AdUnit resolved: ${this.adUnitPath} (source: ${source})`);
           logIntext(`[IntextManager] Network: ${networkName} (${this.networkId})`);
 
-          const networkOverrides = this.siteConfig?.networks?.[this.networkId];
+          const networkOverrides = this.getIntextNetworkOverride(this.requestNetworkId);
           if (networkOverrides) {
             this.siteConfig = IntextManager.deepMerge(this.siteConfig, networkOverrides);
             logIntext(`[IntextManager] Applied network overrides for ${networkName} (${this.networkId})`);
           }
+          this.adUnitPath = this.resolveIntextDisplayAdUnitPath() || this.adUnitPath;
+          return true;
         }
 
         getSiteContext() {
@@ -3956,14 +4152,14 @@ class RandomStrategy extends WindowArray {
             scopedSlots[0] ||
             null;
 
-          let networkId = this.networkId;
-          let adUnitPath = this.adUnitPath;
+          let detectedNetworkId = null;
+          let detectedAdUnitPath = null;
           if (referenceSlot?.getAdUnitPath) {
             const fullPath = referenceSlot.getAdUnitPath();
             const parts = String(fullPath || "").replace(/^\//, "").split("/");
             if (parts.length >= 2) {
-              networkId = parts[0] || networkId;
-              adUnitPath = parts.slice(1).join("/").replace(/\bp_/g, "") || adUnitPath;
+              detectedNetworkId = this.normalizeIntextNetworkId(parts[0]);
+              detectedAdUnitPath = parts.slice(1).join("/").replace(/\bp_/g, "") || null;
             }
           }
 
@@ -3985,20 +4181,22 @@ class RandomStrategy extends WindowArray {
           );
 
           const scopedContext = {
-            networkId,
-            adUnitPath,
+            detectedNetworkId,
+            detectedAdUnitPath,
             targeting: { ...(slotTargeting || {}), ...(pageTargeting || {}) },
             contentType,
             pageUrl,
             hostname,
           };
+          scopedContext.networkId = this.resolveIntextRequestNetworkId(scopedContext);
+          scopedContext.adUnitPath = this.resolveIntextDisplayAdUnitPath(scopedContext);
 
           logIntext(
             `[IntextManager:NavContinua] navcontinua_scoped_context_resolved - slots=${scopedSlots.length}, hostname=${hostname}, contentType=${contentType}, pageUrl=${pageUrl}`,
             scopedContext,
           );
           logIntext(
-            `[IntextManager:NavContinua] navcontinua_scoped_adunit_resolved - networkId=${networkId}, adUnitPath=${adUnitPath || "missing"}, source_slot=${referenceSlot?.getSlotElementId?.() || "fallback"}`,
+            `[IntextManager:NavContinua] navcontinua_scoped_adunit_resolved - networkId=${scopedContext.networkId || "missing"}, adUnitPath=${scopedContext.adUnitPath || "missing"}, source_slot=${referenceSlot?.getSlotElementId?.() || "fallback"}`,
           );
 
           return scopedContext;
@@ -4585,6 +4783,9 @@ class RandomStrategy extends WindowArray {
           }
 
           const scopedContext = this.resolveScopedAdContext(mainElement);
+          if (!scopedContext?.networkId) {
+            return { handled: true, decision: "network-force-invalid", telemetryRegistered: false };
+          }
           const resolvedIdentity = await this.resolveScopedIntextNewsIdentity(mainElement, navIndex, scopedContext);
           const contentIdentity = this.captureIntextContentIdentity(navIndex, mainElement, scopedContext, resolvedIdentity);
           const contentType = scopedContext.contentType || this.detectContentType(mainElement);
@@ -5193,6 +5394,8 @@ class RandomStrategy extends WindowArray {
           this._intextPipOriginalInlineStyles = null;
           this._intextPipLastIntersectionRatio = null;
           this._intextPipLastExitPlayedPct = null;
+          this._intextPipPlaybackActive = false;
+          this._intextPipPlaybackSource = "unresolved";
           if (window.gexpIntextDebug) {
             intextDebugCollector.attachManager(this.manager);
             intextDebugCollector.recordTimeline("created", { node: this, slotId: this.id });
@@ -5211,6 +5414,17 @@ class RandomStrategy extends WindowArray {
 
         getIntextPipConfig() {
           const source = this.config?.video?.pip || {};
+          const sourceSlots = source.slots && typeof source.slots === "object" && !Array.isArray(source.slots)
+            ? source.slots
+            : {};
+          const slots = Object.freeze ? Object.freeze({
+            default: sourceSlots.default === true,
+            "gexp-intext": sourceSlots["gexp-intext"] !== false,
+            "gexp-intext-2": sourceSlots["gexp-intext-2"] === true,
+            "gexp-intext-3": sourceSlots["gexp-intext-3"] === true,
+            pnc: sourceSlots.pnc === true,
+            ...sourceSlots,
+          }) : { ...sourceSlots };
           const number = (value, fallback, min, max) => {
             const parsed = Number(value);
             return Number.isFinite(parsed) ? Math.min(max, Math.max(min, parsed)) : fallback;
@@ -5222,6 +5436,13 @@ class RandomStrategy extends WindowArray {
           }
           const config = {
             enabled: source.enabled === true,
+            slots,
+            inclusions: source.inclusions && typeof source.inclusions === "object"
+              ? source.inclusions
+              : { enabled: false, sites: [], keyValues: {} },
+            exclusions: source.exclusions && typeof source.exclusions === "object"
+              ? source.exclusions
+              : { enabled: false, disableAll: false, sites: [], keyValues: {} },
             mode: source.mode === "floating" ? source.mode : "floating",
             enabledDesktop: source.enabledDesktop !== false,
             enabledMobile: source.enabledMobile === true,
@@ -5245,6 +5466,22 @@ class RandomStrategy extends WindowArray {
           return Object.freeze ? Object.freeze(config) : { ...config };
         }
 
+        getIntextPipBaseSlotId() {
+          const id = String(this.id || "").replace(/-video$/, "");
+          if (/^gexp-intext-pnc-\d+$/.test(id) || id === "pnc") return "pnc";
+          const match = id.match(/^(gexp-intext(?:-\d+)?)/);
+          return match ? match[1] : id;
+        }
+
+        isIntextPipSlotEnabled() {
+          const pip = this.getIntextPipConfig();
+          const slotId = this.getIntextPipBaseSlotId();
+          if (Object.prototype.hasOwnProperty.call(pip.slots || {}, slotId)) {
+            return pip.slots[slotId] === true;
+          }
+          return pip.slots?.default === true;
+        }
+
         isIntextPipMobileDevice() {
           try {
             const dl = (typeof window !== "undefined" && (window.ueDataLayer || window.utag_data)) || {};
@@ -5264,6 +5501,7 @@ class RandomStrategy extends WindowArray {
             this._activeRenderToken === this._renderTokenSeq;
           return (
             pip.enabled === true &&
+            this.isIntextPipSlotEnabled() &&
             pip.mode === "floating" &&
             (isMobile ? pip.enabledMobile : pip.enabledDesktop) &&
             this._nodeActive === true &&
@@ -5317,6 +5555,230 @@ class RandomStrategy extends WindowArray {
           return { currentTime, duration, playedPct };
         }
 
+        getIntextPipPlaybackState() {
+          const creative = this.activeCreative;
+          const player = creative?.player || null;
+          const media = creative?._adMediaEl || null;
+          const readNumber = (candidate, fallback = 0) => {
+            try {
+              const raw = typeof candidate === "function" ? candidate() : candidate;
+              const parsed = Number(raw);
+              return Number.isFinite(parsed) ? parsed : fallback;
+            } catch (e) {
+              return fallback;
+            }
+          };
+          const readBoolean = (candidate) => {
+            try {
+              const raw = typeof candidate === "function" ? candidate() : candidate;
+              return typeof raw === "boolean" ? raw : null;
+            } catch (e) {
+              return null;
+            }
+          };
+          const currentTime = readNumber(media?.currentTime, readNumber(() => player?.currentTime?.(), 0));
+          const duration = readNumber(
+            media?.duration,
+            readNumber(() => player?.duration?.(), readNumber(creative?._lastAdDuration, 0)),
+          );
+          const mediaEnded = readBoolean(media?.ended);
+          const mediaPaused = readBoolean(media?.paused);
+          const playerEnded = readBoolean(() => player?.ended?.());
+          const playerPaused = readBoolean(() => player?.paused?.());
+          let ended = mediaEnded ?? playerEnded ?? creative?._videoEndHandled === true;
+          let paused = mediaPaused ?? playerPaused;
+          let source = media ? "ima-media-element" : player ? "videojs-player" : "canonical";
+          if (paused === null) {
+            paused = this._intextPipPlaybackActive !== true;
+            source = "canonical";
+          }
+          if (ended === null) ended = creative?._videoEndHandled === true;
+          const playing =
+            Boolean(creative) &&
+            Boolean(player || media) &&
+            ended !== true &&
+            paused === false &&
+            (currentTime > 0 || this._intextPipPlaybackActive === true);
+          const readyState = readNumber(media?.readyState, readNumber(() => player?.readyState?.(), 0));
+          return {
+            hasCreative: Boolean(creative),
+            hasPlayer: Boolean(player),
+            hasMediaElement: Boolean(media),
+            currentTime,
+            duration,
+            ended: ended === true,
+            paused: paused === true,
+            playing,
+            readyState,
+            source,
+          };
+        }
+
+        setIntextPipPlaybackActive(active, source = "canonical") {
+          this._intextPipPlaybackActive = active === true;
+          this._intextPipPlaybackSource = String(source || "canonical");
+          this.mergeIntextTelemetry({
+            "gexp-intext-pip-playback-source": this._intextPipPlaybackSource,
+            "gexp-intext-pip-video-playing": this._intextPipPlaybackActive ? "true" : "false",
+          });
+          if (this._intextPipPlaybackActive) this.maybeEnterIntextPipFromLastIntersection();
+        }
+
+        getIntextPipTargetingContext() {
+          const scopedContext = this.scopedContext || null;
+          const site = this.manager?.getHostnameNormalized?.(
+            scopedContext?.hostname || this.manager?.siteContext?.site || window?.location?.hostname || "",
+          ) || "";
+          const targeting = {
+            ...(this.manager?.getPageCustomTargeting?.(scopedContext) || {}),
+            ...(scopedContext?.targeting || {}),
+          };
+          INTEXT_RANDOM_KEYS.forEach((key) => {
+            const value = this.manager?.getIntextRandomValue?.(key);
+            if (value !== null && value !== undefined && value !== "") targeting[key] = String(value);
+          });
+          return { site, targeting, scopedContext };
+        }
+
+        normalizeIntextPipRuleValues(value) {
+          const values = Array.isArray(value) ? value : [value];
+          return values
+            .flatMap((entry) => String(entry ?? "").split(","))
+            .map((entry) => entry.trim())
+            .filter(Boolean);
+        }
+
+        isIntextPipSiteMatched(site, configuredSites) {
+          const normalizedSite = this.manager?.getHostnameNormalized?.(site) || String(site || "").toLowerCase();
+          return this.normalizeIntextPipRuleValues(configuredSites).some((candidate) => {
+            const normalizedCandidate =
+              this.manager?.getHostnameNormalized?.(candidate) || String(candidate || "").toLowerCase();
+            return normalizedSite === normalizedCandidate || normalizedSite.endsWith(`.${normalizedCandidate}`);
+          });
+        }
+
+        findIntextPipKeyValueMatch(rules, targeting) {
+          if (!rules || typeof rules !== "object" || Array.isArray(rules)) return null;
+          for (const [key, configuredValues] of Object.entries(rules)) {
+            const allowedValues = this.normalizeIntextPipRuleValues(configuredValues);
+            if (!allowedValues.length) continue;
+            const pageValues = this.normalizeIntextPipRuleValues(targeting?.[key]);
+            const matchedValue = allowedValues.find((value) => pageValues.includes(String(value)));
+            if (matchedValue !== undefined) return { key: String(key), value: String(matchedValue) };
+          }
+          return null;
+        }
+
+        isIntextPipAllowedByInclusions(context = this.getIntextPipTargetingContext()) {
+          const rules = this.getIntextPipConfig().inclusions || {};
+          if (rules.enabled !== true) {
+            return { allowed: true, reason: "allowed", siteMatched: false, keyValueMatched: false, match: null };
+          }
+          const sites = this.normalizeIntextPipRuleValues(rules.sites);
+          const hasSites = sites.length > 0;
+          const siteMatched = !hasSites || this.isIntextPipSiteMatched(context.site, sites);
+          if (!siteMatched) {
+            return {
+              allowed: false,
+              reason: "pip-inclusion-site-not-matched",
+              siteMatched: false,
+              keyValueMatched: false,
+              match: null,
+            };
+          }
+          const hasKeyValues =
+            rules.keyValues && typeof rules.keyValues === "object" && Object.keys(rules.keyValues).length > 0;
+          const match = hasKeyValues ? this.findIntextPipKeyValueMatch(rules.keyValues, context.targeting) : null;
+          if (hasKeyValues && !match) {
+            return {
+              allowed: false,
+              reason: "pip-inclusion-keyvalue-not-matched",
+              siteMatched,
+              keyValueMatched: false,
+              match: null,
+            };
+          }
+          return {
+            allowed: true,
+            reason: "allowed",
+            siteMatched,
+            keyValueMatched: Boolean(match),
+            match,
+          };
+        }
+
+        isIntextPipBlockedByExclusions(context = this.getIntextPipTargetingContext()) {
+          const rules = this.getIntextPipConfig().exclusions || {};
+          if (rules.enabled !== true) {
+            return { blocked: false, reason: "allowed", siteMatched: false, keyValueMatched: false, match: null };
+          }
+          if (rules.disableAll === true) {
+            return {
+              blocked: true,
+              reason: "pip-exclusions-disable-all",
+              siteMatched: false,
+              keyValueMatched: false,
+              match: null,
+            };
+          }
+          const sites = this.normalizeIntextPipRuleValues(rules.sites);
+          const siteMatched = sites.length > 0 && this.isIntextPipSiteMatched(context.site, sites);
+          if (siteMatched) {
+            return {
+              blocked: true,
+              reason: "pip-excluded-site",
+              siteMatched: true,
+              keyValueMatched: false,
+              match: null,
+            };
+          }
+          const match = this.findIntextPipKeyValueMatch(rules.keyValues, context.targeting);
+          if (match) {
+            return {
+              blocked: true,
+              reason: "pip-excluded-keyvalue",
+              siteMatched: false,
+              keyValueMatched: true,
+              match,
+            };
+          }
+          return { blocked: false, reason: "allowed", siteMatched: false, keyValueMatched: false, match: null };
+        }
+
+        resolveIntextPipTargetingEligibility() {
+          const context = this.getIntextPipTargetingContext();
+          const inclusion = this.isIntextPipAllowedByInclusions(context);
+          const exclusion = this.isIntextPipBlockedByExclusions(context);
+          const allowed = inclusion.allowed === true && exclusion.blocked !== true;
+          const reason = exclusion.blocked ? exclusion.reason : inclusion.reason;
+          const match = exclusion.match || inclusion.match;
+          const result = {
+            allowed,
+            reason,
+            site: context.site,
+            inclusionSiteMatched: inclusion.siteMatched,
+            inclusionKeyValueMatched: inclusion.keyValueMatched,
+            exclusionSiteMatched: exclusion.siteMatched,
+            exclusionKeyValueMatched: exclusion.keyValueMatched,
+            matchedKey: match?.key || "none",
+            matchedValue: match?.value || "none",
+          };
+          this.mergeIntextTelemetry({
+            "gexp-intext-pip-slot-enabled": this.isIntextPipSlotEnabled() ? "true" : "false",
+            "gexp-intext-pip-targeting-allowed": allowed ? "true" : "false",
+            "gexp-intext-pip-targeting-reason": String(reason),
+            "gexp-intext-pip-inclusion-site-matched": inclusion.siteMatched ? "true" : "false",
+            "gexp-intext-pip-inclusion-keyvalue-matched": inclusion.keyValueMatched ? "true" : "false",
+            "gexp-intext-pip-exclusion-site-matched": exclusion.siteMatched ? "true" : "false",
+            "gexp-intext-pip-exclusion-keyvalue-matched": exclusion.keyValueMatched ? "true" : "false",
+            "gexp-intext-pip-targeting-matched-key": result.matchedKey,
+            "gexp-intext-pip-targeting-matched-value": result.matchedValue,
+          });
+          this.recordIntextPipEvent("video_pip_targeting_evaluated", reason, result);
+          if (!allowed) this.recordIntextPipEvent("video_pip_targeting_blocked", reason, result);
+          return result;
+        }
+
         recordIntextPipEvent(metric, reason = "unknown", extra = {}) {
           const playback = this.getIntextPipPlaybackData();
           const payload = {
@@ -5346,16 +5808,20 @@ class RandomStrategy extends WindowArray {
 
         getIntextPipEntryBlockReason() {
           const pip = this.getIntextPipConfig();
+          if (pip.enabled === true && !this.isIntextPipSlotEnabled()) return "pip-slot-disabled";
           if (!this.isIntextPipEnabled()) return "disabled-or-inactive";
           if (this._intextPipState !== "inline") return `state-${this._intextPipState}`;
           if (this._intextPipDismissedRenderToken === this._activeRenderToken) return "dismissed-render-token";
+          const targetingEligibility = this.resolveIntextPipTargetingEligibility();
+          if (!targetingEligibility.allowed) return targetingEligibility.reason;
           if (!this.activeCreative || this.activeCreative?._aborted) return "creative-unavailable";
           if (!this.getIntextPipPlayerElement()) return "player-unavailable";
-          const playback = this.getIntextPipPlaybackData();
-          const media = this.activeCreative?._adMediaEl;
-          let playerEnded = false;
-          try { playerEnded = this.activeCreative?.player?.ended?.() === true; } catch (e) {}
-          if (media?.ended === true || playerEnded || this.activeCreative?._videoEndHandled === true) return "video-ended";
+          const playback = this.getIntextPipPlaybackState();
+          this.mergeIntextTelemetry({
+            "gexp-intext-pip-playback-source": playback.source,
+            "gexp-intext-pip-video-playing": playback.playing ? "true" : "false",
+          });
+          if (playback.ended || this.activeCreative?._videoEndHandled === true) return "video-ended";
           if (
             this.state === "error" ||
             this._displayRequestInFlight === true ||
@@ -5364,6 +5830,7 @@ class RandomStrategy extends WindowArray {
           ) return "error-or-fallback";
           if (pip.onlyAfterFirstFrame && !this._intextPipFirstFrameConfirmed) return "first-frame-pending";
           if (!this._intextPipPlayerRevealed) return "player-not-revealed";
+          if (!playback.playing || playback.paused) return "video-not-playing";
           if (pip.requireInitialViewport && !this._intextPipAnchorEverVisible) return "anchor-never-visible";
           if (typeof document !== "undefined" && document.visibilityState !== "visible") return "document-hidden";
           if (
@@ -5394,6 +5861,9 @@ class RandomStrategy extends WindowArray {
             this._intextPipLastIntersectionRatio <= pip.enterIntersectionRatio
           ) {
             this.recordIntextPipEvent("video_pip_entry_blocked", reason);
+            if (reason === "video-not-playing") {
+              this.recordIntextPipEvent("video_pip_entry_blocked_video_not_playing", reason);
+            }
           }
           return false;
         }
@@ -5593,6 +6063,8 @@ class RandomStrategy extends WindowArray {
           this._intextPipOriginalInlineStyles = null;
           this._intextPipLastIntersectionRatio = null;
           this._intextPipLastExitPlayedPct = null;
+          this._intextPipPlaybackActive = false;
+          this._intextPipPlaybackSource = "render-reset";
           return renderToken;
         }
 
@@ -7030,6 +7502,17 @@ class RandomStrategy extends WindowArray {
               "gexp-intext-video-viewport-exit-played-pct",
               "gexp-intext-pip-enabled",
               "gexp-intext-pip-effective-enabled",
+              "gexp-intext-pip-slot-enabled",
+              "gexp-intext-pip-targeting-allowed",
+              "gexp-intext-pip-targeting-reason",
+              "gexp-intext-pip-inclusion-site-matched",
+              "gexp-intext-pip-inclusion-keyvalue-matched",
+              "gexp-intext-pip-exclusion-site-matched",
+              "gexp-intext-pip-exclusion-keyvalue-matched",
+              "gexp-intext-pip-targeting-matched-key",
+              "gexp-intext-pip-targeting-matched-value",
+              "gexp-intext-pip-playback-source",
+              "gexp-intext-pip-video-playing",
               "gexp-intext-pip-entered",
               "gexp-intext-pip-entry-count",
               "gexp-intext-pip-visible-ms",
@@ -7115,6 +7598,17 @@ class RandomStrategy extends WindowArray {
             "gexp-intext-video-viewport-exit-played-pct",
             "gexp-intext-pip-enabled",
             "gexp-intext-pip-effective-enabled",
+            "gexp-intext-pip-slot-enabled",
+            "gexp-intext-pip-targeting-allowed",
+            "gexp-intext-pip-targeting-reason",
+            "gexp-intext-pip-inclusion-site-matched",
+            "gexp-intext-pip-inclusion-keyvalue-matched",
+            "gexp-intext-pip-exclusion-site-matched",
+            "gexp-intext-pip-exclusion-keyvalue-matched",
+            "gexp-intext-pip-targeting-matched-key",
+            "gexp-intext-pip-targeting-matched-value",
+            "gexp-intext-pip-playback-source",
+            "gexp-intext-pip-video-playing",
             "gexp-intext-pip-entered",
             "gexp-intext-pip-entry-count",
             "gexp-intext-pip-visible-ms",
@@ -7123,6 +7617,16 @@ class RandomStrategy extends WindowArray {
             "gexp-intext-pip-last-exit-reason",
             "gexp-intext-pip-entry-played-pct",
             "gexp-intext-pip-exit-played-pct",
+            "gexp-intext-network-id-mode",
+            "gexp-intext-network-id-configured",
+            "gexp-intext-network-id-detected",
+            "gexp-intext-network-id-request",
+            "gexp-intext-network-id-source",
+            "gexp-intext-network-id-forced",
+            "gexp-intext-display-adunit-request",
+            "gexp-intext-video-adunit-request",
+            "gexp-intext-refresh-blocked",
+            "gexp-intext-refresh-blocked-reason",
             "gexp-intext-video-failed",
             "gexp-intext-video-error-code",
             "gexp-intext-video-error-msg",
@@ -7361,10 +7865,24 @@ class RandomStrategy extends WindowArray {
             "gexp-intext-refresh": isRefresh ? "true" : "false",
             "gexp-intext-is-fallback": isFallback ? "true" : "false",
             "gexp-intext-fallback": isFallback ? "true" : "false",
+            "gexp-intext-refresh-blocked": "false",
+            "gexp-intext-refresh-blocked-reason": "none",
             "gexp-intext-ever-in-viewport": "false",
             "gexp-intext-viewport-visible-ms": "0",
+            ...this.manager?.getIntextNetworkTelemetry?.(this.scopedContext),
             "gexp-intext-pip-enabled": this.getIntextPipConfig().enabled === true ? "true" : "false",
             "gexp-intext-pip-effective-enabled": this.isIntextPipEffectiveEnabled() ? "true" : "false",
+            "gexp-intext-pip-slot-enabled": this.isIntextPipSlotEnabled() ? "true" : "false",
+            "gexp-intext-pip-targeting-allowed": "true",
+            "gexp-intext-pip-targeting-reason": "allowed",
+            "gexp-intext-pip-inclusion-site-matched": "false",
+            "gexp-intext-pip-inclusion-keyvalue-matched": "false",
+            "gexp-intext-pip-exclusion-site-matched": "false",
+            "gexp-intext-pip-exclusion-keyvalue-matched": "false",
+            "gexp-intext-pip-targeting-matched-key": "none",
+            "gexp-intext-pip-targeting-matched-value": "none",
+            "gexp-intext-pip-playback-source": String(this._intextPipPlaybackSource || "unresolved"),
+            "gexp-intext-pip-video-playing": this._intextPipPlaybackActive ? "true" : "false",
             "gexp-intext-pip-entered": "false",
             "gexp-intext-pip-entry-count": "0",
             "gexp-intext-pip-visible-ms": "0",
@@ -7446,6 +7964,12 @@ class RandomStrategy extends WindowArray {
           }
 
           this._intextTelemetryCycle = cycle;
+          const playbackState = this.getIntextPipPlaybackState();
+          this.mergeIntextTelemetry({
+            "gexp-intext-pip-playback-source": playbackState.source,
+            "gexp-intext-pip-video-playing": playbackState.playing ? "true" : "false",
+          });
+          this.resolveIntextPipTargetingEligibility();
           this.mergeIntextTelemetry(extra);
           this.setupIntextViewportTelemetryObserver();
           this.flushIntextTelemetryToCI();
@@ -7537,7 +8061,18 @@ class RandomStrategy extends WindowArray {
                 "gexp-intext-video-error-message", "gexp-intext-ad-rendered-logical",
                 "gexp-intext-ad-filled-logical", "gexp-intext-gam-line-item-type",
                 "gexp-intext-gam-event-size", "gexp-intext-render-layout", "adFilled",
+                "gexp-intext-network-id-mode", "gexp-intext-network-id-configured",
+                "gexp-intext-network-id-detected", "gexp-intext-network-id-request",
+                "gexp-intext-network-id-source", "gexp-intext-network-id-forced",
+                "gexp-intext-display-adunit-request", "gexp-intext-video-adunit-request",
+                "gexp-intext-refresh-blocked", "gexp-intext-refresh-blocked-reason",
                 "gexp-intext-pip-enabled", "gexp-intext-pip-effective-enabled",
+                "gexp-intext-pip-slot-enabled", "gexp-intext-pip-targeting-allowed",
+                "gexp-intext-pip-targeting-reason", "gexp-intext-pip-inclusion-site-matched",
+                "gexp-intext-pip-inclusion-keyvalue-matched", "gexp-intext-pip-exclusion-site-matched",
+                "gexp-intext-pip-exclusion-keyvalue-matched", "gexp-intext-pip-targeting-matched-key",
+                "gexp-intext-pip-targeting-matched-value", "gexp-intext-pip-playback-source",
+                "gexp-intext-pip-video-playing",
                 "gexp-intext-pip-entered", "gexp-intext-pip-entry-count",
                 "gexp-intext-pip-visible-ms", "gexp-intext-pip-dismissed",
                 "gexp-intext-pip-ended-while-active", "gexp-intext-pip-last-exit-reason",
@@ -8847,11 +9382,20 @@ class RandomStrategy extends WindowArray {
             this._displayRequestInFlight = true;
             this._visualState = "asking_display";
             this.mergeIntextTelemetry({ "gexp-intext-visual-state": this._visualState });
-            const adUnitPath =
-              this.scopedContext?.adUnitPath || this.manager.adUnitPath || this.manager.gexp.cfg.adUnit || "";
+            const networkId = this.manager.resolveIntextRequestNetworkId(this.scopedContext);
+            const adUnitPath = this.manager.resolveIntextDisplayAdUnitPath(this.scopedContext);
             let sizes = this.config.display?.sizes || [[300, 250], [336, 280], [320, 100], [320, 50]];
 
-            const networkId = this.scopedContext?.networkId || this.manager.networkId;
+            this.mergeIntextTelemetry({
+              ...this.manager.getIntextNetworkTelemetry(this.scopedContext),
+              "gexp-intext-display-adunit-request": String(adUnitPath || "none"),
+            });
+            if (!networkId || !adUnitPath) {
+              logIntext(`[Intext:Display:${this.id}] intext_network_force_invalid - display request blocked`);
+              this._displayRequestInFlight = false;
+              resolve({ filled: false, event: null, networkBlocked: true });
+              return;
+            }
             const fullAdUnit = `/${networkId}/${adUnitPath}`;
 
             logIntext(
@@ -9892,15 +10436,19 @@ class RandomStrategy extends WindowArray {
 
           const el = this.videoContainer.getElement();
           if (!el) {
-             this.trackRenderTimer(setTimeout(() => {
-                 if (!this.isActiveRenderToken(renderToken, "video_refresh_missing_el_timer", "refresh")) return;
-                 this.cleanupIntextPip("refresh");
-                 this.activeCreative?.destroy?.();
-                 this.activeCreative = null;
-                 this.waterfall.prebidStarted = false;
-                 this.waterfall.startAuction("refresh");
-             }, targetIntervalMs));
-             return;
+            this.mergeIntextTelemetry({
+              "gexp-intext-refresh-blocked": "true",
+              "gexp-intext-refresh-blocked-reason": "refresh-anchor-missing",
+            });
+            this.flushIntextTelemetryToCI();
+            logIntext(`[Intext:Video:${this.videoId}] refresh-anchor-missing`);
+            this.teardownIntextViewportTelemetryObserver();
+            this.cleanupIntextPip("refresh-anchor-missing");
+            this.activeCreative?.destroy?.();
+            this.activeCreative = null;
+            this.videoContainer.close({ destroy: true });
+            this.manager.onSlotComplete(this.id);
+            return;
           }
 
           if (this._videoVisibilityTimer) {
@@ -9952,7 +10500,7 @@ class RandomStrategy extends WindowArray {
               observer = new IntersectionObserver((entries) => {
                   const entry = entries[0];
                   const wasVisible = isCurrentlyVisible;
-                  isCurrentlyVisible = entry.isIntersecting;
+                  isCurrentlyVisible = entry?.isIntersecting === true;
                   
                   if (isCurrentlyVisible && !wasVisible && document.visibilityState === 'visible') {
                       lastVisibleTimestamp = Date.now();
@@ -9964,7 +10512,18 @@ class RandomStrategy extends WindowArray {
               }, { threshold: 0.1 });
               observer.observe(el);
           } else {
-              isCurrentlyVisible = true;
+              this.mergeIntextTelemetry({
+                "gexp-intext-refresh-blocked": "true",
+                "gexp-intext-refresh-blocked-reason": "refresh-visibility-unavailable",
+              });
+              this.flushIntextTelemetryToCI();
+              logIntext(`[Intext:Video:${this.videoId}] refresh-visibility-unavailable`);
+              this.cleanupIntextPip("refresh-visibility-unavailable");
+              this.activeCreative?.destroy?.();
+              this.activeCreative = null;
+              this.videoContainer.close({ destroy: true });
+              this.manager.onSlotComplete(this.id);
+              return;
           }
 
           checkInterval = setInterval(updateAccumulator, 500);
@@ -10453,12 +11012,13 @@ class RandomStrategy extends WindowArray {
             let adUnit = this.wa?.cI?.adUnit || null;
             if (!adUnit) {
               const adUnitPath =
-                this.node?.scopedContext?.adUnitPath ||
-                this.node?.manager?.adUnitPath ||
+                this.node?.manager?.resolveIntextDisplayAdUnitPath?.(this.node?.scopedContext) ||
                 this.gexp?.cfg?.adUnit ||
                 "";
               const parts = String(adUnitPath).replace(/^\/+/, "").split("/").filter(Boolean);
-              if (parts[0] === String(this.node?.scopedContext?.networkId || this.node?.manager?.networkId || "")) {
+              const requestNetworkId =
+                this.node?.manager?.resolveIntextRequestNetworkId?.(this.node?.scopedContext);
+              if (parts[0] === String(requestNetworkId || "")) {
                 parts.shift();
               }
               adUnit = parts[0] || null;
@@ -11921,6 +12481,7 @@ class RandomStrategy extends WindowArray {
 
           if (!this.node.isActiveRenderToken(renderToken, "_requestVideo:after_tam", requestTrigger)) return false;
           const gamVideoTagUrl = this.buildGAMVideoTagUrl();
+          if (!gamVideoTagUrl) return false;
           logIntext(
             `[Intext:Slot:${this.node.id}] ├─ GAM Video: building player...`,
           );
@@ -12002,9 +12563,9 @@ class RandomStrategy extends WindowArray {
           const slotId = this.node.videoId;
           const slotName = this.getVideoAdUnitPath();
           const playerSize = videoConfig.playerSize || [640, 360];
-          const networkId = this.node.scopedContext?.networkId || this.node.manager.networkId;
+          const networkId = this.node.manager.resolveIntextRequestNetworkId(this.node.scopedContext);
 
-          if (!slotId || !slotName) return null;
+          if (!slotId || !slotName || !networkId) return null;
 
           return {
             slots: [
@@ -12318,15 +12879,10 @@ class RandomStrategy extends WindowArray {
         }
 
         getIntextPrebidAdSlotContext(adUnitCode, adUnitPathOverride = null) {
-          const networkId =
-            this.node.scopedContext?.networkId ||
-            this.node.manager.networkId ||
-            this.gexp.cfg.networkId ||
-            "99071977";
+          const networkId = this.node.manager.resolveIntextRequestNetworkId(this.node.scopedContext);
           const adUnitPath =
             adUnitPathOverride ||
-            this.node.scopedContext?.adUnitPath ||
-            this.node.manager.adUnitPath ||
+            this.node.manager.resolveIntextDisplayAdUnitPath(this.node.scopedContext) ||
             "";
           const fullAdUnitPath = networkId && adUnitPath ? `/${networkId}/${adUnitPath}` : "";
 
@@ -12474,7 +13030,8 @@ class RandomStrategy extends WindowArray {
           const mediaTypes = {};
           let allBids = [];
           let videoMediaType = null;
-          const networkId = this.node.scopedContext?.networkId || this.node.manager.networkId;
+          const networkId = this.node.manager.resolveIntextRequestNetworkId(this.node.scopedContext);
+          if (!networkId) return null;
           const prebidNetworks = this.config.prebid?.networks || {};
           const targetNetwork = prebidNetworks[networkId] || prebidNetworks.default || {};
           const slotProfile = this.resolvePrebidSlotProfile(targetNetwork, code);
@@ -12615,13 +13172,13 @@ class RandomStrategy extends WindowArray {
         getTAMConfiguration() {
           if (this.config.tam?.enabled === false) return null;
           const slotId = this.node.id;
-          const slotName = this.node.scopedContext?.adUnitPath || this.node.manager.adUnitPath || "";
+          const slotName = this.node.manager.resolveIntextDisplayAdUnitPath(this.node.scopedContext) || "";
           const sizes = this.getDisplaySizes().filter(
             (s) => s !== "fluid" && s[0] > 1,
           );
-          const networkId = this.node.scopedContext?.networkId || this.node.manager.networkId;
+          const networkId = this.node.manager.resolveIntextRequestNetworkId(this.node.scopedContext);
 
-          if (!slotId || !slotName || !sizes.length) return null;
+          if (!slotId || !slotName || !sizes.length || !networkId) return null;
 
           return {
             slots: [
@@ -12718,8 +13275,16 @@ class RandomStrategy extends WindowArray {
 
         buildGAMVideoTagUrl() {
           this.node?.manager?.validateIntextRandomSnapshotStability?.("immediately-before-video-request");
-          const networkId = this.node.scopedContext?.networkId || this.node.manager.networkId;
+          const networkId = this.node.manager.resolveIntextRequestNetworkId(this.node.scopedContext);
           const adUnitPath = this.getVideoAdUnitPath();
+          this.node.mergeIntextTelemetry({
+            ...this.node.manager.getIntextNetworkTelemetry(this.node.scopedContext),
+            "gexp-intext-video-adunit-request": String(adUnitPath || "none"),
+          });
+          if (!networkId || !adUnitPath) {
+            logIntext(`[Intext:Waterfall:${this.node.id}] intext_network_force_invalid - video request blocked`);
+            return null;
+          }
           const videoId = this.node.videoId;
           const pageUrl = this.node.scopedContext?.pageUrl || window.location.href;
           const resolvedVideoConfig = this.resolveIntextVideoConfig() || {};
@@ -12927,12 +13492,7 @@ class RandomStrategy extends WindowArray {
         }
 
         getVideoAdUnitPath() {
-          const basePath = this.node.scopedContext?.adUnitPath || this.node.manager.adUnitPath || "";
-          const parts = basePath.split("/");
-          if (parts.length > 0) {
-            parts[parts.length - 1] = "video-intext";
-          }
-          return parts.join("/");
+          return this.node.manager.resolveIntextVideoAdUnitPath(this.node.scopedContext) || "";
         }
 
         registerPrebidAdUnit(configuration) {
@@ -12966,7 +13526,8 @@ class RandomStrategy extends WindowArray {
           if (this._aliasesRegistered) return;
           this._aliasesRegistered = true;
 
-          const networkId = this.node.scopedContext?.networkId || this.node.manager.networkId || this.gexp.cfg.networkId;
+          const networkId = this.node.manager.resolveIntextRequestNetworkId(this.node.scopedContext);
+          if (!networkId) return;
           const prebidNetworks = this.config.prebid?.networks || {};
           const targetNetwork = prebidNetworks[networkId] || prebidNetworks.default || {};
           const aliases = targetNetwork.aliases;
@@ -13740,6 +14301,7 @@ class RandomStrategy extends WindowArray {
           });
 
           this.player.on("error", () => {
+            this.node?.setIntextPipPlaybackActive?.(false, "videojs-error");
             const err = this.player.error();
             if (err && err.code === 4) {
               logIntext(
@@ -13755,6 +14317,7 @@ class RandomStrategy extends WindowArray {
         attachPlayerEvents() {
           if (!this.player) return;
           this.player.on("adend", () => {
+            this.node?.setIntextPipPlaybackActive?.(false, "videojs-adend");
             logIntext(
               `[Intext:VideoPlayer:${this.playerId}] Ad playback ended`,
             );
@@ -14073,11 +14636,13 @@ class RandomStrategy extends WindowArray {
               };
               const onPlaying = () => {
                 logIntext(`[Intext:Video:IMA] ad_media_playing`);
+                this.node?.setIntextPipPlaybackActive?.(true, "ima-media-playing");
                 markIntextDebugFirstFrame("media_playing");
                 revealPlayer("media_playing");
               };
               const onTimeUpdate = () => {
                 if (getMediaCurrentTime() > 0) {
+                  this.node?.setIntextPipPlaybackActive?.(true, "ima-media-timeupdate");
                   if (!mediaTimeupdateLogged) {
                     mediaTimeupdateLogged = true;
                     logIntext(`[Intext:Video:IMA] ad_media_timeupdate_started`);
@@ -14087,6 +14652,7 @@ class RandomStrategy extends WindowArray {
                 }
               };
               const onError = () => {
+                this.node?.setIntextPipPlaybackActive?.(false, "ima-media-error");
                 logIntext(`[Intext:Video:IMA] ad_media_error`);
               };
               const onStalled = () => {
@@ -14525,6 +15091,7 @@ class RandomStrategy extends WindowArray {
                     this.player.ima.addEventListener(
                       ima.AdEvent.Type.COMPLETE,
                       () => {
+                        this.node?.setIntextPipPlaybackActive?.(false, "ima-complete");
                         debugVideo("complete");
                         handleTerminalBeforeReveal(
                           "native_complete",
@@ -14535,6 +15102,7 @@ class RandomStrategy extends WindowArray {
                     this.player.ima.addEventListener(
                       ima.AdEvent.Type.SKIPPED,
                       () => {
+                        this.node?.setIntextPipPlaybackActive?.(false, "ima-skipped");
                         debugVideo("skipped");
                         handleTerminalBeforeReveal(
                           "native_skipped",
@@ -14554,7 +15122,14 @@ class RandomStrategy extends WindowArray {
                       [ima.AdEvent.Type.CONTENT_RESUME_REQUESTED, "content-resume-requested"],
                     ].forEach(([eventType, debugEvent]) => {
                       if (!eventType) return;
-                      this.player.ima.addEventListener(eventType, () => debugVideo(debugEvent));
+                      this.player.ima.addEventListener(eventType, () => {
+                        if (debugEvent === "paused") {
+                          this.node?.setIntextPipPlaybackActive?.(false, "ima-paused");
+                        } else if (debugEvent === "resumed") {
+                          this.node?.setIntextPipPlaybackActive?.(true, "ima-resumed");
+                        }
+                        debugVideo(debugEvent);
+                      });
                     });
                   }
                 } catch (e) {

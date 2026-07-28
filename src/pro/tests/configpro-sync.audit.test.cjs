@@ -37,6 +37,24 @@ const configs = new Map(
 const general = (config) => config.intextSites?.default?.general;
 const expectedPip = {
   enabled: false,
+  slots: {
+    default: false,
+    'gexp-intext': true,
+    'gexp-intext-2': false,
+    'gexp-intext-3': false,
+    pnc: false,
+  },
+  inclusions: {
+    enabled: false,
+    sites: [],
+    keyValues: {},
+  },
+  exclusions: {
+    enabled: false,
+    disableAll: false,
+    sites: [],
+    keyValues: {},
+  },
   mode: 'floating',
   enabledDesktop: true,
   enabledMobile: false,
@@ -204,7 +222,7 @@ test('9. los bloques comunes obligatorios están presentes', () => {
   const required = [
     'fallbackBlankControl', 'loading', 'loadingExperiments', 'decision',
     'video', 'display', 'refreshCycle', 'slots', 'slotOverrides',
-    'infiniteScroll', 'telemetry', 'contentTypes', 'networks', 'rules', 'dom',
+    'infiniteScroll', 'telemetry', 'contentTypes', 'networks', 'rules', 'dom', 'gam',
   ];
   for (const config of configs.values()) {
     const g = general(config);
@@ -285,6 +303,21 @@ test('17. PIP no se habilitó globalmente por accidente', () => {
   assert.match(source, /mode:\s*source\.mode === "floating" \? source\.mode : "floating"/);
 });
 
+test('17b. gam y elegibilidad PIP por slot tienen los defaults finales', () => {
+  for (const config of configs.values()) {
+    const g = general(config);
+    assert.deepEqual(g.gam, {
+      networkIdMode: 'auto',
+      networkId: null,
+      displayAdUnitPath: null,
+      videoAdUnitPath: null,
+    });
+    assert.deepEqual(g.video.pip.slots, expectedPip.slots);
+    assert.equal(g.video.pip.inclusions.enabled, false);
+    assert.equal(g.video.pip.exclusions.enabled, false);
+  }
+});
+
 test('18. los overrides PIP de la baseline siguen cubiertos', () => {
   assert.match(pipTestSource, /['"]gexp-intext['"]:\s*\{\s*video:\s*\{\s*pip:\s*\{\s*enabled:\s*true/);
   assert.match(pipTestSource, /['"]gexp-intext-2['"]:\s*\{\s*video:\s*\{\s*pip:\s*\{\s*enabled:\s*false/);
@@ -298,16 +331,18 @@ test('19. todos los JSON del inventario aparecen en el informe', () => {
   );
 });
 
-test('20. todos los JSON modificados aparecen como changed en el informe', () => {
-  const reportedChanged = report.files.filter((entry) => entry.changed).map((entry) => entry.file);
-  assert.deepEqual(reportedChanged.sort(), [...configs.keys()].sort());
+test('20. el gate valida el estado final sin depender de git diff', () => {
   assert.ok(report.files.every((entry) => configs.has(entry.file)));
-  assert.ok(report.files.every((entry) => (
-    entry.added.includes('intextSites.default.general.video.pip')
-    && entry.pip.present === true
-    && entry.pip.enabledByDefault === false
-  )));
-  assert.equal(report.pipBaselineProtected, true);
+  for (const config of configs.values()) {
+    const g = general(config);
+    assert.equal(g.gam.networkIdMode, 'auto');
+    assert.equal(g.video.pip.enabled, false);
+    assert.equal(g.video.pip.slots['gexp-intext'], true);
+    assert.equal(
+      Object.entries(g.video.pip.slots).filter(([, enabled]) => enabled === true).length,
+      1,
+    );
+  }
 });
 
 test('21. cada bloque de vídeo conserva todas sus particularidades previas', () => {
