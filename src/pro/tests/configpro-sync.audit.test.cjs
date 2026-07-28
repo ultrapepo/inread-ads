@@ -304,11 +304,14 @@ test('17. PIP no se habilitó globalmente por accidente', () => {
 });
 
 test('17b. gam y elegibilidad PIP por slot tienen los defaults finales', () => {
-  for (const config of configs.values()) {
+  for (const [file, config] of configs) {
     const g = general(config);
+    const expectedNetworkId = file.includes('LATAM')
+      ? '21626337071'
+      : '99071977';
     assert.deepEqual(g.gam, {
       networkIdMode: 'auto',
-      networkId: null,
+      networkId: expectedNetworkId,
       displayAdUnitPath: null,
       videoAdUnitPath: null,
     });

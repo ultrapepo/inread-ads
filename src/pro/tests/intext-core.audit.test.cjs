@@ -564,7 +564,8 @@ audit(114, 'los 12 JSON conservan el estado final de preproducción', () => {
   for(const relativePath of phaseCloseConfigFiles){
     const config=JSON.parse(fs.readFileSync(path.join(repoRoot,relativePath),'utf8'));
     const general=config.intextSites.default.general;
-    assert.deepEqual(general.gam,{networkIdMode:'auto',networkId:null,displayAdUnitPath:null,videoAdUnitPath:null});
+    const expectedNetworkId=relativePath.includes('LATAM')?'21626337071':'99071977';
+    assert.deepEqual(general.gam,{networkIdMode:'auto',networkId:expectedNetworkId,displayAdUnitPath:null,videoAdUnitPath:null});
     assert.equal(general.video.pip.enabled,false);
     assert.deepEqual(general.video.pip.slots,{default:false,'gexp-intext':true,'gexp-intext-2':false,'gexp-intext-3':false,pnc:false});
   }

@@ -414,7 +414,7 @@
                 "debug": false,
                 "gam": {
                     "networkIdMode": "auto",
-                    "networkId": null,
+                    "networkId": "21626337071",
                     "displayAdUnitPath": null,
                     "videoAdUnitPath": null
                 },

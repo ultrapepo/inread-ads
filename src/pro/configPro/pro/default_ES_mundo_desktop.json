@@ -572,7 +572,7 @@
                 "debug": false,
                 "gam": {
                     "networkIdMode": "auto",
-                    "networkId": null,
+                    "networkId": "99071977",
                     "displayAdUnitPath": null,
                     "videoAdUnitPath": null
                 },

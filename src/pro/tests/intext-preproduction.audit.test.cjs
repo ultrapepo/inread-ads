@@ -282,3 +282,185 @@ test('19-22. telemetría, debugger y bloqueo force están instrumentados', () =>
   assert.match(source, /if \(!networkId \|\| !adUnitPath\)/);
   assert.match(source, /if \(!gamVideoTagUrl\) return false/);
 });
+
+test('23-27. detección scoped nula, sources y telemetría usan resolución local', () => {
+  const configured = managerFixture({ configured: '99071977' }).manager;
+  const resolvedContext = {
+    detectedNetworkId: null,
+    networkId: '99071977',
+  };
+  const configuredResolution =
+    configured.resolveIntextNetworkResolution(resolvedContext);
+  assert.equal(configuredResolution.scopedDetectedNetworkId, null);
+  assert.equal(configuredResolution.requestNetworkId, '99071977');
+  assert.equal(configuredResolution.source, 'gam-config');
+  assert.deepEqual(
+    JSON.parse(JSON.stringify(
+      configured.getIntextNetworkTelemetry(resolvedContext),
+    )),
+    {
+      'gexp-intext-network-id-mode': 'auto',
+      'gexp-intext-network-id-configured': '99071977',
+      'gexp-intext-network-id-detected': 'none',
+      'gexp-intext-network-id-request': '99071977',
+      'gexp-intext-network-id-source': 'gam-config',
+      'gexp-intext-network-id-forced': 'false',
+    },
+  );
+
+  const fallback = managerFixture().manager.resolveIntextNetworkResolution();
+  assert.equal(fallback.requestNetworkId, '99071977');
+  assert.equal(fallback.source, 'default');
+
+  const forced = managerFixture({
+    mode: 'force',
+    configured: '99071977',
+    detected: '21626337071',
+  }).manager.resolveIntextNetworkResolution({
+    detectedNetworkId: '21626337071',
+  });
+  assert.equal(forced.requestNetworkId, '99071977');
+  assert.equal(forced.source, 'gam-config-forced');
+  assert.equal(forced.forced, true);
+});
+
+test('28-30. contextos concurrentes y PNC conservan su propia resolución', () => {
+  const manager = managerFixture({ configured: '99071977' }).manager;
+  const ueContext = { detectedNetworkId: '99071977' };
+  const latamContext = { detectedNetworkId: '21626337071' };
+
+  manager.resolveIntextRequestNetworkId(latamContext);
+  assert.equal(manager.requestNetworkId, '21626337071');
+  assert.equal(
+    manager.getIntextNetworkTelemetry(ueContext)[
+      'gexp-intext-network-id-request'
+    ],
+    '99071977',
+  );
+  assert.equal(
+    manager.getIntextNetworkTelemetry(latamContext)[
+      'gexp-intext-network-id-request'
+    ],
+    '21626337071',
+  );
+  assert.equal(
+    manager.getIntextNetworkTelemetry(ueContext)[
+      'gexp-intext-network-id-source'
+    ],
+    'scoped-gpt-detected',
+  );
+});
+
+test('31. un prefijo numérico de otra red se elimina sin ruta doble', () => {
+  const manager = managerFixture({
+    configured: '99071977',
+    displayAdUnitPath: '/21626337071/marca/noticia/n',
+  }).manager;
+  assert.equal(
+    manager.resolveIntextDisplayAdUnitPath(),
+    'marca/noticia/n',
+  );
+  const { waterfall } = waterfallFixture(manager);
+  assert.equal(
+    waterfall.getIntextPrebidAdSlotContext('gexp-intext').fullAdUnitPath,
+    '/99071977/marca/noticia/n',
+  );
+});
+
+async function resolvePncConfigForNetwork(networkId) {
+  const manager = managerFixture({ configured: '99071977' }).manager;
+  manager.siteConfig = {
+    ...manager.siteConfig,
+    infiniteScroll: {},
+    contentTypes: {},
+    tam: { enabled: true },
+    networks: {
+      99071977: { tam: { enabled: true } },
+      21626337071: { tam: { enabled: false } },
+    },
+  };
+  manager.baseSiteConfig = JSON.parse(JSON.stringify(manager.siteConfig));
+  manager.resolveScopedAdContext = () => ({
+    detectedNetworkId: networkId,
+    networkId,
+    contentType: 'noticia',
+    hostname: 'marca.com',
+    targeting: {},
+  });
+  manager.resolveScopedIntextNewsIdentity = async () => ({
+    id: 'pnc-network',
+    newsId: 'pnc-network',
+    source: 'test',
+    resolved: true,
+  });
+  manager.captureIntextContentIdentity = () => ({
+    id: 'pnc-network',
+    newsId: 'pnc-network',
+    source: 'test',
+    resolved: true,
+  });
+  manager.isContentTypeAllowed = () => true;
+  manager.isBlockedByExclusions = () => false;
+  manager.isAllowedByInclusions = () => true;
+  manager.shouldBlockIntextByFallbackBlankControl = () => false;
+  manager.registerIntextManagerDecision = () => false;
+  let captured = null;
+  manager.createIntextPositionsScoped = (
+    root,
+    scopedConfig,
+    suffix,
+    navIndex,
+    scopedContext,
+  ) => {
+    captured = { scopedConfig, scopedContext };
+    return { result: 'no-valid-placement', found: 0, created: 0 };
+  };
+  await manager.onNewArticleDetected({}, 2);
+  return captured;
+}
+
+test('32-33. PNC aplica el override de su red antes de crear nodos', async () => {
+  const latam = await resolvePncConfigForNetwork('21626337071');
+  assert.equal(latam.scopedConfig.tam.enabled, false);
+  assert.equal(latam.scopedContext.networkId, '21626337071');
+
+  const spain = await resolvePncConfigForNetwork('99071977');
+  assert.equal(spain.scopedConfig.tam.enabled, true);
+  assert.equal(spain.scopedContext.networkId, '99071977');
+});
+
+test('34-37. los doce JSON usan fallback auto por región y mantienen PIP off', () => {
+  const files = [
+    'configPro/default_ES_desktop.json',
+    'configPro/default_ES_mobile.json',
+    'configPro/default_ES_mundo_desktop.json',
+    'configPro/default_ES_mundo_mobile.json',
+    'configPro/default_expansion_ES.json',
+    'configPro/default_LATAM.json',
+    'configPro/pro/default_ES_desktop.json',
+    'configPro/pro/default_ES_mobile.json',
+    'configPro/pro/default_ES_mundo_desktop.json',
+    'configPro/pro/default_ES_mundo_mobile.json',
+    'configPro/pro/default_expansion_ES.json',
+    'configPro/pro/default_LATAM.json',
+  ];
+  files.forEach((relativePath) => {
+    const config = JSON.parse(
+      fs.readFileSync(path.join(root, relativePath), 'utf8'),
+    );
+    const general = config.intextSites.default.general;
+    assert.equal(general.gam.networkIdMode, 'auto');
+    assert.equal(
+      general.gam.networkId,
+      relativePath.includes('LATAM') ? '21626337071' : '99071977',
+    );
+    assert.equal(general.video.pip.enabled, false);
+    assert.deepEqual(general.video.pip.slots, {
+      default: false,
+      'gexp-intext': true,
+      'gexp-intext-2': false,
+      'gexp-intext-3': false,
+      pnc: false,
+    });
+  });
+});

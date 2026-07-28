@@ -3105,7 +3105,26 @@ class RandomStrategy extends WindowArray {
 
         normalizeIntextAdUnitPath(value, networkId = null) {
           const parts = String(value ?? "").trim().replace(/^\/+|\/+$/g, "").split("/").filter(Boolean);
-          if (networkId && parts[0] === String(networkId)) parts.shift();
+          const embeddedNetworkId = this.normalizeIntextNetworkId(parts[0]);
+          if (embeddedNetworkId) {
+            parts.shift();
+            if (networkId && embeddedNetworkId !== String(networkId)) {
+              const payload = {
+                source: "mismatched-network-prefix",
+                embeddedNetworkId,
+                requestNetworkId: String(networkId),
+                normalizedAdUnitPath: parts.join("/"),
+              };
+              this.recordIntextNetworkDebug(
+                "intext_adunit_network_prefix_normalized",
+                payload,
+              );
+              logIntext(
+                "[IntextManager] intext_adunit_network_prefix_normalized",
+                payload,
+              );
+            }
+          }
           return parts.join("/");
         }
 
@@ -3123,52 +3142,39 @@ class RandomStrategy extends WindowArray {
           }
         }
 
-        resolveIntextRequestNetworkId(scopedContext = null) {
+        resolveScopedDetectedNetworkId(scopedContext = null) {
+          const hasDetectedProperty = Object.prototype.hasOwnProperty.call(
+            scopedContext || {},
+            "detectedNetworkId",
+          );
+          return this.normalizeIntextNetworkId(
+            hasDetectedProperty
+              ? scopedContext.detectedNetworkId
+              : scopedContext?.networkId,
+          );
+        }
+
+        resolveIntextNetworkResolution(scopedContext = null) {
           const gamConfig = this.getIntextGamConfig();
           const mode = gamConfig.networkIdMode === "force" ? "force" : "auto";
           const configured = this.normalizeIntextNetworkId(gamConfig.networkId);
           const legacy = this.normalizeIntextNetworkId(this.config?.networkId);
-          const scopedDetected = this.normalizeIntextNetworkId(
-            scopedContext?.detectedNetworkId ?? scopedContext?.networkId,
-          );
-          const pageDetected = this.normalizeIntextNetworkId(this.detectedNetworkId);
-
-          this.configuredNetworkId = configured || legacy || null;
+          const configuredNetworkId = configured || legacy || null;
+          const scopedDetectedNetworkId =
+            this.resolveScopedDetectedNetworkId(scopedContext);
+          const pageDetectedNetworkId =
+            this.normalizeIntextNetworkId(this.detectedNetworkId);
           let requestNetworkId = null;
           let source = "unresolved";
 
           if (mode === "force") {
             requestNetworkId = configured || legacy;
             source = configured ? "gam-config-forced" : legacy ? "legacy-config-forced" : "force-invalid";
-            if (scopedDetected && requestNetworkId && scopedDetected !== requestNetworkId) {
-              this.recordIntextNetworkDebug("intext_network_scoped_ignored", {
-                source,
-                scopedNetworkId: scopedDetected,
-                requestNetworkId,
-              });
-            }
-            if (!requestNetworkId) {
-              this.requestNetworkId = null;
-              this.networkId = null;
-              this.networkIdResolutionSource = source;
-              logIntext("[IntextManager] intext_network_force_invalid");
-              this.recordIntextNetworkDebug("intext_network_force_invalid", {
-                source,
-                configuredNetworkId: gamConfig.networkId ?? null,
-                legacyNetworkId: this.config?.networkId ?? null,
-              });
-              this.registerIntextDiagnosticEvent?.({
-                diagnosticKey: "intext-network-force-invalid",
-                "gexp-intext-decision": "blocked",
-                "gexp-intext-decision-reason": "intext-network-force-invalid",
-              });
-              return null;
-            }
-          } else if (scopedDetected) {
-            requestNetworkId = scopedDetected;
+          } else if (scopedDetectedNetworkId) {
+            requestNetworkId = scopedDetectedNetworkId;
             source = "scoped-gpt-detected";
-          } else if (pageDetected) {
-            requestNetworkId = pageDetected;
+          } else if (pageDetectedNetworkId) {
+            requestNetworkId = pageDetectedNetworkId;
             source = "page-gpt-detected";
           } else if (configured) {
             requestNetworkId = configured;
@@ -3181,39 +3187,98 @@ class RandomStrategy extends WindowArray {
             source = "default";
           }
 
+          return {
+            mode,
+            requestNetworkId,
+            configuredNetworkId,
+            scopedDetectedNetworkId,
+            pageDetectedNetworkId,
+            detectedNetworkId:
+              scopedDetectedNetworkId || pageDetectedNetworkId || null,
+            source,
+            forced: mode === "force",
+            valid: Boolean(requestNetworkId),
+          };
+        }
+
+        resolveIntextRequestNetworkId(scopedContext = null) {
+          const resolution =
+            this.resolveIntextNetworkResolution(scopedContext);
+          const {
+            mode,
+            requestNetworkId,
+            configuredNetworkId,
+            scopedDetectedNetworkId,
+            detectedNetworkId,
+            source,
+          } = resolution;
+
+          this.configuredNetworkId = configuredNetworkId;
           this.requestNetworkId = requestNetworkId;
           this.networkId = requestNetworkId;
           this.networkIdResolutionSource = source;
+          if (
+            mode === "force" &&
+            scopedDetectedNetworkId &&
+            requestNetworkId &&
+            scopedDetectedNetworkId !== requestNetworkId
+          ) {
+            this.recordIntextNetworkDebug("intext_network_scoped_ignored", {
+              source,
+              scopedNetworkId: scopedDetectedNetworkId,
+              requestNetworkId,
+            });
+          }
+          if (!resolution.valid) {
+            logIntext("[IntextManager] intext_network_force_invalid");
+            this.recordIntextNetworkDebug("intext_network_force_invalid", {
+              source,
+              configuredNetworkId:
+                this.getIntextGamConfig().networkId ?? null,
+              legacyNetworkId: this.config?.networkId ?? null,
+            });
+            this.registerIntextDiagnosticEvent?.({
+              diagnosticKey: "intext-network-force-invalid",
+              "gexp-intext-decision": "blocked",
+              "gexp-intext-decision-reason": "intext-network-force-invalid",
+            });
+            return null;
+          }
           const debugMetric = mode === "force" ? "intext_network_forced" : "intext_network_resolved";
           this.recordIntextNetworkDebug(debugMetric, {
             source,
             mode,
-            configuredNetworkId: this.configuredNetworkId,
-            detectedNetworkId: scopedDetected || pageDetected,
+            configuredNetworkId,
+            detectedNetworkId,
             requestNetworkId,
           });
           logIntext(`[IntextManager] ${debugMetric}`, {
             mode,
             source,
-            configuredNetworkId: this.configuredNetworkId,
-            detectedNetworkId: scopedDetected || pageDetected,
+            configuredNetworkId,
+            detectedNetworkId,
             requestNetworkId,
           });
           return requestNetworkId;
         }
 
         getIntextNetworkTelemetry(scopedContext = null) {
-          const mode = this.getIntextGamConfig().networkIdMode === "force" ? "force" : "auto";
-          const scopedDetected = this.normalizeIntextNetworkId(
-            scopedContext?.detectedNetworkId ?? scopedContext?.networkId,
-          );
+          const resolution =
+            this.resolveIntextNetworkResolution(scopedContext);
           return {
-            "gexp-intext-network-id-mode": mode,
-            "gexp-intext-network-id-configured": String(this.configuredNetworkId || "none"),
-            "gexp-intext-network-id-detected": String(scopedDetected || this.detectedNetworkId || "none"),
-            "gexp-intext-network-id-request": String(this.requestNetworkId || "none"),
-            "gexp-intext-network-id-source": String(this.networkIdResolutionSource || "unresolved"),
-            "gexp-intext-network-id-forced": mode === "force" ? "true" : "false",
+            "gexp-intext-network-id-mode": resolution.mode,
+            "gexp-intext-network-id-configured": String(
+              resolution.configuredNetworkId || "none",
+            ),
+            "gexp-intext-network-id-detected": String(
+              resolution.detectedNetworkId || "none",
+            ),
+            "gexp-intext-network-id-request": String(
+              resolution.requestNetworkId || "none",
+            ),
+            "gexp-intext-network-id-source": String(resolution.source),
+            "gexp-intext-network-id-forced":
+              resolution.forced ? "true" : "false",
           };
         }
 
@@ -4796,12 +4861,25 @@ class RandomStrategy extends WindowArray {
           logIntext(`[IntextManager:NavContinua] navIndex=${navIndex}: content type = "${contentType}"`);
 
           let scrollConfig = IntextManager.deepMerge({...this.siteConfig}, {});
-          const ctProfile = this.siteConfig?.contentTypes?.[contentType];
+          const scopedNetworkOverride =
+            this.getIntextNetworkOverride(requestNetworkId);
+          if (scopedNetworkOverride) {
+            scrollConfig = IntextManager.deepMerge(
+              scrollConfig,
+              scopedNetworkOverride,
+            );
+          }
+          const ctProfile = scrollConfig?.contentTypes?.[contentType];
           if (ctProfile) {
             scrollConfig = IntextManager.deepMerge(scrollConfig, ctProfile);
           }
-          if (isConfig.overrides) {
-            scrollConfig = IntextManager.deepMerge(scrollConfig, isConfig.overrides);
+          const infiniteScrollOverrides =
+            scrollConfig?.infiniteScroll?.overrides || isConfig.overrides;
+          if (infiniteScrollOverrides) {
+            scrollConfig = IntextManager.deepMerge(
+              scrollConfig,
+              infiniteScrollOverrides,
+            );
           }
           if (!this.isContentTypeAllowed(scrollConfig, contentType, "[IntextManager:NavContinua]")) {
             return { handled: true, decision: "content-type-blocked", telemetryRegistered: false };
@@ -5472,9 +5550,7 @@ class RandomStrategy extends WindowArray {
 
         getIntextPipBaseSlotId() {
           const id = String(this.id || "").replace(/-video$/, "");
-          if (/^gexp-intext-pnc-\d+$/.test(id) || id === "pnc") return "pnc";
-          const match = id.match(/^(gexp-intext(?:-\d+)?)/);
-          return match ? match[1] : id;
+          return this.manager?.normalizeIntextBaseSlotId?.(id) || id;
         }
 
         isIntextPipSlotEnabled() {
@@ -5631,7 +5707,10 @@ class RandomStrategy extends WindowArray {
         getIntextPipTargetingContext() {
           const scopedContext = this.scopedContext || null;
           const site = this.manager?.getHostnameNormalized?.(
-            scopedContext?.hostname || this.manager?.siteContext?.site || window?.location?.hostname || "",
+            scopedContext?.hostname ||
+              window?.location?.hostname ||
+              this.manager?.siteContext?.site ||
+              "",
           ) || "";
           const targeting = {
             ...(this.manager?.getPageCustomTargeting?.(scopedContext) || {}),
@@ -10395,6 +10474,44 @@ class RandomStrategy extends WindowArray {
           return true;
         }
         
+        resolveIntextVideoRefreshPlan() {
+          const refreshCfg = this.config?.refreshCycle || null;
+          const enabled = refreshCfg?.enabled === true;
+          const nextCycleCount = (this._cycleCount || 0) + (enabled ? 1 : 0);
+          const configuredMaxCycles = Number(refreshCfg?.maxCycles);
+          const maxCycles = Number.isFinite(configuredMaxCycles)
+            ? configuredMaxCycles
+            : Infinity;
+          const maxCyclesReached =
+            enabled && nextCycleCount >= maxCycles;
+          const visibilityObserverAvailable =
+            typeof IntersectionObserver !== "undefined";
+          const anchor =
+            enabled && !maxCyclesReached
+              ? this.videoContainer?.getElement?.() || null
+              : null;
+          const blocked =
+            enabled &&
+            !maxCyclesReached &&
+            (!anchor || !visibilityObserverAvailable);
+          const blockedReason = !blocked
+            ? "none"
+            : !anchor
+              ? "refresh-anchor-missing"
+              : "refresh-visibility-unavailable";
+          return {
+            enabled,
+            refreshCfg,
+            nextCycleCount,
+            maxCycles,
+            maxCyclesReached,
+            anchor,
+            visibilityObserverAvailable,
+            blocked,
+            blockedReason,
+          };
+        }
+
         onVideoEnded(renderToken = this._activeRenderToken) {
           if (!this.isActiveRenderToken(renderToken, "onVideoEnded", this.waterfall?.lastTrigger || "unknown")) return;
           const endedWhilePip = this._intextPipState === "floating";
@@ -10407,14 +10524,21 @@ class RandomStrategy extends WindowArray {
             });
             this.recordIntextPipEvent("video_pip_video_ended", "video-ended");
           }
+          const refreshPlan = this.resolveIntextVideoRefreshPlan();
+          this.mergeIntextTelemetry({
+            "gexp-intext-refresh-blocked":
+              refreshPlan.blocked ? "true" : "false",
+            "gexp-intext-refresh-blocked-reason":
+              refreshPlan.blockedReason,
+          });
           this.flushIntextTelemetryToCI({
             register: true,
             reason: "video-ended",
           });
           logIntext(`[Intext:Video:${this.videoId}] 🔄 Video playback ended`);
 
-          const refreshCfg = this.config.refreshCycle;
-          if (!refreshCfg || !refreshCfg.enabled) {
+          const refreshCfg = refreshPlan.refreshCfg;
+          if (!refreshPlan.enabled) {
             logIntext(
               `[Intext:Video:${this.videoId}] Refresh cycle disabled — keeping container open for UX stability or closing`,
             );
@@ -10425,8 +10549,8 @@ class RandomStrategy extends WindowArray {
             return;
           }
 
-          this._cycleCount = (this._cycleCount || 0) + 1;
-          if (this._cycleCount >= refreshCfg.maxCycles) {
+          this._cycleCount = refreshPlan.nextCycleCount;
+          if (refreshPlan.maxCyclesReached) {
             logIntext(
               `[Intext:Video:${this.videoId}] Max refresh cycles reached (${this._cycleCount}/${refreshCfg.maxCycles}) — closing`,
             );
@@ -10438,16 +10562,12 @@ class RandomStrategy extends WindowArray {
           const targetIntervalMs = refreshCfg.videoIntervalMs || 0;
           logIntext(`[Intext:Video:${this.videoId}] ⏱️ Scheduling Video Refresh ${this._cycleCount}/${refreshCfg.maxCycles} (Requires ${targetIntervalMs}ms of VISIBLE time)`);
 
-          const el = this.videoContainer.getElement();
-          if (!el) {
-            this.mergeIntextTelemetry({
-              "gexp-intext-refresh-blocked": "true",
-              "gexp-intext-refresh-blocked-reason": "refresh-anchor-missing",
-            });
-            this.flushIntextTelemetryToCI();
-            logIntext(`[Intext:Video:${this.videoId}] refresh-anchor-missing`);
+          if (refreshPlan.blocked) {
+            logIntext(
+              `[Intext:Video:${this.videoId}] ${refreshPlan.blockedReason}`,
+            );
             this.teardownIntextViewportTelemetryObserver();
-            this.cleanupIntextPip("refresh-anchor-missing");
+            this.cleanupIntextPip(refreshPlan.blockedReason);
             this.activeCreative?.destroy?.();
             this.activeCreative = null;
             this.videoContainer.close({ destroy: true });
@@ -10455,6 +10575,7 @@ class RandomStrategy extends WindowArray {
             return;
           }
 
+          const el = refreshPlan.anchor;
           if (this._videoVisibilityTimer) {
              this._videoVisibilityTimer.stop();
           }
@@ -10500,8 +10621,7 @@ class RandomStrategy extends WindowArray {
              }
           };
 
-          if (typeof IntersectionObserver !== "undefined") {
-              observer = new IntersectionObserver((entries) => {
+          observer = new IntersectionObserver((entries) => {
                   const entry = entries[0];
                   const wasVisible = isCurrentlyVisible;
                   isCurrentlyVisible = entry?.isIntersecting === true;
@@ -10514,21 +10634,7 @@ class RandomStrategy extends WindowArray {
                       logIntext(`[Intext:Video:${this.videoId}] Slot not visible — pausing video refresh timer until viewport entry`);
                   }
               }, { threshold: 0.1 });
-              observer.observe(el);
-          } else {
-              this.mergeIntextTelemetry({
-                "gexp-intext-refresh-blocked": "true",
-                "gexp-intext-refresh-blocked-reason": "refresh-visibility-unavailable",
-              });
-              this.flushIntextTelemetryToCI();
-              logIntext(`[Intext:Video:${this.videoId}] refresh-visibility-unavailable`);
-              this.cleanupIntextPip("refresh-visibility-unavailable");
-              this.activeCreative?.destroy?.();
-              this.activeCreative = null;
-              this.videoContainer.close({ destroy: true });
-              this.manager.onSlotComplete(this.id);
-              return;
-          }
+          observer.observe(el);
 
           checkInterval = setInterval(updateAccumulator, 500);
 

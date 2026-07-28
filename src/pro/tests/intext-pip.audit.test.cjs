@@ -122,6 +122,7 @@ const windowFixture = {
   innerWidth: 1200,
   innerHeight: 800,
   scrollY: 0,
+  location: { hostname: 'marca.com' },
   ueDataLayer: { device_category: 'desktop' },
   gexpIntextDebug: false,
   getComputedStyle: (element) => ({ display: element.style.display || 'none' }),
@@ -199,6 +200,8 @@ function nodeFixture(pipOverrides = {}, id = 'gexp-intext') {
   const manager = {
     nodes: [],
     gexp: { isMobileDevice: () => false, windows: {} },
+    normalizeIntextBaseSlotId:
+      IntextManager.prototype.normalizeIntextBaseSlotId,
     _activeIntextPipNode: null,
     requestActiveIntextPip(node) {
       if (this._activeIntextPipNode && this._activeIntextPipNode !== node) {
@@ -449,7 +452,10 @@ test('26-31. aspa no propaga, vuelve inline, no pausa/cierra y descarta sólo el
 
 test('32-34. final elimina PIP primero y conserva el refresh ligado al wrapper', () => {
   const onEnded = between(source, 'onVideoEnded(renderToken', 'closeAll()');
-  assert.ok(onEnded.indexOf('this.exitIntextPip("video-ended")') < onEnded.indexOf('const refreshCfg'));
+  assert.ok(
+    onEnded.indexOf('this.exitIntextPip("video-ended")') <
+      onEnded.indexOf('const refreshPlan'),
+  );
   assert.match(onEnded, /observer\.observe\(el\)/);
   assert.doesNotMatch(onEnded, /_intextPipPlayerElement.*observe/);
 });
@@ -695,7 +701,7 @@ test('94-96. contrato fuente mantiene video-ended, flush y dedupe por parentTele
   assert.doesNotMatch(commit, /slot-cycle-final:\$\{parentTelemetryId\}:\$\{reason\}/);
   assert.ok(
     onEnded.indexOf('reason: "video-ended"') <
-      onEnded.indexOf('const refreshCfg = this.config.refreshCycle'),
+      onEnded.indexOf('const refreshCfg = refreshPlan.refreshCfg'),
   );
 });
 
@@ -908,4 +914,108 @@ test('133-138. refresh exige anchor e IntersectionObserver visible', () => {
   const onEnded = between(source, 'onVideoEnded(renderToken', 'closeAll()');
   assert.doesNotMatch(onEnded, /video_refresh_missing_el_timer/);
   assert.doesNotMatch(onEnded, /setTimeout\([\s\S]*startAuction\("refresh"\)/);
+});
+
+test('139-142. hostname real prevalece sobre be_page_domain para targeting PIP', () => {
+  const inclusion = nodeFixture({
+    inclusions: {
+      enabled: true,
+      sites: ['marca.com'],
+      keyValues: {},
+    },
+  });
+  inclusion.node.scopedContext = { targeting: {} };
+  inclusion.manager.siteContext = { site: 'marca' };
+  inclusion.manager.getHostnameNormalized =
+    IntextManager.prototype.getHostnameNormalized;
+  inclusion.manager.getPageCustomTargeting = () => ({});
+  inclusion.manager.getIntextRandomValue = () => null;
+  windowFixture.location.hostname = 'marca.com';
+  assert.equal(
+    inclusion.node.resolveIntextPipTargetingEligibility().allowed,
+    true,
+  );
+
+  const exclusion = nodeFixture({
+    exclusions: {
+      enabled: true,
+      disableAll: false,
+      sites: ['marca.com'],
+      keyValues: {},
+    },
+  });
+  exclusion.node.scopedContext = { targeting: {} };
+  exclusion.manager.siteContext = { site: 'marca' };
+  exclusion.manager.getHostnameNormalized =
+    IntextManager.prototype.getHostnameNormalized;
+  exclusion.manager.getPageCustomTargeting = () => ({});
+  exclusion.manager.getIntextRandomValue = () => null;
+  assert.equal(
+    exclusion.node.resolveIntextPipTargetingEligibility().reason,
+    'pip-excluded-site',
+  );
+
+  windowFixture.location.hostname = 'elmundo.es';
+  assert.equal(
+    inclusion.node.resolveIntextPipTargetingEligibility().reason,
+    'pip-inclusion-site-not-matched',
+  );
+  windowFixture.location.hostname = 'marca.com';
+});
+
+test('143-145. todos los slots PNC comparten la normalización del manager', () => {
+  const manager = Object.create(IntextManager.prototype);
+  [
+    'gexp-intext-pnc-1',
+    'gexp-intext-2-pnc-1',
+    'gexp-intext-3-pnc-1',
+    'gexp-intext-pnc-2',
+    'gexp-intext-2-pnc-5',
+  ].forEach((id) => {
+    assert.equal(manager.normalizeIntextBaseSlotId(id), 'pnc');
+    const fixture = nodeFixture({}, id);
+    assert.equal(fixture.node.getIntextPipBaseSlotId(), 'pnc');
+  });
+  ['gexp-intext', 'gexp-intext-2', 'gexp-intext-3'].forEach((id) => {
+    assert.equal(manager.normalizeIntextBaseSlotId(id), id);
+  });
+});
+
+test('146-150. bloqueos refresh viajan en el único delta antes del cierre', () => {
+  const missing = telemetryFlowFixture({ refreshEnabled: true });
+  commitEarlyAndSendOriginalRow(missing);
+  missing.node.videoContainer.getElement = () => null;
+  missing.node.onVideoEnded();
+  assert.equal(missing.events.length, 1);
+  assert.equal(
+    missing.events[0].payload['gexp-intext-refresh-blocked'],
+    'true',
+  );
+  assert.equal(
+    missing.events[0].payload['gexp-intext-refresh-blocked-reason'],
+    'refresh-anchor-missing',
+  );
+  assert.ok(
+    missing.order.indexOf('slot-cycle-final') <
+      missing.order.indexOf('slot-complete'),
+  );
+
+  const savedObserver = context.IntersectionObserver;
+  context.IntersectionObserver = undefined;
+  try {
+    const unavailable = telemetryFlowFixture({ refreshEnabled: true });
+    commitEarlyAndSendOriginalRow(unavailable);
+    unavailable.node.onVideoEnded();
+    assert.equal(unavailable.events.length, 1);
+    assert.equal(
+      unavailable.events[0].payload['gexp-intext-refresh-blocked-reason'],
+      'refresh-visibility-unavailable',
+    );
+    assert.ok(
+      unavailable.order.indexOf('slot-cycle-final') <
+        unavailable.order.indexOf('slot-complete'),
+    );
+  } finally {
+    context.IntersectionObserver = savedObserver;
+  }
 });
