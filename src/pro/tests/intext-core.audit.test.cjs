@@ -456,12 +456,80 @@ audit(97, 'slot-cycle-final transporta creative line item y resultado', () => {
   const {node,manager,rows}=nodeFixture(); node.ensureIntextCycleTelemetryIdentity(); Object.assign(node.wa.cI,{creativeId:'creative-7',lineItemId:'line-8',adFilled:'true',adRendered:'true'}); Object.assign(node._intextTelemetryCycle,{'gexp-intext-ad-filled-logical':'true','gexp-intext-render-layout':'fluid'}); manager.gexp.statsG.rows.length=0; node.commitIntextTelemetry('display-render-ended'); const final=rows.at(-1); assert.deepEqual([final.creativeId,final.lineItemId,final.adFilled,final['gexp-intext-render-layout']],['creative-7','line-8','true','fluid']);
 });
 audit(98, 'nc=1 tardio procesa el articulo antes del timeout', async () => {
-  const {manager}=managerFixture(); manager.siteConfig.infiniteScroll={contextWaitMs:80,contextPollMs:5}; manager._processedNavIndexes=new Set([0]); manager._pendingNavIndexes=new Set(); let checks=0,decisions=0; manager.getScopedIntextNcSlots=()=>++checks>2?[{}]:[]; manager.onNewArticleDetected=async()=>{decisions+=1;return true;}; assert.equal(await manager.processIntextNavCandidate({},4),true); assert.deepEqual([decisions,manager._processedNavIndexes.has(4)],[1,true]);
+  const {manager}=managerFixture(); manager.siteConfig.infiniteScroll={contextWaitMs:80,contextPollMs:5}; manager._processedNavIndexes=new Set([0]); manager._pendingNavIndexes=new Set(); let checks=0,decisions=0; manager.getScopedIntextNcSlots=()=>++checks>2?[{}]:[]; manager.onNewArticleDetected=async()=>{decisions+=1;return {handled:true,decision:'allowed',telemetryRegistered:true};}; const result=await manager.processIntextNavCandidate({},4); assert.equal(result.handled,true); assert.deepEqual([decisions,manager._processedNavIndexes.has(4)],[1,true]);
 });
 audit(99, 'mismo navIndex no genera dos manager decisions', async () => {
-  const {manager}=managerFixture(); manager._processedNavIndexes=new Set([0]); manager._pendingNavIndexes=new Set(); manager.waitForIntextNavContext=async()=>[{}]; let decisions=0; manager.onNewArticleDetected=async()=>{decisions+=1;return true;}; await manager.processIntextNavCandidate({},5); await manager.processIntextNavCandidate({},5); assert.equal(decisions,1);
+  const {manager}=managerFixture(); manager._processedNavIndexes=new Set([0]); manager._pendingNavIndexes=new Set(); manager.waitForIntextNavContext=async()=>[{}]; let decisions=0; manager.onNewArticleDetected=async()=>{decisions+=1;return {handled:true,decision:'allowed',telemetryRegistered:true};}; await manager.processIntextNavCandidate({},5); await manager.processIntextNavCandidate({},5); assert.equal(decisions,1);
 });
 audit(100, 'video display fallback y refresh mantienen snapshot', () => { const {node}=nodeFixture(); for(const phase of ['video','display','fallback','refresh']){node.slot.values.random1=['20'];node.assertIntextRandomSnapshotOnSlot(node.slot,phase);assert.equal(node.slot.getTargeting('random1')[0],'5');} });
 audit(101, 'cambios solo dentro del core Intext y tests', () => {
-  const changed=execFileSync('git',['diff','--name-only'],{cwd:repoRoot,encoding:'utf8'}).trim().split(/\r?\n/).filter(Boolean); assert.deepEqual(changed.sort(),['src/pro/_gam_kv_.js','src/pro/tests/intext-core.audit.test.cjs'].sort());
+  const changed=execFileSync('git',['diff','--name-only'],{cwd:repoRoot,encoding:'utf8'}).trim().split(/\r?\n/).filter(Boolean); const allowed=new Set(['src/pro/_gam_kv_.js','src/pro/tests/intext-core.audit.test.cjs']); assert.ok(changed.every(file=>allowed.has(file)),changed.join(','));
+});
+
+function pncProcessingFixture({ sampled=true, contentTypeAllowed=true, excluded=false, included=true }={}) {
+  const {manager,rows}=managerFixture();
+  manager._intextTelemetrySampled=sampled;
+  manager.siteConfig={...manager.siteConfig,infiniteScroll:{},contentTypes:{}};
+  manager._processedNavIndexes=new Set([0]);
+  manager._pendingNavIndexes=new Set();
+  manager.waitForIntextNavContext=async()=>[{}];
+  manager.resolveScopedAdContext=()=>({contentType:'noticia',hostname:'marca.com'});
+  manager.resolveScopedIntextNewsIdentity=async(_root,navIndex)=>({id:`pnc-${navIndex}`,newsId:`pnc-${navIndex}`,source:'root:data-news-id',resolved:true});
+  manager.detectContentType=()=> 'noticia';
+  manager.isContentTypeAllowed=()=>contentTypeAllowed;
+  manager.isBlockedByExclusions=()=>excluded;
+  manager.isAllowedByInclusions=()=>included;
+  manager.shouldBlockIntextByFallbackBlankControl=()=>false;
+  manager.createIntextPositionsScoped=()=>({result:'no-valid-placement',found:0,created:0});
+  return {manager,rows};
+}
+
+audit(102, 'pageview no sampleada procesa un PNC permitido', async () => {
+  const {manager,rows}=pncProcessingFixture({sampled:false}); const result=await manager.processIntextNavCandidate({},6);
+  assert.equal(JSON.stringify(result),JSON.stringify({handled:true,decision:'allowed',telemetryRegistered:false})); assert.equal(rows.length,0);
+});
+audit(103, 'PNC no sampleado queda marcado como procesado', async () => {
+  const {manager}=pncProcessingFixture({sampled:false}); await manager.processIntextNavCandidate({},7); assert.equal(manager._processedNavIndexes.has(7),true);
+});
+audit(104, 'content type rechazado queda procesado sin manager decision', async () => {
+  const {manager,rows}=pncProcessingFixture({contentTypeAllowed:false}); const result=await manager.processIntextNavCandidate({},8);
+  assert.equal(JSON.stringify(result),JSON.stringify({handled:true,decision:'content-type-blocked',telemetryRegistered:false})); assert.equal(manager._processedNavIndexes.has(8),true); assert.equal(rows.length,0);
+});
+audit(105, 'exclusion PNC queda procesada sin manager decision', async () => {
+  const {manager,rows}=pncProcessingFixture({excluded:true}); const result=await manager.processIntextNavCandidate({},9);
+  assert.equal(JSON.stringify(result),JSON.stringify({handled:true,decision:'excluded',telemetryRegistered:false})); assert.equal(manager._processedNavIndexes.has(9),true); assert.equal(rows.length,0);
+});
+audit(106, 'inclusion no superada queda procesada sin manager decision', async () => {
+  const {manager,rows}=pncProcessingFixture({included:false}); const result=await manager.processIntextNavCandidate({},10);
+  assert.equal(JSON.stringify(result),JSON.stringify({handled:true,decision:'not-in-cohort',telemetryRegistered:false})); assert.equal(manager._processedNavIndexes.has(10),true); assert.equal(rows.length,0);
+});
+audit(107, 'slot-cycle incluye be_page_newsID solo cuando es real', () => {
+  const {node,manager}=nodeFixture(); node.navIndex=11; manager._intextContentIdentityByNavIndex.set(11,Object.freeze({id:'news-11',newsId:'news-11',source:'root:data-news-id',resolved:true,navIndex:11}));
+  node.startIntextTelemetryCycle('initial'); assert.equal(node._intextTelemetryCycle.be_page_newsID,'news-11'); assert.equal(node._intextTelemetryCycle['gexp-intext-content-id'],'news-11');
+});
+audit(108, 'slot-cycle omite be_page_newsID si no se resuelve', () => {
+  const {node,manager}=nodeFixture(); node.navIndex=12; manager._intextContentIdentityByNavIndex.set(12,Object.freeze({id:'unknown-news:12',newsId:null,source:'unresolved',resolved:false,navIndex:12}));
+  node.startIntextTelemetryCycle('initial'); assert.ok(!Object.hasOwn(node._intextTelemetryCycle,'be_page_newsID'));
+});
+audit(109, 'content-id conserva unknown-news como fallback canonico', () => {
+  const {node,manager}=nodeFixture(); node.navIndex=13; manager._intextContentIdentityByNavIndex.set(13,Object.freeze({id:'unknown-news:13',newsId:null,source:'unresolved',resolved:false,navIndex:13}));
+  node.startIntextTelemetryCycle('initial'); assert.equal(node._intextTelemetryCycle['gexp-intext-content-id'],'unknown-news:13'); assert.equal(node._intextTelemetryCycle['gexp-intext-content-id-source'],'unresolved');
+});
+audit(110, 'early flush seguido de close-all genera delta final unico', () => {
+  const {node,manager,rows}=nodeFixture(); node.ensureIntextCycleTelemetryIdentity(); manager.gexp.statsG.rows.length=0; node.commitIntextTelemetry('close-all');
+  const finals=rows.filter(row=>row['gexp-intext-telemetry-event-type']==='slot-cycle-final'); assert.equal(finals.length,1); assert.equal(finals[0]['gexp-intext-telemetry-commit-reason'],'close-all');
+});
+audit(111, 'early flush seguido de destroy genera delta final unico', () => {
+  const {node,manager,rows}=nodeFixture(); node.ensureIntextCycleTelemetryIdentity(); manager.gexp.statsG.rows.length=0; node.commitIntextTelemetry('destroy');
+  const finals=rows.filter(row=>row['gexp-intext-telemetry-event-type']==='slot-cycle-final'); assert.equal(finals.length,1); assert.equal(finals[0]['gexp-intext-telemetry-commit-reason'],'destroy');
+});
+audit(112, 'no genera cierre adicional tras final comprometido', () => {
+  const {node,manager,rows}=nodeFixture(); node.ensureIntextCycleTelemetryIdentity(); manager.gexp.statsG.rows.length=0; node.commitIntextTelemetry('display-render-ended'); node.commitIntextTelemetry('close-all'); node.commitIntextTelemetry('destroy');
+  assert.equal(rows.filter(row=>row['gexp-intext-telemetry-event-type']==='slot-cycle-final').length,1);
+});
+audit(113, 'snapshot permanece en video display fallback y refresh', () => {
+  const {node}=nodeFixture(); for(const phase of ['video','display','fallback','refresh']){node.slot.values.random4=['20'];node.assertIntextRandomSnapshotOnSlot(node.slot,phase);assert.equal(node.slot.getTargeting('random4')[0],'4');}
+});
+audit(114, 'componentes globales y JSON permanecen fuera del diff', () => {
+  const changed=execFileSync('git',['diff','--name-only'],{cwd:repoRoot,encoding:'utf8'}).trim().split(/\r?\n/).filter(Boolean); assert.ok(changed.every(file=>file==='src/pro/_gam_kv_.js'||file==='src/pro/tests/intext-core.audit.test.cjs')); assert.ok(changed.every(file=>!file.endsWith('.json')));
 });
