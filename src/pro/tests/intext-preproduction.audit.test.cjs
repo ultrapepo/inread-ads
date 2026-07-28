@@ -240,8 +240,12 @@ test('15-18. todos los consumidores de red pasan por el resolver canónico', () 
     source,
     /scopedContext\?\.networkId\s*\|\|\s*this\.node\.manager\.networkId/,
   );
+  assert.match(
+    source,
+    /\n\s+askDisplay\(bidResponse,[\s\S]{0,8000}resolveIntextRequestNetworkId/,
+    'askDisplay',
+  );
   [
-    [IntextManager.prototype, 'askDisplay'],
     [IntextWaterfall.prototype, 'getTAMConfiguration'],
     [IntextWaterfall.prototype, 'getTAMVideoConfiguration'],
     [IntextWaterfall.prototype, 'getIntextPrebidAdSlotContext'],

@@ -57,6 +57,7 @@ test('1. configured y effective PIP distinguen desktop, mobile y estado del nodo
     enabledMobile: false,
   };
   node.getIntextPipConfig = () => pip;
+  node.isIntextPipSlotEnabled = () => true;
   node.isIntextPipMobileDevice = () => false;
   node._nodeActive = true;
   node.state = 'video';

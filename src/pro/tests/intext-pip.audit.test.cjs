@@ -891,6 +891,7 @@ test('133-138. refresh exige anchor e IntersectionObserver visible', () => {
   const outsideObserver = lastObserver;
   outsideObserver.callback([{ isIntersecting: false, intersectionRatio: 0 }]);
   assert.equal(outside.order.some((entry) => entry.startsWith('startAuction:')), false);
+  outside.node._videoVisibilityTimer.stop();
 
   documentFixture.visibilityState = 'hidden';
   const hidden = telemetryFlowFixture({ refreshEnabled: true });

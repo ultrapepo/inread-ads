@@ -4783,9 +4783,13 @@ class RandomStrategy extends WindowArray {
           }
 
           const scopedContext = this.resolveScopedAdContext(mainElement);
-          if (!scopedContext?.networkId) {
+          const requestNetworkId = this.resolveIntextRequestNetworkId(scopedContext);
+          if (!requestNetworkId) {
             return { handled: true, decision: "network-force-invalid", telemetryRegistered: false };
           }
+          scopedContext.networkId = requestNetworkId;
+          scopedContext.adUnitPath =
+            this.resolveIntextDisplayAdUnitPath(scopedContext);
           const resolvedIdentity = await this.resolveScopedIntextNewsIdentity(mainElement, navIndex, scopedContext);
           const contentIdentity = this.captureIntextContentIdentity(navIndex, mainElement, scopedContext, resolvedIdentity);
           const contentType = scopedContext.contentType || this.detectContentType(mainElement);
