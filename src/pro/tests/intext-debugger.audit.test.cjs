@@ -807,13 +807,15 @@ test('formato 7: una métrica nunca actualiza simultáneamente display y video',
   }
 });
 
-test('alcance del diff excluye JSON, HTML y componentes globales', () => {
+test('alcance del diff limita JSON a las 12 configuraciones PIP autorizadas', () => {
   const changed = execFileSync('git', ['diff', '--name-only'], { cwd: repoRoot, encoding: 'utf8' })
     .trim()
     .split(/\r?\n/)
     .filter(Boolean);
-  assert.ok(changed.every((name) => name === 'src/pro/_gam_kv_.js' || name.startsWith('src/pro/tests/')), changed.join(', '));
-  assert.ok(changed.every((name) => !name.endsWith('.json') && !name.endsWith('gampro-mobile-marca.html')));
+  const configFiles = changed.filter((name) => name.startsWith('src/pro/configPro/'));
+  assert.equal(configFiles.length, 12);
+  assert.ok(configFiles.every((name) => /src\/pro\/configPro\/(?:pro\/)?default_(?:ES_(?:desktop|mobile|mundo_desktop|mundo_mobile)|expansion_ES|LATAM)\.json$/.test(name)));
+  assert.ok(changed.every((name) => !name.endsWith('gampro-mobile-marca.html')));
 });
 
 test('coste real: fast path desactivado y captura activada', (t) => {

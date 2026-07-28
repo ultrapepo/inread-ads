@@ -597,6 +597,26 @@
                         640,
                         360
                     ],
+                    "pip": {
+                        "enabled": false,
+                        "mode": "floating",
+                        "enabledDesktop": true,
+                        "enabledMobile": false,
+                        "position": "bottom-right",
+                        "widthDesktop": 360,
+                        "widthMobile": 280,
+                        "maxWidthViewportRatio": 0.9,
+                        "right": 16,
+                        "bottom": 16,
+                        "zIndex": 100000,
+                        "enterIntersectionRatio": 0.05,
+                        "returnIntersectionRatio": 0.35,
+                        "onlyAfterFirstFrame": true,
+                        "requireInitialViewport": true,
+                        "showCloseButton": true,
+                        "singleActive": true,
+                        "closeBehavior": "return-inline-and-dismiss-cycle"
+                    },
                     "variantSelection": {
                         "key": "random1",
                         "values": {

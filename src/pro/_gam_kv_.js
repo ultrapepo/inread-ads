@@ -1612,7 +1612,7 @@ class RandomStrategy extends WindowArray {
             position: absolute;
             top: 6px;
             right: 6px;
-            z-index: 20;
+            z-index: 10000;
             width: 28px;
             height: 28px;
             border: 0;
@@ -1623,6 +1623,8 @@ class RandomStrategy extends WindowArray {
             font-size: 20px;
             line-height: 28px;
             text-align: center;
+            pointer-events: auto;
+            touch-action: manipulation;
         }
         .gexp-intext-pip-close:focus-visible {
             outline: 2px solid #fff;
@@ -2401,6 +2403,16 @@ class RandomStrategy extends WindowArray {
         "gexp-intext-video-failed",
         "gexp-intext-video-error-code",
         "gexp-intext-video-error-message",
+        "gexp-intext-pip-enabled",
+        "gexp-intext-pip-effective-enabled",
+        "gexp-intext-pip-entered",
+        "gexp-intext-pip-entry-count",
+        "gexp-intext-pip-visible-ms",
+        "gexp-intext-pip-dismissed",
+        "gexp-intext-pip-ended-while-active",
+        "gexp-intext-pip-last-exit-reason",
+        "gexp-intext-pip-entry-played-pct",
+        "gexp-intext-pip-exit-played-pct",
         "gexp-intext-ad-rendered-logical",
         "gexp-intext-ad-filled-logical",
         "gexp-intext-gam-line-item-type",
@@ -5262,6 +5274,10 @@ class RandomStrategy extends WindowArray {
           );
         }
 
+        isIntextPipEffectiveEnabled() {
+          return this.isIntextPipEnabled();
+        }
+
         getIntextPipPlayerElement() {
           try {
             const player = this.activeCreative?.player;
@@ -5460,7 +5476,7 @@ class RandomStrategy extends WindowArray {
               event.stopPropagation();
               this.dismissIntextPip();
             };
-            button.addEventListener("click", this._intextPipCloseHandler);
+            button.addEventListener("click", this._intextPipCloseHandler, { once: true });
             playerElement.appendChild(button);
             this._intextPipCloseButton = button;
           }
@@ -5471,6 +5487,7 @@ class RandomStrategy extends WindowArray {
           const playback = this.getIntextPipPlaybackData();
           this.mergeIntextTelemetry({
             "gexp-intext-pip-enabled": "true",
+            "gexp-intext-pip-effective-enabled": "true",
             "gexp-intext-pip-entered": "true",
             "gexp-intext-pip-entry-count": String(this._intextPipEntryCount),
             "gexp-intext-pip-entry-played-pct": playback.playedPct === null ? "unknown" : String(playback.playedPct),
@@ -5561,8 +5578,7 @@ class RandomStrategy extends WindowArray {
           return wasFloating;
         }
 
-        resetIntextPipForRenderToken(renderToken) {
-          this.cleanupIntextPip("stale-render-token");
+        resetIntextPipState(renderToken) {
           this._intextPipState = "inline";
           this._intextPipDismissedRenderToken = null;
           this._intextPipEnteredAt = null;
@@ -5578,6 +5594,11 @@ class RandomStrategy extends WindowArray {
           this._intextPipLastIntersectionRatio = null;
           this._intextPipLastExitPlayedPct = null;
           return renderToken;
+        }
+
+        resetIntextPipForRenderToken(renderToken) {
+          this.cleanupIntextPip("stale-render-token");
+          return this.resetIntextPipState(renderToken);
         }
 
         maybeEnterIntextPipFromLastIntersection() {
@@ -5723,6 +5744,9 @@ class RandomStrategy extends WindowArray {
         }
 
         beginVisualRender(source = "unknown", trigger = "unknown") {
+          if (Number(this._activeRenderToken) > 0) {
+            this.cleanupIntextPip("stale-render-token");
+          }
           this._renderTokenSeq += 1;
           this._activeRenderToken = this._renderTokenSeq;
           this._renderInProgress = true;
@@ -5730,7 +5754,7 @@ class RandomStrategy extends WindowArray {
           this._displayRequestInFlight = false;
           this._lastVisualCycleId = this._intextTelemetryCycleId;
           this._visualState = source;
-          this.resetIntextPipForRenderToken(this._activeRenderToken);
+          this.resetIntextPipState(this._activeRenderToken);
           this.mergeIntextTelemetry({
             "gexp-intext-render-token": String(this._activeRenderToken),
             "gexp-intext-render-attempt": String(this._renderTokenSeq),
@@ -7005,6 +7029,7 @@ class RandomStrategy extends WindowArray {
               "gexp-intext-video-before-playback",
               "gexp-intext-video-viewport-exit-played-pct",
               "gexp-intext-pip-enabled",
+              "gexp-intext-pip-effective-enabled",
               "gexp-intext-pip-entered",
               "gexp-intext-pip-entry-count",
               "gexp-intext-pip-visible-ms",
@@ -7089,6 +7114,7 @@ class RandomStrategy extends WindowArray {
             "gexp-intext-creative-size",
             "gexp-intext-video-viewport-exit-played-pct",
             "gexp-intext-pip-enabled",
+            "gexp-intext-pip-effective-enabled",
             "gexp-intext-pip-entered",
             "gexp-intext-pip-entry-count",
             "gexp-intext-pip-visible-ms",
@@ -7305,6 +7331,7 @@ class RandomStrategy extends WindowArray {
           this._intextTelemetryCommittedForCycle = false;
           this._intextTelemetryCommittedReasons = {};
           this._intextTelemetryFinalCommitted = false;
+          this._intextTelemetryFinalDeltaCommitted = false;
           this._house1x1AutoRefreshAttemptsForCycle = 0;
           this.clearIntextTelemetryCycleCI();
 
@@ -7337,6 +7364,7 @@ class RandomStrategy extends WindowArray {
             "gexp-intext-ever-in-viewport": "false",
             "gexp-intext-viewport-visible-ms": "0",
             "gexp-intext-pip-enabled": this.getIntextPipConfig().enabled === true ? "true" : "false",
+            "gexp-intext-pip-effective-enabled": this.isIntextPipEffectiveEnabled() ? "true" : "false",
             "gexp-intext-pip-entered": "false",
             "gexp-intext-pip-entry-count": "0",
             "gexp-intext-pip-visible-ms": "0",
@@ -7482,16 +7510,20 @@ class RandomStrategy extends WindowArray {
             const closeReasons = new Set(["close-all", "destroy"]);
             const isFinalReason = finalReasons.has(reason);
             const isCloseReason = closeReasons.has(reason);
-            if ((isFinalReason || isCloseReason) && this._intextTelemetryFinalCommitted) return;
-            if (this._intextTelemetryCommittedForCycle && !isFinalReason && !isCloseReason) return;
             if (!this.wa?.cI) return;
             this.ensureIntextCycleTelemetryIdentity();
             const parentTelemetryId = String(this.wa.cI.tlm_rid || "");
             const statsRows = this.manager?.gexp?.statsG?.rows;
             const rowIsPending = !Array.isArray(statsRows) || statsRows.includes(this.wa.cI);
             const requiresFinalDelta = (isFinalReason || isCloseReason) && !rowIsPending;
+            if (
+              (isFinalReason || isCloseReason) &&
+              this._intextTelemetryFinalCommitted &&
+              (!requiresFinalDelta || this._intextTelemetryFinalDeltaCommitted)
+            ) return;
+            if (this._intextTelemetryCommittedForCycle && !isFinalReason && !isCloseReason) return;
             if (requiresFinalDelta) {
-              const finalDedupeKey = `slot-cycle-final:${parentTelemetryId}:${reason}`;
+              const finalDedupeKey = `slot-cycle-final:${parentTelemetryId}`;
               const finalSource = {
                 ...(this.wa.cI || {}),
                 ...(this._intextTelemetryCycle || {}),
@@ -7504,6 +7536,11 @@ class RandomStrategy extends WindowArray {
                 "gexp-intext-video-error-message", "gexp-intext-ad-rendered-logical",
                 "gexp-intext-ad-filled-logical", "gexp-intext-gam-line-item-type",
                 "gexp-intext-gam-event-size", "gexp-intext-render-layout", "adFilled",
+                "gexp-intext-pip-enabled", "gexp-intext-pip-effective-enabled",
+                "gexp-intext-pip-entered", "gexp-intext-pip-entry-count",
+                "gexp-intext-pip-visible-ms", "gexp-intext-pip-dismissed",
+                "gexp-intext-pip-ended-while-active", "gexp-intext-pip-last-exit-reason",
+                "gexp-intext-pip-entry-played-pct", "gexp-intext-pip-exit-played-pct",
                 "adRendered", "isEmpty", "lineItemId", "creativeId", "campaignId", "advertiserId",
               ];
               const finalDelta = {};
@@ -7528,6 +7565,7 @@ class RandomStrategy extends WindowArray {
               this._intextTelemetryCommittedForCycle = true;
               this._intextTelemetryCommittedReasons[reason] = true;
               this._intextTelemetryFinalCommitted = true;
+              this._intextTelemetryFinalDeltaCommitted = true;
               return;
             }
             this.flushIntextTelemetryToCI();
@@ -9713,6 +9751,9 @@ class RandomStrategy extends WindowArray {
           
           this.state = "video";
           this._visualState = "video";
+          this.mergeIntextTelemetry({
+            "gexp-intext-pip-effective-enabled": this.isIntextPipEffectiveEnabled() ? "true" : "false",
+          });
           this.setupIntextViewportTelemetryObserver();
           if (this._videoTiming?.auctionStartAt && this._videoTiming?.requestWinnerVideoAt) {
             logIntext(

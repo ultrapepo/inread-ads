@@ -2,6 +2,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
+const crypto = require('node:crypto');
 
 const root = path.resolve(__dirname, '..');
 const report = JSON.parse(
@@ -34,6 +35,26 @@ const configs = new Map(
   files.map((file) => [relative(file), JSON.parse(fs.readFileSync(file, 'utf8'))]),
 );
 const general = (config) => config.intextSites?.default?.general;
+const expectedPip = {
+  enabled: false,
+  mode: 'floating',
+  enabledDesktop: true,
+  enabledMobile: false,
+  position: 'bottom-right',
+  widthDesktop: 360,
+  widthMobile: 280,
+  maxWidthViewportRatio: 0.9,
+  right: 16,
+  bottom: 16,
+  zIndex: 100000,
+  enterIntersectionRatio: 0.05,
+  returnIntersectionRatio: 0.35,
+  onlyAfterFirstFrame: true,
+  requireInitialViewport: true,
+  showCloseButton: true,
+  singleActive: true,
+  closeBehavior: 'return-inline-and-dismiss-cycle',
+};
 
 function assertNoDuplicateJsonKeys(text, file) {
   let index = 0;
@@ -247,9 +268,9 @@ test('15. las configuraciones PNC desktop/mobile se preservaron', () => {
   }
 });
 
-test('16. la ausencia de PIP propia de los JSON se preservó', () => {
+test('16. los 12 JSON materializan exactamente los defaults PIP', () => {
   for (const config of configs.values()) {
-    assert.equal(general(config).video.pip, undefined);
+    assert.deepEqual(general(config).video.pip, expectedPip);
     for (const override of Object.values(general(config).slotOverrides)) {
       assert.equal(override.video?.pip, undefined);
     }
@@ -258,7 +279,7 @@ test('16. la ausencia de PIP propia de los JSON se preservó', () => {
 
 test('17. PIP no se habilitó globalmente por accidente', () => {
   for (const config of configs.values()) {
-    assert.notEqual(general(config).video.pip?.enabled, true);
+    assert.equal(general(config).video.pip.enabled, false);
   }
   assert.match(source, /enabled:\s*source\.enabled === true/);
   assert.match(source, /mode:\s*source\.mode === "floating" \? source\.mode : "floating"/);
@@ -279,7 +300,39 @@ test('19. todos los JSON del inventario aparecen en el informe', () => {
 
 test('20. todos los JSON modificados aparecen como changed en el informe', () => {
   const reportedChanged = report.files.filter((entry) => entry.changed).map((entry) => entry.file);
-  assert.deepEqual(reportedChanged, []);
+  assert.deepEqual(reportedChanged.sort(), [...configs.keys()].sort());
   assert.ok(report.files.every((entry) => configs.has(entry.file)));
+  assert.ok(report.files.every((entry) => (
+    entry.added.includes('intextSites.default.general.video.pip')
+    && entry.pip.present === true
+    && entry.pip.enabledByDefault === false
+  )));
   assert.equal(report.pipBaselineProtected, true);
+});
+
+test('21. cada bloque de vídeo conserva todas sus particularidades previas', () => {
+  for (const [file, config] of configs) {
+    const currentVideo = structuredClone(general(config).video);
+    delete currentVideo.pip;
+    const digest = crypto.createHash('sha256').update(JSON.stringify(currentVideo)).digest('hex');
+    assert.equal(
+      digest,
+      '8bd9dc641b84714fc9bc32cf66a488db03ea9f15da835f4524952852953d4769',
+      file,
+    );
+  }
+});
+
+test('22. los overrides documentados activan solo gexp-intext', () => {
+  const base = general(configs.get('configPro/default_ES_mobile.json')).video.pip;
+  const overrides = {
+    'gexp-intext': { video: { pip: { enabled: true } } },
+    'gexp-intext-2': { video: { pip: { enabled: false } } },
+    pnc: { video: { pip: { enabled: false } } },
+  };
+  const resolve = (slotId) => ({ ...base, ...overrides[slotId]?.video?.pip });
+  assert.equal(resolve('gexp-intext').enabled, true);
+  assert.equal(resolve('gexp-intext-2').enabled, false);
+  assert.equal(resolve('pnc').enabled, false);
+  assert.equal(resolve('gexp-intext-3').enabled, false);
 });

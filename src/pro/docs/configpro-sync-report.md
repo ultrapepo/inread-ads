@@ -10,327 +10,124 @@ Baseline PIP protegida: sí
 
 Se localizaron 12 configuraciones GAMExp reales. No se encontraron schemas,
 fixtures, backups, snapshots ni JSON de test dentro de `configPro/**/*.json`.
-La comparación recursiva confirma que las mejoras comunes solicitadas ya
-estaban sincronizadas; por ello no se modificó ningún JSON de producción.
+En las doce se añadió exclusivamente `intextSites.default.general.video.pip`,
+con los defaults de fase 1 y `enabled: false`.
 
 | Archivo | Cohorte 30 % | Randoms | Loading experiments | Fallback | PNC | PIP config | Particularidades | Resultado |
 | ------- | -----------: | ------: | ------------------: | -------: | --: | ---------: | ---------------: | --------- |
-| `configPro/default_ES_desktop.json` | Sí, 3 sites | 5–10 | 5/6 + default | Preservado | Desktop | Runtime off | Sin Marca | Sin cambios |
-| `configPro/default_ES_mobile.json` | Sí, 4 sites | 5–10 | 5/6 + default | Referencia | Mobile | Runtime off | Canónica | Sin cambios |
-| `configPro/default_ES_mundo_desktop.json` | Sí, 4 sites | 5–10 | 5/6 + default | Preservado | Desktop | Runtime off | Exclusión premium | Sin cambios |
-| `configPro/default_ES_mundo_mobile.json` | Sí, 4 sites | 5–10 | 5/6 + default | Preservado | Mobile | Runtime off | Exclusión premium | Sin cambios |
-| `configPro/default_expansion_ES.json` | Sí, 4 sites | 5–10 | 5/6 + default | Preservado | Propio | Runtime off | Aliases propios | Sin cambios |
-| `configPro/default_LATAM.json` | Sí, 4 sites | 5–10 | 5/6 + default | Preservado | LATAM | Runtime off | Estructura LATAM | Sin cambios |
-| `configPro/pro/default_ES_desktop.json` | Sí, 3 sites | 5–10 | 5/6 + default | Preservado | Desktop | Runtime off | Sin Marca | Sin cambios |
-| `configPro/pro/default_ES_mobile.json` | Sí, 4 sites | 5–10 | 5/6 + default | Preservado | Mobile | Runtime off | Réplica pro | Sin cambios |
-| `configPro/pro/default_ES_mundo_desktop.json` | Sí, 4 sites | 5–10 | 5/6 + default | Preservado | Desktop | Runtime off | Premium/reload IDs | Sin cambios |
-| `configPro/pro/default_ES_mundo_mobile.json` | Sí, 4 sites | 5–10 | 5/6 + default | Preservado | Mobile | Runtime off | Premium/reload IDs | Sin cambios |
-| `configPro/pro/default_expansion_ES.json` | Sí, 4 sites | 5–10 | 5/6 + default | Preservado | Propio | Runtime off | Aliases propios | Sin cambios |
-| `configPro/pro/default_LATAM.json` | Sí, 4 sites | 5–10 | 5/6 + default | Preservado | LATAM | Runtime off | Estructura LATAM | Sin cambios |
+| `configPro/default_ES_desktop.json` | Sí, 3 sites | 5–10 | 5/6 + default | Preservado | Desktop | Presente/off | Sin Marca | PIP añadido |
+| `configPro/default_ES_mobile.json` | Sí, 4 sites | 5–10 | 5/6 + default | Referencia | Mobile | Presente/off | Canónica | PIP añadido |
+| `configPro/default_ES_mundo_desktop.json` | Sí, 4 sites | 5–10 | 5/6 + default | Preservado | Desktop | Presente/off | Exclusión premium | PIP añadido |
+| `configPro/default_ES_mundo_mobile.json` | Sí, 4 sites | 5–10 | 5/6 + default | Preservado | Mobile | Presente/off | Exclusión premium | PIP añadido |
+| `configPro/default_expansion_ES.json` | Sí, 4 sites | 5–10 | 5/6 + default | Preservado | Propio | Presente/off | Aliases propios | PIP añadido |
+| `configPro/default_LATAM.json` | Sí, 4 sites | 5–10 | 5/6 + default | Preservado | LATAM | Presente/off | Estructura LATAM | PIP añadido |
+| `configPro/pro/default_ES_desktop.json` | Sí, 3 sites | 5–10 | 5/6 + default | Preservado | Desktop | Presente/off | Sin Marca | PIP añadido |
+| `configPro/pro/default_ES_mobile.json` | Sí, 4 sites | 5–10 | 5/6 + default | Preservado | Mobile | Presente/off | Réplica pro | PIP añadido |
+| `configPro/pro/default_ES_mundo_desktop.json` | Sí, 4 sites | 5–10 | 5/6 + default | Preservado | Desktop | Presente/off | Premium/reload IDs | PIP añadido |
+| `configPro/pro/default_ES_mundo_mobile.json` | Sí, 4 sites | 5–10 | 5/6 + default | Preservado | Mobile | Presente/off | Premium/reload IDs | PIP añadido |
+| `configPro/pro/default_expansion_ES.json` | Sí, 4 sites | 5–10 | 5/6 + default | Preservado | Propio | Presente/off | Aliases propios | PIP añadido |
+| `configPro/pro/default_LATAM.json` | Sí, 4 sites | 5–10 | 5/6 + default | Preservado | LATAM | Presente/off | Estructura LATAM | PIP añadido |
 
-## Hallazgos comunes
+## Mejora común aplicada
 
-- La cohorte común exacta es `["5", "6", "7", "8", "9", "10"]`: seis
-  valores únicos de veinte, equivalentes al 30 %.
-- `video.variantSelection.map` contiene los seis valores y los mapea a los
-  perfiles existentes `instream`/`outstream`.
-- `loadingExperiments` mantiene las variantes explícitas `5` (`test-b`) y `6`
-  (`control`). Los valores 7–10 conservan el fallback de loading definido por
-  la referencia; no se inventaron variantes ausentes.
-- Todos los archivos mantienen los slots normalizados `gexp-intext`,
-  `gexp-intext-2`, `gexp-intext-3` y `pnc`.
-- Están presentes los bloques comunes `fallbackBlankControl`, `loading`,
-  `loadingExperiments`, `decision`, `video`, `display`, `refreshCycle`,
-  `slots`, `infiniteScroll`, `telemetry`, `contentTypes`, `networks`, `rules`
-  y `dom`.
-- Ningún JSON materializa `video.pip` ni overrides PIP. La referencia tampoco
-  los contiene. No se añadió una estructura nueva: el default runtime de la
-  fase PIP sigue siendo `enabled: false`.
-- No se copiaron dominios, ad units, network IDs, selectores, exclusiones,
-  tamaños, estilos, timeouts ni bloques PNC entre archivos.
+- Ruta añadida en todos los archivos:
+  `intextSites.default.general.video.pip`.
+- El bloque contiene `mode: "floating"`, desktop permitido, móvil desactivado,
+  tamaño 360/280, ratios 0.05/0.35, posición inferior derecha, `zIndex:
+  100000`, requisitos de primer frame/reveal y cierre por ciclo.
+- `enabled` permanece en `false` en los 12 archivos.
+- No se añadieron overrides PIP de producción.
+- Se conservaron la cohorte exacta `["5", "6", "7", "8", "9", "10"]`,
+  randoms, loading experiments, fallback, PNC, vídeo y perfiles particulares.
 
-## configPro/default_ES_desktop.json
+## Detalle por archivo
 
-### Añadido
+### `configPro/default_ES_desktop.json`
 
-- Nada.
+- Añadido: `intextSites.default.general.video.pip`, desactivado, para
+  materializar los defaults comunes.
+- Preservado: dominios e inclusions sin Marca, vídeo desktop, exclusiones,
+  refresh y PNC.
+- No aplicable: no se añade ningún override activo.
 
-### Actualizado
+### `configPro/default_ES_mobile.json`
 
-- Nada.
+- Añadido: `intextSites.default.general.video.pip`, desactivado.
+- Preservado: referencia canónica, cohorte, perfiles de vídeo, mobile y PNC.
+- No aplicable: no se habilita PIP móvil ni global.
 
-### Preservado
+### `configPro/default_ES_mundo_desktop.json`
 
-- `domainFilter.allowedDomains`: `telva`, `expansion`, `elmundo`.
-- `inclusions.sites`: las mismas tres propiedades; Marca queda fuera.
-- Configuración desktop, exclusiones, refresh y PNC.
+- Añadido: `intextSites.default.general.video.pip`, desactivado.
+- Preservado: exclusión premium, aliases Prebid, vídeo desktop, refresh y PNC.
+- No aplicable: no se copian aliases ni overrides de otra red.
 
-### No aplicable
+### `configPro/default_ES_mundo_mobile.json`
 
-- `inclusions.sites.marca.com`: no corresponde al dominio permitido.
+- Añadido: `intextSites.default.general.video.pip`, desactivado.
+- Preservado: exclusión premium, aliases Prebid, vídeo mobile, refresh y PNC.
+- No aplicable: no se habilita PIP móvil ni se copian overrides.
 
-### PIP
+### `configPro/default_expansion_ES.json`
 
-- `video.pip` ausente; default runtime desactivado; sin overrides.
+- Añadido: `intextSites.default.general.video.pip`, desactivado.
+- Preservado: aliases, vídeo Expansion, refresh y PNC propios.
+- No aplicable: no se inventan equivalencias de slots.
 
-## configPro/default_ES_mobile.json
+### `configPro/default_LATAM.json`
 
-### Añadido
+- Añadido: `intextSites.default.general.video.pip`, desactivado.
+- Preservado: `name`, forma propia de `refreshCycle`, vídeo LATAM y PNC.
+- No aplicable: no se copian `ext` ni `config_version` de ES.
 
-- Nada.
+### `configPro/pro/default_ES_desktop.json`
 
-### Actualizado
+- Añadido: `intextSites.default.general.video.pip`, desactivado.
+- Preservado: dominios e inclusions sin Marca, vídeo pro desktop y PNC.
+- No aplicable: no se añade override activo.
 
-- Nada; es la referencia canónica.
+### `configPro/pro/default_ES_mobile.json`
 
-### Preservado
+- Añadido: `intextSites.default.general.video.pip`, desactivado.
+- Preservado: réplica pro, cohorte, vídeo mobile y PNC.
+- No aplicable: no se habilita PIP móvil ni global.
 
-- Cohorte 30 %, randoms, loading, fallback, mobile y PNC completos.
+### `configPro/pro/default_ES_mundo_desktop.json`
 
-### No aplicable
+- Añadido: `intextSites.default.general.video.pip`, desactivado.
+- Preservado: `reloadLineItemIds`, exclusión premium, vídeo pro desktop y PNC.
+- No aplicable: no se copian aliases ni overrides externos.
 
-- Sin sincronización contra sí mismo.
+### `configPro/pro/default_ES_mundo_mobile.json`
 
-### PIP
+- Añadido: `intextSites.default.general.video.pip`, desactivado.
+- Preservado: `reloadLineItemIds`, exclusión premium, vídeo pro mobile y PNC.
+- No aplicable: no se habilita PIP móvil.
 
-- `video.pip` ausente; default runtime desactivado; sin overrides.
+### `configPro/pro/default_expansion_ES.json`
 
-## configPro/default_ES_mundo_desktop.json
+- Añadido: `intextSites.default.general.video.pip`, desactivado.
+- Preservado: aliases, vídeo pro Expansion, refresh y PNC.
+- No aplicable: no se inventan equivalencias de slots.
 
-### Añadido
+### `configPro/pro/default_LATAM.json`
 
-- Nada.
+- Añadido: `intextSites.default.general.video.pip`, desactivado.
+- Preservado: `name`, `refreshCycle`, vídeo pro LATAM y PNC.
+- No aplicable: no se copian propiedades exclusivas de ES.
 
-### Actualizado
+## PIP y overrides
 
-- Nada.
-
-### Preservado
-
-- `exclusions.keyValues.isPremium = ["1", "true"]`.
-- Aliases Prebid, desktop, refresh y PNC propios.
-
-### No aplicable
-
-- Aliases de la referencia no copiados por ser específicos de red.
-
-### PIP
-
-- `video.pip` ausente; default runtime desactivado; sin overrides.
-
-## configPro/default_ES_mundo_mobile.json
-
-### Añadido
-
-- Nada.
-
-### Actualizado
-
-- Nada.
-
-### Preservado
-
-- `exclusions.keyValues.isPremium = ["1", "true"]`.
-- Aliases Prebid, mobile, refresh y PNC propios.
-
-### No aplicable
-
-- Aliases de la referencia no copiados por ser específicos de red.
-
-### PIP
-
-- `video.pip` ausente; default runtime desactivado; sin overrides.
-
-## configPro/default_expansion_ES.json
-
-### Añadido
-
-- Nada.
-
-### Actualizado
-
-- Nada.
-
-### Preservado
-
-- Aliases Prebid, configuración Expansion, refresh y PNC.
-
-### No aplicable
-
-- Aliases de la referencia no copiados por ser específicos de red.
-
-### PIP
-
-- `video.pip` ausente; default runtime desactivado; sin overrides.
-
-## configPro/default_LATAM.json
-
-### Añadido
-
-- Nada.
-
-### Actualizado
-
-- Nada.
-
-### Preservado
-
-- `name`, forma propia de `refreshCycle`, configuración LATAM y PNC.
-
-### No aplicable
-
-- `ext` y `config_version` exclusivos de configuraciones ES.
-
-### PIP
-
-- `video.pip` ausente; default runtime desactivado; sin overrides.
-
-## configPro/pro/default_ES_desktop.json
-
-### Añadido
-
-- Nada.
-
-### Actualizado
-
-- Nada.
-
-### Preservado
-
-- `domainFilter.allowedDomains` e `inclusions.sites` sin Marca.
-- Configuración pro desktop, exclusiones, refresh y PNC.
-
-### No aplicable
-
-- `inclusions.sites.marca.com`: no corresponde al dominio permitido.
-
-### PIP
-
-- `video.pip` ausente; default runtime desactivado; sin overrides.
-
-## configPro/pro/default_ES_mobile.json
-
-### Añadido
-
-- Nada.
-
-### Actualizado
-
-- Nada.
-
-### Preservado
-
-- Réplica pro de cohorte, randoms, loading, mobile y PNC.
-
-### No aplicable
-
-- No faltan mejoras comunes respecto a la referencia.
-
-### PIP
-
-- `video.pip` ausente; default runtime desactivado; sin overrides.
-
-## configPro/pro/default_ES_mundo_desktop.json
-
-### Añadido
-
-- Nada.
-
-### Actualizado
-
-- Nada.
-
-### Preservado
-
-- `reloadLineItemIds`.
-- `exclusions.keyValues.isPremium = ["1", "true"]`.
-- Aliases Prebid, pro desktop y PNC propios.
-
-### No aplicable
-
-- Aliases de la referencia no copiados por ser específicos de red.
-
-### PIP
-
-- `video.pip` ausente; default runtime desactivado; sin overrides.
-
-## configPro/pro/default_ES_mundo_mobile.json
-
-### Añadido
-
-- Nada.
-
-### Actualizado
-
-- Nada.
-
-### Preservado
-
-- `reloadLineItemIds`.
-- `exclusions.keyValues.isPremium = ["1", "true"]`.
-- Aliases Prebid, pro mobile y PNC propios.
-
-### No aplicable
-
-- Aliases de la referencia no copiados por ser específicos de red.
-
-### PIP
-
-- `video.pip` ausente; default runtime desactivado; sin overrides.
-
-## configPro/pro/default_expansion_ES.json
-
-### Añadido
-
-- Nada.
-
-### Actualizado
-
-- Nada.
-
-### Preservado
-
-- Aliases Prebid, configuración pro Expansion, refresh y PNC.
-
-### No aplicable
-
-- Aliases de la referencia no copiados por ser específicos de red.
-
-### PIP
-
-- `video.pip` ausente; default runtime desactivado; sin overrides.
-
-## configPro/pro/default_LATAM.json
-
-### Añadido
-
-- Nada.
-
-### Actualizado
-
-- Nada.
-
-### Preservado
-
-- `name`, forma propia de `refreshCycle`, configuración pro LATAM y PNC.
-
-### No aplicable
-
-- `ext` y `config_version` exclusivos de configuraciones ES.
-
-### PIP
-
-- `video.pip` ausente; default runtime desactivado; sin overrides.
+Los doce archivos contienen el mismo bloque base desactivado. No existía un
+override PIP particular en los JSON y no se añadió ninguno. El snippet de
+activación selectiva para QA o una futura decisión de producto se documenta,
+sin aplicarlo, en `docs/intext-pip-phase1-validation.md`.
 
 ## Excepciones justificadas
 
-- Los dos `default_ES_desktop.json` no reciben `marca.com` porque sus
-  `allowedDomains` excluyen Marca. No es una cohorte distinta: es alcance de
-  site distinto.
-- Los aliases Prebid ausentes en Mundo/Expansion se preservan tal como están;
-  pertenecen a configuración de red y quedan fuera de esta sincronización.
-- Las exclusiones premium de Mundo y `reloadLineItemIds` de los JSON pro Mundo
-  son particularidades protegidas.
-- No se añade `video.pip` a ningún JSON porque tampoco existe en la referencia.
-  Materializarlo habría creado un diff no respaldado y potencialmente habría
-  alterado overrides de la baseline PIP.
+- Los dos `default_ES_desktop.json` siguen sin `marca.com`, de acuerdo con sus
+  dominios permitidos.
+- Las exclusiones premium y `reloadLineItemIds` de Mundo permanecen intactos.
+- Los aliases, rutas publicitarias, network IDs, selectores DOM, tamaños,
+  estilos, timeouts, perfiles de vídeo, refresh y PNC no se sincronizaron
+  indiscriminadamente.
