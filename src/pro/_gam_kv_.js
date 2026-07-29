@@ -4842,8 +4842,12 @@ class RandomStrategy extends WindowArray {
         }
 
         async onNewArticleDetected(mainElement, navIndex) {
-          const isConfig = this.siteConfig?.infiniteScroll;
-          if (!isConfig) {
+          const scopedBaseConfig =
+            this.baseSiteConfig ||
+            this.siteConfig;
+          const baseInfiniteScrollConfig =
+            scopedBaseConfig?.infiniteScroll;
+          if (!baseInfiniteScrollConfig) {
             return { handled: true, decision: "content-type-blocked", telemetryRegistered: false };
           }
 
@@ -4860,7 +4864,10 @@ class RandomStrategy extends WindowArray {
           const contentType = scopedContext.contentType || this.detectContentType(mainElement);
           logIntext(`[IntextManager:NavContinua] navIndex=${navIndex}: content type = "${contentType}"`);
 
-          let scrollConfig = IntextManager.deepMerge({...this.siteConfig}, {});
+          let scrollConfig = IntextManager.deepMerge(
+            { ...scopedBaseConfig },
+            {},
+          );
           const scopedNetworkOverride =
             this.getIntextNetworkOverride(requestNetworkId);
           if (scopedNetworkOverride) {
@@ -4874,7 +4881,7 @@ class RandomStrategy extends WindowArray {
             scrollConfig = IntextManager.deepMerge(scrollConfig, ctProfile);
           }
           const infiniteScrollOverrides =
-            scrollConfig?.infiniteScroll?.overrides || isConfig.overrides;
+            scrollConfig?.infiniteScroll?.overrides;
           if (infiniteScrollOverrides) {
             scrollConfig = IntextManager.deepMerge(
               scrollConfig,

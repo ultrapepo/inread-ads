@@ -429,7 +429,172 @@ test('32-33. PNC aplica el override de su red antes de crear nodos', async () =>
   assert.equal(spain.scopedContext.networkId, '99071977');
 });
 
-test('34-37. los doce JSON usan fallback auto por región y mantienen PIP off', () => {
+function pncIsolationFixture(initialNetworkId) {
+  const manager = managerFixture({ configured: '99071977' }).manager;
+  const cleanBaseConfig = {
+    ...manager.siteConfig,
+    tam: { enabled: true },
+    infiniteScroll: {
+      overrides: {
+        refreshCycle: { isolationMarker: 'infinite-scroll' },
+      },
+    },
+    contentTypes: {
+      noticia: {
+        video: { contentTypeMarker: 'noticia-profile' },
+      },
+    },
+    slotOverridesById: {
+      pnc: {
+        video: { slotOverrideMarker: 'pnc-slot' },
+      },
+    },
+    networks: {
+      21626337071: { tam: { enabled: false } },
+    },
+  };
+  manager.baseSiteConfig =
+    JSON.parse(JSON.stringify(cleanBaseConfig));
+  manager.siteConfig = IntextManager.deepMerge(
+    cleanBaseConfig,
+    cleanBaseConfig.networks[initialNetworkId] || {},
+  );
+  const baseSnapshot = JSON.stringify(manager.baseSiteConfig);
+  let pendingNetworkId = '99071977';
+  let nextNavIndex = 1;
+  const nodes = [];
+
+  manager.resolveScopedAdContext = () => ({
+    detectedNetworkId: pendingNetworkId,
+    networkId: pendingNetworkId,
+    contentType: 'noticia',
+    hostname: 'marca.com',
+    targeting: {},
+  });
+  manager.resolveScopedIntextNewsIdentity = async () => ({
+    id: `pnc-${nextNavIndex}`,
+    newsId: `pnc-${nextNavIndex}`,
+    source: 'test',
+    resolved: true,
+  });
+  manager.captureIntextContentIdentity = () => ({
+    id: `pnc-${nextNavIndex}`,
+    newsId: `pnc-${nextNavIndex}`,
+    source: 'test',
+    resolved: true,
+  });
+  manager.isContentTypeAllowed = () => true;
+  manager.isBlockedByExclusions = () => false;
+  manager.isAllowedByInclusions = () => true;
+  manager.shouldBlockIntextByFallbackBlankControl = () => false;
+  manager.registerIntextManagerDecision = () => false;
+  manager.createIntextPositionsScoped = (
+    root,
+    scopedConfig,
+    suffix,
+    navIndex,
+    scopedContext,
+  ) => {
+    let nodeConfig = { ...scopedConfig };
+    const slotOverride = manager.getSlotOverridesForNode(
+      0,
+      `gexp-intext-pnc-${navIndex}`,
+      scopedConfig,
+    );
+    Object.entries(slotOverride || {}).forEach(([section, value]) => {
+      nodeConfig[section] =
+        value && typeof value === 'object' && !Array.isArray(value)
+          ? IntextManager.deepMerge(nodeConfig[section] || {}, value)
+          : value;
+    });
+    const node = { config: nodeConfig, scopedContext };
+    nodes.push(node);
+    return { result: 'created', found: 1, created: 1 };
+  };
+
+  return {
+    manager,
+    nodes,
+    baseSnapshot,
+    async create(networkId) {
+      pendingNetworkId = networkId;
+      const navIndex = nextNavIndex++;
+      await manager.onNewArticleDetected({}, navIndex);
+      return nodes.at(-1);
+    },
+  };
+}
+
+function getTamForPncNode(manager, node) {
+  const { waterfall } = waterfallFixture(manager);
+  waterfall.node.scopedContext = node.scopedContext;
+  waterfall.config = node.config;
+  return waterfall.getTAMConfiguration();
+}
+
+test('34-40. red inicial LATAM no contamina PNC España alternados', async () => {
+  const fixture = pncIsolationFixture('21626337071');
+  assert.equal(fixture.manager.siteConfig.tam.enabled, false);
+
+  const networks = [
+    '21626337071',
+    '99071977',
+    '21626337071',
+    '99071977',
+  ];
+  const nodes = [];
+  for (const networkId of networks) {
+    nodes.push(await fixture.create(networkId));
+  }
+
+  assert.deepEqual(
+    nodes.map((node) => node.config.tam.enabled),
+    [false, true, false, true],
+  );
+  assert.equal(getTamForPncNode(fixture.manager, nodes[0]), null);
+  assert.ok(getTamForPncNode(fixture.manager, nodes[1]));
+  assert.equal(getTamForPncNode(fixture.manager, nodes[2]), null);
+  assert.ok(getTamForPncNode(fixture.manager, nodes[3]));
+  assert.equal(fixture.manager.siteConfig.tam.enabled, false);
+  assert.equal(
+    JSON.stringify(fixture.manager.baseSiteConfig),
+    fixture.baseSnapshot,
+  );
+  assert.deepEqual(
+    nodes.map((node) => node.scopedContext.networkId),
+    networks,
+  );
+});
+
+test('41-45. red inicial España conserva profiles y permite PNC LATAM aislado', async () => {
+  const fixture = pncIsolationFixture('99071977');
+  assert.equal(fixture.manager.siteConfig.tam.enabled, true);
+  const spain = await fixture.create('99071977');
+  const latam = await fixture.create('21626337071');
+
+  assert.equal(spain.config.tam.enabled, true);
+  assert.equal(latam.config.tam.enabled, false);
+  assert.equal(spain.config.video.contentTypeMarker, 'noticia-profile');
+  assert.equal(spain.config.video.slotOverrideMarker, 'pnc-slot');
+  assert.equal(
+    spain.config.refreshCycle.isolationMarker,
+    'infinite-scroll',
+  );
+  assert.equal(
+    fixture.manager.resolveIntextVideoAdUnitPath(spain.scopedContext),
+    'detected/page/video-intext',
+  );
+  assert.equal(
+    fixture.manager.resolveIntextVideoAdUnitPath(latam.scopedContext),
+    'detected/page/video-intext',
+  );
+  assert.equal(
+    JSON.stringify(fixture.manager.baseSiteConfig),
+    fixture.baseSnapshot,
+  );
+});
+
+test('46-49. los doce JSON usan fallback auto por región y mantienen PIP off', () => {
   const files = [
     'configPro/default_ES_desktop.json',
     'configPro/default_ES_mobile.json',
