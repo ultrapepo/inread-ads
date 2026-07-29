@@ -32,20 +32,20 @@
         2559776610
     ],
     "houseIds": [
-        5170458185,
         81003777,
+        5170458185,
+        5027949483,
         45125937,
-        67317777,
-        4500591056,
         5355378473,
         4633770194,
         4815141041,
-        51641577,
+        4500591056,
+        49990977,
         4591133191,
+        51641577,
         4527374566,
         4940779598,
-        5027949483,
-        47165697
+        5744742627
     ],
     "prebidIds": [
         "5359233312",
@@ -70,20 +70,20 @@
         83522457,
         4402208836,
         5354911588,
-        5170458185,
         81003777,
+        5170458185,
+        5027949483,
         45125937,
-        67317777,
-        4500591056,
         5355378473,
         4633770194,
         4815141041,
-        51641577,
+        4500591056,
+        49990977,
         4591133191,
+        51641577,
         4527374566,
         4940779598,
-        5027949483,
-        47165697
+        5744742627
     ],
     "reloadCampaignIds": [
         2559776610,
@@ -102,23 +102,17 @@
         2668163671,
         2668164637
     ],
-    "reloadLineItemIds": [
-        7320934074,
-        7320997824,
-        7331053158,
-        7335131927
-    ],
     "positions": {
         "r": {
-            "p": 2,
+            "p": 3,
             "rv": 1,
             "ppbo": 0.1,
             "hr": {
                 "tim": null,
-                "ov": false,
+                "ov": true,
                 "pbtim": 2000,
                 "mr": 1,
-                "mintim": 2000
+                "mintim": 5000
             },
             "ar": {
                 "tim": null,
@@ -131,8 +125,8 @@
             "tl": true
         },
         "rb": {
-            "p": 2,
-            "rv": 1,
+            "p": 4,
+            "rv": 0,
             "ppbo": 0.1,
             "hr": {
                 "tim": null,
@@ -154,7 +148,7 @@
         "rc": {
             "p": 1,
             "rv": 0,
-            "ppbo": 0.05,
+            "ppbo": 0.1,
             "hr": {
                 "tim": null,
                 "ov": true,
@@ -175,8 +169,7 @@
         "rd": {
             "p": 1,
             "rv": 0,
-            "mp": 0,
-            "ppbo": 0.05,
+            "ppbo": 0.1,
             "hr": {
                 "tim": null,
                 "ov": true,
@@ -197,60 +190,15 @@
         "re": {
             "p": 2,
             "rv": 0,
-            "hr": {
-                "tim": null,
-                "ov": true,
-                "pbtim": 2000,
-                "mr": 1,
-                "mintim": 5000
-            },
-            "ar": {
-                "tim": null,
-                "ov": true,
-                "pbtim": 2000,
-                "mr": 1,
-                "mintim": 5000
-            },
-            "rqpbtim": 2000,
             "tl": true
         },
         "rf": {
             "p": 2,
-            "rv": 0,
-            "hr": {
-                "tim": null,
-                "ov": true,
-                "pbtim": 2000,
-                "mr": 1,
-                "mintim": 5000
-            },
-            "ar": {
-                "tim": null,
-                "ov": true,
-                "pbtim": 2000,
-                "mr": 1,
-                "mintim": 5000
-            },
-            "rqpbtim": 2000
+            "rv": 0
         },
         "rg": {
             "p": 2,
-            "rv": 0,
-            "hr": {
-                "tim": null,
-                "ov": true,
-                "pbtim": 2000,
-                "mr": 1,
-                "mintim": 5000
-            },
-            "ar": {
-                "tim": null,
-                "ov": true,
-                "pbtim": 2000,
-                "mr": 1,
-                "mintim": 5000
-            },
-            "rqpbtim": 2000
+            "rv": 0
         },
         "r-pnc": {
             "p": 2,
@@ -267,14 +215,14 @@
             "tl": true
         },
         "r-nata-pnc": {
-            "p": 1,
+            "p": 2,
             "rv": 1
         },
         "m": {
-            "p": 2,
-            "mp": 0,
+            "p": 10,
             "rv": 1,
             "tl": true,
+            "mp": 0,
             "hr": {
                 "tim": null,
                 "ov": true,
@@ -287,13 +235,13 @@
                 "ov": true,
                 "pbtim": 2000,
                 "mr": 1,
-                "mintim": 8000
+                "mintim": 5000
             }
         },
         "mb": {
-            "p": 4,
-            "mp": 0,
+            "p": 8,
             "rv": 1,
+            "mp": 0,
             "hr": {
                 "tim": null,
                 "ov": true,
@@ -307,8 +255,7 @@
                 "pbtim": 2000,
                 "mr": 1,
                 "mintim": 5000
-            },
-            "rqpbtim": 2000
+            }
         },
         "m-pnc": {
             "p": 2,
@@ -316,15 +263,13 @@
             "tl": true
         },
         "si": {
-            "p": 2,
+            "p": 1,
             "rv": 1,
-            "mp": 0,
             "tl": true
         },
         "sd": {
-            "p": 2,
+            "p": 1,
             "rv": 1,
-            "mp": 0,
             "tl": true
         },
         "c990x50_320x50": {
@@ -343,8 +288,7 @@
                 "pbtim": 2000,
                 "mr": 1,
                 "mintim": 5000
-            },
-            "rqpbtim": 2000
+            }
         },
         "c990x50_320x53c": {
             "p": 1,
@@ -363,7 +307,6 @@
                 "mr": 1,
                 "mintim": 5000
             },
-            "rqpbtim": 2000,
             "tl": true
         },
         "c990x50_320x53d": {
@@ -383,7 +326,6 @@
                 "mr": 1,
                 "mintim": 5000
             },
-            "rqpbtim": 2000,
             "tl": true
         },
         "gexp-intext": {
@@ -511,15 +453,6 @@
             },
             "rqpbtim": 2000,
             "tl": true
-        },
-        "carrusel": {
-            "ar": {
-                "tim": null,
-                "ov": false,
-                "pbtim": 2000,
-                "mr": 2,
-                "mintim": 3000
-            }
         },
         "default": {
             "p": 1,
@@ -680,9 +613,9 @@
                         "enabled": true,
                         "selector": ".ue-c-ad",
                         "direction": "up",
-                        "allowDownwardShift": false,
+                        "allowDownwardShift": true,
                         "fallbackToOriginal": true,
-                        "maxShiftParagraphs": 2,
+                        "maxShiftParagraphs": 3,
                         "minFinalParagraphIndexBySlot": {
                             "gexp-intext": 1
                         }
@@ -704,7 +637,7 @@
                     "mode": "standard"
                 },
                 "display": {
-                    "adUnitPath": "mun-mv/espana/n",
+                    "adUnitPath": "exp2/economia/n",
                     "sizes": [
                         [
                             300,
@@ -717,6 +650,14 @@
                         [
                             320,
                             100
+                        ],
+                        [
+                            300,
+                            600
+                        ],
+                        [
+                            960,
+                            540
                         ],
                         [
                             970,
@@ -1066,46 +1007,46 @@
                                 {
                                     "bidder": "msft",
                                     "params": {
-                                        "placement_id": 11595024
+                                        "placement_id": 11200342
                                     }
                                 },
                                 {
                                     "bidder": "rubicon",
                                     "params": {
-                                        "zoneId": 663130,
-                                        "siteId": 142586,
+                                        "zoneId": 663082,
+                                        "siteId": 142584,
                                         "accountId": 15366,
                                         "position": "atf"
                                     }
                                 },
                                 {
-                                    "bidder": "criteo",
+                                    "bidder": "equativ",
                                     "params": {
-                                        "networkId": 1080,
-                                        "pubid": "108879"
+                                        "networkId": "1844",
+                                        "siteId": "154205",
+                                        "pageId": "790175",
+                                        "formatId": "40859"
                                     }
                                 },
                                 {
-                                    "bidder": "equativ",
+                                    "bidder": "criteo",
                                     "params": {
-                                        "networkId": 1844,
-                                        "pageId": 648548,
-                                        "formatId": 40859,
-                                        "siteId": 99916
+                                        "networkId": "1080",
+                                        "pubid": "108879"
                                     }
                                 },
                                 {
                                     "bidder": "richaudience",
                                     "params": {
-                                        "pid": "11S7knCYvM",
+                                        "pid": "1JuTpHhvjI",
                                         "supplyType": "site"
                                     }
                                 },
                                 {
                                     "bidder": "teads",
                                     "params": {
-                                        "placementId": 202863,
-                                        "pageId": 187760
+                                        "placementId": 202867,
+                                        "pageId": 187762
                                     }
                                 },
                                 {
@@ -1118,19 +1059,19 @@
                                 {
                                     "bidder": "ix",
                                     "params": {
-                                        "siteId": "1255492"
+                                        "siteId": "1255247"
                                     }
                                 },
                                 {
                                     "bidder": "taboola",
                                     "params": {
-                                        "publisherId": "1925072"
+                                        "publisherId": "1925073"
                                     }
                                 },
                                 {
                                     "bidder": "pubstack_server",
                                     "params": {
-                                        "adUnitName": "elmundo_mobile_othersection_mpu1"
+                                        "adUnitName": "expansion_desktop_othersection_mpu1"
                                     }
                                 }
                             ],
@@ -1138,8 +1079,8 @@
                                 {
                                     "bidder": "rubicon_video",
                                     "params": {
-                                        "zoneId": 3460960,
-                                        "siteId": 96108,
+                                        "zoneId": 3460966,
+                                        "siteId": 96112,
                                         "position": "atf",
                                         "accountId": 15366,
                                         "video": {
@@ -1150,14 +1091,14 @@
                                 {
                                     "bidder": "richaudience_video",
                                     "params": {
-                                        "pid": "Uobr28BI2A",
+                                        "pid": "OJ8OM7nlqu",
                                         "supplyType": "site"
                                     }
                                 },
                                 {
                                     "bidder": "msft_video",
                                     "params": {
-                                        "placement_id": 21721834
+                                        "placement_id": 34117168
                                     }
                                 },
                                 {
@@ -1179,21 +1120,21 @@
                                     "bidder": "equativ_video",
                                     "params": {
                                         "networkId": "1844",
-                                        "siteId": "99916",
-                                        "pageId": "648548",
+                                        "siteId": "154205",
+                                        "pageId": "790175",
                                         "formatId": "40183"
                                     }
                                 },
                                 {
                                     "bidder": "ix_video",
                                     "params": {
-                                        "siteId": "1255517"
+                                        "siteId": "1255267"
                                     }
                                 },
                                 {
                                     "bidder": "pubstack_server_video",
                                     "params": {
-                                        "adUnitName": "elmundo_mobile_othersection_vidpr"
+                                        "adUnitName": "expansion_desktop_othersection_vidpr"
                                     }
                                 }
                             ],
@@ -1203,46 +1144,46 @@
                                         {
                                             "bidder": "msft",
                                             "params": {
-                                                "placement_id": 11595024
+                                                "placement_id": 11200342
                                             }
                                         },
                                         {
                                             "bidder": "rubicon",
                                             "params": {
-                                                "zoneId": 663130,
-                                                "siteId": 142586,
+                                                "zoneId": 663082,
+                                                "siteId": 142584,
                                                 "accountId": 15366,
                                                 "position": "atf"
                                             }
                                         },
                                         {
-                                            "bidder": "criteo",
+                                            "bidder": "equativ",
                                             "params": {
-                                                "networkId": 1080,
-                                                "pubid": "108879"
+                                                "networkId": "1844",
+                                                "siteId": "154205",
+                                                "pageId": "790175",
+                                                "formatId": "40859"
                                             }
                                         },
                                         {
-                                            "bidder": "equativ",
+                                            "bidder": "criteo",
                                             "params": {
-                                                "networkId": 1844,
-                                                "pageId": 648548,
-                                                "formatId": 40859,
-                                                "siteId": 99916
+                                                "networkId": "1080",
+                                                "pubid": "108879"
                                             }
                                         },
                                         {
                                             "bidder": "richaudience",
                                             "params": {
-                                                "pid": "11S7knCYvM",
+                                                "pid": "1JuTpHhvjI",
                                                 "supplyType": "site"
                                             }
                                         },
                                         {
                                             "bidder": "teads",
                                             "params": {
-                                                "placementId": 202863,
-                                                "pageId": 187760
+                                                "placementId": 202867,
+                                                "pageId": 187762
                                             }
                                         },
                                         {
@@ -1255,19 +1196,19 @@
                                         {
                                             "bidder": "ix",
                                             "params": {
-                                                "siteId": "1255492"
+                                                "siteId": "1255247"
                                             }
                                         },
                                         {
                                             "bidder": "taboola",
                                             "params": {
-                                                "publisherId": "1925072"
+                                                "publisherId": "1925073"
                                             }
                                         },
                                         {
                                             "bidder": "pubstack_server",
                                             "params": {
-                                                "adUnitName": "elmundo_mobile_othersection_mpu1"
+                                                "adUnitName": "expansion_desktop_othersection_mpu1"
                                             }
                                         }
                                     ],
@@ -1275,8 +1216,8 @@
                                         {
                                             "bidder": "rubicon_video",
                                             "params": {
-                                                "zoneId": 3460960,
-                                                "siteId": 96108,
+                                                "zoneId": 3460966,
+                                                "siteId": 96112,
                                                 "position": "atf",
                                                 "accountId": 15366,
                                                 "video": {
@@ -1287,14 +1228,14 @@
                                         {
                                             "bidder": "richaudience_video",
                                             "params": {
-                                                "pid": "Uobr28BI2A",
+                                                "pid": "OJ8OM7nlqu",
                                                 "supplyType": "site"
                                             }
                                         },
                                         {
                                             "bidder": "msft_video",
                                             "params": {
-                                                "placement_id": 21721834
+                                                "placement_id": 34117168
                                             }
                                         },
                                         {
@@ -1316,21 +1257,21 @@
                                             "bidder": "equativ_video",
                                             "params": {
                                                 "networkId": "1844",
-                                                "siteId": "99916",
-                                                "pageId": "648548",
+                                                "siteId": "154205",
+                                                "pageId": "790175",
                                                 "formatId": "40183"
                                             }
                                         },
                                         {
                                             "bidder": "ix_video",
                                             "params": {
-                                                "siteId": "1255517"
+                                                "siteId": "1255267"
                                             }
                                         },
                                         {
                                             "bidder": "pubstack_server_video",
                                             "params": {
-                                                "adUnitName": "elmundo_mobile_othersection_vidpr"
+                                                "adUnitName": "expansion_desktop_othersection_vidpr"
                                             }
                                         }
                                     ]
@@ -1340,46 +1281,46 @@
                                         {
                                             "bidder": "msft",
                                             "params": {
-                                                "placement_id": 11595025
+                                                "placement_id": 11200343
                                             }
                                         },
                                         {
                                             "bidder": "rubicon",
                                             "params": {
-                                                "zoneId": 663184,
-                                                "siteId": 142586,
+                                                "zoneId": 663098,
+                                                "siteId": 142584,
                                                 "accountId": 15366,
                                                 "position": "btf"
                                             }
                                         },
                                         {
-                                            "bidder": "criteo",
+                                            "bidder": "equativ",
                                             "params": {
-                                                "networkId": 1080,
-                                                "pubid": "108879"
+                                                "networkId": "1844",
+                                                "siteId": "154205",
+                                                "pageId": "790175",
+                                                "formatId": "40974"
                                             }
                                         },
                                         {
-                                            "bidder": "equativ",
+                                            "bidder": "criteo",
                                             "params": {
-                                                "networkId": 1844,
-                                                "pageId": 648548,
-                                                "formatId": 40974,
-                                                "siteId": 99916
+                                                "networkId": "1080",
+                                                "pubid": "108879"
                                             }
                                         },
                                         {
                                             "bidder": "richaudience",
                                             "params": {
-                                                "pid": "gNNUMaYzvZ",
+                                                "pid": "OWR3zMPwpo",
                                                 "supplyType": "site"
                                             }
                                         },
                                         {
                                             "bidder": "teads",
                                             "params": {
-                                                "placementId": 202863,
-                                                "pageId": 187760
+                                                "placementId": 202867,
+                                                "pageId": 187762
                                             }
                                         },
                                         {
@@ -1392,19 +1333,19 @@
                                         {
                                             "bidder": "ix",
                                             "params": {
-                                                "siteId": "1255497"
+                                                "siteId": "1255252"
                                             }
                                         },
                                         {
                                             "bidder": "taboola",
                                             "params": {
-                                                "publisherId": "1925072"
+                                                "publisherId": "1925073"
                                             }
                                         },
                                         {
                                             "bidder": "pubstack_server",
                                             "params": {
-                                                "adUnitName": "elmundo_mobile_othersection_mpu2"
+                                                "adUnitName": "expansion_desktop_othersection_mpu2"
                                             }
                                         }
                                     ],
@@ -1412,8 +1353,8 @@
                                         {
                                             "bidder": "rubicon_video",
                                             "params": {
-                                                "zoneId": 3460960,
-                                                "siteId": 96108,
+                                                "zoneId": 3460966,
+                                                "siteId": 96112,
                                                 "position": "atf",
                                                 "accountId": 15366,
                                                 "video": {
@@ -1424,14 +1365,14 @@
                                         {
                                             "bidder": "richaudience_video",
                                             "params": {
-                                                "pid": "Uobr28BI2A",
+                                                "pid": "OJ8OM7nlqu",
                                                 "supplyType": "site"
                                             }
                                         },
                                         {
                                             "bidder": "msft_video",
                                             "params": {
-                                                "placement_id": 21721834
+                                                "placement_id": 34117168
                                             }
                                         },
                                         {
@@ -1453,21 +1394,21 @@
                                             "bidder": "equativ_video",
                                             "params": {
                                                 "networkId": "1844",
-                                                "siteId": "99916",
-                                                "pageId": "648548",
+                                                "siteId": "154205",
+                                                "pageId": "790175",
                                                 "formatId": "40183"
                                             }
                                         },
                                         {
                                             "bidder": "ix_video",
                                             "params": {
-                                                "siteId": "1255517"
+                                                "siteId": "1255267"
                                             }
                                         },
                                         {
                                             "bidder": "pubstack_server_video",
                                             "params": {
-                                                "adUnitName": "elmundo_mobile_othersection_vidpr"
+                                                "adUnitName": "expansion_desktop_othersection_vidpr"
                                             }
                                         }
                                     ]
@@ -1582,12 +1523,7 @@
                         "exclusions": {
                             "disableAll": false,
                             "adUnitPaths": [],
-                            "keyValues": {
-                                "isPremium": [
-                                    "1",
-                                    "true"
-                                ]
-                            },
+                            "keyValues": [],
                             "disableSlots": {
                                 "always": [],
                                 "rules": []
@@ -1607,10 +1543,6 @@
                         ],
                         "t": [
                             ""
-                        ],
-                        "isPremium": [
-                            "1",
-                            "true"
                         ]
                     },
                     "disableSlots": {
@@ -1663,12 +1595,7 @@
                     "exclusions": {
                         "disableAll": false,
                         "adUnitPaths": [],
-                        "keyValues": {
-                            "isPremium": [
-                                "1",
-                                "true"
-                            ]
-                        },
+                        "keyValues": [],
                         "disableSlots": {
                             "always": [],
                             "rules": []
@@ -1706,7 +1633,7 @@
                                 "gexp-intext-3": {
                                     "loading": {
                                         "fetchRootMargin": "1000px 0px",
-                                        "renderRootMargin": "150px 0px",
+                                        "renderRootMargin": "100px 0px",
                                         "maxDelayMs": null
                                     }
                                 },
@@ -1784,6 +1711,10 @@
                                     50
                                 ],
                                 [
+                                    300,
+                                    600
+                                ],
+                                [
                                     970,
                                     90
                                 ],
@@ -1820,6 +1751,461 @@
                                     1
                                 ]
                             ]
+                        },
+                        "prebid": {
+                            "timeoutMs": 2000,
+                            "graceMs": 200,
+                            "excludedVideoBidders": [],
+                            "videoOrtb2ImpMode": "ext_only",
+                            "networks": {
+                                "default": {
+                                    "aliases": {
+                                        "rubicon_video": {
+                                            "bidder": "rubicon",
+                                            "useBaseGvlid": true
+                                        },
+                                        "msft_video": {
+                                            "bidder": "msft",
+                                            "useBaseGvlid": true
+                                        },
+                                        "criteo_video": {
+                                            "bidder": "criteo",
+                                            "useBaseGvlid": true
+                                        },
+                                        "pubstack_server_video": {
+                                            "bidder": "pubstack_server",
+                                            "useBaseGvlid": true
+                                        },
+                                        "richaudience_video": {
+                                            "bidder": "richaudience",
+                                            "useBaseGvlid": true
+                                        },
+                                        "equativ_video": {
+                                            "bidder": "equativ",
+                                            "useBaseGvlid": true
+                                        },
+                                        "ix_video": {
+                                            "bidder": "ix",
+                                            "useBaseGvlid": true
+                                        },
+                                        "ttd_video": {
+                                            "bidder": "ttd",
+                                            "useBaseGvlid": true
+                                        }
+                                    },
+                                    "bidders": [
+                                        {
+                                            "bidder": "msft",
+                                            "params": {
+                                                "placement_id": 11200335
+                                            }
+                                        },
+                                        {
+                                            "bidder": "rubicon",
+                                            "params": {
+                                                "zoneId": 663198,
+                                                "siteId": 142594,
+                                                "accountId": 15366,
+                                                "position": "btf"
+                                            }
+                                        },
+                                        {
+                                            "bidder": "equativ",
+                                            "params": {
+                                                "networkId": "1844",
+                                                "siteId": "154206",
+                                                "pageId": "790177",
+                                                "formatId": "40859"
+                                            }
+                                        },
+                                        {
+                                            "bidder": "criteo",
+                                            "params": {
+                                                "networkId": "1080",
+                                                "pubid": "108879"
+                                            }
+                                        },
+                                        {
+                                            "bidder": "richaudience",
+                                            "params": {
+                                                "pid": "XiBXG0Rjqr",
+                                                "supplyType": "site"
+                                            }
+                                        },
+                                        {
+                                            "bidder": "teads",
+                                            "params": {
+                                                "placementId": 202867,
+                                                "pageId": 187762
+                                            }
+                                        },
+                                        {
+                                            "bidder": "ttd",
+                                            "params": {
+                                                "supplySourceId": "unidad",
+                                                "publisherId": "1"
+                                            }
+                                        },
+                                        {
+                                            "bidder": "ix",
+                                            "params": {
+                                                "siteId": "1255277"
+                                            }
+                                        },
+                                        {
+                                            "bidder": "taboola",
+                                            "params": {
+                                                "publisherId": "1925073"
+                                            }
+                                        },
+                                        {
+                                            "bidder": "pubstack_server",
+                                            "params": {
+                                                "adUnitName": "expansion_mobile_othersection_mpu1"
+                                            }
+                                        }
+                                    ],
+                                    "videoBidders": [
+                                        {
+                                            "bidder": "rubicon_video",
+                                            "params": {
+                                                "zoneId": 3460966,
+                                                "siteId": 96112,
+                                                "position": "atf",
+                                                "accountId": 15366,
+                                                "video": {
+                                                    "size_id": 201
+                                                }
+                                            }
+                                        },
+                                        {
+                                            "bidder": "richaudience_video",
+                                            "params": {
+                                                "pid": "OJ8OM7nlqu",
+                                                "supplyType": "site"
+                                            }
+                                        },
+                                        {
+                                            "bidder": "msft_video",
+                                            "params": {
+                                                "placement_id": 34117168
+                                            }
+                                        },
+                                        {
+                                            "bidder": "criteo_video",
+                                            "params": {
+                                                "networkId": "1080",
+                                                "pubid": "108879"
+                                            }
+                                        },
+                                        {
+                                            "bidder": "ttd_video",
+                                            "params": {
+                                                "supplySourceId": "unidad",
+                                                "publisherId": "1",
+                                                "placementId": "video"
+                                            }
+                                        },
+                                        {
+                                            "bidder": "equativ_video",
+                                            "params": {
+                                                "networkId": "1844",
+                                                "siteId": "154206",
+                                                "pageId": "790177",
+                                                "formatId": "40183"
+                                            }
+                                        },
+                                        {
+                                            "bidder": "ix_video",
+                                            "params": {
+                                                "siteId": "1255297"
+                                            }
+                                        },
+                                        {
+                                            "bidder": "pubstack_server_video",
+                                            "params": {
+                                                "adUnitName": "expansion_mobile_othersection_vidpr"
+                                            }
+                                        }
+                                    ],
+                                    "slotProfiles": {
+                                        "gexp-intext": {
+                                            "bidders": [
+                                                {
+                                                    "bidder": "msft",
+                                                    "params": {
+                                                        "placement_id": 11200335
+                                                    }
+                                                },
+                                                {
+                                                    "bidder": "rubicon",
+                                                    "params": {
+                                                        "zoneId": 663198,
+                                                        "siteId": 142594,
+                                                        "accountId": 15366,
+                                                        "position": "btf"
+                                                    }
+                                                },
+                                                {
+                                                    "bidder": "equativ",
+                                                    "params": {
+                                                        "networkId": "1844",
+                                                        "siteId": "154206",
+                                                        "pageId": "790177",
+                                                        "formatId": "40859"
+                                                    }
+                                                },
+                                                {
+                                                    "bidder": "criteo",
+                                                    "params": {
+                                                        "networkId": "1080",
+                                                        "pubid": "108879"
+                                                    }
+                                                },
+                                                {
+                                                    "bidder": "richaudience",
+                                                    "params": {
+                                                        "pid": "XiBXG0Rjqr",
+                                                        "supplyType": "site"
+                                                    }
+                                                },
+                                                {
+                                                    "bidder": "teads",
+                                                    "params": {
+                                                        "placementId": 202867,
+                                                        "pageId": 187762
+                                                    }
+                                                },
+                                                {
+                                                    "bidder": "ttd",
+                                                    "params": {
+                                                        "supplySourceId": "unidad",
+                                                        "publisherId": "1"
+                                                    }
+                                                },
+                                                {
+                                                    "bidder": "ix",
+                                                    "params": {
+                                                        "siteId": "1255277"
+                                                    }
+                                                },
+                                                {
+                                                    "bidder": "taboola",
+                                                    "params": {
+                                                        "publisherId": "1925073"
+                                                    }
+                                                },
+                                                {
+                                                    "bidder": "pubstack_server",
+                                                    "params": {
+                                                        "adUnitName": "expansion_mobile_othersection_mpu1"
+                                                    }
+                                                }
+                                            ],
+                                            "videoBidders": [
+                                                {
+                                                    "bidder": "rubicon_video",
+                                                    "params": {
+                                                        "zoneId": 3460966,
+                                                        "siteId": 96112,
+                                                        "position": "atf",
+                                                        "accountId": 15366,
+                                                        "video": {
+                                                            "size_id": 201
+                                                        }
+                                                    }
+                                                },
+                                                {
+                                                    "bidder": "richaudience_video",
+                                                    "params": {
+                                                        "pid": "OJ8OM7nlqu",
+                                                        "supplyType": "site"
+                                                    }
+                                                },
+                                                {
+                                                    "bidder": "msft_video",
+                                                    "params": {
+                                                        "placement_id": 34117168
+                                                    }
+                                                },
+                                                {
+                                                    "bidder": "criteo_video",
+                                                    "params": {
+                                                        "networkId": "1080",
+                                                        "pubid": "108879"
+                                                    }
+                                                },
+                                                {
+                                                    "bidder": "ttd_video",
+                                                    "params": {
+                                                        "supplySourceId": "unidad",
+                                                        "publisherId": "1",
+                                                        "placementId": "video"
+                                                    }
+                                                },
+                                                {
+                                                    "bidder": "equativ_video",
+                                                    "params": {
+                                                        "networkId": "1844",
+                                                        "siteId": "154206",
+                                                        "pageId": "790177",
+                                                        "formatId": "40183"
+                                                    }
+                                                },
+                                                {
+                                                    "bidder": "ix_video",
+                                                    "params": {
+                                                        "siteId": "1255297"
+                                                    }
+                                                },
+                                                {
+                                                    "bidder": "pubstack_server_video",
+                                                    "params": {
+                                                        "adUnitName": "expansion_mobile_othersection_vidpr"
+                                                    }
+                                                }
+                                            ]
+                                        },
+                                        "secondary": {
+                                            "bidders": [
+                                                {
+                                                    "bidder": "msft",
+                                                    "params": {
+                                                        "placement_id": 11200336
+                                                    }
+                                                },
+                                                {
+                                                    "bidder": "rubicon",
+                                                    "params": {
+                                                        "zoneId": 663200,
+                                                        "siteId": 142594,
+                                                        "accountId": 15366,
+                                                        "position": "btf"
+                                                    }
+                                                },
+                                                {
+                                                    "bidder": "equativ",
+                                                    "params": {
+                                                        "networkId": "1844",
+                                                        "siteId": "154206",
+                                                        "pageId": "790177",
+                                                        "formatId": "40974"
+                                                    }
+                                                },
+                                                {
+                                                    "bidder": "criteo",
+                                                    "params": {
+                                                        "networkId": "1080",
+                                                        "pubid": "108879"
+                                                    }
+                                                },
+                                                {
+                                                    "bidder": "richaudience",
+                                                    "params": {
+                                                        "pid": "i6xnqUF6qT",
+                                                        "supplyType": "site"
+                                                    }
+                                                },
+                                                {
+                                                    "bidder": "teads",
+                                                    "params": {
+                                                        "placementId": 202867,
+                                                        "pageId": 187762
+                                                    }
+                                                },
+                                                {
+                                                    "bidder": "ttd",
+                                                    "params": {
+                                                        "supplySourceId": "unidad",
+                                                        "publisherId": "1"
+                                                    }
+                                                },
+                                                {
+                                                    "bidder": "ix",
+                                                    "params": {
+                                                        "siteId": "1255282"
+                                                    }
+                                                },
+                                                {
+                                                    "bidder": "taboola",
+                                                    "params": {
+                                                        "publisherId": "1925073"
+                                                    }
+                                                },
+                                                {
+                                                    "bidder": "pubstack_server",
+                                                    "params": {
+                                                        "adUnitName": "expansion_mobile_othersection_mpu2"
+                                                    }
+                                                }
+                                            ],
+                                            "videoBidders": [
+                                                {
+                                                    "bidder": "rubicon_video",
+                                                    "params": {
+                                                        "zoneId": 3460966,
+                                                        "siteId": 96112,
+                                                        "position": "atf",
+                                                        "accountId": 15366,
+                                                        "video": {
+                                                            "size_id": 201
+                                                        }
+                                                    }
+                                                },
+                                                {
+                                                    "bidder": "richaudience_video",
+                                                    "params": {
+                                                        "pid": "OJ8OM7nlqu",
+                                                        "supplyType": "site"
+                                                    }
+                                                },
+                                                {
+                                                    "bidder": "msft_video",
+                                                    "params": {
+                                                        "placement_id": 34117168
+                                                    }
+                                                },
+                                                {
+                                                    "bidder": "criteo_video",
+                                                    "params": {
+                                                        "networkId": "1080",
+                                                        "pubid": "108879"
+                                                    }
+                                                },
+                                                {
+                                                    "bidder": "ttd_video",
+                                                    "params": {
+                                                        "supplySourceId": "unidad",
+                                                        "publisherId": "1",
+                                                        "placementId": "video"
+                                                    }
+                                                },
+                                                {
+                                                    "bidder": "equativ_video",
+                                                    "params": {
+                                                        "networkId": "1844",
+                                                        "siteId": "154206",
+                                                        "pageId": "790177",
+                                                        "formatId": "40183"
+                                                    }
+                                                },
+                                                {
+                                                    "bidder": "ix_video",
+                                                    "params": {
+                                                        "siteId": "1255297"
+                                                    }
+                                                },
+                                                {
+                                                    "bidder": "pubstack_server_video",
+                                                    "params": {
+                                                        "adUnitName": "expansion_mobile_othersection_vidpr"
+                                                    }
+                                                }
+                                            ]
+                                        }
+                                    }
+                                }
+                            }
                         }
                     }
                 }
@@ -2573,285 +2959,190 @@
     },
     "ext": {
         "sites": {
-            "p1": {
-                "mun-mv": {
-                    "ES": {
-                        "gexp-intext": [],
-                        "gexp-intext-2": [],
-                        "m": [],
-                        "m-pnc": [],
-                        "r": []
-                    }
-                }
-            },
             "pp2": {
-                "mun-mv": {
+                "exp2": {
                     "ES": {
-                        "m": 10,
-                        "r": 6,
-                        "r-nata": 0,
-                        "rb": 3,
-                        "gexp-intext-2": 1,
-                        "rc": 3,
-                        "re": 1,
-                        "rd": 1,
-                        "gexp-intext": 0
-                    },
-                    "US": {
-                        "m": 13,
-                        "r": 7,
-                        "r-nata": 3,
-                        "gexp-intext-2": 2,
-                        "rb": 7,
-                        "rc": 10,
-                        "rd": 11,
-                        "re": 0
-                    },
-                    "GB": {
-                        "m": 4,
-                        "r": 1,
-                        "rb": 3,
-                        "gexp-intext": 0,
-                        "gexp-intext-2": 0,
-                        "r-nata": 2,
-                        "rc": 0,
-                        "rd": 1,
-                        "re": 1
-                    },
-                    "BE": {
-                        "r": 3,
-                        "m": 3,
-                        "rb": 1,
-                        "r-nata": 0,
-                        "rc": 1,
-                        "rd": 0,
-                        "re": 0
-                    },
-                    "CA": {
-                        "r": 6,
-                        "rb": 6,
-                        "m": 10,
-                        "r-nata": 2,
+                        "m": 5,
+                        "r": 4,
+                        "r-nata": 6,
+                        "rb": 2,
+                        "sd": 0,
+                        "si": 4,
                         "rc": 4,
                         "rd": 1,
+                        "gexp-intext": 11,
+                        "gexp-intext-2": 11,
                         "re": 0
                     },
                     "CH": {
-                        "m": 3,
-                        "r": 0,
-                        "rb": 5,
-                        "rc": 1,
-                        "rd": 1,
-                        "r-nata": 4,
-                        "re": 6
+                        "m": 7,
+                        "r": 10,
+                        "rb": 10,
+                        "sd": 2,
+                        "si": 10,
+                        "rc": 14,
+                        "rd": 0
                     },
                     "FR": {
-                        "m": 1,
-                        "r": 1,
-                        "rb": 3,
-                        "rd": 3,
-                        "r-nata": 2,
-                        "rc": 1,
-                        "re": 1
-                    },
-                    "DE": {
-                        "m": 6,
-                        "r": 3,
-                        "rb": 1,
-                        "r-nata": 2,
-                        "gexp-intext-2": 0,
-                        "rc": 1,
-                        "rd": 1,
-                        "re": 1
-                    },
-                    "NL": {
-                        "m": 4,
-                        "r": 4,
-                        "rb": 1,
-                        "rc": 1,
-                        "rd": 5,
-                        "gexp-intext": 1,
-                        "gexp-intext-2": 0,
+                        "m": 5,
+                        "r": 11,
+                        "rb": 11,
+                        "sd": 5,
+                        "si": 5,
+                        "rc": 3,
                         "r-nata": 1,
-                        "re": 0
+                        "rd": 1
                     },
-                    "PT": {
-                        "m": 3,
-                        "r": 1,
-                        "rb": 1,
-                        "rc": 1,
-                        "rd": 3,
-                        "r-nata": 0,
-                        "re": 2
-                    }
-                },
-                "yodona-mv": {
-                    "ES": {
-                        "m": 8,
-                        "r": 10,
-                        "r-nata": 0,
-                        "rb": 1,
-                        "rc": 1,
-                        "rd": 1,
-                        "re": 0,
-                        "gexp-intext": 1,
-                        "gexp-intext-2": 2
+                    "GB": {
+                        "m": 7,
+                        "r": 12,
+                        "rb": 13,
+                        "sd": 5,
+                        "si": 8,
+                        "rd": 10,
+                        "gexp-intext-2": 0,
+                        "r-nata": 3,
+                        "rc": 14
                     },
                     "US": {
                         "m": 10,
-                        "r": 8,
-                        "r-nata": 0,
-                        "rb": 0,
-                        "rc": 0,
-                        "rd": 1,
-                        "re": 1
-                    },
-                    "GB": {
-                        "m": 13,
-                        "r": 11,
-                        "r-nata": 1,
-                        "rb": 6,
-                        "rc": 6,
-                        "rd": 0,
-                        "re": 2
+                        "r": 0,
+                        "rb": 15,
+                        "sd": 7,
+                        "si": 7,
+                        "rc": 13,
+                        "rd": 3
                     },
                     "BE": {
-                        "m": 2,
-                        "r": 4,
-                        "r-nata": 0,
-                        "rb": 2,
-                        "rc": 2,
+                        "m": 10,
+                        "r": 6,
+                        "rb": 8,
+                        "rc": 3,
                         "rd": 0,
-                        "re": 0
+                        "sd": 3,
+                        "si": 11
                     },
-                    "CA": {
-                        "r": 15,
-                        "m": 4,
-                        "r-nata": 0,
-                        "rb": 3,
-                        "rc": 1
-                    },
-                    "CH": {
+                    "DE": {
                         "m": 11,
                         "r": 9,
-                        "r-nata": 0,
-                        "rb": 10,
-                        "rc": 10
-                    },
-                    "FR": {
-                        "m": 3,
-                        "r": 3,
-                        "r-nata": 0,
                         "rb": 4,
-                        "rc": 4,
-                        "rd": 0,
-                        "re": 0
+                        "sd": 2,
+                        "si": 6,
+                        "r-nata": 0,
+                        "rc": 2,
+                        "rd": 0
                     },
-                    "DE": {
-                        "m": 11,
-                        "r": 8,
-                        "rb": 10,
-                        "rc": 11,
+                    "IT": {
+                        "m": 1,
+                        "rb": 9,
+                        "sd": 2,
+                        "si": 10,
+                        "r": 4,
+                        "r-nata": 0,
+                        "rc": 2,
                         "rd": 0
                     },
                     "NL": {
+                        "m": 12,
                         "r": 9,
-                        "m": 6
+                        "rb": 9,
+                        "sd": 2,
+                        "si": 6,
+                        "rc": 3
                     },
                     "PT": {
-                        "m": 3,
-                        "r": 4,
+                        "m": 9,
+                        "r": 6,
+                        "rb": 5,
+                        "rc": 3,
+                        "r-nata": 11,
+                        "rd": 3,
+                        "sd": 11,
+                        "si": 7
+                    }
+                },
+                "exp-mv": {
+                    "ES": {
+                        "m": 4,
+                        "r": 2,
+                        "r-nata": 4,
+                        "rb": 3,
+                        "rc": 3,
+                        "rd": 3,
+                        "gexp-intext": 15,
+                        "gexp-intext-2": 9,
+                        "re": 0
+                    },
+                    "CH": {
+                        "r": 9,
+                        "m": 1,
+                        "rb": 13,
+                        "rc": 6,
+                        "rd": 2
+                    },
+                    "FR": {
+                        "m": 0,
+                        "r": 2,
                         "r-nata": 0,
-                        "rb": 1,
-                        "rc": 1
+                        "rb": 13,
+                        "rc": 3
+                    },
+                    "GB": {
+                        "m": 11,
+                        "r": 7,
+                        "r-nata": 9,
+                        "rb": 11,
+                        "rc": 3
+                    },
+                    "US": {
+                        "m": 7,
+                        "r": 2,
+                        "gexp-intext-2": 1,
+                        "r-nata": 11,
+                        "rb": 10,
+                        "rc": 9,
+                        "rd": 3
+                    },
+                    "BE": {
+                        "m": 10,
+                        "r": 8,
+                        "gexp-intext-2": 0,
+                        "rb": 3
+                    },
+                    "DE": {
+                        "r": 5,
+                        "m": 9,
+                        "rb": 11,
+                        "rc": 8
+                    },
+                    "IT": {
+                        "m": 10,
+                        "r": 13,
+                        "r-nata": 8,
+                        "rb": 5,
+                        "rc": 0
+                    },
+                    "NL": {
+                        "m": 11,
+                        "r": 7,
+                        "rb": 11,
+                        "rc": 4
+                    },
+                    "PT": {
+                        "m": 4,
+                        "r": 3,
+                        "rc": 2,
+                        "rb": 7,
+                        "rd": 4
                     }
                 }
             },
             "vv": {
-                "mun-mv": {
-                    "noticia": {
-                        "7": {
-                            "f": {
-                                "f": 75,
-                                "t": 100
-                            },
-                            "t": {
-                                "t": 100
-                            }
-                        },
-                        "8": {
+                "exp2": {
+                    "axesor-ejecutivos": {
+                        "2": {
                             "f": {
                                 "f": 0
-                            },
-                            "t": {
-                                "t": 0
-                            }
-                        },
-                        "9": {
-                            "t": {
-                                "t": 100
-                            }
-                        },
-                        "10": {
-                            "f": {
-                                "f": 100
-                            }
-                        },
-                        "11": {
-                            "f": {
-                                "f": 50
-                            }
-                        },
-                        "12": {
-                            "f": {
-                                "f": 0
-                            }
-                        },
-                        "13": {
-                            "f": {
-                                "f": 50
-                            }
-                        },
-                        "14": {
-                            "f": {
-                                "f": 50
-                            }
-                        },
-                        "15": {
-                            "f": {
-                                "f": 0
-                            }
-                        },
-                        "16": {
-                            "f": {
-                                "f": 30
-                            }
-                        },
-                        "17": {
-                            "f": {
-                                "f": 25
-                            }
-                        },
-                        "18": {
-                            "f": {
-                                "f": 0
-                            }
-                        },
-                        "19": {
-                            "f": {
-                                "f": 0
-                            }
-                        },
-                        "20": {
-                            "f": {
-                                "f": 0
-                            }
-                        }
-                    },
-                    "guia tv": {
-                        "4": {
-                            "f": {
-                                "f": 100
                             }
                         },
                         "5": {
@@ -2860,67 +3151,50 @@
                             }
                         },
                         "6": {
-                            "f": {
-                                "f": 30
+                            "t": {
+                                "t": 0
                             }
                         },
                         "7": {
                             "f": {
-                                "f": 80
-                            },
-                            "t": {
-                                "t": 80
-                            }
-                        }
-                    },
-                    "directo": {
-                        "7": {
-                            "f": {
-                                "f": 0
+                                "t": 0
                             }
                         },
                         "8": {
                             "f": {
-                                "f": 0
+                                "f": 90,
+                                "t": 100
+                            },
+                            "t": {
+                                "t": 100
                             }
                         },
                         "9": {
                             "f": {
-                                "f": 100
-                            }
-                        },
-                        "15": {
-                            "f": {
                                 "f": 0
                             }
                         },
-                        "17": {
+                        "10": {
                             "f": {
-                                "f": 0
+                                "f": 30
                             }
                         },
-                        "18": {
+                        "11": {
                             "f": {
-                                "f": 0
+                                "f": 65
                             }
                         },
-                        "20": {
+                        "12": {
                             "f": {
                                 "f": 0
                             }
                         }
                     },
-                    "album": {
-                        "7": {
+                    "axesor": {
+                        "5": {
                             "f": {
-                                "f": 50
-                            }
-                        }
-                    },
-                    "pagecontent": {
-                        "3": {
-                            "f": {
-                                "f": 0
+                                "f": 0,
+                                "t": 100
                             }
                         },
                         "6": {
@@ -2930,171 +3204,54 @@
                         },
                         "7": {
                             "f": {
-                                "f": 40
-                            }
-                        },
-                        "10": {
-                            "f": {
-                                "f": 0
-                            }
-                        },
-                        "11": {
-                            "f": {
-                                "f": 50
-                            }
-                        },
-                        "12": {
-                            "f": {
-                                "f": 0
-                            }
-                        },
-                        "14": {
-                            "f": {
-                                "f": 0
-                            }
-                        }
-                    },
-                    "portadilla": {
-                        "8": {
-                            "t": {
-                                "t": 0
-                            }
-                        },
-                        "10": {
-                            "f": {
-                                "f": 100
-                            }
-                        },
-                        "13": {
-                            "f": {
-                                "f": 100
-                            }
-                        },
-                        "17": {
-                            "f": {
-                                "f": 0
-                            }
-                        },
-                        "18": {
-                            "f": {
-                                "f": 0
-                            }
-                        },
-                        "19": {
-                            "f": {
-                                "f": 0
-                            }
-                        },
-                        "20": {
-                            "f": {
-                                "f": 0
-                            }
-                        }
-                    },
-                    "portada": {
-                        "14": {
-                            "f": {
-                                "f": 100
-                            }
-                        },
-                        "19": {
-                            "f": {
-                                "f": 100
-                            }
-                        },
-                        "20": {
-                            "f": {
-                                "f": 0
-                            }
-                        }
-                    },
-                    "directorio": {
-                        "7": {
-                            "f": {
-                                "f": 100
-                            }
-                        },
-                        "20": {
-                            "f": {
-                                "f": 0
-                            }
-                        }
-                    },
-                    "estaticos": {
-                        "7": {
-                            "f": {
-                                "f": 100
-                            }
-                        },
-                        "17": {
-                            "f": {
-                                "f": 0
-                            }
-                        }
-                    },
-                    "noticia-especial": {
-                        "10": {
+                                "t": 100
+                            },
                             "t": {
                                 "t": 100
                             }
                         },
-                        "11": {
-                            "f": {
-                                "f": 100
-                            }
-                        }
-                    }
-                },
-                "yodona-mv": {
-                    "noticia": {
-                        "7": {
-                            "f": {
-                                "f": 70,
-                                "t": 0
-                            },
-                            "t": {
-                                "t": 50
-                            }
-                        },
                         "8": {
                             "f": {
-                                "f": 0
+                                "f": 50,
+                                "t": 65
+                            }
+                        },
+                        "9": {
+                            "f": {
+                                "f": 35
+                            },
+                            "t": {
+                                "t": 100
                             }
                         },
                         "10": {
                             "f": {
                                 "f": 100
                             }
-                        },
-                        "12": {
-                            "f": {
-                                "f": 30
-                            },
-                            "t": {
-                                "t": 0
-                            }
-                        },
-                        "13": {
+                        }
+                    },
+                    "noticia": {
+                        "6": {
                             "f": {
                                 "f": 30
                             }
                         },
-                        "14": {
+                        "7": {
                             "f": {
-                                "f": 0
+                                "f": 100
                             }
                         },
-                        "17": {
+                        "8": {
                             "f": {
-                                "f": 0
+                                "f": 100
+                            }
+                        },
+                        "9": {
+                            "f": {
+                                "f": 100
                             }
                         },
                         "18": {
-                            "f": {
-                                "f": 0
-                            }
-                        },
-                        "19": {
                             "f": {
                                 "f": 0
                             }
@@ -3105,10 +3262,84 @@
                             }
                         }
                     },
-                    "album": {
+                    "recomendaciones": {
                         "7": {
                             "f": {
-                                "f": 70,
+                                "t": 100
+                            }
+                        }
+                    },
+                    "servicio": []
+                },
+                "exp-mv": {
+                    "ultima hora": {
+                        "7": {
+                            "f": {
+                                "f": 100,
+                                "t": 50
+                            }
+                        },
+                        "17": {
+                            "f": {
+                                "f": 50
+                            }
+                        },
+                        "18": {
+                            "f": {
+                                "f": 0
+                            }
+                        }
+                    },
+                    "noticia": {
+                        "7": {
+                            "f": {
+                                "f": 100
+                            }
+                        },
+                        "9": {
+                            "f": {
+                                "t": 100
+                            }
+                        },
+                        "12": {
+                            "f": {
+                                "f": 100
+                            }
+                        },
+                        "16": {
+                            "f": {
+                                "f": 0
+                            }
+                        }
+                    },
+                    "axesor": {
+                        "7": {
+                            "f": {
+                                "f": 100
+                            },
+                            "t": {
+                                "t": 0
+                            }
+                        },
+                        "17": {
+                            "f": {
+                                "f": 0
+                            }
+                        }
+                    },
+                    "bolsa-materias primas": {
+                        "12": {
+                            "f": {
+                                "f": 0
+                            }
+                        }
+                    }
+                },
+                "fds": {
+                    "album": [],
+                    "noticia": {
+                        "9": {
+                            "f": {
                                 "t": 100
                             }
                         }
@@ -3117,6 +3348,6 @@
             }
         }
     },
-    "config_version": "6a4cd8b25d084",
+    "config_version": "6a69cba1c332f",
     "npTelemetryProb": 0
 }

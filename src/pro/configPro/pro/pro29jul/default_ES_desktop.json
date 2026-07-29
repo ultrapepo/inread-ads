@@ -32,20 +32,20 @@
         2559776610
     ],
     "houseIds": [
-        5170458185,
         81003777,
+        5170458185,
+        5027949483,
         45125937,
-        67317777,
-        4500591056,
         5355378473,
         4633770194,
         4815141041,
-        51641577,
+        4500591056,
+        49990977,
         4591133191,
+        51641577,
         4527374566,
         4940779598,
-        5027949483,
-        47165697
+        5744742627
     ],
     "prebidIds": [
         "5359233312",
@@ -70,20 +70,20 @@
         83522457,
         4402208836,
         5354911588,
-        5170458185,
         81003777,
+        5170458185,
+        5027949483,
         45125937,
-        67317777,
-        4500591056,
         5355378473,
         4633770194,
         4815141041,
-        51641577,
+        4500591056,
+        49990977,
         4591133191,
+        51641577,
         4527374566,
         4940779598,
-        5027949483,
-        47165697
+        5744742627
     ],
     "reloadCampaignIds": [
         2559776610,
@@ -102,43 +102,43 @@
         2668163671,
         2668164637
     ],
-    "reloadLineItemIds": [
-        7320934074,
-        7320997824,
-        7331053158,
-        7335131927
-    ],
     "positions": {
         "r": {
-            "p": 2,
             "rv": 1,
-            "ppbo": 0.1,
+            "ppbo": 0.15,
             "hr": {
                 "tim": null,
-                "ov": false,
+                "ov": true,
                 "pbtim": 2000,
-                "mr": 1,
-                "mintim": 2000
+                "mr": 2,
+                "mintim": 5000
             },
             "ar": {
                 "tim": null,
                 "ov": true,
                 "pbtim": 2000,
-                "mr": 1,
+                "mr": 2,
                 "mintim": 5000
             },
             "rqpbtim": 2000,
-            "tl": true
+            "tl": true,
+            "adexEscalation": [
+                0,
+                2,
+                3,
+                5
+            ],
+            "mp": 10
         },
         "rb": {
-            "p": 2,
+            "p": 4,
             "rv": 1,
             "ppbo": 0.1,
             "hr": {
                 "tim": null,
                 "ov": true,
                 "pbtim": 2000,
-                "mr": 1,
+                "mr": 2,
                 "mintim": 5000
             },
             "ar": {
@@ -153,13 +153,13 @@
         },
         "rc": {
             "p": 1,
-            "rv": 0,
+            "rv": 1,
             "ppbo": 0.05,
             "hr": {
                 "tim": null,
                 "ov": true,
                 "pbtim": 2000,
-                "mr": 1,
+                "mr": 2,
                 "mintim": 5000
             },
             "ar": {
@@ -175,13 +175,13 @@
         "rd": {
             "p": 1,
             "rv": 0,
-            "mp": 0,
             "ppbo": 0.05,
+            "mp": 0,
             "hr": {
                 "tim": null,
                 "ov": true,
                 "pbtim": 2000,
-                "mr": 1,
+                "mr": 2,
                 "mintim": 5000
             },
             "ar": {
@@ -195,62 +195,59 @@
             "tl": true
         },
         "re": {
-            "p": 2,
+            "p": 5,
             "rv": 0,
             "hr": {
                 "tim": null,
                 "ov": true,
                 "pbtim": 2000,
-                "mr": 1,
+                "mr": 2,
                 "mintim": 5000
             },
             "ar": {
                 "tim": null,
                 "ov": true,
                 "pbtim": 2000,
-                "mr": 1,
+                "mr": 2,
                 "mintim": 5000
             },
-            "rqpbtim": 2000,
             "tl": true
         },
         "rf": {
-            "p": 2,
+            "p": 5,
             "rv": 0,
             "hr": {
                 "tim": null,
                 "ov": true,
                 "pbtim": 2000,
-                "mr": 1,
+                "mr": 2,
                 "mintim": 5000
             },
             "ar": {
                 "tim": null,
                 "ov": true,
                 "pbtim": 2000,
-                "mr": 1,
+                "mr": 2,
                 "mintim": 5000
-            },
-            "rqpbtim": 2000
+            }
         },
         "rg": {
-            "p": 2,
+            "p": 8,
             "rv": 0,
             "hr": {
                 "tim": null,
                 "ov": true,
                 "pbtim": 2000,
-                "mr": 1,
+                "mr": 2,
                 "mintim": 5000
             },
             "ar": {
                 "tim": null,
                 "ov": true,
                 "pbtim": 2000,
-                "mr": 1,
+                "mr": 2,
                 "mintim": 5000
-            },
-            "rqpbtim": 2000
+            }
         },
         "r-pnc": {
             "p": 2,
@@ -264,14 +261,28 @@
         "r-nata": {
             "p": 2,
             "rv": 1,
+            "hr": {
+                "tim": null,
+                "ov": true,
+                "pbtim": 2000,
+                "mr": 2,
+                "mintim": 5000
+            },
+            "ar": {
+                "tim": null,
+                "ov": true,
+                "pbtim": 2000,
+                "mr": 2,
+                "mintim": 5000
+            },
             "tl": true
         },
         "r-nata-pnc": {
-            "p": 1,
+            "p": 2,
             "rv": 1
         },
         "m": {
-            "p": 2,
+            "p": 4,
             "mp": 0,
             "rv": 1,
             "tl": true,
@@ -279,7 +290,7 @@
                 "tim": null,
                 "ov": true,
                 "pbtim": 2000,
-                "mr": 1,
+                "mr": 2,
                 "mintim": 5000
             },
             "ar": {
@@ -291,29 +302,28 @@
             }
         },
         "mb": {
-            "p": 4,
+            "p": 8,
             "mp": 0,
             "rv": 1,
+            "tl": true,
             "hr": {
                 "tim": null,
                 "ov": true,
                 "pbtim": 2000,
-                "mr": 1,
+                "mr": 2,
                 "mintim": 5000
             },
             "ar": {
                 "tim": null,
                 "ov": true,
                 "pbtim": 2000,
-                "mr": 1,
+                "mr": 2,
                 "mintim": 5000
-            },
-            "rqpbtim": 2000
+            }
         },
         "m-pnc": {
             "p": 2,
-            "rv": 1,
-            "tl": true
+            "rv": 1
         },
         "si": {
             "p": 2,
@@ -328,62 +338,59 @@
             "tl": true
         },
         "c990x50_320x50": {
-            "p": 1,
+            "p": 2,
             "rv": 1,
             "hr": {
                 "tim": null,
                 "ov": true,
                 "pbtim": 2000,
-                "mr": 1,
+                "mr": 2,
                 "mintim": 5000
             },
             "ar": {
                 "tim": null,
                 "ov": true,
                 "pbtim": 2000,
-                "mr": 1,
+                "mr": 2,
                 "mintim": 5000
-            },
-            "rqpbtim": 2000
+            }
         },
         "c990x50_320x53c": {
-            "p": 1,
+            "p": 2,
             "rv": 1,
             "hr": {
                 "tim": null,
                 "ov": true,
                 "pbtim": 2000,
-                "mr": 1,
+                "mr": 2,
                 "mintim": 5000
             },
             "ar": {
                 "tim": null,
                 "ov": true,
                 "pbtim": 2000,
-                "mr": 1,
+                "mr": 2,
                 "mintim": 5000
             },
-            "rqpbtim": 2000,
             "tl": true
         },
         "c990x50_320x53d": {
-            "p": 1,
+            "p": 2,
             "rv": 1,
             "hr": {
                 "tim": null,
                 "ov": true,
                 "pbtim": 2000,
-                "mr": 1,
+                "mr": 2,
                 "mintim": 5000
             },
             "ar": {
                 "tim": null,
                 "ov": true,
                 "pbtim": 2000,
-                "mr": 1,
+                "mr": 2,
                 "mintim": 5000
             },
-            "rqpbtim": 2000,
             "tl": true
         },
         "gexp-intext": {
@@ -512,20 +519,11 @@
             "rqpbtim": 2000,
             "tl": true
         },
-        "carrusel": {
-            "ar": {
-                "tim": null,
-                "ov": false,
-                "pbtim": 2000,
-                "mr": 2,
-                "mintim": 3000
-            }
-        },
         "default": {
             "p": 1,
-            "mp": 0,
             "rv": 0,
-            "ppbo": 0.05,
+            "ppbo": 0.1,
+            "mp": 0,
             "hr": null,
             "ar": null,
             "rqpbtim": 2000,
@@ -591,7 +589,6 @@
                     "enabled": true,
                     "allowedDomains": [
                         "telva",
-                        "marca",
                         "expansion",
                         "elmundo"
                     ],
@@ -601,18 +598,6 @@
                 "inclusions": {
                     "keyValues": [],
                     "sites": {
-                        "marca.com": {
-                            "keyValues": {
-                                "random1": [
-                                    "5",
-                                    "6",
-                                    "7",
-                                    "8",
-                                    "9",
-                                    "10"
-                                ]
-                            }
-                        },
                         "telva.com": {
                             "keyValues": {
                                 "random1": [
@@ -680,9 +665,9 @@
                         "enabled": true,
                         "selector": ".ue-c-ad",
                         "direction": "up",
-                        "allowDownwardShift": false,
+                        "allowDownwardShift": true,
                         "fallbackToOriginal": true,
-                        "maxShiftParagraphs": 2,
+                        "maxShiftParagraphs": 3,
                         "minFinalParagraphIndexBySlot": {
                             "gexp-intext": 1
                         }
@@ -696,7 +681,7 @@
                 "loading": {
                     "rootMargin": "1000px 0px",
                     "maxDelayMs": 1500,
-                    "fetchRootMargin": "1200px 0px",
+                    "fetchRootMargin": "1400px 0px",
                     "renderRootMargin": "650px 0px",
                     "maxFetchToRenderMs": 10000
                 },
@@ -704,7 +689,7 @@
                     "mode": "standard"
                 },
                 "display": {
-                    "adUnitPath": "mun-mv/espana/n",
+                    "adUnitPath": "mc2/futbol/n",
                     "sizes": [
                         [
                             300,
@@ -717,6 +702,14 @@
                         [
                             320,
                             100
+                        ],
+                        [
+                            300,
+                            600
+                        ],
+                        [
+                            960,
+                            540
                         ],
                         [
                             970,
@@ -988,7 +981,7 @@
                         "loading": {
                             "rootMargin": "500px 0px",
                             "maxDelayMs": 1500,
-                            "fetchRootMargin": "1200px 0px",
+                            "fetchRootMargin": "1400px 0px",
                             "renderRootMargin": "650px 0px"
                         }
                     },
@@ -999,7 +992,7 @@
                         "loading": {
                             "rootMargin": "150px 0px",
                             "maxDelayMs": null,
-                            "fetchRootMargin": "1000px 0px",
+                            "fetchRootMargin": "1100px 0px",
                             "renderRootMargin": "150px 0px"
                         }
                     },
@@ -1008,14 +1001,14 @@
                             "mode": "display_only"
                         },
                         "loading": {
-                            "fetchRootMargin": "1000px 0px",
+                            "fetchRootMargin": "1100px 0px",
                             "renderRootMargin": "150px 0px",
                             "maxDelayMs": null
                         }
                     },
                     "pnc": {
                         "loading": {
-                            "fetchRootMargin": "1000px 0px",
+                            "fetchRootMargin": "1100px 0px",
                             "renderRootMargin": "150px 0px",
                             "maxDelayMs": null
                         }
@@ -1033,16 +1026,16 @@
                                     "bidder": "rubicon",
                                     "useBaseGvlid": true
                                 },
-                                "msft_video": {
-                                    "bidder": "msft",
+                                "appnexus_video": {
+                                    "bidder": "appnexus",
                                     "useBaseGvlid": true
                                 },
                                 "criteo_video": {
                                     "bidder": "criteo",
                                     "useBaseGvlid": true
                                 },
-                                "pubstack_server_video": {
-                                    "bidder": "pubstack_server",
+                                "pubmatic_video": {
+                                    "bidder": "pubmatic",
                                     "useBaseGvlid": true
                                 },
                                 "richaudience_video": {
@@ -1064,16 +1057,16 @@
                             },
                             "bidders": [
                                 {
-                                    "bidder": "msft",
+                                    "bidder": "appnexus",
                                     "params": {
-                                        "placement_id": 11595024
+                                        "placementId": "11595052"
                                     }
                                 },
                                 {
                                     "bidder": "rubicon",
                                     "params": {
-                                        "zoneId": 663130,
-                                        "siteId": 142586,
+                                        "zoneId": 663036,
+                                        "siteId": 142576,
                                         "accountId": 15366,
                                         "position": "atf"
                                     }
@@ -1089,23 +1082,33 @@
                                     "bidder": "equativ",
                                     "params": {
                                         "networkId": 1844,
-                                        "pageId": 648548,
-                                        "formatId": 40859,
-                                        "siteId": 99916
+                                        "pageId": 648549,
+                                        "formatId": 54639,
+                                        "siteId": 99913
                                     }
                                 },
                                 {
                                     "bidder": "richaudience",
                                     "params": {
-                                        "pid": "11S7knCYvM",
+                                        "pid": [
+                                            "8S3jMWeEhh",
+                                            "8fTLJJL0iQ"
+                                        ],
                                         "supplyType": "site"
                                     }
                                 },
                                 {
                                     "bidder": "teads",
                                     "params": {
-                                        "placementId": 202863,
-                                        "pageId": 187760
+                                        "placementId": 202864,
+                                        "pageId": 187761
+                                    }
+                                },
+                                {
+                                    "bidder": "pubmatic",
+                                    "params": {
+                                        "publisherId": "161984",
+                                        "adSlot": "4525457"
                                     }
                                 },
                                 {
@@ -1118,19 +1121,13 @@
                                 {
                                     "bidder": "ix",
                                     "params": {
-                                        "siteId": "1255492"
+                                        "siteId": "1255657"
                                     }
                                 },
                                 {
                                     "bidder": "taboola",
                                     "params": {
-                                        "publisherId": "1925072"
-                                    }
-                                },
-                                {
-                                    "bidder": "pubstack_server",
-                                    "params": {
-                                        "adUnitName": "elmundo_mobile_othersection_mpu1"
+                                        "publisherId": "1925071"
                                     }
                                 }
                             ],
@@ -1138,8 +1135,8 @@
                                 {
                                     "bidder": "rubicon_video",
                                     "params": {
-                                        "zoneId": 3460960,
-                                        "siteId": 96108,
+                                        "zoneId": 3460964,
+                                        "siteId": 96110,
                                         "position": "atf",
                                         "accountId": 15366,
                                         "video": {
@@ -1148,16 +1145,23 @@
                                     }
                                 },
                                 {
+                                    "bidder": "pubmatic_video",
+                                    "params": {
+                                        "publisherId": "161984",
+                                        "adSlot": "6112271"
+                                    }
+                                },
+                                {
                                     "bidder": "richaudience_video",
                                     "params": {
-                                        "pid": "Uobr28BI2A",
+                                        "pid": "ImcSe2TtvR",
                                         "supplyType": "site"
                                     }
                                 },
                                 {
-                                    "bidder": "msft_video",
+                                    "bidder": "appnexus_video",
                                     "params": {
-                                        "placement_id": 21721834
+                                        "placementId": 34117164
                                     }
                                 },
                                 {
@@ -1179,21 +1183,15 @@
                                     "bidder": "equativ_video",
                                     "params": {
                                         "networkId": "1844",
-                                        "siteId": "99916",
-                                        "pageId": "648548",
+                                        "siteId": "99913",
+                                        "pageId": "648549",
                                         "formatId": "40183"
                                     }
                                 },
                                 {
                                     "bidder": "ix_video",
                                     "params": {
-                                        "siteId": "1255517"
-                                    }
-                                },
-                                {
-                                    "bidder": "pubstack_server_video",
-                                    "params": {
-                                        "adUnitName": "elmundo_mobile_othersection_vidpr"
+                                        "siteId": "1255722"
                                     }
                                 }
                             ],
@@ -1201,16 +1199,16 @@
                                 "gexp-intext": {
                                     "bidders": [
                                         {
-                                            "bidder": "msft",
+                                            "bidder": "appnexus",
                                             "params": {
-                                                "placement_id": 11595024
+                                                "placementId": "11595052"
                                             }
                                         },
                                         {
                                             "bidder": "rubicon",
                                             "params": {
-                                                "zoneId": 663130,
-                                                "siteId": 142586,
+                                                "zoneId": 663036,
+                                                "siteId": 142576,
                                                 "accountId": 15366,
                                                 "position": "atf"
                                             }
@@ -1226,23 +1224,33 @@
                                             "bidder": "equativ",
                                             "params": {
                                                 "networkId": 1844,
-                                                "pageId": 648548,
-                                                "formatId": 40859,
-                                                "siteId": 99916
+                                                "pageId": 648549,
+                                                "formatId": 54639,
+                                                "siteId": 99913
                                             }
                                         },
                                         {
                                             "bidder": "richaudience",
                                             "params": {
-                                                "pid": "11S7knCYvM",
+                                                "pid": [
+                                                    "8S3jMWeEhh",
+                                                    "8fTLJJL0iQ"
+                                                ],
                                                 "supplyType": "site"
                                             }
                                         },
                                         {
                                             "bidder": "teads",
                                             "params": {
-                                                "placementId": 202863,
-                                                "pageId": 187760
+                                                "placementId": 202864,
+                                                "pageId": 187761
+                                            }
+                                        },
+                                        {
+                                            "bidder": "pubmatic",
+                                            "params": {
+                                                "publisherId": "161984",
+                                                "adSlot": "4525457"
                                             }
                                         },
                                         {
@@ -1255,19 +1263,13 @@
                                         {
                                             "bidder": "ix",
                                             "params": {
-                                                "siteId": "1255492"
+                                                "siteId": "1255657"
                                             }
                                         },
                                         {
                                             "bidder": "taboola",
                                             "params": {
-                                                "publisherId": "1925072"
-                                            }
-                                        },
-                                        {
-                                            "bidder": "pubstack_server",
-                                            "params": {
-                                                "adUnitName": "elmundo_mobile_othersection_mpu1"
+                                                "publisherId": "1925071"
                                             }
                                         }
                                     ],
@@ -1275,8 +1277,8 @@
                                         {
                                             "bidder": "rubicon_video",
                                             "params": {
-                                                "zoneId": 3460960,
-                                                "siteId": 96108,
+                                                "zoneId": 3460964,
+                                                "siteId": 96110,
                                                 "position": "atf",
                                                 "accountId": 15366,
                                                 "video": {
@@ -1285,16 +1287,23 @@
                                             }
                                         },
                                         {
+                                            "bidder": "pubmatic_video",
+                                            "params": {
+                                                "publisherId": "161984",
+                                                "adSlot": "6112271"
+                                            }
+                                        },
+                                        {
                                             "bidder": "richaudience_video",
                                             "params": {
-                                                "pid": "Uobr28BI2A",
+                                                "pid": "ImcSe2TtvR",
                                                 "supplyType": "site"
                                             }
                                         },
                                         {
-                                            "bidder": "msft_video",
+                                            "bidder": "appnexus_video",
                                             "params": {
-                                                "placement_id": 21721834
+                                                "placementId": 34117164
                                             }
                                         },
                                         {
@@ -1316,21 +1325,15 @@
                                             "bidder": "equativ_video",
                                             "params": {
                                                 "networkId": "1844",
-                                                "siteId": "99916",
-                                                "pageId": "648548",
+                                                "siteId": "99913",
+                                                "pageId": "648549",
                                                 "formatId": "40183"
                                             }
                                         },
                                         {
                                             "bidder": "ix_video",
                                             "params": {
-                                                "siteId": "1255517"
-                                            }
-                                        },
-                                        {
-                                            "bidder": "pubstack_server_video",
-                                            "params": {
-                                                "adUnitName": "elmundo_mobile_othersection_vidpr"
+                                                "siteId": "1255722"
                                             }
                                         }
                                     ]
@@ -1338,16 +1341,16 @@
                                 "secondary": {
                                     "bidders": [
                                         {
-                                            "bidder": "msft",
+                                            "bidder": "appnexus",
                                             "params": {
-                                                "placement_id": 11595025
+                                                "placementId": "11595058"
                                             }
                                         },
                                         {
                                             "bidder": "rubicon",
                                             "params": {
-                                                "zoneId": 663184,
-                                                "siteId": 142586,
+                                                "zoneId": 663056,
+                                                "siteId": 142576,
                                                 "accountId": 15366,
                                                 "position": "btf"
                                             }
@@ -1363,23 +1366,30 @@
                                             "bidder": "equativ",
                                             "params": {
                                                 "networkId": 1844,
-                                                "pageId": 648548,
+                                                "pageId": 648549,
                                                 "formatId": 40974,
-                                                "siteId": 99916
+                                                "siteId": 99913
                                             }
                                         },
                                         {
                                             "bidder": "richaudience",
                                             "params": {
-                                                "pid": "gNNUMaYzvZ",
+                                                "pid": "TyBOAyqBxU",
                                                 "supplyType": "site"
                                             }
                                         },
                                         {
                                             "bidder": "teads",
                                             "params": {
-                                                "placementId": 202863,
-                                                "pageId": 187760
+                                                "placementId": 202864,
+                                                "pageId": 187761
+                                            }
+                                        },
+                                        {
+                                            "bidder": "pubmatic",
+                                            "params": {
+                                                "publisherId": "161984",
+                                                "adSlot": "4525457"
                                             }
                                         },
                                         {
@@ -1392,19 +1402,13 @@
                                         {
                                             "bidder": "ix",
                                             "params": {
-                                                "siteId": "1255497"
+                                                "siteId": "1255682"
                                             }
                                         },
                                         {
                                             "bidder": "taboola",
                                             "params": {
-                                                "publisherId": "1925072"
-                                            }
-                                        },
-                                        {
-                                            "bidder": "pubstack_server",
-                                            "params": {
-                                                "adUnitName": "elmundo_mobile_othersection_mpu2"
+                                                "publisherId": "1925071"
                                             }
                                         }
                                     ],
@@ -1412,8 +1416,8 @@
                                         {
                                             "bidder": "rubicon_video",
                                             "params": {
-                                                "zoneId": 3460960,
-                                                "siteId": 96108,
+                                                "zoneId": 3460964,
+                                                "siteId": 96110,
                                                 "position": "atf",
                                                 "accountId": 15366,
                                                 "video": {
@@ -1422,16 +1426,23 @@
                                             }
                                         },
                                         {
+                                            "bidder": "pubmatic_video",
+                                            "params": {
+                                                "publisherId": "161984",
+                                                "adSlot": "6112271"
+                                            }
+                                        },
+                                        {
                                             "bidder": "richaudience_video",
                                             "params": {
-                                                "pid": "Uobr28BI2A",
+                                                "pid": "ImcSe2TtvR",
                                                 "supplyType": "site"
                                             }
                                         },
                                         {
-                                            "bidder": "msft_video",
+                                            "bidder": "appnexus_video",
                                             "params": {
-                                                "placement_id": 21721834
+                                                "placementId": 34117164
                                             }
                                         },
                                         {
@@ -1453,21 +1464,15 @@
                                             "bidder": "equativ_video",
                                             "params": {
                                                 "networkId": "1844",
-                                                "siteId": "99916",
-                                                "pageId": "648548",
+                                                "siteId": "99913",
+                                                "pageId": "648549",
                                                 "formatId": "40183"
                                             }
                                         },
                                         {
                                             "bidder": "ix_video",
                                             "params": {
-                                                "siteId": "1255517"
-                                            }
-                                        },
-                                        {
-                                            "bidder": "pubstack_server_video",
-                                            "params": {
-                                                "adUnitName": "elmundo_mobile_othersection_vidpr"
+                                                "siteId": "1255722"
                                             }
                                         }
                                     ]
@@ -1527,7 +1532,7 @@
                         },
                         "refreshCycle": {
                             "enabled": true,
-                            "delayMs": 3000,
+                            "delayMs": 5000,
                             "maxCycles": 2,
                             "mode": "display_only",
                             "bidStrategy": "fresh",
@@ -1556,7 +1561,7 @@
                                 "loading": {
                                     "rootMargin": "250px 0px",
                                     "maxDelayMs": null,
-                                    "fetchRootMargin": "1000px 0px",
+                                    "fetchRootMargin": "1100px 0px",
                                     "renderRootMargin": "150px 0px"
                                 }
                             },
@@ -1567,13 +1572,13 @@
                                 "loading": {
                                     "rootMargin": "250px 0px",
                                     "maxDelayMs": null,
-                                    "fetchRootMargin": "1000px 0px",
+                                    "fetchRootMargin": "1100px 0px",
                                     "renderRootMargin": "150px 0px"
                                 }
                             },
                             "pnc": {
                                 "loading": {
-                                    "fetchRootMargin": "1000px 0px",
+                                    "fetchRootMargin": "1100px 0px",
                                     "renderRootMargin": "150px 0px",
                                     "maxDelayMs": null
                                 }
@@ -1582,12 +1587,7 @@
                         "exclusions": {
                             "disableAll": false,
                             "adUnitPaths": [],
-                            "keyValues": {
-                                "isPremium": [
-                                    "1",
-                                    "true"
-                                ]
-                            },
+                            "keyValues": [],
                             "disableSlots": {
                                 "always": [],
                                 "rules": []
@@ -1607,10 +1607,6 @@
                         ],
                         "t": [
                             ""
-                        ],
-                        "isPremium": [
-                            "1",
-                            "true"
                         ]
                     },
                     "disableSlots": {
@@ -1663,12 +1659,7 @@
                     "exclusions": {
                         "disableAll": false,
                         "adUnitPaths": [],
-                        "keyValues": {
-                            "isPremium": [
-                                "1",
-                                "true"
-                            ]
-                        },
+                        "keyValues": [],
                         "disableSlots": {
                             "always": [],
                             "rules": []
@@ -1691,28 +1682,28 @@
                             "slots": {
                                 "gexp-intext": {
                                     "loading": {
-                                        "fetchRootMargin": "1200px 0px",
+                                        "fetchRootMargin": "1400px 0px",
                                         "renderRootMargin": "650px 0px",
-                                        "maxDelayMs": 7000
+                                        "maxDelayMs": null
                                     }
                                 },
                                 "gexp-intext-2": {
                                     "loading": {
-                                        "fetchRootMargin": "1000px 0px",
+                                        "fetchRootMargin": "1100px 0px",
                                         "renderRootMargin": "150px 0px",
                                         "maxDelayMs": null
                                     }
                                 },
                                 "gexp-intext-3": {
                                     "loading": {
-                                        "fetchRootMargin": "1000px 0px",
-                                        "renderRootMargin": "150px 0px",
+                                        "fetchRootMargin": "1100px 0px",
+                                        "renderRootMargin": "100px 0px",
                                         "maxDelayMs": null
                                     }
                                 },
                                 "pnc": {
                                     "loading": {
-                                        "fetchRootMargin": "1000px 0px",
+                                        "fetchRootMargin": "1100px 0px",
                                         "renderRootMargin": "100px 0px",
                                         "maxDelayMs": null
                                     }
@@ -1724,28 +1715,28 @@
                             "slots": {
                                 "gexp-intext": {
                                     "loading": {
-                                        "fetchRootMargin": "1200px 0px",
+                                        "fetchRootMargin": "1400px 0px",
                                         "renderRootMargin": "650px 0px",
                                         "maxDelayMs": 1500
                                     }
                                 },
                                 "gexp-intext-2": {
                                     "loading": {
-                                        "fetchRootMargin": "1000px 0px",
+                                        "fetchRootMargin": "1100px 0px",
                                         "renderRootMargin": "150px 0px",
                                         "maxDelayMs": null
                                     }
                                 },
                                 "gexp-intext-3": {
                                     "loading": {
-                                        "fetchRootMargin": "1000px 0px",
+                                        "fetchRootMargin": "1100px 0px",
                                         "renderRootMargin": "150px 0px",
                                         "maxDelayMs": null
                                     }
                                 },
                                 "pnc": {
                                     "loading": {
-                                        "fetchRootMargin": "1000px 0px",
+                                        "fetchRootMargin": "1100px 0px",
                                         "renderRootMargin": "150px 0px",
                                         "maxDelayMs": null
                                     }
@@ -1782,6 +1773,10 @@
                                 [
                                     320,
                                     50
+                                ],
+                                [
+                                    300,
+                                    600
                                 ],
                                 [
                                     970,
@@ -2574,242 +2569,371 @@
     "ext": {
         "sites": {
             "p1": {
-                "mun-mv": {
+                "mc2": {
                     "ES": {
-                        "gexp-intext": [],
-                        "gexp-intext-2": [],
+                        "c990x50_320x53c": [],
+                        "c990x50_320x53d": [],
                         "m": [],
-                        "m-pnc": [],
-                        "r": []
+                        "r": [],
+                        "s": []
                     }
                 }
             },
             "pp2": {
-                "mun-mv": {
+                "mc2": {
                     "ES": {
-                        "m": 10,
-                        "r": 6,
-                        "r-nata": 0,
-                        "rb": 3,
-                        "gexp-intext-2": 1,
-                        "rc": 3,
-                        "re": 1,
-                        "rd": 1,
-                        "gexp-intext": 0
-                    },
-                    "US": {
-                        "m": 13,
-                        "r": 7,
-                        "r-nata": 3,
-                        "gexp-intext-2": 2,
-                        "rb": 7,
-                        "rc": 10,
-                        "rd": 11,
-                        "re": 0
-                    },
-                    "GB": {
-                        "m": 4,
-                        "r": 1,
-                        "rb": 3,
-                        "gexp-intext": 0,
-                        "gexp-intext-2": 0,
-                        "r-nata": 2,
-                        "rc": 0,
-                        "rd": 1,
-                        "re": 1
-                    },
-                    "BE": {
-                        "r": 3,
-                        "m": 3,
-                        "rb": 1,
-                        "r-nata": 0,
-                        "rc": 1,
-                        "rd": 0,
-                        "re": 0
-                    },
-                    "CA": {
-                        "r": 6,
-                        "rb": 6,
-                        "m": 10,
-                        "r-nata": 2,
-                        "rc": 4,
-                        "rd": 1,
-                        "re": 0
-                    },
-                    "CH": {
-                        "m": 3,
-                        "r": 0,
-                        "rb": 5,
-                        "rc": 1,
-                        "rd": 1,
-                        "r-nata": 4,
-                        "re": 6
-                    },
-                    "FR": {
-                        "m": 1,
-                        "r": 1,
-                        "rb": 3,
-                        "rd": 3,
-                        "r-nata": 2,
-                        "rc": 1,
-                        "re": 1
-                    },
-                    "DE": {
-                        "m": 6,
-                        "r": 3,
-                        "rb": 1,
-                        "r-nata": 2,
-                        "gexp-intext-2": 0,
-                        "rc": 1,
-                        "rd": 1,
-                        "re": 1
-                    },
-                    "NL": {
-                        "m": 4,
-                        "r": 4,
-                        "rb": 1,
-                        "rc": 1,
-                        "rd": 5,
-                        "gexp-intext": 1,
-                        "gexp-intext-2": 0,
-                        "r-nata": 1,
-                        "re": 0
-                    },
-                    "PT": {
-                        "m": 3,
-                        "r": 1,
-                        "rb": 1,
-                        "rc": 1,
-                        "rd": 3,
-                        "r-nata": 0,
-                        "re": 2
-                    }
-                },
-                "yodona-mv": {
-                    "ES": {
-                        "m": 8,
-                        "r": 10,
-                        "r-nata": 0,
-                        "rb": 1,
-                        "rc": 1,
-                        "rd": 1,
-                        "re": 0,
-                        "gexp-intext": 1,
-                        "gexp-intext-2": 2
-                    },
-                    "US": {
-                        "m": 10,
+                        "c990x50_320x53c": 1,
+                        "c990x50_320x53d": 2,
+                        "m": 2,
                         "r": 8,
                         "r-nata": 0,
                         "rb": 0,
                         "rc": 0,
                         "rd": 1,
-                        "re": 1
-                    },
-                    "GB": {
-                        "m": 13,
-                        "r": 11,
-                        "r-nata": 1,
-                        "rb": 6,
-                        "rc": 6,
-                        "rd": 0,
-                        "re": 2
-                    },
-                    "BE": {
-                        "m": 2,
-                        "r": 4,
-                        "r-nata": 0,
-                        "rb": 2,
-                        "rc": 2,
-                        "rd": 0,
-                        "re": 0
-                    },
-                    "CA": {
-                        "r": 15,
-                        "m": 4,
-                        "r-nata": 0,
-                        "rb": 3,
-                        "rc": 1
+                        "re": 4,
+                        "sd": 0,
+                        "si": 2,
+                        "r-pnc": 10,
+                        "gexp-intext": 1,
+                        "gexp-intext-2": 3
                     },
                     "CH": {
-                        "m": 11,
-                        "r": 9,
-                        "r-nata": 0,
-                        "rb": 10,
-                        "rc": 10
+                        "c990x50_320x53c": 1,
+                        "r-nata": 2,
+                        "m": 3,
+                        "r": 0,
+                        "rb": 0,
+                        "rc": 3,
+                        "rd": 1,
+                        "re": 14,
+                        "gexp-intext-2": 2,
+                        "c990x50_320x53d": 0,
+                        "gexp-intext": 2,
+                        "rf": 12,
+                        "rg": 0
                     },
                     "FR": {
+                        "c990x50_320x53c": 1,
+                        "m": 1,
+                        "r": 0,
+                        "rb": 3,
+                        "rc": 3,
+                        "rd": 3,
+                        "r-nata": 1,
+                        "gexp-intext-2": 2,
+                        "c990x50_320x53d": 0,
+                        "gexp-intext": 2,
+                        "re": 3,
+                        "rf": 0,
+                        "rg": 1,
+                        "sd": 2,
+                        "si": 9
+                    },
+                    "GB": {
+                        "m": 0,
+                        "r": 0,
+                        "r-nata": 4,
+                        "rc": 3,
+                        "rb": 6,
+                        "sd": 6,
+                        "si": 4,
+                        "c990x50_320x53c": 0,
+                        "gexp-intext": 2,
+                        "gexp-intext-2": 2,
+                        "rd": 2,
+                        "re": 0,
+                        "rg": 0
+                    },
+                    "US": {
+                        "r-nata": 6,
+                        "m": 11,
+                        "r": 11,
+                        "rb": 12,
+                        "gexp-intext-2": 3,
+                        "rc": 13,
+                        "c990x50_320x53c": 5,
+                        "c990x50_320x53d": 5,
+                        "gexp-intext": 2,
+                        "m-pnc": 0,
+                        "r-pnc": 0,
+                        "rd": 10,
+                        "re": 17,
+                        "rf": 7,
+                        "rg": 0,
+                        "sd": 1,
+                        "si": 7
+                    },
+                    "BE": {
                         "m": 3,
-                        "r": 3,
-                        "r-nata": 0,
-                        "rb": 4,
-                        "rc": 4,
-                        "rd": 0,
-                        "re": 0
+                        "r": 0,
+                        "c990x50_320x53c": 0,
+                        "r-nata": 2,
+                        "rb": 1,
+                        "rc": 1,
+                        "rd": 3,
+                        "gexp-intext": 2,
+                        "gexp-intext-2": 0,
+                        "re": 2
                     },
                     "DE": {
-                        "m": 11,
-                        "r": 8,
-                        "rb": 10,
-                        "rc": 11,
-                        "rd": 0
+                        "c990x50_320x53c": 1,
+                        "m": 0,
+                        "r": 0,
+                        "r-nata": 1,
+                        "rb": 3,
+                        "rc": 3,
+                        "rd": 3,
+                        "gexp-intext-2": 2,
+                        "re": 4,
+                        "c990x50_320x53d": 0,
+                        "gexp-intext": 2,
+                        "rf": 3,
+                        "rg": 3,
+                        "sd": 3,
+                        "si": 8
+                    },
+                    "IT": {
+                        "c990x50_320x53c": 0,
+                        "m": 0,
+                        "r": 0,
+                        "rb": 0,
+                        "rc": 0,
+                        "rd": 2,
+                        "r-nata": 2,
+                        "re": 5,
+                        "c990x50_320x53d": 0,
+                        "gexp-intext": 0,
+                        "gexp-intext-2": 2,
+                        "rf": 0,
+                        "sd": 4,
+                        "si": 8
                     },
                     "NL": {
-                        "r": 9,
-                        "m": 6
+                        "c990x50_320x53c": 0,
+                        "gexp-intext-2": 2,
+                        "m": 2,
+                        "r": 4,
+                        "rb": 4,
+                        "rc": 3,
+                        "rd": 4,
+                        "r-nata": 1,
+                        "re": 4,
+                        "c990x50_320x53d": 0,
+                        "gexp-intext": 0,
+                        "m-pnc": 0,
+                        "r-pnc": 0,
+                        "rf": 5,
+                        "rg": 1
                     },
                     "PT": {
+                        "c990x50_320x53c": 1,
+                        "m": 0,
+                        "r": 3,
+                        "rb": 3,
+                        "rc": 3,
+                        "rd": 2,
+                        "r-nata": 1,
+                        "sd": 0,
+                        "si": 7,
+                        "c990x50_320x53d": 0,
+                        "gexp-intext": 1,
+                        "gexp-intext-2": 2,
+                        "re": 10,
+                        "rf": 4,
+                        "rg": 1
+                    }
+                },
+                "telva": {
+                    "ES": {
+                        "gexp-intext": 0,
+                        "gexp-intext-2": 0,
                         "m": 3,
-                        "r": 4,
+                        "r": 12,
+                        "r-nata": 2,
+                        "rb": 0,
+                        "rc": 2,
+                        "rd": 7,
+                        "sd": 1,
+                        "si": 1
+                    },
+                    "CH": {
+                        "m": 7,
+                        "r": 11,
+                        "r-nata": 3,
+                        "rb": 7,
+                        "sd": 2,
+                        "si": 2
+                    },
+                    "FR": {
+                        "m": 4,
+                        "r": 9,
+                        "r-nata": 1,
+                        "rb": 0,
+                        "rc": 2,
+                        "sd": 1,
+                        "si": 1
+                    },
+                    "GB": {
+                        "gexp-intext": 5,
+                        "gexp-intext-2": 4,
+                        "m": 3,
+                        "r": 12,
+                        "r-nata": 3,
+                        "rb": 12,
+                        "sd": 4,
+                        "si": 4
+                    },
+                    "US": {
+                        "gexp-intext": 0,
+                        "m": 11,
+                        "r": 13,
+                        "r-nata": 4,
+                        "rb": 19,
+                        "rc": 0,
+                        "sd": 0,
+                        "si": 0
+                    },
+                    "BE": {
+                        "m": 1,
+                        "r": 9,
+                        "r-nata": 3,
+                        "rb": 7,
+                        "sd": 3,
+                        "si": 0
+                    },
+                    "DE": {
+                        "gexp-intext-2": 0,
+                        "m": 3,
+                        "r": 19,
                         "r-nata": 0,
-                        "rb": 1,
-                        "rc": 1
+                        "rb": 9,
+                        "rc": 0,
+                        "sd": 3,
+                        "si": 6
+                    },
+                    "IT": {
+                        "m": 0,
+                        "r": 3,
+                        "r-nata": 0,
+                        "rb": 0,
+                        "rc": 0,
+                        "sd": 0,
+                        "si": 3
+                    },
+                    "NL": {
+                        "gexp-intext-2": 0,
+                        "m": 5,
+                        "r": 14,
+                        "r-nata": 3,
+                        "rb": 8,
+                        "rc": 0,
+                        "sd": 2,
+                        "si": 2
+                    },
+                    "PT": {
+                        "gexp-intext-2": 0,
+                        "m": 3,
+                        "r": 7,
+                        "r-nata": 8,
+                        "rb": 4,
+                        "rc": 1,
+                        "sd": 1,
+                        "si": 1
                     }
                 }
             },
             "vv": {
-                "mun-mv": {
-                    "noticia": {
-                        "7": {
+                "mc2": {
+                    "portada": {
+                        "0": {
                             "f": {
-                                "f": 75,
-                                "t": 100
-                            },
-                            "t": {
-                                "t": 100
+                                "f": 10
                             }
                         },
-                        "8": {
+                        "2": {
                             "f": {
                                 "f": 0
+                            }
+                        },
+                        "3": {
+                            "f": {
+                                "f": 25
+                            }
+                        },
+                        "4": {
+                            "f": {
+                                "f": 30
+                            }
+                        },
+                        "5": {
+                            "f": {
+                                "f": 25
+                            }
+                        },
+                        "6": {
+                            "f": {
+                                "f": 25
                             },
                             "t": {
                                 "t": 0
                             }
                         },
-                        "9": {
-                            "t": {
+                        "7": {
+                            "f": {
+                                "f": 35,
                                 "t": 100
+                            },
+                            "t": {
+                                "t": 70
+                            }
+                        },
+                        "8": {
+                            "f": {
+                                "f": 55,
+                                "t": 100
+                            },
+                            "t": {
+                                "t": 85
+                            }
+                        },
+                        "9": {
+                            "f": {
+                                "f": 60,
+                                "t": 100
+                            },
+                            "t": {
+                                "t": 75
                             }
                         },
                         "10": {
                             "f": {
-                                "f": 100
+                                "f": 70,
+                                "t": 100
+                            },
+                            "t": {
+                                "t": 80
                             }
                         },
                         "11": {
                             "f": {
-                                "f": 50
+                                "f": 35,
+                                "t": 100
+                            },
+                            "t": {
+                                "t": 100
                             }
                         },
                         "12": {
                             "f": {
-                                "f": 0
+                                "f": 30
+                            },
+                            "t": {
+                                "t": 100
                             }
                         },
                         "13": {
                             "f": {
-                                "f": 50
+                                "f": 0
                             }
                         },
                         "14": {
@@ -2819,20 +2943,385 @@
                         },
                         "15": {
                             "f": {
-                                "f": 0
+                                "f": 30
                             }
                         },
                         "16": {
                             "f": {
-                                "f": 30
+                                "f": 45
                             }
                         },
                         "17": {
                             "f": {
-                                "f": 25
+                                "f": 15
                             }
                         },
                         "18": {
+                            "f": {
+                                "f": 5
+                            }
+                        },
+                        "19": {
+                            "f": {
+                                "f": 50
+                            }
+                        },
+                        "20": {
+                            "f": {
+                                "f": 0
+                            }
+                        }
+                    },
+                    "noticia": {
+                        "0": {
+                            "f": {
+                                "f": 100
+                            }
+                        },
+                        "3": {
+                            "f": {
+                                "f": 0
+                            }
+                        },
+                        "4": {
+                            "f": {
+                                "f": 5
+                            }
+                        },
+                        "5": {
+                            "f": {
+                                "f": 10
+                            }
+                        },
+                        "6": {
+                            "f": {
+                                "f": 0
+                            }
+                        },
+                        "7": {
+                            "f": {
+                                "f": 50
+                            },
+                            "t": {
+                                "t": 0
+                            }
+                        },
+                        "8": {
+                            "f": {
+                                "f": 80,
+                                "t": 80
+                            },
+                            "t": {
+                                "t": 65
+                            }
+                        },
+                        "9": {
+                            "f": {
+                                "f": 80,
+                                "t": 50
+                            },
+                            "t": {
+                                "t": 0
+                            }
+                        },
+                        "10": {
+                            "f": {
+                                "f": 100,
+                                "t": 100
+                            },
+                            "t": {
+                                "t": 100
+                            }
+                        },
+                        "11": {
+                            "f": {
+                                "f": 40
+                            }
+                        },
+                        "12": {
+                            "f": {
+                                "f": 50
+                            }
+                        },
+                        "13": {
+                            "f": {
+                                "f": 60
+                            }
+                        },
+                        "14": {
+                            "f": {
+                                "f": 25
+                            }
+                        },
+                        "15": {
+                            "f": {
+                                "f": 25
+                            }
+                        },
+                        "16": {
+                            "f": {
+                                "f": 40
+                            }
+                        },
+                        "17": {
+                            "f": {
+                                "f": 30
+                            }
+                        },
+                        "18": {
+                            "f": {
+                                "f": 20
+                            }
+                        },
+                        "19": {
+                            "f": {
+                                "f": 10,
+                                "t": 0
+                            }
+                        },
+                        "20": {
+                            "f": {
+                                "f": 5
+                            }
+                        }
+                    },
+                    "portadilla": {
+                        "6": {
+                            "f": {
+                                "f": 30
+                            }
+                        },
+                        "7": {
+                            "f": {
+                                "f": 35,
+                                "t": 100
+                            },
+                            "t": {
+                                "t": 100
+                            }
+                        },
+                        "8": {
+                            "f": {
+                                "f": 25,
+                                "t": 100
+                            },
+                            "t": {
+                                "t": 100
+                            }
+                        },
+                        "9": {
+                            "f": {
+                                "t": 100
+                            }
+                        },
+                        "10": {
+                            "f": {
+                                "f": 5
+                            }
+                        },
+                        "11": {
+                            "f": {
+                                "f": 10
+                            }
+                        },
+                        "12": {
+                            "f": {
+                                "f": 15
+                            }
+                        },
+                        "13": {
+                            "f": {
+                                "f": 25
+                            }
+                        },
+                        "14": {
+                            "f": {
+                                "f": 10
+                            }
+                        },
+                        "15": {
+                            "f": {
+                                "f": 0
+                            }
+                        },
+                        "17": {
+                            "f": {
+                                "f": 0
+                            }
+                        },
+                        "20": {
+                            "f": {
+                                "f": 0
+                            }
+                        }
+                    },
+                    "album": [],
+                    "directo": {
+                        "0": {
+                            "f": {
+                                "f": 0
+                            }
+                        },
+                        "1": {
+                            "f": {
+                                "f": 0
+                            }
+                        },
+                        "3": {
+                            "f": {
+                                "f": 0
+                            }
+                        },
+                        "5": {
+                            "f": {
+                                "f": 0
+                            }
+                        },
+                        "7": {
+                            "f": {
+                                "f": 20
+                            }
+                        },
+                        "9": {
+                            "f": {
+                                "f": 50
+                            }
+                        },
+                        "20": {
+                            "f": {
+                                "f": 0
+                            }
+                        }
+                    },
+                    "portadilla-nc": {
+                        "0": {
+                            "f": {
+                                "f": 0
+                            }
+                        },
+                        "2": {
+                            "f": {
+                                "f": 65
+                            }
+                        },
+                        "7": {
+                            "f": {
+                                "f": 50
+                            }
+                        },
+                        "8": {
+                            "f": {
+                                "t": 100
+                            }
+                        },
+                        "9": {
+                            "t": {
+                                "t": 100
+                            }
+                        },
+                        "10": {
+                            "f": {
+                                "f": 65
+                            }
+                        },
+                        "11": {
+                            "f": {
+                                "f": 50
+                            },
+                            "t": {
+                                "t": 100
+                            }
+                        },
+                        "12": {
+                            "f": {
+                                "f": 100
+                            }
+                        },
+                        "15": {
+                            "f": {
+                                "f": 100
+                            }
+                        },
+                        "17": {
+                            "f": {
+                                "f": 0
+                            }
+                        },
+                        "18": {
+                            "f": {
+                                "f": 0
+                            }
+                        },
+                        "20": {
+                            "f": {
+                                "f": 100
+                            }
+                        }
+                    },
+                    "resultados": {
+                        "6": {
+                            "f": {
+                                "f": 0,
+                                "t": 100
+                            }
+                        },
+                        "7": {
+                            "f": {
+                                "f": 45
+                            }
+                        },
+                        "8": {
+                            "f": {
+                                "f": 70
+                            }
+                        }
+                    },
+                    "pagecontent": {
+                        "5": {
+                            "f": {
+                                "f": 0
+                            }
+                        },
+                        "6": {
+                            "f": {
+                                "f": 0
+                            }
+                        },
+                        "7": {
+                            "f": {
+                                "f": 45
+                            }
+                        },
+                        "8": {
+                            "f": {
+                                "f": 60
+                            }
+                        },
+                        "9": {
+                            "f": {
+                                "f": 100
+                            }
+                        }
+                    }
+                },
+                "p_mc2": {
+                    "portadilla": {
+                        "10": {
+                            "f": {
+                                "f": 0
+                            }
+                        },
+                        "11": {
+                            "f": {
+                                "f": 0
+                            }
+                        },
+                        "13": {
+                            "f": {
+                                "f": 0
+                            }
+                        },
+                        "14": {
                             "f": {
                                 "f": 0
                             }
@@ -2847,11 +3336,137 @@
                                 "f": 0
                             }
                         }
-                    },
-                    "guia tv": {
+                    }
+                },
+                "telva": {
+                    "noticia": {
+                        "0": {
+                            "f": {
+                                "f": 0
+                            }
+                        },
+                        "1": {
+                            "f": {
+                                "f": 0
+                            }
+                        },
+                        "3": {
+                            "f": {
+                                "f": 0
+                            }
+                        },
                         "4": {
                             "f": {
+                                "f": 35
+                            }
+                        },
+                        "5": {
+                            "f": {
+                                "f": 0,
+                                "t": 50
+                            }
+                        },
+                        "6": {
+                            "f": {
+                                "f": 0
+                            }
+                        },
+                        "7": {
+                            "f": {
+                                "f": 35,
+                                "t": 65
+                            }
+                        },
+                        "8": {
+                            "f": {
+                                "f": 100,
+                                "t": 0
+                            }
+                        },
+                        "9": {
+                            "f": {
+                                "f": 50,
+                                "t": 100
+                            }
+                        },
+                        "10": {
+                            "f": {
                                 "f": 100
+                            }
+                        },
+                        "11": {
+                            "f": {
+                                "f": 100
+                            }
+                        },
+                        "12": {
+                            "f": {
+                                "f": 50
+                            }
+                        },
+                        "13": {
+                            "f": {
+                                "f": 40
+                            }
+                        },
+                        "14": {
+                            "f": {
+                                "f": 80
+                            }
+                        },
+                        "15": {
+                            "f": {
+                                "f": 100
+                            }
+                        },
+                        "17": {
+                            "f": {
+                                "f": 0
+                            }
+                        },
+                        "18": {
+                            "f": {
+                                "f": 100
+                            }
+                        },
+                        "19": {
+                            "f": {
+                                "f": 50
+                            }
+                        },
+                        "20": {
+                            "f": {
+                                "f": 30
+                            },
+                            "t": {
+                                "t": 0
+                            }
+                        }
+                    },
+                    "portada": {
+                        "0": {
+                            "f": {
+                                "f": 0
+                            }
+                        },
+                        "1": {
+                            "f": {
+                                "f": 0
+                            }
+                        },
+                        "2": {
+                            "f": {
+                                "f": 0
+                            }
+                        },
+                        "3": {
+                            "f": {
+                                "f": 0
+                            }
+                        },
+                        "4": {
+                            "f": {
+                                "f": 0
                             }
                         },
                         "5": {
@@ -2861,20 +3476,136 @@
                         },
                         "6": {
                             "f": {
-                                "f": 30
+                                "f": 25
                             }
                         },
                         "7": {
                             "f": {
-                                "f": 80
+                                "f": 100,
+                                "t": 0
+                            }
+                        },
+                        "8": {
+                            "f": {
+                                "f": 25
                             },
                             "t": {
-                                "t": 80
+                                "t": 0
+                            }
+                        },
+                        "9": {
+                            "f": {
+                                "f": 0
+                            },
+                            "t": {
+                                "t": 100
+                            }
+                        },
+                        "10": {
+                            "f": {
+                                "t": 100
+                            }
+                        },
+                        "11": {
+                            "f": {
+                                "f": 100
+                            }
+                        },
+                        "12": {
+                            "f": {
+                                "f": 100
+                            }
+                        },
+                        "13": {
+                            "f": {
+                                "f": 75
+                            }
+                        },
+                        "14": {
+                            "f": {
+                                "f": 30
+                            }
+                        },
+                        "16": {
+                            "f": {
+                                "f": 0
+                            }
+                        },
+                        "17": {
+                            "f": {
+                                "f": 0
+                            }
+                        },
+                        "18": {
+                            "f": {
+                                "f": 35
+                            }
+                        },
+                        "19": {
+                            "f": {
+                                "f": 30
+                            }
+                        },
+                        "20": {
+                            "f": {
+                                "f": 0
                             }
                         }
                     },
-                    "directo": {
+                    "album": {
+                        "6": {
+                            "f": {
+                                "t": 100
+                            }
+                        },
                         "7": {
+                            "f": {
+                                "f": 100,
+                                "t": 100
+                            }
+                        },
+                        "8": {
+                            "t": {
+                                "t": 100
+                            }
+                        }
+                    },
+                    "portadilla": {
+                        "4": {
+                            "f": {
+                                "f": 0
+                            }
+                        },
+                        "6": {
+                            "f": {
+                                "f": 50
+                            }
+                        },
+                        "7": {
+                            "f": {
+                                "f": 30
+                            }
+                        },
+                        "13": {
+                            "f": {
+                                "f": 0
+                            }
+                        },
+                        "14": {
+                            "f": {
+                                "f": 0
+                            }
+                        },
+                        "16": {
+                            "f": {
+                                "f": 0
+                            }
+                        }
+                    }
+                },
+                "mc-mx": {
+                    "portada": {
+                        "6": {
                             "f": {
                                 "f": 0
                             }
@@ -2884,9 +3615,14 @@
                                 "f": 0
                             }
                         },
-                        "9": {
+                        "11": {
                             "f": {
                                 "f": 100
+                            }
+                        },
+                        "13": {
+                            "f": {
+                                "f": 0
                             }
                         },
                         "15": {
@@ -2910,206 +3646,91 @@
                             }
                         }
                     },
-                    "album": {
-                        "7": {
-                            "f": {
-                                "f": 50
-                            }
-                        }
-                    },
-                    "pagecontent": {
-                        "3": {
+                    "noticia": {
+                        "5": {
                             "f": {
                                 "f": 0
                             }
                         },
-                        "6": {
+                        "7": {
                             "f": {
                                 "f": 100
                             }
                         },
-                        "7": {
+                        "8": {
                             "f": {
-                                "f": 40
+                                "f": 100
                             }
                         },
-                        "10": {
+                        "14": {
                             "f": {
                                 "f": 0
                             }
                         },
-                        "11": {
+                        "18": {
                             "f": {
                                 "f": 50
                             }
                         },
-                        "12": {
+                        "19": {
                             "f": {
                                 "f": 0
                             }
                         },
-                        "14": {
+                        "20": {
                             "f": {
                                 "f": 0
                             }
                         }
                     },
                     "portadilla": {
-                        "8": {
-                            "t": {
-                                "t": 0
+                        "7": {
+                            "f": {
+                                "f": 0
                             }
                         },
                         "10": {
                             "f": {
-                                "f": 100
+                                "f": 0
                             }
                         },
                         "13": {
                             "f": {
-                                "f": 100
+                                "f": 0
                             }
                         },
-                        "17": {
+                        "15": {
                             "f": {
                                 "f": 0
                             }
                         },
-                        "18": {
+                        "16": {
                             "f": {
                                 "f": 0
-                            }
-                        },
-                        "19": {
-                            "f": {
-                                "f": 0
-                            }
-                        },
-                        "20": {
-                            "f": {
-                                "f": 0
-                            }
-                        }
-                    },
-                    "portada": {
-                        "14": {
-                            "f": {
-                                "f": 100
-                            }
-                        },
-                        "19": {
-                            "f": {
-                                "f": 100
-                            }
-                        },
-                        "20": {
-                            "f": {
-                                "f": 0
-                            }
-                        }
-                    },
-                    "directorio": {
-                        "7": {
-                            "f": {
-                                "f": 100
-                            }
-                        },
-                        "20": {
-                            "f": {
-                                "f": 0
-                            }
-                        }
-                    },
-                    "estaticos": {
-                        "7": {
-                            "f": {
-                                "f": 100
-                            }
-                        },
-                        "17": {
-                            "f": {
-                                "f": 0
-                            }
-                        }
-                    },
-                    "noticia-especial": {
-                        "10": {
-                            "t": {
-                                "t": 100
-                            }
-                        },
-                        "11": {
-                            "f": {
-                                "f": 100
                             }
                         }
                     }
                 },
-                "yodona-mv": {
+                "mc-coches": {
                     "noticia": {
-                        "7": {
-                            "f": {
-                                "f": 70,
-                                "t": 0
-                            },
-                            "t": {
-                                "t": 50
-                            }
-                        },
-                        "8": {
+                        "4": {
                             "f": {
                                 "f": 0
                             }
                         },
-                        "10": {
+                        "7": {
+                            "f": {
+                                "f": 50
+                            }
+                        },
+                        "9": {
                             "f": {
                                 "f": 100
                             }
                         },
-                        "12": {
-                            "f": {
-                                "f": 30
-                            },
-                            "t": {
-                                "t": 0
-                            }
-                        },
-                        "13": {
-                            "f": {
-                                "f": 30
-                            }
-                        },
-                        "14": {
-                            "f": {
-                                "f": 0
-                            }
-                        },
-                        "17": {
-                            "f": {
-                                "f": 0
-                            }
-                        },
-                        "18": {
-                            "f": {
-                                "f": 0
-                            }
-                        },
-                        "19": {
-                            "f": {
-                                "f": 0
-                            }
-                        },
                         "20": {
                             "f": {
-                                "f": 0
-                            }
-                        }
-                    },
-                    "album": {
-                        "7": {
-                            "f": {
-                                "f": 70,
-                                "t": 100
+                                "f": 60
                             }
                         }
                     }
@@ -3117,6 +3738,6 @@
             }
         }
     },
-    "config_version": "6a4cd8b25d084",
+    "config_version": "6a69cba1c332f",
     "npTelemetryProb": 0
 }

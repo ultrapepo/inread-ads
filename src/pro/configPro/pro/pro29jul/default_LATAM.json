@@ -1,6 +1,7 @@
 {
+    "name": "LATAM",
     "enabled": true,
-    "telemetryProb": 3,
+    "telemetryProb": 4,
     "pList": [
         0.05,
         0.1,
@@ -29,23 +30,23 @@
         4
     ],
     "adexIds": [
-        2559776610
+        4539205383
     ],
     "houseIds": [
-        5170458185,
-        81003777,
-        45125937,
-        67317777,
-        4500591056,
+        5688947279,
         5355378473,
+        45125937,
+        5632467105,
         4633770194,
-        4815141041,
-        51641577,
+        5170458185,
         4591133191,
-        4527374566,
-        4940779598,
-        5027949483,
-        47165697
+        50339097,
+        51641577,
+        81003777,
+        4716085827,
+        4815141041,
+        5672511518,
+        5744792553
     ],
     "prebidIds": [
         "5359233312",
@@ -59,10 +60,16 @@
         "5823135725"
     ],
     "reloadIds": [
+        45125937,
+        81003777,
+        4815141041,
         4764613895,
         4811457786,
         79449777,
+        67317777,
+        4633770194,
         4717022388,
+        5170458185,
         5359233312,
         4402193934,
         5180398781,
@@ -70,20 +77,7 @@
         83522457,
         4402208836,
         5354911588,
-        5170458185,
-        81003777,
-        45125937,
-        67317777,
-        4500591056,
-        5355378473,
-        4633770194,
-        4815141041,
-        51641577,
-        4591133191,
-        4527374566,
-        4940779598,
-        5027949483,
-        47165697
+        4406227815
     ],
     "reloadCampaignIds": [
         2559776610,
@@ -102,288 +96,148 @@
         2668163671,
         2668164637
     ],
-    "reloadLineItemIds": [
-        7320934074,
-        7320997824,
-        7331053158,
-        7335131927
-    ],
     "positions": {
         "r": {
-            "p": 2,
+            "p": 7,
             "rv": 1,
             "ppbo": 0.1,
             "hr": {
-                "tim": null,
+                "tim": 15000,
                 "ov": false,
-                "pbtim": 2000,
-                "mr": 1,
-                "mintim": 2000
+                "mr": 1
             },
             "ar": {
                 "tim": null,
                 "ov": true,
                 "pbtim": 2000,
                 "mr": 1,
-                "mintim": 5000
+                "mintim": 28000
             },
-            "rqpbtim": 2000,
             "tl": true
         },
         "rb": {
-            "p": 2,
+            "p": 6,
             "rv": 1,
             "ppbo": 0.1,
             "hr": {
-                "tim": null,
-                "ov": true,
-                "pbtim": 2000,
-                "mr": 1,
-                "mintim": 5000
+                "tim": 15000,
+                "ov": false,
+                "mr": 1
             },
             "ar": {
                 "tim": null,
                 "ov": true,
                 "pbtim": 2000,
                 "mr": 1,
-                "mintim": 5000
+                "mintim": 28000
             },
-            "rqpbtim": 2000,
             "tl": true
         },
         "rc": {
-            "p": 1,
+            "p": 5,
             "rv": 0,
             "ppbo": 0.05,
             "hr": {
-                "tim": null,
-                "ov": true,
-                "pbtim": 2000,
-                "mr": 1,
-                "mintim": 5000
+                "tim": 15000,
+                "ov": false,
+                "mr": 1
             },
             "ar": {
                 "tim": null,
                 "ov": true,
                 "pbtim": 2000,
                 "mr": 1,
-                "mintim": 5000
+                "mintim": 28000
             },
-            "rqpbtim": 2000,
             "tl": true
         },
         "rd": {
-            "p": 1,
+            "p": 3,
             "rv": 0,
-            "mp": 0,
             "ppbo": 0.05,
             "hr": {
-                "tim": null,
-                "ov": true,
-                "pbtim": 2000,
-                "mr": 1,
-                "mintim": 5000
+                "tim": 15000,
+                "ov": false,
+                "mr": 1
             },
             "ar": {
                 "tim": null,
                 "ov": true,
                 "pbtim": 2000,
                 "mr": 1,
-                "mintim": 5000
+                "mintim": 28000
             },
-            "rqpbtim": 2000,
             "tl": true
         },
         "re": {
-            "p": 2,
+            "p": 3,
             "rv": 0,
-            "hr": {
-                "tim": null,
-                "ov": true,
-                "pbtim": 2000,
-                "mr": 1,
-                "mintim": 5000
-            },
-            "ar": {
-                "tim": null,
-                "ov": true,
-                "pbtim": 2000,
-                "mr": 1,
-                "mintim": 5000
-            },
-            "rqpbtim": 2000,
             "tl": true
         },
         "rf": {
-            "p": 2,
+            "p": 3,
             "rv": 0,
-            "hr": {
-                "tim": null,
-                "ov": true,
-                "pbtim": 2000,
-                "mr": 1,
-                "mintim": 5000
-            },
-            "ar": {
-                "tim": null,
-                "ov": true,
-                "pbtim": 2000,
-                "mr": 1,
-                "mintim": 5000
-            },
-            "rqpbtim": 2000
+            "tl": true
         },
         "rg": {
-            "p": 2,
+            "p": 3,
             "rv": 0,
-            "hr": {
-                "tim": null,
-                "ov": true,
-                "pbtim": 2000,
-                "mr": 1,
-                "mintim": 5000
-            },
-            "ar": {
-                "tim": null,
-                "ov": true,
-                "pbtim": 2000,
-                "mr": 1,
-                "mintim": 5000
-            },
-            "rqpbtim": 2000
+            "tl": true
         },
         "r-pnc": {
-            "p": 2,
+            "p": 4,
             "rv": 1,
             "tl": true
         },
         "rb-pnc": {
-            "p": 2,
+            "p": 4,
             "rv": 1
         },
         "r-nata": {
-            "p": 2,
+            "p": 4,
             "rv": 1,
             "tl": true
         },
         "r-nata-pnc": {
-            "p": 1,
+            "p": 4,
             "rv": 1
         },
         "m": {
-            "p": 2,
+            "p": 10,
             "mp": 0,
             "rv": 1,
-            "tl": true,
-            "hr": {
-                "tim": null,
-                "ov": true,
-                "pbtim": 2000,
-                "mr": 1,
-                "mintim": 5000
-            },
-            "ar": {
-                "tim": null,
-                "ov": true,
-                "pbtim": 2000,
-                "mr": 1,
-                "mintim": 8000
-            }
+            "tl": true
         },
         "mb": {
-            "p": 4,
-            "mp": 0,
+            "p": 10,
             "rv": 1,
-            "hr": {
-                "tim": null,
-                "ov": true,
-                "pbtim": 2000,
-                "mr": 1,
-                "mintim": 5000
-            },
-            "ar": {
-                "tim": null,
-                "ov": true,
-                "pbtim": 2000,
-                "mr": 1,
-                "mintim": 5000
-            },
-            "rqpbtim": 2000
+            "tl": true
         },
         "m-pnc": {
-            "p": 2,
+            "p": 4,
             "rv": 1,
             "tl": true
         },
         "si": {
-            "p": 2,
-            "rv": 1,
-            "mp": 0,
-            "tl": true
+            "p": 4,
+            "rv": 1
         },
         "sd": {
-            "p": 2,
-            "rv": 1,
-            "mp": 0,
-            "tl": true
+            "p": 4,
+            "rv": 1
         },
         "c990x50_320x50": {
             "p": 1,
-            "rv": 1,
-            "hr": {
-                "tim": null,
-                "ov": true,
-                "pbtim": 2000,
-                "mr": 1,
-                "mintim": 5000
-            },
-            "ar": {
-                "tim": null,
-                "ov": true,
-                "pbtim": 2000,
-                "mr": 1,
-                "mintim": 5000
-            },
-            "rqpbtim": 2000
+            "rv": 1
         },
         "c990x50_320x53c": {
             "p": 1,
             "rv": 1,
-            "hr": {
-                "tim": null,
-                "ov": true,
-                "pbtim": 2000,
-                "mr": 1,
-                "mintim": 5000
-            },
-            "ar": {
-                "tim": null,
-                "ov": true,
-                "pbtim": 2000,
-                "mr": 1,
-                "mintim": 5000
-            },
-            "rqpbtim": 2000,
             "tl": true
         },
         "c990x50_320x53d": {
             "p": 1,
             "rv": 1,
-            "hr": {
-                "tim": null,
-                "ov": true,
-                "pbtim": 2000,
-                "mr": 1,
-                "mintim": 5000
-            },
-            "ar": {
-                "tim": null,
-                "ov": true,
-                "pbtim": 2000,
-                "mr": 1,
-                "mintim": 5000
-            },
-            "rqpbtim": 2000,
             "tl": true
         },
         "gexp-intext": {
@@ -512,28 +366,19 @@
             "rqpbtim": 2000,
             "tl": true
         },
-        "carrusel": {
-            "ar": {
-                "tim": null,
-                "ov": false,
-                "pbtim": 2000,
-                "mr": 2,
-                "mintim": 3000
-            }
-        },
         "default": {
-            "p": 1,
-            "mp": 0,
+            "p": 4,
             "rv": 0,
             "ppbo": 0.05,
+            "mp": 0,
             "hr": null,
             "ar": null,
-            "rqpbtim": 2000,
             "tl": false,
             "rvp": 20,
             "pbh": true,
             "pbfr": 0.5,
             "pbbp": true,
+            "rqpbtim": 4000,
             "rlhpb": false,
             "pbDefaultFloor": 0.1,
             "pbLowBidThreshold": 0.5,
@@ -569,7 +414,7 @@
                 "debug": false,
                 "gam": {
                     "networkIdMode": "auto",
-                    "networkId": "99071977",
+                    "networkId": "21626337071",
                     "displayAdUnitPath": null,
                     "videoAdUnitPath": null
                 },
@@ -599,7 +444,7 @@
                     "dataLayerProp": "be_page_domain"
                 },
                 "inclusions": {
-                    "keyValues": [],
+                    "keyValues": {},
                     "sites": {
                         "marca.com": {
                             "keyValues": {
@@ -680,9 +525,9 @@
                         "enabled": true,
                         "selector": ".ue-c-ad",
                         "direction": "up",
-                        "allowDownwardShift": false,
+                        "allowDownwardShift": true,
                         "fallbackToOriginal": true,
-                        "maxShiftParagraphs": 2,
+                        "maxShiftParagraphs": 3,
                         "minFinalParagraphIndexBySlot": {
                             "gexp-intext": 1
                         }
@@ -704,7 +549,7 @@
                     "mode": "standard"
                 },
                 "display": {
-                    "adUnitPath": "mun-mv/espana/n",
+                    "adUnitPath": "telva/belleza/n",
                     "sizes": [
                         [
                             300,
@@ -717,6 +562,14 @@
                         [
                             320,
                             100
+                        ],
+                        [
+                            300,
+                            600
+                        ],
+                        [
+                            960,
+                            540
                         ],
                         [
                             970,
@@ -936,13 +789,13 @@
                 "refreshCycle": {
                     "enabled": true,
                     "delayMs": 5000,
+                    "houseDelayMs": 3000,
+                    "cpcDelayMs": 3000,
+                    "adexDelayMs": 3500,
                     "maxCycles": 3,
                     "mode": "display_only",
                     "bidStrategy": "fresh",
                     "bidMaxAgeMs": 30000,
-                    "houseDelayMs": 3000,
-                    "cpcDelayMs": 3000,
-                    "adexDelayMs": 3500,
                     "house1x1AutoRefresh": {
                         "enabled": true,
                         "delayMs": 100,
@@ -1033,16 +886,16 @@
                                     "bidder": "rubicon",
                                     "useBaseGvlid": true
                                 },
-                                "msft_video": {
-                                    "bidder": "msft",
+                                "appnexus_video": {
+                                    "bidder": "appnexus",
                                     "useBaseGvlid": true
                                 },
                                 "criteo_video": {
                                     "bidder": "criteo",
                                     "useBaseGvlid": true
                                 },
-                                "pubstack_server_video": {
-                                    "bidder": "pubstack_server",
+                                "pubmatic_video": {
+                                    "bidder": "pubmatic",
                                     "useBaseGvlid": true
                                 },
                                 "richaudience_video": {
@@ -1064,16 +917,16 @@
                             },
                             "bidders": [
                                 {
-                                    "bidder": "msft",
+                                    "bidder": "appnexus",
                                     "params": {
-                                        "placement_id": 11595024
+                                        "placementId": "11595052"
                                     }
                                 },
                                 {
                                     "bidder": "rubicon",
                                     "params": {
-                                        "zoneId": 663130,
-                                        "siteId": 142586,
+                                        "zoneId": 663036,
+                                        "siteId": 142576,
                                         "accountId": 15366,
                                         "position": "atf"
                                     }
@@ -1089,23 +942,33 @@
                                     "bidder": "equativ",
                                     "params": {
                                         "networkId": 1844,
-                                        "pageId": 648548,
-                                        "formatId": 40859,
-                                        "siteId": 99916
+                                        "pageId": 648549,
+                                        "formatId": 54639,
+                                        "siteId": 99913
                                     }
                                 },
                                 {
                                     "bidder": "richaudience",
                                     "params": {
-                                        "pid": "11S7knCYvM",
+                                        "pid": [
+                                            "8S3jMWeEhh",
+                                            "8fTLJJL0iQ"
+                                        ],
                                         "supplyType": "site"
                                     }
                                 },
                                 {
                                     "bidder": "teads",
                                     "params": {
-                                        "placementId": 202863,
-                                        "pageId": 187760
+                                        "placementId": 202864,
+                                        "pageId": 187761
+                                    }
+                                },
+                                {
+                                    "bidder": "pubmatic",
+                                    "params": {
+                                        "publisherId": "161984",
+                                        "adSlot": "4525457"
                                     }
                                 },
                                 {
@@ -1118,19 +981,13 @@
                                 {
                                     "bidder": "ix",
                                     "params": {
-                                        "siteId": "1255492"
+                                        "siteId": "1255657"
                                     }
                                 },
                                 {
                                     "bidder": "taboola",
                                     "params": {
-                                        "publisherId": "1925072"
-                                    }
-                                },
-                                {
-                                    "bidder": "pubstack_server",
-                                    "params": {
-                                        "adUnitName": "elmundo_mobile_othersection_mpu1"
+                                        "publisherId": "1925071"
                                     }
                                 }
                             ],
@@ -1138,8 +995,8 @@
                                 {
                                     "bidder": "rubicon_video",
                                     "params": {
-                                        "zoneId": 3460960,
-                                        "siteId": 96108,
+                                        "zoneId": 3460964,
+                                        "siteId": 96110,
                                         "position": "atf",
                                         "accountId": 15366,
                                         "video": {
@@ -1148,16 +1005,23 @@
                                     }
                                 },
                                 {
+                                    "bidder": "pubmatic_video",
+                                    "params": {
+                                        "publisherId": "161984",
+                                        "adSlot": "6112271"
+                                    }
+                                },
+                                {
                                     "bidder": "richaudience_video",
                                     "params": {
-                                        "pid": "Uobr28BI2A",
+                                        "pid": "ImcSe2TtvR",
                                         "supplyType": "site"
                                     }
                                 },
                                 {
-                                    "bidder": "msft_video",
+                                    "bidder": "appnexus_video",
                                     "params": {
-                                        "placement_id": 21721834
+                                        "placementId": 34117164
                                     }
                                 },
                                 {
@@ -1179,21 +1043,15 @@
                                     "bidder": "equativ_video",
                                     "params": {
                                         "networkId": "1844",
-                                        "siteId": "99916",
-                                        "pageId": "648548",
+                                        "siteId": "99913",
+                                        "pageId": "648549",
                                         "formatId": "40183"
                                     }
                                 },
                                 {
                                     "bidder": "ix_video",
                                     "params": {
-                                        "siteId": "1255517"
-                                    }
-                                },
-                                {
-                                    "bidder": "pubstack_server_video",
-                                    "params": {
-                                        "adUnitName": "elmundo_mobile_othersection_vidpr"
+                                        "siteId": "1255722"
                                     }
                                 }
                             ],
@@ -1201,16 +1059,16 @@
                                 "gexp-intext": {
                                     "bidders": [
                                         {
-                                            "bidder": "msft",
+                                            "bidder": "appnexus",
                                             "params": {
-                                                "placement_id": 11595024
+                                                "placementId": "11595052"
                                             }
                                         },
                                         {
                                             "bidder": "rubicon",
                                             "params": {
-                                                "zoneId": 663130,
-                                                "siteId": 142586,
+                                                "zoneId": 663036,
+                                                "siteId": 142576,
                                                 "accountId": 15366,
                                                 "position": "atf"
                                             }
@@ -1226,23 +1084,33 @@
                                             "bidder": "equativ",
                                             "params": {
                                                 "networkId": 1844,
-                                                "pageId": 648548,
-                                                "formatId": 40859,
-                                                "siteId": 99916
+                                                "pageId": 648549,
+                                                "formatId": 54639,
+                                                "siteId": 99913
                                             }
                                         },
                                         {
                                             "bidder": "richaudience",
                                             "params": {
-                                                "pid": "11S7knCYvM",
+                                                "pid": [
+                                                    "8S3jMWeEhh",
+                                                    "8fTLJJL0iQ"
+                                                ],
                                                 "supplyType": "site"
                                             }
                                         },
                                         {
                                             "bidder": "teads",
                                             "params": {
-                                                "placementId": 202863,
-                                                "pageId": 187760
+                                                "placementId": 202864,
+                                                "pageId": 187761
+                                            }
+                                        },
+                                        {
+                                            "bidder": "pubmatic",
+                                            "params": {
+                                                "publisherId": "161984",
+                                                "adSlot": "4525457"
                                             }
                                         },
                                         {
@@ -1255,19 +1123,13 @@
                                         {
                                             "bidder": "ix",
                                             "params": {
-                                                "siteId": "1255492"
+                                                "siteId": "1255657"
                                             }
                                         },
                                         {
                                             "bidder": "taboola",
                                             "params": {
-                                                "publisherId": "1925072"
-                                            }
-                                        },
-                                        {
-                                            "bidder": "pubstack_server",
-                                            "params": {
-                                                "adUnitName": "elmundo_mobile_othersection_mpu1"
+                                                "publisherId": "1925071"
                                             }
                                         }
                                     ],
@@ -1275,8 +1137,8 @@
                                         {
                                             "bidder": "rubicon_video",
                                             "params": {
-                                                "zoneId": 3460960,
-                                                "siteId": 96108,
+                                                "zoneId": 3460964,
+                                                "siteId": 96110,
                                                 "position": "atf",
                                                 "accountId": 15366,
                                                 "video": {
@@ -1285,16 +1147,23 @@
                                             }
                                         },
                                         {
+                                            "bidder": "pubmatic_video",
+                                            "params": {
+                                                "publisherId": "161984",
+                                                "adSlot": "6112271"
+                                            }
+                                        },
+                                        {
                                             "bidder": "richaudience_video",
                                             "params": {
-                                                "pid": "Uobr28BI2A",
+                                                "pid": "ImcSe2TtvR",
                                                 "supplyType": "site"
                                             }
                                         },
                                         {
-                                            "bidder": "msft_video",
+                                            "bidder": "appnexus_video",
                                             "params": {
-                                                "placement_id": 21721834
+                                                "placementId": 34117164
                                             }
                                         },
                                         {
@@ -1316,21 +1185,15 @@
                                             "bidder": "equativ_video",
                                             "params": {
                                                 "networkId": "1844",
-                                                "siteId": "99916",
-                                                "pageId": "648548",
+                                                "siteId": "99913",
+                                                "pageId": "648549",
                                                 "formatId": "40183"
                                             }
                                         },
                                         {
                                             "bidder": "ix_video",
                                             "params": {
-                                                "siteId": "1255517"
-                                            }
-                                        },
-                                        {
-                                            "bidder": "pubstack_server_video",
-                                            "params": {
-                                                "adUnitName": "elmundo_mobile_othersection_vidpr"
+                                                "siteId": "1255722"
                                             }
                                         }
                                     ]
@@ -1338,16 +1201,16 @@
                                 "secondary": {
                                     "bidders": [
                                         {
-                                            "bidder": "msft",
+                                            "bidder": "appnexus",
                                             "params": {
-                                                "placement_id": 11595025
+                                                "placementId": "11595058"
                                             }
                                         },
                                         {
                                             "bidder": "rubicon",
                                             "params": {
-                                                "zoneId": 663184,
-                                                "siteId": 142586,
+                                                "zoneId": 663056,
+                                                "siteId": 142576,
                                                 "accountId": 15366,
                                                 "position": "btf"
                                             }
@@ -1363,23 +1226,30 @@
                                             "bidder": "equativ",
                                             "params": {
                                                 "networkId": 1844,
-                                                "pageId": 648548,
+                                                "pageId": 648549,
                                                 "formatId": 40974,
-                                                "siteId": 99916
+                                                "siteId": 99913
                                             }
                                         },
                                         {
                                             "bidder": "richaudience",
                                             "params": {
-                                                "pid": "gNNUMaYzvZ",
+                                                "pid": "TyBOAyqBxU",
                                                 "supplyType": "site"
                                             }
                                         },
                                         {
                                             "bidder": "teads",
                                             "params": {
-                                                "placementId": 202863,
-                                                "pageId": 187760
+                                                "placementId": 202864,
+                                                "pageId": 187761
+                                            }
+                                        },
+                                        {
+                                            "bidder": "pubmatic",
+                                            "params": {
+                                                "publisherId": "161984",
+                                                "adSlot": "4525457"
                                             }
                                         },
                                         {
@@ -1392,19 +1262,13 @@
                                         {
                                             "bidder": "ix",
                                             "params": {
-                                                "siteId": "1255497"
+                                                "siteId": "1255682"
                                             }
                                         },
                                         {
                                             "bidder": "taboola",
                                             "params": {
-                                                "publisherId": "1925072"
-                                            }
-                                        },
-                                        {
-                                            "bidder": "pubstack_server",
-                                            "params": {
-                                                "adUnitName": "elmundo_mobile_othersection_mpu2"
+                                                "publisherId": "1925071"
                                             }
                                         }
                                     ],
@@ -1412,8 +1276,8 @@
                                         {
                                             "bidder": "rubicon_video",
                                             "params": {
-                                                "zoneId": 3460960,
-                                                "siteId": 96108,
+                                                "zoneId": 3460964,
+                                                "siteId": 96110,
                                                 "position": "atf",
                                                 "accountId": 15366,
                                                 "video": {
@@ -1422,16 +1286,23 @@
                                             }
                                         },
                                         {
+                                            "bidder": "pubmatic_video",
+                                            "params": {
+                                                "publisherId": "161984",
+                                                "adSlot": "6112271"
+                                            }
+                                        },
+                                        {
                                             "bidder": "richaudience_video",
                                             "params": {
-                                                "pid": "Uobr28BI2A",
+                                                "pid": "ImcSe2TtvR",
                                                 "supplyType": "site"
                                             }
                                         },
                                         {
-                                            "bidder": "msft_video",
+                                            "bidder": "appnexus_video",
                                             "params": {
-                                                "placement_id": 21721834
+                                                "placementId": 34117164
                                             }
                                         },
                                         {
@@ -1453,21 +1324,15 @@
                                             "bidder": "equativ_video",
                                             "params": {
                                                 "networkId": "1844",
-                                                "siteId": "99916",
-                                                "pageId": "648548",
+                                                "siteId": "99913",
+                                                "pageId": "648549",
                                                 "formatId": "40183"
                                             }
                                         },
                                         {
                                             "bidder": "ix_video",
                                             "params": {
-                                                "siteId": "1255517"
-                                            }
-                                        },
-                                        {
-                                            "bidder": "pubstack_server_video",
-                                            "params": {
-                                                "adUnitName": "elmundo_mobile_othersection_vidpr"
+                                                "siteId": "1255722"
                                             }
                                         }
                                     ]
@@ -1528,12 +1393,12 @@
                         "refreshCycle": {
                             "enabled": true,
                             "delayMs": 3000,
-                            "maxCycles": 2,
-                            "mode": "display_only",
-                            "bidStrategy": "fresh",
                             "houseDelayMs": 2000,
                             "cpcDelayMs": 2000,
                             "adexDelayMs": 3500,
+                            "maxCycles": 2,
+                            "mode": "display_only",
+                            "bidStrategy": "fresh",
                             "house1x1AutoRefresh": {
                                 "enabled": true,
                                 "delayMs": 100,
@@ -1582,12 +1447,7 @@
                         "exclusions": {
                             "disableAll": false,
                             "adUnitPaths": [],
-                            "keyValues": {
-                                "isPremium": [
-                                    "1",
-                                    "true"
-                                ]
-                            },
+                            "keyValues": {},
                             "disableSlots": {
                                 "always": [],
                                 "rules": []
@@ -1607,10 +1467,6 @@
                         ],
                         "t": [
                             ""
-                        ],
-                        "isPremium": [
-                            "1",
-                            "true"
                         ]
                     },
                     "disableSlots": {
@@ -1638,12 +1494,12 @@
                         "refreshCycle": {
                             "enabled": true,
                             "delayMs": 3000,
-                            "maxCycles": 2,
-                            "mode": "display_only",
-                            "bidStrategy": "fresh",
                             "houseDelayMs": 2000,
                             "cpcDelayMs": 2000,
                             "adexDelayMs": 3500,
+                            "maxCycles": 2,
+                            "mode": "display_only",
+                            "bidStrategy": "fresh",
                             "house1x1AutoRefresh": {
                                 "enabled": true,
                                 "delayMs": 100,
@@ -1658,17 +1514,12 @@
                                 ]
                             }
                         },
-                        "slotOverrides": []
+                        "slotOverrides": {}
                     },
                     "exclusions": {
                         "disableAll": false,
                         "adUnitPaths": [],
-                        "keyValues": {
-                            "isPremium": [
-                                "1",
-                                "true"
-                            ]
-                        },
+                        "keyValues": {},
                         "disableSlots": {
                             "always": [],
                             "rules": []
@@ -1706,7 +1557,7 @@
                                 "gexp-intext-3": {
                                     "loading": {
                                         "fetchRootMargin": "1000px 0px",
-                                        "renderRootMargin": "150px 0px",
+                                        "renderRootMargin": "100px 0px",
                                         "maxDelayMs": null
                                     }
                                 },
@@ -1784,6 +1635,10 @@
                                     50
                                 ],
                                 [
+                                    300,
+                                    600
+                                ],
+                                [
                                     970,
                                     90
                                 ],
@@ -1820,6 +1675,467 @@
                                     1
                                 ]
                             ]
+                        },
+                        "prebid": {
+                            "timeoutMs": 2000,
+                            "graceMs": 200,
+                            "excludedVideoBidders": [],
+                            "videoOrtb2ImpMode": "ext_only",
+                            "networks": {
+                                "default": {
+                                    "aliases": {
+                                        "rubicon_video": {
+                                            "bidder": "rubicon",
+                                            "useBaseGvlid": true
+                                        },
+                                        "appnexus_video": {
+                                            "bidder": "appnexus",
+                                            "useBaseGvlid": true
+                                        },
+                                        "criteo_video": {
+                                            "bidder": "criteo",
+                                            "useBaseGvlid": true
+                                        },
+                                        "pubmatic_video": {
+                                            "bidder": "pubmatic",
+                                            "useBaseGvlid": true
+                                        },
+                                        "richaudience_video": {
+                                            "bidder": "richaudience",
+                                            "useBaseGvlid": true
+                                        },
+                                        "equativ_video": {
+                                            "bidder": "equativ",
+                                            "useBaseGvlid": true
+                                        },
+                                        "ix_video": {
+                                            "bidder": "ix",
+                                            "useBaseGvlid": true
+                                        },
+                                        "ttd_video": {
+                                            "bidder": "ttd",
+                                            "useBaseGvlid": true
+                                        }
+                                    },
+                                    "bidders": [
+                                        {
+                                            "bidder": "appnexus",
+                                            "params": {
+                                                "placementId": "11595040"
+                                            }
+                                        },
+                                        {
+                                            "bidder": "rubicon",
+                                            "params": {
+                                                "zoneId": 663146,
+                                                "siteId": 142592,
+                                                "accountId": 15366,
+                                                "position": "atf"
+                                            }
+                                        },
+                                        {
+                                            "bidder": "criteo",
+                                            "params": {
+                                                "networkId": 1080,
+                                                "pubid": "108879"
+                                            }
+                                        },
+                                        {
+                                            "bidder": "equativ",
+                                            "params": {
+                                                "networkId": 1844,
+                                                "pageId": 648550,
+                                                "formatId": 54723,
+                                                "siteId": 99914
+                                            }
+                                        },
+                                        {
+                                            "bidder": "richaudience",
+                                            "params": {
+                                                "pid": "1b3RqFswab",
+                                                "supplyType": "site"
+                                            }
+                                        },
+                                        {
+                                            "bidder": "teads",
+                                            "params": {
+                                                "placementId": 202864,
+                                                "pageId": 187761
+                                            }
+                                        },
+                                        {
+                                            "bidder": "pubmatic",
+                                            "params": {
+                                                "publisherId": "161984",
+                                                "adSlot": "4525458"
+                                            }
+                                        },
+                                        {
+                                            "bidder": "ttd",
+                                            "params": {
+                                                "supplySourceId": "unidad",
+                                                "publisherId": "1"
+                                            }
+                                        },
+                                        {
+                                            "bidder": "ix",
+                                            "params": {
+                                                "siteId": "1255727"
+                                            }
+                                        },
+                                        {
+                                            "bidder": "taboola",
+                                            "params": {
+                                                "publisherId": "1925071"
+                                            }
+                                        }
+                                    ],
+                                    "videoBidders": [
+                                        {
+                                            "bidder": "rubicon_video",
+                                            "params": {
+                                                "zoneId": 3460964,
+                                                "siteId": 96110,
+                                                "position": "atf",
+                                                "accountId": 15366,
+                                                "video": {
+                                                    "size_id": 201
+                                                }
+                                            }
+                                        },
+                                        {
+                                            "bidder": "pubmatic_video",
+                                            "params": {
+                                                "publisherId": "161984",
+                                                "adSlot": "6112263"
+                                            }
+                                        },
+                                        {
+                                            "bidder": "richaudience_video",
+                                            "params": {
+                                                "pid": "ImcSe2TtvR",
+                                                "supplyType": "site"
+                                            }
+                                        },
+                                        {
+                                            "bidder": "appnexus_video",
+                                            "params": {
+                                                "placementId": 34117164
+                                            }
+                                        },
+                                        {
+                                            "bidder": "criteo_video",
+                                            "params": {
+                                                "networkId": "1080",
+                                                "pubid": "108879"
+                                            }
+                                        },
+                                        {
+                                            "bidder": "ttd_video",
+                                            "params": {
+                                                "supplySourceId": "unidad",
+                                                "publisherId": "1",
+                                                "placementId": "video"
+                                            }
+                                        },
+                                        {
+                                            "bidder": "equativ_video",
+                                            "params": {
+                                                "networkId": "1844",
+                                                "siteId": "99914",
+                                                "pageId": "648550",
+                                                "formatId": "40183"
+                                            }
+                                        },
+                                        {
+                                            "bidder": "ix_video",
+                                            "params": {
+                                                "siteId": "1255787"
+                                            }
+                                        }
+                                    ],
+                                    "slotProfiles": {
+                                        "gexp-intext": {
+                                            "bidders": [
+                                                {
+                                                    "bidder": "appnexus",
+                                                    "params": {
+                                                        "placementId": "11595040"
+                                                    }
+                                                },
+                                                {
+                                                    "bidder": "rubicon",
+                                                    "params": {
+                                                        "zoneId": 663146,
+                                                        "siteId": 142592,
+                                                        "accountId": 15366,
+                                                        "position": "atf"
+                                                    }
+                                                },
+                                                {
+                                                    "bidder": "criteo",
+                                                    "params": {
+                                                        "networkId": 1080,
+                                                        "pubid": "108879"
+                                                    }
+                                                },
+                                                {
+                                                    "bidder": "equativ",
+                                                    "params": {
+                                                        "networkId": 1844,
+                                                        "pageId": 648550,
+                                                        "formatId": 54723,
+                                                        "siteId": 99914
+                                                    }
+                                                },
+                                                {
+                                                    "bidder": "richaudience",
+                                                    "params": {
+                                                        "pid": "1b3RqFswab",
+                                                        "supplyType": "site"
+                                                    }
+                                                },
+                                                {
+                                                    "bidder": "teads",
+                                                    "params": {
+                                                        "placementId": 202864,
+                                                        "pageId": 187761
+                                                    }
+                                                },
+                                                {
+                                                    "bidder": "pubmatic",
+                                                    "params": {
+                                                        "publisherId": "161984",
+                                                        "adSlot": "4525458"
+                                                    }
+                                                },
+                                                {
+                                                    "bidder": "ttd",
+                                                    "params": {
+                                                        "supplySourceId": "unidad",
+                                                        "publisherId": "1"
+                                                    }
+                                                },
+                                                {
+                                                    "bidder": "ix",
+                                                    "params": {
+                                                        "siteId": "1255727"
+                                                    }
+                                                },
+                                                {
+                                                    "bidder": "taboola",
+                                                    "params": {
+                                                        "publisherId": "1925071"
+                                                    }
+                                                }
+                                            ],
+                                            "videoBidders": [
+                                                {
+                                                    "bidder": "rubicon_video",
+                                                    "params": {
+                                                        "zoneId": 3460964,
+                                                        "siteId": 96110,
+                                                        "position": "atf",
+                                                        "accountId": 15366,
+                                                        "video": {
+                                                            "size_id": 201
+                                                        }
+                                                    }
+                                                },
+                                                {
+                                                    "bidder": "pubmatic_video",
+                                                    "params": {
+                                                        "publisherId": "161984",
+                                                        "adSlot": "6112263"
+                                                    }
+                                                },
+                                                {
+                                                    "bidder": "richaudience_video",
+                                                    "params": {
+                                                        "pid": "ImcSe2TtvR",
+                                                        "supplyType": "site"
+                                                    }
+                                                },
+                                                {
+                                                    "bidder": "appnexus_video",
+                                                    "params": {
+                                                        "placementId": 34117164
+                                                    }
+                                                },
+                                                {
+                                                    "bidder": "criteo_video",
+                                                    "params": {
+                                                        "networkId": "1080",
+                                                        "pubid": "108879"
+                                                    }
+                                                },
+                                                {
+                                                    "bidder": "ttd_video",
+                                                    "params": {
+                                                        "supplySourceId": "unidad",
+                                                        "publisherId": "1",
+                                                        "placementId": "video"
+                                                    }
+                                                },
+                                                {
+                                                    "bidder": "equativ_video",
+                                                    "params": {
+                                                        "networkId": "1844",
+                                                        "siteId": "99914",
+                                                        "pageId": "648550",
+                                                        "formatId": "40183"
+                                                    }
+                                                },
+                                                {
+                                                    "bidder": "ix_video",
+                                                    "params": {
+                                                        "siteId": "1255787"
+                                                    }
+                                                }
+                                            ]
+                                        },
+                                        "secondary": {
+                                            "bidders": [
+                                                {
+                                                    "bidder": "appnexus",
+                                                    "params": {
+                                                        "placementId": "11595044"
+                                                    }
+                                                },
+                                                {
+                                                    "bidder": "rubicon",
+                                                    "params": {
+                                                        "zoneId": 663158,
+                                                        "siteId": 142592,
+                                                        "accountId": 15366,
+                                                        "position": "btf"
+                                                    }
+                                                },
+                                                {
+                                                    "bidder": "criteo",
+                                                    "params": {
+                                                        "networkId": 1080,
+                                                        "pubid": "108879"
+                                                    }
+                                                },
+                                                {
+                                                    "bidder": "equativ",
+                                                    "params": {
+                                                        "networkId": 1844,
+                                                        "pageId": 648550,
+                                                        "formatId": 40974,
+                                                        "siteId": 99914
+                                                    }
+                                                },
+                                                {
+                                                    "bidder": "richaudience",
+                                                    "params": {
+                                                        "pid": "1LKWJIrbol",
+                                                        "supplyType": "site"
+                                                    }
+                                                },
+                                                {
+                                                    "bidder": "teads",
+                                                    "params": {
+                                                        "placementId": 202864,
+                                                        "pageId": 187761
+                                                    }
+                                                },
+                                                {
+                                                    "bidder": "pubmatic",
+                                                    "params": {
+                                                        "publisherId": "161984",
+                                                        "adSlot": "4525458"
+                                                    }
+                                                },
+                                                {
+                                                    "bidder": "ttd",
+                                                    "params": {
+                                                        "supplySourceId": "unidad",
+                                                        "publisherId": "1"
+                                                    }
+                                                },
+                                                {
+                                                    "bidder": "ix",
+                                                    "params": {
+                                                        "siteId": "1255747"
+                                                    }
+                                                },
+                                                {
+                                                    "bidder": "taboola",
+                                                    "params": {
+                                                        "publisherId": "1925071"
+                                                    }
+                                                }
+                                            ],
+                                            "videoBidders": [
+                                                {
+                                                    "bidder": "rubicon_video",
+                                                    "params": {
+                                                        "zoneId": 3460964,
+                                                        "siteId": 96110,
+                                                        "position": "atf",
+                                                        "accountId": 15366,
+                                                        "video": {
+                                                            "size_id": 201
+                                                        }
+                                                    }
+                                                },
+                                                {
+                                                    "bidder": "pubmatic_video",
+                                                    "params": {
+                                                        "publisherId": "161984",
+                                                        "adSlot": "6112263"
+                                                    }
+                                                },
+                                                {
+                                                    "bidder": "richaudience_video",
+                                                    "params": {
+                                                        "pid": "ImcSe2TtvR",
+                                                        "supplyType": "site"
+                                                    }
+                                                },
+                                                {
+                                                    "bidder": "appnexus_video",
+                                                    "params": {
+                                                        "placementId": 34117164
+                                                    }
+                                                },
+                                                {
+                                                    "bidder": "criteo_video",
+                                                    "params": {
+                                                        "networkId": "1080",
+                                                        "pubid": "108879"
+                                                    }
+                                                },
+                                                {
+                                                    "bidder": "ttd_video",
+                                                    "params": {
+                                                        "supplySourceId": "unidad",
+                                                        "publisherId": "1",
+                                                        "placementId": "video"
+                                                    }
+                                                },
+                                                {
+                                                    "bidder": "equativ_video",
+                                                    "params": {
+                                                        "networkId": "1844",
+                                                        "siteId": "99914",
+                                                        "pageId": "648550",
+                                                        "formatId": "40183"
+                                                    }
+                                                },
+                                                {
+                                                    "bidder": "ix_video",
+                                                    "params": {
+                                                        "siteId": "1255787"
+                                                    }
+                                                }
+                                            ]
+                                        }
+                                    }
+                                }
+                            }
                         }
                     }
                 }
@@ -1920,12 +2236,12 @@
                 "refreshCycle": {
                     "enabled": true,
                     "delayMs": 5000,
-                    "maxCycles": 2,
-                    "bidStrategy": "fresh",
-                    "bidMaxAgeMs": 30000,
                     "houseDelayMs": 2000,
                     "cpcDelayMs": 2000,
-                    "adexDelayMs": 3500
+                    "adexDelayMs": 3500,
+                    "maxCycles": 2,
+                    "bidStrategy": "fresh",
+                    "bidMaxAgeMs": 30000
                 },
                 "prebid": {
                     "timeoutMs": 1500,
@@ -2093,11 +2409,11 @@
                         "refreshCycle": {
                             "enabled": true,
                             "delayMs": 3000,
-                            "maxCycles": 2,
-                            "bidStrategy": "fresh",
                             "houseDelayMs": 2000,
                             "cpcDelayMs": 2000,
-                            "adexDelayMs": 3500
+                            "adexDelayMs": 3500,
+                            "maxCycles": 2,
+                            "bidStrategy": "fresh"
                         }
                     },
                     "exclusions": {
@@ -2571,552 +2887,5 @@
             ]
         }
     },
-    "ext": {
-        "sites": {
-            "p1": {
-                "mun-mv": {
-                    "ES": {
-                        "gexp-intext": [],
-                        "gexp-intext-2": [],
-                        "m": [],
-                        "m-pnc": [],
-                        "r": []
-                    }
-                }
-            },
-            "pp2": {
-                "mun-mv": {
-                    "ES": {
-                        "m": 10,
-                        "r": 6,
-                        "r-nata": 0,
-                        "rb": 3,
-                        "gexp-intext-2": 1,
-                        "rc": 3,
-                        "re": 1,
-                        "rd": 1,
-                        "gexp-intext": 0
-                    },
-                    "US": {
-                        "m": 13,
-                        "r": 7,
-                        "r-nata": 3,
-                        "gexp-intext-2": 2,
-                        "rb": 7,
-                        "rc": 10,
-                        "rd": 11,
-                        "re": 0
-                    },
-                    "GB": {
-                        "m": 4,
-                        "r": 1,
-                        "rb": 3,
-                        "gexp-intext": 0,
-                        "gexp-intext-2": 0,
-                        "r-nata": 2,
-                        "rc": 0,
-                        "rd": 1,
-                        "re": 1
-                    },
-                    "BE": {
-                        "r": 3,
-                        "m": 3,
-                        "rb": 1,
-                        "r-nata": 0,
-                        "rc": 1,
-                        "rd": 0,
-                        "re": 0
-                    },
-                    "CA": {
-                        "r": 6,
-                        "rb": 6,
-                        "m": 10,
-                        "r-nata": 2,
-                        "rc": 4,
-                        "rd": 1,
-                        "re": 0
-                    },
-                    "CH": {
-                        "m": 3,
-                        "r": 0,
-                        "rb": 5,
-                        "rc": 1,
-                        "rd": 1,
-                        "r-nata": 4,
-                        "re": 6
-                    },
-                    "FR": {
-                        "m": 1,
-                        "r": 1,
-                        "rb": 3,
-                        "rd": 3,
-                        "r-nata": 2,
-                        "rc": 1,
-                        "re": 1
-                    },
-                    "DE": {
-                        "m": 6,
-                        "r": 3,
-                        "rb": 1,
-                        "r-nata": 2,
-                        "gexp-intext-2": 0,
-                        "rc": 1,
-                        "rd": 1,
-                        "re": 1
-                    },
-                    "NL": {
-                        "m": 4,
-                        "r": 4,
-                        "rb": 1,
-                        "rc": 1,
-                        "rd": 5,
-                        "gexp-intext": 1,
-                        "gexp-intext-2": 0,
-                        "r-nata": 1,
-                        "re": 0
-                    },
-                    "PT": {
-                        "m": 3,
-                        "r": 1,
-                        "rb": 1,
-                        "rc": 1,
-                        "rd": 3,
-                        "r-nata": 0,
-                        "re": 2
-                    }
-                },
-                "yodona-mv": {
-                    "ES": {
-                        "m": 8,
-                        "r": 10,
-                        "r-nata": 0,
-                        "rb": 1,
-                        "rc": 1,
-                        "rd": 1,
-                        "re": 0,
-                        "gexp-intext": 1,
-                        "gexp-intext-2": 2
-                    },
-                    "US": {
-                        "m": 10,
-                        "r": 8,
-                        "r-nata": 0,
-                        "rb": 0,
-                        "rc": 0,
-                        "rd": 1,
-                        "re": 1
-                    },
-                    "GB": {
-                        "m": 13,
-                        "r": 11,
-                        "r-nata": 1,
-                        "rb": 6,
-                        "rc": 6,
-                        "rd": 0,
-                        "re": 2
-                    },
-                    "BE": {
-                        "m": 2,
-                        "r": 4,
-                        "r-nata": 0,
-                        "rb": 2,
-                        "rc": 2,
-                        "rd": 0,
-                        "re": 0
-                    },
-                    "CA": {
-                        "r": 15,
-                        "m": 4,
-                        "r-nata": 0,
-                        "rb": 3,
-                        "rc": 1
-                    },
-                    "CH": {
-                        "m": 11,
-                        "r": 9,
-                        "r-nata": 0,
-                        "rb": 10,
-                        "rc": 10
-                    },
-                    "FR": {
-                        "m": 3,
-                        "r": 3,
-                        "r-nata": 0,
-                        "rb": 4,
-                        "rc": 4,
-                        "rd": 0,
-                        "re": 0
-                    },
-                    "DE": {
-                        "m": 11,
-                        "r": 8,
-                        "rb": 10,
-                        "rc": 11,
-                        "rd": 0
-                    },
-                    "NL": {
-                        "r": 9,
-                        "m": 6
-                    },
-                    "PT": {
-                        "m": 3,
-                        "r": 4,
-                        "r-nata": 0,
-                        "rb": 1,
-                        "rc": 1
-                    }
-                }
-            },
-            "vv": {
-                "mun-mv": {
-                    "noticia": {
-                        "7": {
-                            "f": {
-                                "f": 75,
-                                "t": 100
-                            },
-                            "t": {
-                                "t": 100
-                            }
-                        },
-                        "8": {
-                            "f": {
-                                "f": 0
-                            },
-                            "t": {
-                                "t": 0
-                            }
-                        },
-                        "9": {
-                            "t": {
-                                "t": 100
-                            }
-                        },
-                        "10": {
-                            "f": {
-                                "f": 100
-                            }
-                        },
-                        "11": {
-                            "f": {
-                                "f": 50
-                            }
-                        },
-                        "12": {
-                            "f": {
-                                "f": 0
-                            }
-                        },
-                        "13": {
-                            "f": {
-                                "f": 50
-                            }
-                        },
-                        "14": {
-                            "f": {
-                                "f": 50
-                            }
-                        },
-                        "15": {
-                            "f": {
-                                "f": 0
-                            }
-                        },
-                        "16": {
-                            "f": {
-                                "f": 30
-                            }
-                        },
-                        "17": {
-                            "f": {
-                                "f": 25
-                            }
-                        },
-                        "18": {
-                            "f": {
-                                "f": 0
-                            }
-                        },
-                        "19": {
-                            "f": {
-                                "f": 0
-                            }
-                        },
-                        "20": {
-                            "f": {
-                                "f": 0
-                            }
-                        }
-                    },
-                    "guia tv": {
-                        "4": {
-                            "f": {
-                                "f": 100
-                            }
-                        },
-                        "5": {
-                            "f": {
-                                "f": 0
-                            }
-                        },
-                        "6": {
-                            "f": {
-                                "f": 30
-                            }
-                        },
-                        "7": {
-                            "f": {
-                                "f": 80
-                            },
-                            "t": {
-                                "t": 80
-                            }
-                        }
-                    },
-                    "directo": {
-                        "7": {
-                            "f": {
-                                "f": 0
-                            }
-                        },
-                        "8": {
-                            "f": {
-                                "f": 0
-                            }
-                        },
-                        "9": {
-                            "f": {
-                                "f": 100
-                            }
-                        },
-                        "15": {
-                            "f": {
-                                "f": 0
-                            }
-                        },
-                        "17": {
-                            "f": {
-                                "f": 0
-                            }
-                        },
-                        "18": {
-                            "f": {
-                                "f": 0
-                            }
-                        },
-                        "20": {
-                            "f": {
-                                "f": 0
-                            }
-                        }
-                    },
-                    "album": {
-                        "7": {
-                            "f": {
-                                "f": 50
-                            }
-                        }
-                    },
-                    "pagecontent": {
-                        "3": {
-                            "f": {
-                                "f": 0
-                            }
-                        },
-                        "6": {
-                            "f": {
-                                "f": 100
-                            }
-                        },
-                        "7": {
-                            "f": {
-                                "f": 40
-                            }
-                        },
-                        "10": {
-                            "f": {
-                                "f": 0
-                            }
-                        },
-                        "11": {
-                            "f": {
-                                "f": 50
-                            }
-                        },
-                        "12": {
-                            "f": {
-                                "f": 0
-                            }
-                        },
-                        "14": {
-                            "f": {
-                                "f": 0
-                            }
-                        }
-                    },
-                    "portadilla": {
-                        "8": {
-                            "t": {
-                                "t": 0
-                            }
-                        },
-                        "10": {
-                            "f": {
-                                "f": 100
-                            }
-                        },
-                        "13": {
-                            "f": {
-                                "f": 100
-                            }
-                        },
-                        "17": {
-                            "f": {
-                                "f": 0
-                            }
-                        },
-                        "18": {
-                            "f": {
-                                "f": 0
-                            }
-                        },
-                        "19": {
-                            "f": {
-                                "f": 0
-                            }
-                        },
-                        "20": {
-                            "f": {
-                                "f": 0
-                            }
-                        }
-                    },
-                    "portada": {
-                        "14": {
-                            "f": {
-                                "f": 100
-                            }
-                        },
-                        "19": {
-                            "f": {
-                                "f": 100
-                            }
-                        },
-                        "20": {
-                            "f": {
-                                "f": 0
-                            }
-                        }
-                    },
-                    "directorio": {
-                        "7": {
-                            "f": {
-                                "f": 100
-                            }
-                        },
-                        "20": {
-                            "f": {
-                                "f": 0
-                            }
-                        }
-                    },
-                    "estaticos": {
-                        "7": {
-                            "f": {
-                                "f": 100
-                            }
-                        },
-                        "17": {
-                            "f": {
-                                "f": 0
-                            }
-                        }
-                    },
-                    "noticia-especial": {
-                        "10": {
-                            "t": {
-                                "t": 100
-                            }
-                        },
-                        "11": {
-                            "f": {
-                                "f": 100
-                            }
-                        }
-                    }
-                },
-                "yodona-mv": {
-                    "noticia": {
-                        "7": {
-                            "f": {
-                                "f": 70,
-                                "t": 0
-                            },
-                            "t": {
-                                "t": 50
-                            }
-                        },
-                        "8": {
-                            "f": {
-                                "f": 0
-                            }
-                        },
-                        "10": {
-                            "f": {
-                                "f": 100
-                            }
-                        },
-                        "12": {
-                            "f": {
-                                "f": 30
-                            },
-                            "t": {
-                                "t": 0
-                            }
-                        },
-                        "13": {
-                            "f": {
-                                "f": 30
-                            }
-                        },
-                        "14": {
-                            "f": {
-                                "f": 0
-                            }
-                        },
-                        "17": {
-                            "f": {
-                                "f": 0
-                            }
-                        },
-                        "18": {
-                            "f": {
-                                "f": 0
-                            }
-                        },
-                        "19": {
-                            "f": {
-                                "f": 0
-                            }
-                        },
-                        "20": {
-                            "f": {
-                                "f": 0
-                            }
-                        }
-                    },
-                    "album": {
-                        "7": {
-                            "f": {
-                                "f": 70,
-                                "t": 100
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    },
-    "config_version": "6a4cd8b25d084",
     "npTelemetryProb": 0
 }
