@@ -260,7 +260,7 @@ test('15-18. todos los consumidores de red pasan por el resolver canónico', () 
       method,
     );
   });
-  assert.match(source, /googletag\.defineSlot\(fullAdUnit/);
+  assert.match(source, /gpt\.defineSlot\(fullAdUnit/);
   assert.match(source, /const targetNetwork = prebidNetworks\[networkId\]/);
 });
 

@@ -3090,6 +3090,97 @@ class RandomStrategy extends WindowArray {
           return this.registerIntextSyntheticEvent("fallback-blank", payload, dedupeKey);
         }
 
+        isUsableIntextGptApi(api) {
+          return Boolean(api && typeof api.defineSlot === "function" && typeof api.pubads === "function" && typeof api.display === "function" && typeof api.destroySlots === "function");
+        }
+
+        resolveIntextGptApi() {
+          const proxy = typeof window !== "undefined" ? window.googletag : null;
+          if (!proxy) return { api: null, source: "gpt-unavailable", pspDetected: false, proxy: null, controller: null };
+          const controller = proxy.__ctrl;
+          const pspDetected = Boolean(controller && typeof controller === "object");
+          let api = null;
+          let source = "gpt-invalid";
+          if (pspDetected) {
+            if (this.isUsableIntextGptApi(controller.baseObject)) {
+              api = controller.baseObject;
+              source = "__ctrl.baseObject";
+            } else if (this.isUsableIntextGptApi(controller.innerObject)) {
+              api = controller.innerObject;
+              source = "__ctrl.innerObject";
+            } else {
+              source = "psp-real-gpt-unavailable";
+            }
+          } else if (this.isUsableIntextGptApi(proxy)) {
+            api = proxy;
+            source = "window.googletag";
+          }
+          const diagnostic = {
+            pspDetected,
+            source,
+            hasController: Boolean(controller),
+            hasBaseObject: Boolean(controller?.baseObject),
+            hasInnerObject: Boolean(controller?.innerObject),
+            selectedApiReady: api?.apiReady,
+            selectedPubadsReady: api?.pubadsReady,
+            defineSlotType: typeof api?.defineSlot,
+            pubadsType: typeof api?.pubads,
+            displayType: typeof api?.display,
+          };
+          logIntext(`[Intext:GPT] intext_gpt_runtime_resolved`, diagnostic);
+          if (pspDetected) logIntext(`[Intext:GPT] intext_gpt_proxy_detected`, diagnostic);
+          return { api, source, pspDetected, proxy, controller };
+        }
+
+        runIntextGptCommand(callback) {
+          let initial;
+          try {
+            initial = this.resolveIntextGptApi();
+          } catch (error) {
+            warnIntext(`[Intext:GPT] intext_gpt_command_failed`, { reason: "initial-resolution-exception", error: error?.message || String(error) });
+            return Promise.resolve({ executed: false, reason: "initial-resolution-exception", error });
+          }
+          return new Promise((resolve) => {
+            let settled = false;
+            const settleOnce = (result) => {
+              if (settled) return;
+              settled = true;
+              clearTimeout(timeoutId);
+              resolve(result);
+            };
+            const fail = (reason, resolution = initial, error = null) => {
+              warnIntext(`[Intext:GPT] intext_gpt_command_failed`, {
+                reason,
+                pspDetected: resolution?.pspDetected === true,
+                source: resolution?.source || "unknown",
+                error: error?.message || (error ? String(error) : null),
+              });
+              settleOnce({ executed: false, reason, resolution, error });
+            };
+            const timeoutId = setTimeout(() => fail("command-timeout"), 2000);
+            if (!initial.proxy?.cmd || typeof initial.proxy.cmd.push !== "function") {
+              fail(initial.source || "gpt-command-queue-unavailable");
+              return;
+            }
+            const execute = () => {
+              if (settled) return;
+              const current = this.resolveIntextGptApi();
+              if (!current.api) return fail(current.source, current);
+              try {
+                settleOnce({ executed: true, value: callback(current.api, current), resolution: current });
+              } catch (error) {
+                fail("callback-exception", current, error);
+              }
+            };
+            try {
+              if (initial.pspDetected) initial.proxy.cmd.push(execute, true);
+              else initial.proxy.cmd.push(execute);
+            } catch (error) {
+              fail("queue-push-exception", initial, error);
+            }
+          });
+        }
+
         extractStaticAdUnitPath() {
           const devPath = window.GEXP_DEV_CONFIG?.intextSites?.default?.general?.display?.adUnitPath;
           if (devPath) return devPath;
@@ -5437,8 +5528,13 @@ class RandomStrategy extends WindowArray {
           this.state = "idle";
           this.waterfall = null;
           this.activeCreative = null;
-          this.wa = null;
-          this.slot = null;
+            this.wa = null;
+            this.slot = null;
+            this._slotGptApi = null;
+            this._slotPubadsService = null;
+            this._slotGptSource = null;
+            this._initialDisplayRenderHandler = null;
+            this._persistentDisplayRenderHandler = null;
           this._coordinator = null;
           this.lockedHeight = 0;
           this._videoTiming = null;
@@ -9459,13 +9555,64 @@ class RandomStrategy extends WindowArray {
         }
 
         isMobile() {
-          return window.innerWidth < 768;
+            return window.innerWidth < 768;
+        }
+
+        isUsableIntextPubadsService(pubads) {
+            return Boolean(pubads && typeof pubads.refresh === "function" && typeof pubads.addEventListener === "function" && typeof pubads.removeEventListener === "function");
+        }
+
+        removeIntextDisplayListeners() {
+            const pubads = this._slotPubadsService;
+            if (pubads && typeof pubads.removeEventListener === "function") {
+                if (this._initialDisplayRenderHandler) try { pubads.removeEventListener("slotRenderEnded", this._initialDisplayRenderHandler); } catch (e) { }
+                if (this._persistentDisplayRenderHandler) try { pubads.removeEventListener("slotRenderEnded", this._persistentDisplayRenderHandler); } catch (e) { }
+            }
+            this._initialDisplayRenderHandler = null;
+            this._persistentDisplayRenderHandler = null;
+            this._hasPersistentListener = false;
+        }
+
+        clearIntextGptSlotIdentity() {
+            this.slot = null;
+            this._slotGptApi = null;
+            this._slotPubadsService = null;
+            this._slotGptSource = null;
+        }
+
+        destroyIntextDisplaySlot(reason = "unknown") {
+            const slot = this.slot;
+            const storedGpt = this._slotGptApi;
+            const storedSource = this._slotGptSource;
+            const gpt = storedGpt || this.manager.resolveIntextGptApi().api;
+            this.removeIntextDisplayListeners();
+            this.clearIntextGptSlotIdentity();
+            if (!slot || typeof gpt?.destroySlots !== "function") return Promise.resolve(false);
+            return this.manager.runIntextGptCommand(() => {
+                gpt.destroySlots([slot]);
+                logIntext(`[Intext:GPT:${this.id}] intext_gpt_slot_destroyed`, { reason, source: storedGpt ? storedSource || "stored-api" : "resolved-fallback" });
+            }).then((result) => result.executed === true);
         }
 
         askDisplay(bidResponse, renderToken = this._activeRenderToken, trigger = "unknown") {
           return new Promise((resolve) => {
+            let settled = false;
+            let requestTimer = null;
+            const settleOnce = (result) => {
+              if (settled) return;
+              settled = true;
+              if (requestTimer) clearTimeout(requestTimer);
+              requestTimer = null;
+              if (this._initialDisplayRenderHandler && this._slotPubadsService) {
+                try { this._slotPubadsService.removeEventListener("slotRenderEnded", this._initialDisplayRenderHandler); } catch (e) { }
+                this._initialDisplayRenderHandler = null;
+              }
+              this._displayRequestInFlight = false;
+              if (result?.filled !== true && this._visualState === "asking_display") this._visualState = "idle";
+              resolve(result);
+            };
             if (!this.isActiveRenderToken(renderToken, "askDisplay:start", trigger)) {
-              resolve({ filled: false, event: null, stale: true });
+              settleOnce({ filled: false, event: null, stale: true });
               return;
             }
             this.state = "asking_display";
@@ -9498,21 +9645,37 @@ class RandomStrategy extends WindowArray {
               );
             }
 
-            googletag.cmd.push(() => {
+            requestTimer = setTimeout(() => settleOnce({ filled: false, event: null, timeout: true }), 5000);
+            this.manager.runIntextGptCommand((gpt, resolution) => {
+              try {
               if (!this.isActiveRenderToken(renderToken, "askDisplay:googletag_cmd", trigger)) {
-                resolve({ filled: false, event: null, stale: true });
+                settleOnce({ filled: false, event: null, stale: true });
+                return;
+              }
+              const pubads = gpt.pubads();
+              if (!this.isUsableIntextPubadsService(pubads)) {
+                settleOnce({ filled: false, event: null, gptError: "pubads-service-invalid" });
                 return;
               }
               if (!this.slot) {
-                this.slot = googletag.defineSlot(fullAdUnit, sizes, this.id);
-                if (!this.slot) {
-                  errorIntext(
-                    `[Intext:Display:${this.id}] ❌ Slot definition failed`,
-                  );
-                  resolve({ filled: false, event: null });
+                const candidateSlot = gpt.defineSlot(fullAdUnit, sizes, this.id);
+                if (!candidateSlot || typeof candidateSlot.addService !== "function") {
+                  warnIntext(`[Intext:GPT:${this.id}] intext_gpt_slot_invalid`, {
+                    pspDetected: resolution.pspDetected,
+                    source: resolution.source,
+                    candidateAddServiceType: typeof candidateSlot?.addService,
+                  });
+                  settleOnce({ filled: false, event: null, gptError: "slot-invalid" });
                   return;
                 }
-                this.slot.addService(googletag.pubads());
+                candidateSlot.addService(pubads);
+                this.slot = candidateSlot;
+                this._slotGptApi = gpt;
+                this._slotPubadsService = pubads;
+                this._slotGptSource = resolution.source;
+              } else if (this._slotGptApi !== gpt || this._slotPubadsService !== pubads) {
+                settleOnce({ filled: false, event: null, gptError: "slot-api-identity-mismatch" });
+                return;
               }
 
               const preRequestDisplayTargeting = this.resolveDisplayRequestTargeting();
@@ -9602,9 +9765,8 @@ class RandomStrategy extends WindowArray {
 
               const initialRenderHandler = (event) => {
                 if (event.slot !== this.slot) return;
-                googletag
-                  .pubads()
-                  .removeEventListener("slotRenderEnded", initialRenderHandler);
+                pubads.removeEventListener("slotRenderEnded", initialRenderHandler);
+                if (this._initialDisplayRenderHandler === initialRenderHandler) this._initialDisplayRenderHandler = null;
                 if (!this.isActiveRenderToken(renderToken, "display_initial_slotRenderEnded", trigger)) {
                   if (this.isHouseLineItemSentinel(event)) {
                     logIntext(`[Intext:Display:${this.id}] house_lineitem_sentinel_stale_callback_ignored`, {
@@ -9615,7 +9777,7 @@ class RandomStrategy extends WindowArray {
                       lineItemId: event?.lineItemId,
                     });
                   }
-                  resolve({ filled: false, event, stale: true });
+                  settleOnce({ filled: false, event, stale: true });
                   return;
                 }
 
@@ -9676,25 +9838,24 @@ class RandomStrategy extends WindowArray {
 
                 if (this.isHouse1x1AutoRefreshCandidate(event)) {
                   this.handleHouse1x1AutoRefresh(event, renderToken);
-                  resolve({ filled: false, event, is1x1, suppressed: true, retrying: true, sentinelLineItemId: event?.lineItemId });
+                  settleOnce({ filled: false, event, is1x1, suppressed: true, retrying: true, sentinelLineItemId: event?.lineItemId });
                   return;
                 }
 
                 if (this.isHouse1x1AutoRefreshMaxReached(event)) {
                   this.handleHouse1x1MaxAttemptsReached(event);
-                  resolve({ filled: false, event, is1x1, suppressed: true, retrying: false, maxAttemptsReached: true, sentinelLineItemId: event?.lineItemId });
+                  settleOnce({ filled: false, event, is1x1, suppressed: true, retrying: false, maxAttemptsReached: true, sentinelLineItemId: event?.lineItemId });
                   return;
                 }
 
-                resolve({ filled: hasContent, event, is1x1 });
+                settleOnce({ filled: hasContent, event, is1x1 });
               };
-              googletag
-                .pubads()
-                .addEventListener("slotRenderEnded", initialRenderHandler);
+              this._initialDisplayRenderHandler = initialRenderHandler;
+              pubads.addEventListener("slotRenderEnded", initialRenderHandler);
 
               if (!this._hasPersistentListener) {
                 this._hasPersistentListener = true;
-                googletag.pubads().addEventListener("slotRenderEnded", (event) => {
+                this._persistentDisplayRenderHandler = (event) => {
                   if (event.slot !== this.slot) return;
                   if (this.state !== "display") return;
                   const activeToken = this._activeRenderToken;
@@ -9781,11 +9942,12 @@ class RandomStrategy extends WindowArray {
                       renderToken: activeToken,
                     });
                   }
-                });
+                };
+                pubads.addEventListener("slotRenderEnded", this._persistentDisplayRenderHandler);
               }
 
               logIntext(
-                `[Intext:Display:${this.id}] Calling googletag.display + refresh`,
+                `[Intext:Display:${this.id}] Calling resolved GPT display + refresh`,
               );
 
               let slotEl = document.getElementById(this.id);
@@ -9916,7 +10078,7 @@ class RandomStrategy extends WindowArray {
               }
 
               if (slotEl && !slotEl.hasAttribute("data-gpt-displayed")) {
-                googletag.display(this.id);
+                gpt.display(this.id);
                 slotEl.setAttribute("data-gpt-displayed", "true");
               }
 
@@ -9947,7 +10109,20 @@ class RandomStrategy extends WindowArray {
                 return;
               }
               this.assertIntextRandomSnapshotOnSlot(this.slot, "immediately-before-gpt-refresh");
-              googletag.pubads().refresh([this.slot]);
+              pubads.refresh([this.slot]);
+              } catch (error) {
+                warnIntext(`[Intext:GPT:${this.id}] intext_gpt_command_failed`, {
+                  reason: "display-callback-exception",
+                  source: resolution?.source || "unknown",
+                  error: error?.message || String(error),
+                });
+                settleOnce({ filled: false, event: null, gptError: "display-callback-exception" });
+              }
+            }).then((commandResult) => {
+              if (!commandResult.executed) settleOnce({ filled: false, event: null, gptError: commandResult.reason || commandResult.resolution?.source || "command-failed" });
+            }).catch((error) => {
+              warnIntext(`[Intext:GPT:${this.id}] intext_gpt_command_failed`, { reason: "command-promise-rejected", error: error?.message || String(error) });
+              settleOnce({ filled: false, event: null, gptError: "command-promise-rejected" });
             });
           });
         }
@@ -10322,8 +10497,7 @@ class RandomStrategy extends WindowArray {
              );
 
              if (this.slot) {
-                googletag.cmd.push(() => googletag.destroySlots([this.slot]));
-                this.slot = null;
+                this.destroyIntextDisplaySlot(source);
              }
 
              const newWrapper = this.manager.createWrapperNode(this.id, "display");
@@ -10369,9 +10543,7 @@ class RandomStrategy extends WindowArray {
         }
         discardDisplay() {
           if (this.slot) {
-            googletag.cmd.push(() => {
-              googletag.destroySlots([this.slot]);
-              this.slot = null;
+            this.destroyIntextDisplaySlot("discard-display").then(() => {
               const el = document.getElementById(this.id);
               if (el) el.removeAttribute("data-gpt-displayed");
             });
@@ -10746,7 +10918,10 @@ class RandomStrategy extends WindowArray {
           this.teardownIntextViewportTelemetryObserver();
           this.flushIntextTelemetryToCI({ register: true, reason: "destroy" });
           if (this.slot) {
-            googletag.cmd.push(() => googletag.destroySlots([this.slot]));
+            this.destroyIntextDisplaySlot("node-reset");
+          } else {
+            this.removeIntextDisplayListeners();
+            this.clearIntextGptSlotIdentity();
           }
           this.activeCreative?.destroy?.();
           this.container.destroy();
@@ -13620,8 +13795,10 @@ class RandomStrategy extends WindowArray {
             pb.markWinningBidAsUsed({ adUnitCode: configuration.code });
           } catch (e) { /* ignore if no winning bid */ }
           try {
-            googletag.cmd.push(() => {
-              const gptSlots = googletag.pubads().getSlots();
+            this.node.manager.runIntextGptCommand((gpt) => {
+              const pubads = this.node._slotPubadsService || gpt.pubads();
+              if (!pubads || typeof pubads.getSlots !== "function") return;
+              const gptSlots = pubads.getSlots();
               gptSlots.forEach(slot => {
                 if (slot.getSlotElementId() === configuration.code && typeof slot.getTargetingMap === "function") {
                   const tMap = slot.getTargetingMap();
