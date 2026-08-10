@@ -2329,6 +2329,7 @@ class RandomStrategy extends WindowArray {
       const groupEndIntext = () => { if (window.gexpIntextDebug) { intextDebugCollector.capture("groupEnd", [], "groupEnd"); console.groupEnd(); } };
 
       const INTEXT_RANDOM_KEYS = Object.freeze(["random1", "random2", "random3", "random4"]);
+      const intextPrebidAliasRegistry = new WeakMap();
       const INTEXT_TELEMETRY_STANDARD_FIELDS = Object.freeze([
         "gexp-intext-telemetry-event-type",
         "gexp-intext-opportunity-id",
@@ -11195,6 +11196,8 @@ class RandomStrategy extends WindowArray {
           this._lastFetchExpiredTrigger = null;
           this._renderWaitForFetchStartedAt = null;
           this._renderWaitedForFetch = false;
+          this._aliasRegistrationState = "idle";
+          this._aliasRegistrationPromise = null;
         }
 
         getPbjsBidResponsesSafe(adUnitCode) {
@@ -11419,7 +11422,6 @@ class RandomStrategy extends WindowArray {
         async runPrebidPhase(trigger, effectiveMode) {
           const prebidPromises = [];
 
-          this.registerPrebidAliases();
           const multiConfig = this.getPrebidMultiFormatConfig();
           if (multiConfig) {
             const mediaTypesStr = Object.keys(multiConfig.mediaTypes).join("+");
@@ -11950,7 +11952,6 @@ class RandomStrategy extends WindowArray {
 
           const prebidPromises = [];
 
-          this.registerPrebidAliases();
           const multiConfig = this.getPrebidMultiFormatConfig();
           if (multiConfig) {
             const bannerBidders = multiConfig.bids.filter(b => !(this.config.prebid?.videoBidders || []).includes(b)).length;
@@ -11974,17 +11975,27 @@ class RandomStrategy extends WindowArray {
           this.decideWinner();
         }
 
+        getPrebidAliasesConfig() {
+          const networkId = this.node.manager.resolveIntextRequestNetworkId(this.node.scopedContext);
+          if (!networkId) return { networkId: null, aliases: null };
+          const prebidNetworks = this.config.prebid?.networks || {};
+          const targetNetwork = prebidNetworks[networkId] || prebidNetworks.default || {};
+          return { networkId, aliases: targetNetwork.aliases || null };
+        }
+
         waitForPbjsAvailability(configuration) {
           const waitMs = this.config.prebid?.pbjsAvailabilityWaitMs ?? 1200;
           const intervalMs = this.config.prebid?.pbjsAvailabilityRetryMs ?? 150;
           const startedAt = Date.now();
           let attempt = 0;
 
+          const aliasesRequired = Boolean(this.getPrebidAliasesConfig().aliases);
           const isReady = () =>
             typeof window.pbjs !== "undefined" &&
             typeof window.pbjs.requestBids === "function" &&
             window.pbjs.que &&
-            typeof window.pbjs.que.push === "function";
+            typeof window.pbjs.que.push === "function" &&
+            (!aliasesRequired || typeof window.pbjs.aliasBidder === "function");
 
           if (isReady()) return Promise.resolve(true);
 
@@ -12240,7 +12251,7 @@ class RandomStrategy extends WindowArray {
               }
             });
 
-            this.waitForPbjsAvailability(configuration).then((isAvailable) => {
+            this.waitForPbjsAvailability(configuration).then(async (isAvailable) => {
               if (!isAvailable) {
                 logIntext(
                   `[Intext:Slot:${this.node.id}]   Prebid [${configuration.code}]: pbjs not available after wait`,
@@ -12248,7 +12259,20 @@ class RandomStrategy extends WindowArray {
                 resolve(null);
                 return;
               }
-              this.waitForPrebidGlobalInitFlag(configuration).then(() => runPrebid());
+              const aliasesReady = await this.ensurePrebidAliasesRegistered();
+              if (!aliasesReady) {
+                warnIntext(`[Intext:Prebid:${this.node.id}] prebid_alias_registration_incomplete`, { code: configuration.code });
+                resolve(null);
+                return;
+              }
+              await this.waitForPrebidGlobalInitFlag(configuration);
+              runPrebid();
+            }).catch((error) => {
+              warnIntext(`[Intext:Prebid:${this.node.id}] prebid_alias_registration_failed`, {
+                code: configuration.code,
+                error: error?.message || String(error),
+              });
+              resolve(null);
             });
           });
         }
@@ -13816,88 +13840,95 @@ class RandomStrategy extends WindowArray {
           pb.addAdUnits([configuration]);
         }
 
-        registerPrebidAliases() {
-          if (this._aliasesRegistered) return;
-          this._aliasesRegistered = true;
-
-          const networkId = this.node.manager.resolveIntextRequestNetworkId(this.node.scopedContext);
-          if (!networkId) return;
-          const prebidNetworks = this.config.prebid?.networks || {};
-          const targetNetwork = prebidNetworks[networkId] || prebidNetworks.default || {};
-          const aliases = targetNetwork.aliases;
-          if (!aliases || !window.pbjs) {
-            logIntext(`[Intext:Prebid] prebid_alias_register_skipped`, {
-              reason: !aliases ? "missing_aliases" : "missing_pbjs",
-            });
-            return;
+        ensurePrebidAliasesRegistered() {
+          const { aliases } = this.getPrebidAliasesConfig();
+          if (!aliases) {
+            this._aliasRegistrationState = "registered";
+            return Promise.resolve(true);
+          }
+          const pbjs = typeof window !== "undefined" ? window.pbjs : null;
+          if (!pbjs || typeof pbjs.aliasBidder !== "function") {
+            this._aliasRegistrationState = "idle";
+            this._aliasRegistrationPromise = null;
+            return Promise.resolve(false);
           }
 
-          window.pbjs.que.push(() => {
-            if (typeof window.pbjs.aliasBidder !== "function") {
-              logIntext(`[Intext:Prebid] prebid_alias_register_skipped`, {
-                reason: "missing_aliasBidder",
-              });
-              return;
-            }
+          let registry = intextPrebidAliasRegistry.get(pbjs);
+          if (!registry) {
+            registry = new Map();
+            intextPrebidAliasRegistry.set(pbjs, registry);
+          }
+          const entries = Object.entries(aliases).sort(([a], [b]) => a.localeCompare(b));
+          const registryKey = JSON.stringify(entries);
+          let record = registry.get(registryKey);
+          if (!record) {
+            record = { state: "idle", promise: null, registeredAliases: new Set() };
+            registry.set(registryKey, record);
+          }
+          if (record.state === "registered") {
+            this._aliasRegistrationState = "registered";
+            return Promise.resolve(true);
+          }
+          if (record.state === "registering" && record.promise) {
+            this._aliasRegistrationState = "registering";
+            const sharedPromise = record.promise.then((result) => {
+              this._aliasRegistrationState = result ? "registered" : "idle";
+              this._aliasRegistrationPromise = null;
+              return result;
+            });
+            this._aliasRegistrationPromise = sharedPromise;
+            return sharedPromise;
+          }
 
-            for (const [alias, aliasConfig] of Object.entries(aliases)) {
+          record.state = "registering";
+          this._aliasRegistrationState = "registering";
+          record.promise = Promise.resolve().then(() => {
+            let succeeded = true;
+            for (const [alias, aliasConfig] of entries) {
+              if (record.registeredAliases.has(alias)) continue;
               const isObjectConfig = aliasConfig && typeof aliasConfig === "object";
               const original = isObjectConfig ? aliasConfig.bidder : aliasConfig;
               const gvlid = isObjectConfig ? aliasConfig.gvlid : null;
               const useBaseGvlid = isObjectConfig && aliasConfig.useBaseGvlid === true;
-
               if (!original) {
-                logIntext(`[Intext:Prebid] prebid_alias_register_skipped`, {
-                  alias,
-                  reason: "missing_original_bidder",
-                });
+                succeeded = false;
+                logIntext(`[Intext:Prebid] prebid_alias_register_skipped`, { alias, reason: "missing_original_bidder" });
                 continue;
               }
-
               try {
                 const options = {};
-                if (useBaseGvlid) {
-                  options.useBaseGvlid = true;
-                } else if (gvlid != null) {
-                  options.gvlid = gvlid;
-                }
-                const hasOptions = Object.keys(options).length > 0;
-                logIntext(`[Intext:Prebid] prebid_alias_register_attempt`, {
-                  alias,
-                  bidder: original,
-                  gvlid: gvlid ?? null,
-                  useBaseGvlid,
-                });
-                window.pbjs.aliasBidder(
-                  original,
-                  alias,
-                  hasOptions ? options : undefined
-                );
-                if (useBaseGvlid) {
-                  logIntext(`[Intext:Prebid] prebid_alias_use_base_gvlid_applied`, {
-                    alias,
-                    bidder: original,
-                  });
-                } else if (gvlid != null) {
-                  logIntext(`[Intext:Prebid] prebid_alias_gvlid_applied`, {
-                    alias,
-                    bidder: original,
-                    gvlid,
-                  });
-                }
-                logIntext(`[Intext:Prebid] prebid_alias_register_success`, {
-                  alias,
-                  bidder: original,
-                });
+                if (useBaseGvlid) options.useBaseGvlid = true;
+                else if (gvlid != null) options.gvlid = gvlid;
+                logIntext(`[Intext:Prebid] prebid_alias_register_attempt`, { alias, bidder: original, gvlid: gvlid ?? null, useBaseGvlid });
+                pbjs.aliasBidder(original, alias, Object.keys(options).length ? options : undefined);
+                record.registeredAliases.add(alias);
+                if (useBaseGvlid) logIntext(`[Intext:Prebid] prebid_alias_use_base_gvlid_applied`, { alias, bidder: original });
+                else if (gvlid != null) logIntext(`[Intext:Prebid] prebid_alias_gvlid_applied`, { alias, bidder: original, gvlid });
+                logIntext(`[Intext:Prebid] prebid_alias_register_success`, { alias, bidder: original });
               } catch (e) {
-                warnIntext(`[Intext:Prebid] prebid_alias_register_error`, {
-                  alias,
-                  bidder: original,
-                  error: e?.message || String(e),
-                });
+                succeeded = false;
+                warnIntext(`[Intext:Prebid] prebid_alias_register_error`, { alias, bidder: original, error: e?.message || String(e) });
               }
             }
+            record.state = succeeded ? "registered" : "idle";
+            record.promise = null;
+            this._aliasRegistrationState = record.state;
+            this._aliasRegistrationPromise = null;
+            return succeeded;
+          }).catch((error) => {
+            record.state = "idle";
+            record.promise = null;
+            this._aliasRegistrationState = "idle";
+            this._aliasRegistrationPromise = null;
+            warnIntext(`[Intext:Prebid] prebid_alias_register_error`, { alias: null, bidder: null, error: error?.message || String(error) });
+            return false;
           });
+          this._aliasRegistrationPromise = record.promise;
+          return record.promise;
+        }
+
+        registerPrebidAliases() {
+          return this.ensurePrebidAliasesRegistered();
         }
 
         getPrebidCode() {

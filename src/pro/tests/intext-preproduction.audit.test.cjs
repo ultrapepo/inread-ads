@@ -251,7 +251,7 @@ test('15-18. todos los consumidores de red pasan por el resolver canónico', () 
     [IntextWaterfall.prototype, 'getIntextPrebidAdSlotContext'],
     [IntextWaterfall.prototype, 'getPrebidMultiFormatConfig'],
     [IntextWaterfall.prototype, 'buildGAMVideoTagUrl'],
-    [IntextWaterfall.prototype, 'registerPrebidAliases'],
+    [IntextWaterfall.prototype, 'getPrebidAliasesConfig'],
   ].forEach(([prototype, method]) => {
     assert.equal(typeof prototype[method], 'function', method);
     assert.match(
