@@ -54,7 +54,10 @@ function createWaterfall(aliasConfig = aliases) {
   waterfall.node = {
     id: 'gexp-intext',
     scopedContext: null,
-    manager: { resolveIntextRequestNetworkId: () => '99071977' },
+    manager: {
+      resolveIntextRequestNetworkId: () => '99071977',
+      resolveIntextPrebidApi: () => ({ api: window.pbjs || null, source: window.pbjs ? 'window.pbjs' : 'pbjs-unavailable', pspDetected: false, proxy: window.pbjs || null, controller: null }),
+    },
     mergeIntextTelemetry() {},
   };
   waterfall.config = {
@@ -199,6 +202,6 @@ test('alias object options preserve useBaseGvlid precedence over gvlid', async (
 
 test('source order explicitly gates addAdUnits/requestBids on alias completion', () => {
   const execute = between(source, 'executePrebid(configuration)', 'executeAmazonTam(configuration)');
-  assert.ok(execute.indexOf('await this.ensurePrebidAliasesRegistered()') < execute.indexOf('runPrebid();'));
-  assert.ok(execute.indexOf('this.registerPrebidAdUnit(configuration)') < execute.indexOf('window.pbjs.requestBids'));
+  assert.ok(execute.indexOf('await this.ensurePrebidAliasesRegistered(pb)') < execute.indexOf('runPrebid(pb);'));
+  assert.ok(execute.indexOf('this.registerPrebidAdUnit(configuration, pb)') < execute.indexOf('pb.requestBids'));
 });

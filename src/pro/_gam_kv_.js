@@ -3095,7 +3095,7 @@ class RandomStrategy extends WindowArray {
           return Boolean(api && typeof api.defineSlot === "function" && typeof api.pubads === "function" && typeof api.display === "function" && typeof api.destroySlots === "function");
         }
 
-        resolveIntextGptApi() {
+  resolveIntextGptApi() {
           const proxy = typeof window !== "undefined" ? window.googletag : null;
           if (!proxy) return { api: null, source: "gpt-unavailable", pspDetected: false, proxy: null, controller: null };
           const controller = proxy.__ctrl;
@@ -3130,10 +3130,48 @@ class RandomStrategy extends WindowArray {
           };
           logIntext(`[Intext:GPT] intext_gpt_runtime_resolved`, diagnostic);
           if (pspDetected) logIntext(`[Intext:GPT] intext_gpt_proxy_detected`, diagnostic);
-          return { api, source, pspDetected, proxy, controller };
-        }
+    return { api, source, pspDetected, proxy, controller };
+  }
 
-        runIntextGptCommand(callback) {
+  resolveIntextPrebidApi() {
+    const proxy = typeof window !== "undefined" ? window.pbjs : null;
+    if (!proxy) return { api: null, source: "pbjs-unavailable", pspDetected: false, proxy: null, controller: null };
+    const controller = proxy.__ctrl;
+    const pspDetected = Boolean(controller && typeof controller === "object");
+    const isUsable = (candidate) => Boolean(candidate && candidate.que && typeof candidate.que.push === "function" && typeof candidate.requestBids === "function");
+    let api = null;
+    let source = "pbjs-invalid";
+    if (pspDetected) {
+      if (isUsable(controller.realObj)) { api = controller.realObj; source = "__ctrl.realObj"; }
+      else source = "psp-real-pbjs-unavailable";
+    } else if (isUsable(proxy)) { api = proxy; source = "window.pbjs"; }
+    const diagnostic = { pspDetected, source, hasController: Boolean(controller), hasRealObj: Boolean(controller?.realObj), hasBaseObj: Boolean(controller?.baseObj), version: api?.version || null, requestBidsType: typeof api?.requestBids, aliasBidderType: typeof api?.aliasBidder, addAdUnitsType: typeof api?.addAdUnits };
+    logIntext(`[Intext:Prebid] intext_prebid_runtime_resolved`, diagnostic);
+    if (pspDetected) logIntext(`[Intext:Prebid] intext_prebid_proxy_detected`, diagnostic);
+    if (source === "psp-real-pbjs-unavailable") logIntext(`[Intext:Prebid] intext_prebid_real_api_unavailable`, diagnostic);
+    return { api, source, pspDetected, proxy, controller };
+  }
+
+  resolveIntextApstagApi() {
+    const proxy = typeof window !== "undefined" ? window.apstag : null;
+    if (!proxy) return { api: null, source: "apstag-unavailable", pspDetected: false, proxy: null, controller: null };
+    const controller = proxy.__ctrl;
+    const pspDetected = Boolean(controller && typeof controller === "object");
+    const isUsable = (candidate) => Boolean(candidate && typeof candidate.fetchBids === "function" && typeof candidate.setDisplayBids === "function");
+    let api = null;
+    let source = "apstag-invalid";
+    if (pspDetected) {
+      if (isUsable(controller.realObj)) { api = controller.realObj; source = "__ctrl.realObj"; }
+      else source = "psp-real-apstag-unavailable";
+    } else if (isUsable(proxy)) { api = proxy; source = "window.apstag"; }
+    const diagnostic = { pspDetected, source, hasController: Boolean(controller), hasRealObj: Boolean(controller?.realObj), hasBaseObj: Boolean(controller?.baseObj), fetchBidsType: typeof api?.fetchBids, setDisplayBidsType: typeof api?.setDisplayBids };
+    logIntext(`[Intext:APS] intext_apstag_runtime_resolved`, diagnostic);
+    if (pspDetected) logIntext(`[Intext:APS] intext_apstag_proxy_detected`, diagnostic);
+    if (source === "psp-real-apstag-unavailable") logIntext(`[Intext:APS] intext_apstag_real_api_unavailable`, diagnostic);
+    return { api, source, pspDetected, proxy, controller };
+  }
+
+  runIntextGptCommand(callback) {
           let initial;
           try {
             initial = this.resolveIntextGptApi();
@@ -9683,8 +9721,9 @@ class RandomStrategy extends WindowArray {
               this.clearDisplayRequestTargeting(this.slot);
               this.applyDisplayRequestTargeting(this.slot, preRequestDisplayTargeting.targeting);
               this.applyIntextRandomSnapshotToSlot(this.slot);
-              if (window.apstag && window.apstag.targetingKeys) {
-                const tamKeys = window.apstag.targetingKeys();
+        const apsBeforeCore = this.manager.resolveIntextApstagApi().api;
+        if (apsBeforeCore && typeof apsBeforeCore.targetingKeys === "function") {
+          const tamKeys = apsBeforeCore.targetingKeys();
                 if (tamKeys && tamKeys[this.id]) {
                   Object.entries(tamKeys[this.id]).forEach(([k, v]) => {
                     this.slot.setTargeting(k, v);
@@ -9753,8 +9792,9 @@ class RandomStrategy extends WindowArray {
               this.clearDisplayRequestTargeting(this.slot, "display_request_targeting_cleared_keys_post_core");
               this.applyDisplayRequestTargeting(this.slot, finalDisplayTargeting.targeting);
               this.applyDisplayBidTargeting(this.slot, bidResponse, this.waterfall?._lastCurrentBannerBids);
-              if (window.apstag && window.apstag.targetingKeys) {
-                const tamKeys = window.apstag.targetingKeys();
+        const apsAfterCore = this.manager.resolveIntextApstagApi().api;
+        if (apsAfterCore && typeof apsAfterCore.targetingKeys === "function") {
+          const tamKeys = apsAfterCore.targetingKeys();
                 if (tamKeys && tamKeys[this.id]) {
                   Object.entries(tamKeys[this.id]).forEach(([k, v]) => {
                     this.slot.setTargeting(k, v);
@@ -11200,10 +11240,11 @@ class RandomStrategy extends WindowArray {
           this._aliasRegistrationPromise = null;
         }
 
-        getPbjsBidResponsesSafe(adUnitCode) {
+  getPbjsBidResponsesSafe(adUnitCode, pb = null) {
+    const selectedPb = pb || this.node.manager.resolveIntextPrebidApi().api;
           if (
-            !window.pbjs ||
-            typeof window.pbjs.getBidResponsesForAdUnitCode !== "function"
+      !selectedPb ||
+      typeof selectedPb.getBidResponsesForAdUnitCode !== "function"
           ) {
             if (!IntextWaterfall._loggedPbjsBidResponsesApiMissing) {
               IntextWaterfall._loggedPbjsBidResponsesApiMissing = true;
@@ -11215,7 +11256,7 @@ class RandomStrategy extends WindowArray {
           }
 
           try {
-            return window.pbjs.getBidResponsesForAdUnitCode(adUnitCode) || { bids: [] };
+      return selectedPb.getBidResponsesForAdUnitCode(adUnitCode) || { bids: [] };
           } catch (e) {
             if (!IntextWaterfall._loggedPbjsBidResponsesApiMissing) {
               IntextWaterfall._loggedPbjsBidResponsesApiMissing = true;
@@ -11227,8 +11268,8 @@ class RandomStrategy extends WindowArray {
           }
         }
 
-        getPbjsBidsSafe(adUnitCode) {
-          const bidResponses = this.getPbjsBidResponsesSafe(adUnitCode);
+  getPbjsBidsSafe(adUnitCode, pb = null) {
+    const bidResponses = this.getPbjsBidResponsesSafe(adUnitCode, pb);
           return Array.isArray(bidResponses?.bids) ? bidResponses.bids : [];
         }
 
@@ -11751,12 +11792,13 @@ class RandomStrategy extends WindowArray {
             }
             const currentState = this.node.state; 
 
-            if (window.pbjs.clearTargeting) {
-              window.pbjs.clearTargeting(this.node.id);
+      const refreshPb = this.node.manager.resolveIntextPrebidApi().api;
+      if (typeof refreshPb?.clearTargeting === "function") {
+        refreshPb.clearTargeting(this.node.id);
             }
 
-            if (window.pbjs.removeAdUnit) {
-              window.pbjs.removeAdUnit(this.node.id);
+      if (typeof refreshPb?.removeAdUnit === "function") {
+        refreshPb.removeAdUnit(this.node.id);
             }
 
             if (this.node.activeCreative && this.node.activeCreative.player) {
@@ -11990,12 +12032,13 @@ class RandomStrategy extends WindowArray {
           let attempt = 0;
 
           const aliasesRequired = Boolean(this.getPrebidAliasesConfig().aliases);
-          const isReady = () =>
-            typeof window.pbjs !== "undefined" &&
-            typeof window.pbjs.requestBids === "function" &&
-            window.pbjs.que &&
-            typeof window.pbjs.que.push === "function" &&
-            (!aliasesRequired || typeof window.pbjs.aliasBidder === "function");
+    let lastSource = "pbjs-unavailable";
+    const isReady = () => {
+      const resolution = this.node.manager.resolveIntextPrebidApi();
+      lastSource = resolution.source;
+      const pb = resolution.api;
+      return Boolean(pb && typeof pb.requestBids === "function" && pb.que && typeof pb.que.push === "function" && (!aliasesRequired || typeof pb.aliasBidder === "function"));
+    };
 
           if (isReady()) return Promise.resolve(true);
 
@@ -12016,7 +12059,7 @@ class RandomStrategy extends WindowArray {
               const elapsedMs = Date.now() - startedAt;
               if (elapsedMs >= waitMs) {
                 logIntext(
-                  `[Intext:Prebid:${this.node.id}] prebid_pbjs_wait_timeout - code=${configuration.code}, elapsed_ms=${elapsedMs}, attempts=${attempt}`,
+            `[Intext:Prebid:${this.node.id}] prebid_pbjs_wait_timeout - code=${configuration.code}, source=${lastSource}, elapsed_ms=${elapsedMs}, attempts=${attempt}`,
                 );
                 resolve(false);
                 return;
@@ -12089,11 +12132,11 @@ class RandomStrategy extends WindowArray {
 
         executePrebid(configuration) {
           return new Promise((resolve) => {
-            const runPrebid = () => window.pbjs.que.push(() => {
+      const runPrebid = (pb) => pb.que.push(() => {
               let restoreVideoCacheConfig = null;
               try {
-              this.registerPrebidAdUnit(configuration);
-              this.applyIntextDisplayFloorToPrebid(configuration);
+          this.registerPrebidAdUnit(configuration, pb);
+          this.applyIntextDisplayFloorToPrebid(configuration, pb);
 
               const graceMs = this.config.prebid?.graceMs ?? 300;
               const watchdogMs = this.getPrebidTimeout() + graceMs + 1500;
@@ -12102,7 +12145,7 @@ class RandomStrategy extends WindowArray {
               let finalizeTimer = null;
 
               const resolveAuctionId = (auctionIdParam = null) => {
-                const raw = this.getPbjsBidsSafe(configuration.code);
+            const raw = this.getPbjsBidsSafe(configuration.code, pb);
                 let id = auctionIdParam;
                 if (!id && raw.length > 0) {
                   id = raw[raw.length - 1].auctionId;
@@ -12129,7 +12172,7 @@ class RandomStrategy extends WindowArray {
                 const auctionId = resolveAuctionId(auctionIdParam);
                 this._currentAuctionId = auctionId;
 
-                const allRaw = this.getPbjsBidsSafe(configuration.code);
+            const allRaw = this.getPbjsBidsSafe(configuration.code, pb);
                 const allResponses = auctionId
                   ? allRaw.filter(b => b.auctionId === auctionId)
                   : allRaw;
@@ -12164,7 +12207,7 @@ class RandomStrategy extends WindowArray {
                 }
 
                 try {
-                  const noBids = window.pbjs.getNoBids?.() || [];
+              const noBids = pb.getNoBids?.() || [];
                   const relevantNoBids = auctionId
                     ? noBids.filter(nb => nb.adUnitCode === configuration.code && nb.auctionId === auctionId)
                     : noBids.filter(nb => nb.adUnitCode === configuration.code);
@@ -12181,7 +12224,12 @@ class RandomStrategy extends WindowArray {
                   );
                 }
 
-                window.pbjs.setTargetingForGPTAsync([configuration.code]);
+            pb.setTargetingForGPTAsync([configuration.code]);
+            if (allResponses.length > 0 && typeof window !== "undefined" && window.gexpIntextDebug === true) {
+              const targeting = this.node.slot?.getTargetingMap?.() || {};
+              const expectedKeys = ["hb_pb", "hb_bidder", "hb_adid"];
+              if (!expectedKeys.some((key) => Object.prototype.hasOwnProperty.call(targeting, key))) warnIntext(`[Intext:Prebid:${this.node.id}] intext_prebid_targeting_missing_after_bid`, { code: configuration.code, expectedKeys });
+            }
                 resolve("prebid_done");
               };
 
@@ -12217,10 +12265,10 @@ class RandomStrategy extends WindowArray {
                   reason: videoCacheProfile.reason,
                 });
 
-                restoreVideoCacheConfig = this.applyIntextVideoCacheOverride(videoCacheProfile);
+            restoreVideoCacheConfig = this.applyIntextVideoCacheOverride(videoCacheProfile, pb);
               }
 
-              window.pbjs.requestBids({
+          pb.requestBids({
                 timeout: this.getPrebidTimeout(),
                 adUnitCodes: [configuration.code],
                 bidsBackHandler: (bidResponses, timedOut, auctionIdParam) => {
@@ -12230,7 +12278,7 @@ class RandomStrategy extends WindowArray {
                     );
                   }
                   if (timedOut && graceMs > 0) {
-                    const bidsAtTimeout = this.getPbjsBidsSafe(configuration.code).length;
+                const bidsAtTimeout = this.getPbjsBidsSafe(configuration.code, pb).length;
                     logIntext(
                       `[Intext:Slot:${this.node.id}]   Prebid: TIMED OUT with ${bidsAtTimeout} bids — waiting ${graceMs}ms grace window for late bids...`,
                     );
@@ -12259,14 +12307,17 @@ class RandomStrategy extends WindowArray {
                 resolve(null);
                 return;
               }
-              const aliasesReady = await this.ensurePrebidAliasesRegistered();
+        const resolution = this.node.manager.resolveIntextPrebidApi();
+        const pb = resolution.api;
+        if (!pb) { resolve(null); return; }
+        const aliasesReady = await this.ensurePrebidAliasesRegistered(pb);
               if (!aliasesReady) {
                 warnIntext(`[Intext:Prebid:${this.node.id}] prebid_alias_registration_incomplete`, { code: configuration.code });
                 resolve(null);
                 return;
               }
               await this.waitForPrebidGlobalInitFlag(configuration);
-              runPrebid();
+        runPrebid(pb);
             }).catch((error) => {
               warnIntext(`[Intext:Prebid:${this.node.id}] prebid_alias_registration_failed`, {
                 code: configuration.code,
@@ -12277,54 +12328,43 @@ class RandomStrategy extends WindowArray {
           });
         }
 
-        executeAmazonTam(configuration) {
-          return new Promise((resolve) => {
-            if (
-              typeof window.apstag === "undefined" ||
-              typeof window.apstag.fetchBids === "undefined"
-            ) {
-              logIntext(
-                `[Intext:Slot:${this.node.id}]   TAM: apstag not available`,
-              );
-              resolve(null);
-              return;
-            }
-
-            const _tamSafetyTimer = setTimeout(() => {
-              logIntext(`[Intext:Slot:${this.node.id}]   TAM: ⚠️ safety timeout — resolving to avoid blocking`);
-              resolve("tam_timeout");
-            }, 2000);
-
-            try {
-              window.apstag.fetchBids(configuration, (bids) => {
-                clearTimeout(_tamSafetyTimer);
-                try {
-                  if (bids && bids.length > 0) {
-                    logIntext(
-                      `[Intext:Slot:${this.node.id}]   TAM: ${bids.length} bid(s) received`,
-                    );
-                  } else {
-                    logIntext(
-                      `[Intext:Slot:${this.node.id}]   TAM: no bids`,
-                    );
-                  }
-                  window.apstag.setDisplayBids();
-                  resolve("tam_done");
-                } catch (err) {
-                  warnIntext(
-                    `[Intext:Slot:${this.node.id}]   TAM: setDisplayBids failed`,
-                    err,
-                  );
-                  resolve("tam_error");
-                }
-              });
-            } catch (err) {
-              clearTimeout(_tamSafetyTimer);
-              logIntext(`[Intext:Slot:${this.node.id}]   TAM: ❌ fetchBids threw — skipping`, err);
-              resolve("tam_error");
-            }
-          });
+  executeAmazonTam(configuration) {
+    return new Promise((resolve) => {
+      let settled = false;
+      let availabilityTimer = null;
+      const settleOnce = (value) => { if (settled) return; settled = true; clearTimeout(_tamSafetyTimer); if (availabilityTimer) clearTimeout(availabilityTimer); resolve(value); };
+      const _tamSafetyTimer = setTimeout(() => {
+        logIntext(`[Intext:Slot:${this.node.id}]   TAM: ⚠️ safety timeout — resolving to avoid blocking`);
+        settleOnce("tam_timeout");
+      }, 2000);
+      const tryStart = () => {
+        if (settled) return;
+        const resolution = this.node.manager.resolveIntextApstagApi();
+        const aps = resolution.api;
+        if (!aps) {
+          if (!resolution.pspDetected) { logIntext(`[Intext:Slot:${this.node.id}]   TAM: apstag not available`); settleOnce(null); return; }
+          availabilityTimer = setTimeout(tryStart, 50);
+          return;
         }
+        try {
+          aps.fetchBids(configuration, (bids) => {
+            if (settled) return;
+            try {
+              const hasBids = Array.isArray(bids) && bids.length > 0;
+              logIntext(`[Intext:Slot:${this.node.id}]   TAM: ${hasBids ? `${bids.length} bid(s) received` : "no bids"}`);
+              aps.setDisplayBids();
+              if (hasBids && typeof window !== "undefined" && window.gexpIntextDebug === true) {
+                const targeting = this.node.slot?.getTargetingMap?.() || {};
+                if (!Object.keys(targeting).some((key) => key.startsWith("amzn"))) warnIntext(`[Intext:APS:${this.node.id}] intext_apstag_targeting_missing_after_bid`, { code: this.node.id });
+              }
+              settleOnce("tam_done");
+            } catch (err) { warnIntext(`[Intext:Slot:${this.node.id}]   TAM: setDisplayBids failed`, err); settleOnce("tam_error"); }
+          });
+        } catch (err) { logIntext(`[Intext:Slot:${this.node.id}]   TAM: ❌ fetchBids threw — skipping`, err); settleOnce("tam_error"); }
+      };
+      tryStart();
+    });
+  }
 
         decideWinner(options = {}) {
           const commit = options.commit !== false;
@@ -12351,9 +12391,10 @@ class RandomStrategy extends WindowArray {
             logIntext(
               `[Intext:Slot:${this.node.id}] ├─ Using CACHED bids only (${bannerBids.length} banner, ${videoBids.length} video, age: ${cached.ageMs}ms)`,
             );
-          } else if (typeof window.pbjs !== "undefined") {
+    } else if (this.node.manager.resolveIntextPrebidApi().api) {
+      const pb = this.node.manager.resolveIntextPrebidApi().api;
             const currentAuctionId = this._currentAuctionId;
-            const allBids = this.getPbjsBidsSafe(code)
+      const allBids = this.getPbjsBidsSafe(code, pb)
               .filter(b => currentAuctionId ? b.auctionId === currentAuctionId : true);
 
             const seen = new Set();
@@ -12364,7 +12405,7 @@ class RandomStrategy extends WindowArray {
               return true;
             });
 
-            const totalBids = this.getPbjsBidsSafe(code).length || 0;
+      const totalBids = this.getPbjsBidsSafe(code, pb).length || 0;
             if (totalBids > uniqueBids.length) {
               logIntext(
                 `[Intext:Slot:${this.node.id}] ├─ Bid filtering: ${totalBids} total, ${totalBids - uniqueBids.length} stale (from previous auctions), ${uniqueBids.length} current`,
@@ -13536,9 +13577,10 @@ class RandomStrategy extends WindowArray {
           let targetingFromPbjs = {};
           try {
             const code = this.getPrebidCode();
-            if (Object.keys(targetingFromBid).length === 0 && window.pbjs?.getAdserverTargetingForAdUnitCode && code) {
+      const pb = this.node.manager.resolveIntextPrebidApi().api;
+      if (Object.keys(targetingFromBid).length === 0 && pb?.getAdserverTargetingForAdUnitCode && code) {
               targetingFromPbjs = this.normalizeTargetingMap(
-                window.pbjs.getAdserverTargetingForAdUnitCode(code),
+          pb.getAdserverTargetingForAdUnitCode(code),
               );
             }
           } catch (err) {}
@@ -13634,7 +13676,7 @@ class RandomStrategy extends WindowArray {
             targetingSource: resolvedVideoTargeting.targetingSource,
           });
 
-          if (window.pbjs && this._lastVideoBid) {
+    if (this.node.manager.resolveIntextPrebidApi().api && this._lastVideoBid) {
             const bid = this._lastVideoBid;
             if (bid.source && bid.source.includes("prebid") && bid.cpm != null && Number(bid.cpm) > 0) {
               const diagnostics = this.getIntextVideoBidDiagnostics(bid);
@@ -13729,8 +13771,9 @@ class RandomStrategy extends WindowArray {
             });
           }
 
-          if (window.apstag && window.apstag.targetingKeys) {
-            const tamKeys = window.apstag.targetingKeys();
+    const aps = this.node.manager.resolveIntextApstagApi().api;
+    if (aps && typeof aps.targetingKeys === "function") {
+      const tamKeys = aps.targetingKeys();
             if (tamKeys && tamKeys[videoId]) {
               Object.entries(tamKeys[videoId]).forEach(([k, v]) => {
                 const val = Array.isArray(v) ? v.join(",") : v;
@@ -13811,8 +13854,8 @@ class RandomStrategy extends WindowArray {
           return this.node.manager.resolveIntextVideoAdUnitPath(this.node.scopedContext) || "";
         }
 
-        registerPrebidAdUnit(configuration) {
-          const pb = window.pbjs;
+  registerPrebidAdUnit(configuration, pb = null) {
+    pb = pb || this.node.manager.resolveIntextPrebidApi().api;
           if (!pb) return;
           
           try {
@@ -13836,27 +13879,27 @@ class RandomStrategy extends WindowArray {
             });
           } catch (e) { /* ignore */ }
 
-          pb.removeAdUnit(configuration.code);
-          pb.addAdUnits([configuration]);
+    if (typeof pb.removeAdUnit === "function") pb.removeAdUnit(configuration.code);
+    if (typeof pb.addAdUnits === "function") pb.addAdUnits([configuration]);
         }
 
-        ensurePrebidAliasesRegistered() {
+  ensurePrebidAliasesRegistered(pb = null) {
           const { aliases } = this.getPrebidAliasesConfig();
           if (!aliases) {
             this._aliasRegistrationState = "registered";
             return Promise.resolve(true);
           }
-          const pbjs = typeof window !== "undefined" ? window.pbjs : null;
-          if (!pbjs || typeof pbjs.aliasBidder !== "function") {
+    pb = pb || this.node.manager.resolveIntextPrebidApi().api;
+    if (!pb || typeof pb.aliasBidder !== "function") {
             this._aliasRegistrationState = "idle";
             this._aliasRegistrationPromise = null;
             return Promise.resolve(false);
           }
 
-          let registry = intextPrebidAliasRegistry.get(pbjs);
+    let registry = intextPrebidAliasRegistry.get(pb);
           if (!registry) {
             registry = new Map();
-            intextPrebidAliasRegistry.set(pbjs, registry);
+      intextPrebidAliasRegistry.set(pb, registry);
           }
           const entries = Object.entries(aliases).sort(([a], [b]) => a.localeCompare(b));
           const registryKey = JSON.stringify(entries);
@@ -13900,7 +13943,7 @@ class RandomStrategy extends WindowArray {
                 if (useBaseGvlid) options.useBaseGvlid = true;
                 else if (gvlid != null) options.gvlid = gvlid;
                 logIntext(`[Intext:Prebid] prebid_alias_register_attempt`, { alias, bidder: original, gvlid: gvlid ?? null, useBaseGvlid });
-                pbjs.aliasBidder(original, alias, Object.keys(options).length ? options : undefined);
+          pb.aliasBidder(original, alias, Object.keys(options).length ? options : undefined);
                 record.registeredAliases.add(alias);
                 if (useBaseGvlid) logIntext(`[Intext:Prebid] prebid_alias_use_base_gvlid_applied`, { alias, bidder: original });
                 else if (gvlid != null) logIntext(`[Intext:Prebid] prebid_alias_gvlid_applied`, { alias, bidder: original, gvlid });
@@ -14020,19 +14063,20 @@ class RandomStrategy extends WindowArray {
           };
         }
 
-        getCurrentPrebidCacheConfig() {
+  getCurrentPrebidCacheConfig(pb = null) {
+    pb = pb || this.node.manager.resolveIntextPrebidApi().api;
           try {
-            if (window.pbjs && typeof window.pbjs.getConfig === "function") {
-              return window.pbjs.getConfig("cache") || {};
+      if (pb && typeof pb.getConfig === "function") {
+        return pb.getConfig("cache") || {};
             }
           } catch (e) {}
           return {};
         }
 
-        applyIntextVideoCacheOverride(profile) {
-          const pbjs = window.pbjs;
+  applyIntextVideoCacheOverride(profile, pb = null) {
+    pb = pb || this.node.manager.resolveIntextPrebidApi().api;
 
-          if (!pbjs || typeof pbjs.setConfig !== "function") {
+    if (!pb || typeof pb.setConfig !== "function") {
             return () => {};
           }
 
@@ -14040,7 +14084,7 @@ class RandomStrategy extends WindowArray {
             return () => {};
           }
 
-          const previousCache = this.getCurrentPrebidCacheConfig();
+    const previousCache = this.getCurrentPrebidCacheConfig(pb);
           const nextCache = {
             ...previousCache,
             url: profile.url,
@@ -14059,7 +14103,7 @@ class RandomStrategy extends WindowArray {
           });
 
           try {
-            pbjs.setConfig({ cache: nextCache });
+      pb.setConfig({ cache: nextCache });
           } catch (err) {
             logIntext(`[Intext:Prebid:${profile.slotCode}] video_cache_override_apply_failed`, {
               slotCode: profile.slotCode,
@@ -14082,7 +14126,7 @@ class RandomStrategy extends WindowArray {
             restored = true;
 
             try {
-              pbjs.setConfig({ cache: previousCache });
+        pb.setConfig({ cache: previousCache });
 
               logIntext(`[Intext:Prebid:${profile.slotCode}] video_cache_override_restore`, {
                 slotCode: profile.slotCode,
@@ -14238,7 +14282,8 @@ class RandomStrategy extends WindowArray {
           return { value: null, source: "missing" };
         }
 
-        getCoreFloorsConfigData() {
+  getCoreFloorsConfigData(pb = null) {
+    pb = pb || this.node.manager.resolveIntextPrebidApi().api;
           const fallbackData = {
             currency: "USD",
             schema: {
@@ -14253,8 +14298,8 @@ class RandomStrategy extends WindowArray {
           let baseData = null;
 
           try {
-            if (typeof window.pbjs?.getConfig === "function") {
-              const pbjsFloors = window.pbjs.getConfig("floors");
+      if (typeof pb?.getConfig === "function") {
+        const pbjsFloors = pb.getConfig("floors");
               if (pbjsFloors?.data) {
                 source = "pbjs";
                 baseFloors = pbjsFloors;
@@ -14286,8 +14331,8 @@ class RandomStrategy extends WindowArray {
           };
         }
 
-        buildMergedFloorsConfig(floorKey, floorValue) {
-          const { floors, data, fallbackData } = this.getCoreFloorsConfigData();
+  buildMergedFloorsConfig(floorKey, floorValue, pb = null) {
+    const { floors, data, fallbackData } = this.getCoreFloorsConfigData(pb);
           const rawValues = {
             ...(fallbackData.values || {}),
             ...((data && data.values) || {}),
@@ -14343,11 +14388,12 @@ class RandomStrategy extends WindowArray {
           };
         }
 
-        setIntextDisplayFloorConfig(floorKey, floorValue) {
-          if (!window.pbjs?.setConfig || !floorKey) return null;
+  setIntextDisplayFloorConfig(floorKey, floorValue, pb = null) {
+    pb = pb || this.node.manager.resolveIntextPrebidApi().api;
+    if (typeof pb?.setConfig !== "function" || !floorKey) return null;
 
           const { floorPayload, floorValue: parsedFloorValue } =
-            this.buildMergedFloorsConfig(floorKey, floorValue);
+      this.buildMergedFloorsConfig(floorKey, floorValue, pb);
 
           WindowArray.pbFloorCfg = floorPayload;
           logIntext(`[Intext:Prebid:${this.node.id}] display_prebid_floor_state_snapshot`, {
@@ -14359,7 +14405,7 @@ class RandomStrategy extends WindowArray {
             `[Intext:Prebid:${this.node.id}] display_prebid_floor_setconfig_payload - key=${floorKey}, floor=${parsedFloorValue != null ? parsedFloorValue : "cleared"}, payload=${JSON.stringify(floorPayload)}`,
           );
 
-          window.pbjs.setConfig(floorPayload);
+    pb.setConfig(floorPayload);
 
           if (parsedFloorValue != null) {
             logIntext(`[Intext:Prebid:${this.node.id}] display_prebid_floor_write_committed`, {
@@ -14371,8 +14417,8 @@ class RandomStrategy extends WindowArray {
 
           let floorsConfigAfter = null;
           try {
-            floorsConfigAfter = typeof window.pbjs.getConfig === "function"
-              ? window.pbjs.getConfig("floors")
+      floorsConfigAfter = typeof pb.getConfig === "function"
+        ? pb.getConfig("floors")
               : null;
           } catch (e) {
             floorsConfigAfter = null;
@@ -14393,8 +14439,9 @@ class RandomStrategy extends WindowArray {
           return floorPayload;
         }
 
-        applyIntextDisplayFloorToPrebid(configuration) {
-          if (!window.pbjs?.setConfig || !configuration?.code) return null;
+  applyIntextDisplayFloorToPrebid(configuration, pb = null) {
+    pb = pb || this.node.manager.resolveIntextPrebidApi().api;
+    if (typeof pb?.setConfig !== "function" || !configuration?.code) return null;
 
           const hasBanner = Boolean(configuration?.mediaTypes?.banner);
           const floorKey = `${configuration.code}|banner`;
@@ -14408,7 +14455,7 @@ class RandomStrategy extends WindowArray {
               source: "configuration",
               mediaType: "non_banner",
             });
-            this.setIntextDisplayFloorConfig(floorKey, null);
+      this.setIntextDisplayFloorConfig(floorKey, null, pb);
             logIntext(
               `[Intext:Prebid:${this.node.id}] display_prebid_floor_cleared - no banner mediaType for ${floorKey}`,
             );
@@ -14419,14 +14466,14 @@ class RandomStrategy extends WindowArray {
           const floorValue = floorInfo.value;
 
           if (!(floorValue > 0)) {
-            this.setIntextDisplayFloorConfig(floorKey, null);
+      this.setIntextDisplayFloorConfig(floorKey, null, pb);
             logIntext(
               `[Intext:Prebid:${this.node.id}] display_prebid_floor_missing - key=${floorKey}, floor cleared`,
             );
             return null;
           }
 
-          this.setIntextDisplayFloorConfig(floorKey, floorValue);
+    this.setIntextDisplayFloorConfig(floorKey, floorValue, pb);
 
           if (floorInfo.source === "initial") {
             logIntext(
