@@ -48,6 +48,9 @@ const context = vm.createContext({
     querySelectorAll: () => [],
   },
   googletag: {
+    defineSlot() {},
+    display() {},
+    destroySlots() {},
     pubads: () => ({
       getSlots: () => gptSlots,
       getTargeting: () => [],
@@ -63,6 +66,7 @@ const context = vm.createContext({
   warnIntextAlways() {},
   errorIntext() {},
 });
+context.window.googletag = context.googletag;
 
 vm.runInContext(`
   const INTEXT_RANDOM_KEYS = Object.freeze(["random1", "random2", "random3", "random4"]);

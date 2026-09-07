@@ -99,12 +99,18 @@ const context = vm.createContext({
     ueDataLayer: { be_page_newsID: '987654', be_page_country: 'ES' },
   },
   document,
-  googletag: { pubads: () => ({ getSlots: () => gptSlots }) },
+  googletag: {
+    defineSlot() {},
+    display() {},
+    destroySlots() {},
+    pubads: () => ({ getSlots: () => gptSlots }),
+  },
   logIntext() {},
   warnIntext() {},
   errorIntext() {},
   ensureBaseStyles() {},
 });
+context.window.googletag = context.googletag;
 const intextConstants = between(source, 'const INTEXT_RANDOM_KEYS', 'class IntextManager');
 vm.runInContext(`
   ${intextConstants}

@@ -2814,7 +2814,7 @@ class RandomStrategy extends WindowArray {
               ? this.getScopedSlotsForRoot(rootElement)
               : (Array.isArray(scopedContext?.scopedSlots)
                 ? scopedContext.scopedSlots
-                : (googletag?.pubads?.().getSlots?.() || []));
+                : this.getIntextNativeGptSlots());
             for (const slot of slots) {
               const slotId = String(slot?.getSlotElementId?.() || "");
               if (!slotId || slotId.startsWith("gexp-intext")) continue;
@@ -2906,6 +2906,115 @@ class RandomStrategy extends WindowArray {
           return pageTargeting?.[key];
         }
 
+        normalizeIntextRuleTargetingValues(value) {
+          const normalized = [];
+          const collect = (candidate) => {
+            if (candidate === undefined || candidate === null) return;
+            if (Array.isArray(candidate)) {
+              candidate.forEach(collect);
+              return;
+            }
+            if (typeof candidate === "string" && candidate.includes(",")) {
+              candidate.split(",").forEach((entry) => normalized.push(entry.trim()));
+              return;
+            }
+            normalized.push(String(candidate));
+          };
+          collect(value);
+          return Array.from(new Set(normalized));
+        }
+
+        getIntextNativeGptSlots(rootElement = null) {
+          try {
+            const resolution = this.resolveIntextGptApi();
+            const pubads = resolution.api?.pubads?.();
+            const slots = pubads?.getSlots?.();
+            if (!Array.isArray(slots)) return [];
+            return slots.filter((slot) => {
+              const slotElementId = String(slot?.getSlotElementId?.() || "");
+              if (/^gexp-intext(?:-|$)/.test(slotElementId)) return false;
+              if (!rootElement) return true;
+              const element = slotElementId ? document.getElementById(slotElementId) : null;
+              return Boolean(element && rootElement.contains(element));
+            });
+          } catch (e) {
+            return [];
+          }
+        }
+
+        resolveIntextRuleTargeting(key, context = null) {
+          const normalizedKey = String(key);
+          const scoped = Boolean(context?.rootElement);
+          const resolution = this.resolveIntextGptApi();
+          const result = {
+            key: normalizedKey,
+            values: [],
+            sources: [],
+            pspDetected: resolution.pspDetected === true,
+            slotsChecked: 0,
+            slotsMatched: 0,
+            scoped,
+          };
+          const add = (source, rawValue) => {
+            const values = this.normalizeIntextRuleTargetingValues(rawValue);
+            if (!values.length) return;
+            let sourceEntry = result.sources.find((entry) => entry.source === source);
+            if (!sourceEntry) {
+              sourceEntry = { source, values: [] };
+              result.sources.push(sourceEntry);
+            }
+            values.forEach((value) => {
+              if (!sourceEntry.values.includes(value)) sourceEntry.values.push(value);
+              if (!result.values.includes(value)) result.values.push(value);
+            });
+          };
+
+          if (INTEXT_RANDOM_KEYS.includes(normalizedKey)) {
+            add("gexp-slot-random-snapshot", this.getIntextRandomValue(normalizedKey));
+          } else {
+            add("context.targeting", context?.targeting?.[normalizedKey]);
+            add("data.customTargeting", typeof data !== "undefined" ? data?.customTargeting?.[normalizedKey] : undefined);
+            add("ueDFPData.customTargeting", typeof ueDFPData !== "undefined" ? ueDFPData?.customTargeting?.[normalizedKey] : undefined);
+
+            let pubads = null;
+            try {
+              pubads = resolution.api?.pubads?.();
+              add("gpt-page-targeting", pubads?.getTargeting?.(normalizedKey));
+            } catch (e) { }
+
+            const slots = this.getIntextNativeGptSlots(context?.rootElement || null);
+            result.slotsChecked = slots.length;
+            slots.forEach((slot) => {
+              let values = [];
+              try {
+                values = this.normalizeIntextRuleTargetingValues(slot?.getTargeting?.(normalizedKey));
+              } catch (e) { }
+              if (!values.length) {
+                try {
+                  values = this.normalizeIntextRuleTargetingValues(slot?.getTargetingMap?.()?.[normalizedKey]);
+                } catch (e) { }
+              }
+              if (!values.length) return;
+              result.slotsMatched += 1;
+              add("gpt-slot-targeting", values);
+            });
+
+            add("ueDataLayer", typeof window !== "undefined" ? window.ueDataLayer?.[normalizedKey] : undefined);
+            add("utag_data", typeof window !== "undefined" ? window.utag_data?.[normalizedKey] : undefined);
+          }
+
+          logIntext(`[IntextManager] intext_rule_targeting_resolved`, {
+            key: result.key,
+            values: result.values,
+            sources: Array.from(new Set(result.sources.map((entry) => entry.source))),
+            pspDetected: result.pspDetected,
+            slotsChecked: result.slotsChecked,
+            slotsMatched: result.slotsMatched,
+            scoped: result.scoped,
+          });
+          return result;
+        }
+
         getIntextRandomTelemetry() {
           const snapshot = this.intextRandomSnapshot || {};
           // The gexp-intext-randomN-effective fields are the canonical Intext
@@ -2937,11 +3046,7 @@ class RandomStrategy extends WindowArray {
           const mismatchSlotIds = [];
           const unresolvedSlotIds = [];
           try {
-            const slots = googletag?.pubads?.().getSlots?.() || [];
-            const normalSlots = slots.filter((slot) => {
-              const id = String(slot?.getSlotElementId?.() || "");
-              return id && !id.startsWith("gexp-intext");
-            });
+            const normalSlots = this.getIntextNativeGptSlots();
             slotsFound = normalSlots.length;
             normalSlots.forEach((slot) => {
               const slotId = String(slot.getSlotElementId?.() || "unknown");
@@ -3457,11 +3562,9 @@ class RandomStrategy extends WindowArray {
           let resolvedNetworkId = null;
 
           try {
-            const slots = googletag.pubads().getSlots();
+            const slots = this.getIntextNativeGptSlots();
             if (slots && slots.length > 0) {
               const refSlot = slots.find(s => {
-                const elId = s.getSlotElementId() || "";
-                if (elId.startsWith("gexp-intext")) return false;
                 const path = s.getAdUnitPath() || "";
                 if (/\/p_/.test(path)) return false;
                 return true;
@@ -3608,8 +3711,9 @@ class RandomStrategy extends WindowArray {
           }
 
           try {
-            if (typeof googletag !== 'undefined' && googletag.pubads && typeof googletag.pubads === 'function') {
-              const ctValues = googletag.pubads().getTargeting('ct');
+            const pubads = this.resolveIntextGptApi().api?.pubads?.();
+            if (pubads) {
+              const ctValues = pubads.getTargeting?.('ct');
               if (ctValues && ctValues.length > 0) {
                 const normalized = IntextManager.CONTENT_TYPE_MAP[ctValues[0]] || ctValues[0];
                 return normalized;
@@ -4309,20 +4413,8 @@ class RandomStrategy extends WindowArray {
         }
 
         getScopedSlotsForRoot(rootElement) {
-          if (!rootElement || typeof googletag === "undefined" || !googletag.pubads || typeof googletag.pubads !== "function") {
-            return [];
-          }
-
-          try {
-            return googletag.pubads().getSlots().filter((slot) => {
-              const slotElId = slot?.getSlotElementId?.();
-              if (!slotElId || slotElId.indexOf("gexp-intext") === 0) return false;
-              const slotEl = document.getElementById(slotElId);
-              return Boolean(slotEl && rootElement.contains(slotEl));
-            });
-          } catch (e) {
-            return [];
-          }
+          if (!rootElement) return [];
+          return this.getIntextNativeGptSlots(rootElement);
         }
 
         getSlotTargetingMap(slot) {
@@ -4378,11 +4470,15 @@ class RandomStrategy extends WindowArray {
           const scopedContext = {
             detectedNetworkId,
             detectedAdUnitPath,
-            targeting: { ...(slotTargeting || {}), ...(pageTargeting || {}) },
+            targeting: { ...(pageTargeting || {}), ...(slotTargeting || {}) },
             contentType,
             pageUrl,
             hostname,
           };
+          Object.defineProperty(scopedContext, "rootElement", {
+            value: rootElement,
+            enumerable: false,
+          });
           scopedContext.networkId = this.resolveIntextRequestNetworkId(scopedContext);
           scopedContext.adUnitPath = this.resolveIntextDisplayAdUnitPath(scopedContext);
 
@@ -4445,7 +4541,8 @@ class RandomStrategy extends WindowArray {
             if (pageTargeting) {
               for (const [key, blockedValues] of Object.entries(excl.keyValues)) {
                 if (!Array.isArray(blockedValues) || blockedValues.length === 0) continue;
-                const rawPageValue = this.getIntextRuleTargetingValue(key, pageTargeting);
+                const targetingResolution = this.resolveIntextRuleTargeting(key, context);
+                const rawPageValue = targetingResolution.values;
                 if (rawPageValue === undefined || rawPageValue === null) continue;
 
                 let pageValues;
@@ -4458,10 +4555,14 @@ class RandomStrategy extends WindowArray {
                   pageValues = [String(rawPageValue)];
                 }
 
-                const matchedValue = blockedValues.find(blocked =>
-                  pageValues.includes(String(blocked))
-                );
-                if (matchedValue) {
+                const normalizedBlockedValues = this.normalizeIntextRuleTargetingValues(blockedValues);
+                const matchedValue = pageValues.find((value) => normalizedBlockedValues.includes(value));
+                if (matchedValue !== undefined) {
+                  logIntext(`[IntextManager] BLOCKED by exclusions.keyValues`, {
+                    key,
+                    matchedValue,
+                    sourceCandidates: Array.from(new Set(targetingResolution.sources.map((entry) => entry.source))),
+                  });
                   logIntext(`[IntextManager] ❌ BLOCKED by exclusions.keyValues — key "${key}" has blocked value "${matchedValue}" (page values: [${pageValues.join(', ')}])`);
                   return true;
                 }
@@ -4523,7 +4624,7 @@ class RandomStrategy extends WindowArray {
                   });
                   return true;
                 }
-                const rawPageValue = this.getIntextRuleTargetingValue(key, pageTargeting);
+                const rawPageValue = this.resolveIntextRuleTargeting(key, context).values;
                 const effectiveValue = INTEXT_RANDOM_KEYS.includes(String(key))
                   ? rawPageValue
                   : effectiveResolution.qaCookieApplied === true
@@ -4540,10 +4641,9 @@ class RandomStrategy extends WindowArray {
                   pageValues = [String(effectiveValue)];
                 }
 
-                const matchedValue = allowedValues.find(allowed =>
-                  pageValues.includes(String(allowed))
-                );
-                if (matchedValue) {
+                const normalizedAllowedValues = this.normalizeIntextRuleTargetingValues(allowedValues);
+                const matchedValue = pageValues.find((value) => normalizedAllowedValues.includes(value));
+                if (matchedValue !== undefined) {
                   if (effectiveResolution.qaCookieApplied === true) {
                     this.markIntextQaCookieApplied();
                     logIntext(`[IntextManager] intext_qa_cookie_force_allow_applied`, {
@@ -4603,8 +4703,9 @@ class RandomStrategy extends WindowArray {
             return withoutIntextRandoms(ueDFPData.customTargeting);
           }
           try {
-            if (typeof googletag !== 'undefined' && googletag.pubads && typeof googletag.pubads === 'function') {
-              const pubads = googletag.pubads();
+            const gptResolution = this.resolveIntextGptApi();
+            if (gptResolution.api) {
+              const pubads = gptResolution.api.pubads();
               if (pubads && typeof pubads.getTargetingKeys === 'function') {
                 const keys = pubads.getTargetingKeys();
                 if (keys && keys.length > 0) {
@@ -4659,11 +4760,11 @@ class RandomStrategy extends WindowArray {
               }
 
               if (rule.ifKeyValues && typeof rule.ifKeyValues === 'object' && Object.keys(rule.ifKeyValues).length > 0) {
-                const pageTargeting = this.getPageCustomTargeting(context);
+                const pageTargeting = this.getPageCustomTargeting(context) || {};
                 if (pageTargeting) {
                   for (const [key, blockedValues] of Object.entries(rule.ifKeyValues)) {
                     if (!Array.isArray(blockedValues) || blockedValues.length === 0) continue;
-                    const rawVal = this.getIntextRuleTargetingValue(key, pageTargeting);
+                    const rawVal = this.resolveIntextRuleTargeting(key, context).values;
                     if (rawVal === undefined || rawVal === null) continue;
 
                     let pageValues;
@@ -4671,7 +4772,8 @@ class RandomStrategy extends WindowArray {
                     else if (typeof rawVal === 'string' && rawVal.includes(',')) pageValues = rawVal.split(',').map(v => v.trim());
                     else pageValues = [String(rawVal)];
 
-                    if (blockedValues.some(b => pageValues.includes(String(b)))) {
+                    const normalizedBlockedValues = this.normalizeIntextRuleTargetingValues(blockedValues);
+                    if (pageValues.some((value) => normalizedBlockedValues.includes(value))) {
                       logIntext(`[IntextManager] Slot ${index}: DISABLED by disableSlots rule (keyValue "${key}" match)`);
                       return true;
                     }
@@ -5882,12 +5984,17 @@ class RandomStrategy extends WindowArray {
           });
         }
 
-        findIntextPipKeyValueMatch(rules, targeting) {
+        findIntextPipKeyValueMatch(rules, context) {
           if (!rules || typeof rules !== "object" || Array.isArray(rules)) return null;
           for (const [key, configuredValues] of Object.entries(rules)) {
             const allowedValues = this.normalizeIntextPipRuleValues(configuredValues);
             if (!allowedValues.length) continue;
-            const pageValues = this.normalizeIntextPipRuleValues(targeting?.[key]);
+            const resolvedValues = this.manager?.resolveIntextRuleTargeting
+              ? this.manager.resolveIntextRuleTargeting(key, context?.scopedContext)
+              : null;
+            const pageValues = resolvedValues
+              ? resolvedValues.values
+              : this.normalizeIntextPipRuleValues(context?.targeting?.[key]);
             const matchedValue = allowedValues.find((value) => pageValues.includes(String(value)));
             if (matchedValue !== undefined) return { key: String(key), value: String(matchedValue) };
           }
@@ -5913,7 +6020,7 @@ class RandomStrategy extends WindowArray {
           }
           const hasKeyValues =
             rules.keyValues && typeof rules.keyValues === "object" && Object.keys(rules.keyValues).length > 0;
-          const match = hasKeyValues ? this.findIntextPipKeyValueMatch(rules.keyValues, context.targeting) : null;
+          const match = hasKeyValues ? this.findIntextPipKeyValueMatch(rules.keyValues, context) : null;
           if (hasKeyValues && !match) {
             return {
               allowed: false,
@@ -5957,7 +6064,7 @@ class RandomStrategy extends WindowArray {
               match: null,
             };
           }
-          const match = this.findIntextPipKeyValueMatch(rules.keyValues, context.targeting);
+          const match = this.findIntextPipKeyValueMatch(rules.keyValues, context);
           if (match) {
             return {
               blocked: true,
@@ -8467,8 +8574,9 @@ class RandomStrategy extends WindowArray {
           if (scopedValue !== null) return { value: scopedValue, source: "scopedContext.targeting" };
 
           try {
-            if (typeof googletag !== "undefined" && googletag.pubads) {
-              const pubads = googletag.pubads();
+            const gptResolution = this.manager?.resolveIntextGptApi?.();
+            if (gptResolution?.api) {
+              const pubads = gptResolution.api.pubads();
               if (pubads && typeof pubads.getTargeting === "function") {
                 const value = this.normalizeHbValue(pubads.getTargeting(key));
                 if (value !== null) return { value, source: "googletag.pubads" };
