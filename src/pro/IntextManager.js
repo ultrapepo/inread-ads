@@ -913,6 +913,9 @@ const INTEXT_TELEMETRY_STANDARD_FIELDS = Object.freeze([
 ]);
 
 class IntextManager {
+  static INTEXT_RULE_TARGETING_READY_TIMEOUT_MS = 1200;
+  static INTEXT_RULE_TARGETING_READY_POLL_MS = 50;
+
   constructor(config, gexpInstance) {
     this.config = config;
     this.gexp = gexpInstance;
@@ -1039,7 +1042,7 @@ class IntextManager {
       }
     }
     const launchIntextPositions = () => {
-      googletag.cmd.push(() => {
+      googletag.cmd.push(async () => {
         if (this.resolveAdUnit() === false) return;
         this.siteContext.contentType = this.detectContentType();
         logIntext(`[IntextManager] Detected content type: "${this.siteContext.contentType}"`);
@@ -1063,7 +1066,7 @@ class IntextManager {
           });
           return;
         }
-        if (this.isBlockedByExclusions()) {
+        if (await this.isBlockedByExclusionsAfterTargetingReady()) {
           return;
         }
 
@@ -1598,6 +1601,131 @@ class IntextManager {
         return Boolean(element && rootElement.contains(element));
       });
     } catch (e) { return []; }
+  }
+
+  hasNonRandomIntextRuleTargeting(context = null) {
+    const hostname = this.getHostnameNormalized(context?.hostname || this.siteContext?.site);
+    const blocks = [
+      this.resolveScopedRuleBlock(
+        context?.siteConfig?.exclusions || this.siteConfig?.exclusions,
+        hostname,
+      ),
+      this.resolveScopedRuleBlock(
+        context?.siteConfig?.inclusions || this.siteConfig?.inclusions,
+        hostname,
+      ),
+    ];
+    return blocks.some((block) => Object.entries(block?.keyValues || {}).some(
+      ([key, values]) =>
+        !INTEXT_RANDOM_KEYS.includes(String(key)) &&
+        Array.isArray(values) &&
+        values.length > 0,
+    ));
+  }
+
+  async waitForIntextRuleTargetingReady(context = null, options = {}) {
+    const timeoutMs = Number.isFinite(options.timeoutMs)
+      ? Math.max(0, options.timeoutMs)
+      : IntextManager.INTEXT_RULE_TARGETING_READY_TIMEOUT_MS;
+    const pollMs = Number.isFinite(options.pollMs)
+      ? Math.max(1, options.pollMs)
+      : IntextManager.INTEXT_RULE_TARGETING_READY_POLL_MS;
+    const now = typeof options.now === "function" ? options.now : () => Date.now();
+    const wait = typeof options.wait === "function"
+      ? options.wait
+      : (delayMs) => new Promise((resolve) => setTimeout(resolve, delayMs));
+    const scoped = Boolean(context?.rootElement);
+    const rootElement = context?.rootElement || null;
+    const startedAt = now();
+    let resolution = this.resolveIntextGptApi();
+
+    if (resolution.pspDetected !== true) {
+      return {
+        ready: true,
+        reason: "psp-not-detected",
+        elapsedMs: 0,
+        pspDetected: false,
+        pubadsReady: resolution.api?.pubadsReady === true,
+        nativeSlots: 0,
+        scoped,
+        timedOut: false,
+        waitRequired: false,
+      };
+    }
+    if (!this.hasNonRandomIntextRuleTargeting(context)) {
+      return {
+        ready: true,
+        reason: "no-external-targeting-rules",
+        elapsedMs: 0,
+        pspDetected: true,
+        pubadsReady: resolution.api?.pubadsReady === true,
+        nativeSlots: 0,
+        scoped,
+        timedOut: false,
+        waitRequired: false,
+      };
+    }
+
+    let nativeSlots = this.getIntextNativeGptSlots(rootElement);
+    logIntext(`[IntextManager] intext_rule_targeting_wait_started`, {
+      pspDetected: true,
+      scoped,
+      timeoutMs,
+      pollMs,
+      initialPubadsReady: resolution.api?.pubadsReady === true,
+      initialNativeSlots: nativeSlots.length,
+    });
+
+    while (
+      nativeSlots.length === 0 &&
+      resolution.api?.pubadsReady !== true &&
+      now() - startedAt < timeoutMs
+    ) {
+      const remainingMs = timeoutMs - (now() - startedAt);
+      await wait(Math.min(pollMs, remainingMs));
+      resolution = this.resolveIntextGptApi();
+      nativeSlots = this.getIntextNativeGptSlots(rootElement);
+    }
+
+    const elapsedMs = Math.max(0, now() - startedAt);
+    const pubadsReady = resolution.api?.pubadsReady === true;
+    const ready = nativeSlots.length > 0 || pubadsReady;
+    const result = {
+      ready,
+      reason: nativeSlots.length > 0
+        ? "native-slots-ready"
+        : pubadsReady
+          ? "pubads-ready"
+          : "timeout",
+      elapsedMs,
+      pspDetected: true,
+      pubadsReady,
+      nativeSlots: nativeSlots.length,
+      scoped,
+      timedOut: !ready,
+      waitRequired: true,
+    };
+    logIntext(`[IntextManager] intext_rule_targeting_wait_completed`, {
+      reason: result.reason,
+      elapsedMs: result.elapsedMs,
+      pubadsReady: result.pubadsReady,
+      nativeSlots: result.nativeSlots,
+      timedOut: result.timedOut,
+      scoped: result.scoped,
+    });
+    return result;
+  }
+
+  async isBlockedByExclusionsAfterTargetingReady(context = null) {
+    if (this.isBlockedByExclusions(context)) return true;
+    const readiness = await this.waitForIntextRuleTargetingReady(context);
+    if (readiness.waitRequired !== true) return false;
+    const blocked = this.isBlockedByExclusions(context);
+    logIntext(`[IntextManager] intext_rule_targeting_final_recheck`, {
+      blocked,
+      scoped: Boolean(context?.rootElement),
+    });
+    return blocked;
   }
 
   resolveIntextRuleTargeting(key, context = null) {
@@ -3638,7 +3766,7 @@ class IntextManager {
       writable: false,
     });
 
-    if (this.isBlockedByExclusions(scopedRuleContext)) {
+    if (await this.isBlockedByExclusionsAfterTargetingReady(scopedRuleContext)) {
       logIntext(
         `[IntextManager:NavContinua] navcontinua_exclusions_blocked - navIndex=${navIndex}, adUnitPath=${scopedRuleContext.adUnitPath || "missing"}`,
       );

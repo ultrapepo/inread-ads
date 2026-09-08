@@ -135,8 +135,10 @@ test('2. el forzado está integrado en la carga inicial', () => {
 
 test('3. el mismo forzado se utiliza en PNC', () => {
   const method = IntextManager.prototype.onNewArticleDetected.toString();
+  const exclusionGate = IntextManager.prototype.isBlockedByExclusionsAfterTargetingReady.toString();
   assert.match(method, /this\.isAllowedByInclusions\(scopedRuleContext\)/);
-  assert.match(method, /this\.isBlockedByExclusions\(scopedRuleContext\)/);
+  assert.match(method, /this\.isBlockedByExclusionsAfterTargetingReady\(scopedRuleContext\)/);
+  assert.match(exclusionGate, /this\.isBlockedByExclusions\(context\)/);
 });
 
 test('4. supera domainFilter.allowedDomains dentro del manager', () => {
