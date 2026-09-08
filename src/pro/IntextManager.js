@@ -1635,14 +1635,66 @@ class IntextManager {
     return keys;
   }
 
+  getIntextRelevantRuleTargetingState(relevantKeys, context = null) {
+    const resolutions = relevantKeys.map((key) => this.resolveIntextRuleTargeting(key, context));
+    const resolvedKeys = resolutions
+      .filter((entry) => entry.values.length > 0)
+      .map((entry) => entry.key);
+    const unresolvedKeys = relevantKeys.filter((key) => !resolvedKeys.includes(key));
+    const gptSlotSignalFound = resolutions.some((entry) =>
+      entry.slotsMatched > 0 &&
+      entry.sources.some((source) => source.source === "gpt-slot-targeting"),
+    );
+    const fingerprint = JSON.stringify(resolutions.map((entry) => [
+      entry.key,
+      entry.values.map(String).sort(),
+    ]));
+    return {
+      relevantSignalFound: resolvedKeys.length > 0,
+      gptSlotSignalFound,
+      resolvedKeys,
+      unresolvedKeys,
+      resolutions,
+      fingerprint,
+    };
+  }
+
+  getIntextRuleTargetingReadiness({
+    context = null,
+    resolution,
+    nativeSlots,
+    targetingState,
+    stabilityPolls = 0,
+  }) {
+    if (stabilityPolls < 2 || targetingState?.relevantSignalFound !== true) {
+      return { ready: false, readinessBasis: "none" };
+    }
+    if (nativeSlots.length > 0 && targetingState.gptSlotSignalFound === true) {
+      return { ready: true, readinessBasis: "native-slots+stable-relevant-snapshot" };
+    }
+    if (
+      !context?.rootElement &&
+      nativeSlots.length === 0 &&
+      resolution.api?.pubadsReady === true
+    ) {
+      return { ready: true, readinessBasis: "pubads+stable-relevant-snapshot" };
+    }
+    return { ready: false, readinessBasis: "none" };
+  }
+
   needsIntextRuleTargetingReadinessWait(context = null, state = {}) {
     const resolution = state.resolution || this.resolveIntextGptApi();
     const relevantKeys = state.relevantKeys || this.getIntextRelevantNonRandomRuleKeys(context);
     if (resolution.pspDetected !== true || relevantKeys.length === 0) return false;
     const nativeSlots = state.nativeSlots || this.getIntextNativeGptSlots(context?.rootElement || null);
-    if (nativeSlots.length > 0) return false;
-    if (!context?.rootElement && resolution.api?.pubadsReady === true) return false;
-    return true;
+    const targetingState = state.targetingState || this.getIntextRelevantRuleTargetingState(relevantKeys, context);
+    return !this.getIntextRuleTargetingReadiness({
+      context,
+      resolution,
+      nativeSlots,
+      targetingState,
+      stabilityPolls: state.stabilityPolls || 0,
+    }).ready;
   }
 
   async waitForIntextRuleTargetingReady(context = null, options = {}) {
@@ -1673,6 +1725,10 @@ class IntextManager {
       timedOut: false,
       waitRequired: false,
       finalRecheckRequired: false,
+      resolvedRelevantKeys: [],
+      unresolvedRelevantKeys: relevantKeys,
+      stabilityPolls: 0,
+      readinessBasis: "none",
     };
 
     if (resolution.pspDetected !== true) {
@@ -1697,22 +1753,54 @@ class IntextManager {
     }
 
     let nativeSlots = this.getIntextNativeGptSlots(rootElement);
-    let relevantSignalFound = relevantKeys.some(
-      (key) => this.resolveIntextRuleTargeting(key, context).values.length > 0,
-    );
+    let targetingState = this.getIntextRelevantRuleTargetingState(relevantKeys, context);
+    let stableFingerprint = null;
+    let stabilityPolls = 0;
+    const updateStability = () => {
+      const hasNativeBasis = nativeSlots.length > 0 && targetingState.gptSlotSignalFound === true;
+      const hasPubadsBasis =
+        !scoped &&
+        nativeSlots.length === 0 &&
+        resolution.api?.pubadsReady === true &&
+        targetingState.relevantSignalFound === true;
+      if (!hasNativeBasis && !hasPubadsBasis) {
+        stableFingerprint = null;
+        stabilityPolls = 0;
+        return;
+      }
+      if (stableFingerprint === targetingState.fingerprint) stabilityPolls += 1;
+      else {
+        stableFingerprint = targetingState.fingerprint;
+        stabilityPolls = 1;
+      }
+    };
+    updateStability();
     if (!this.needsIntextRuleTargetingReadinessWait(context, {
       resolution,
       relevantKeys,
       nativeSlots,
+      targetingState,
+      stabilityPolls,
     })) {
+      const readiness = this.getIntextRuleTargetingReadiness({
+        context,
+        resolution,
+        nativeSlots,
+        targetingState,
+        stabilityPolls,
+      });
       return {
         ...baseResult,
         ready: true,
-        reason: nativeSlots.length > 0 ? "native-slots-ready" : "pubads-ready",
+        reason: "relevant-targeting-stable",
         elapsedMs: 0,
         pubadsReady: resolution.api?.pubadsReady === true,
         nativeSlots: nativeSlots.length,
-        relevantSignalFound,
+        relevantSignalFound: targetingState.relevantSignalFound,
+        resolvedRelevantKeys: targetingState.resolvedKeys,
+        unresolvedRelevantKeys: targetingState.unresolvedKeys,
+        stabilityPolls,
+        readinessBasis: readiness.readinessBasis,
         finalRecheckRequired: true,
       };
     }
@@ -1729,30 +1817,36 @@ class IntextManager {
 
     let reason = "timeout";
     let blockedEarly = false;
+    let readinessBasis = "none";
     while (now() - startedAt < maxWaitMs) {
       const remainingMs = maxWaitMs - (now() - startedAt);
       await wait(Math.min(pollMs, remainingMs));
       if (this.isBlockedByExclusions(context)) {
         reason = "exclusion-match";
         blockedEarly = true;
-        relevantSignalFound = true;
         break;
       }
       resolution = this.resolveIntextGptApi();
       nativeSlots = this.getIntextNativeGptSlots(rootElement);
-      if (nativeSlots.length > 0) {
-        reason = "native-slots-ready";
-        break;
-      }
-      if (!scoped && resolution.api?.pubadsReady === true) {
-        reason = "pubads-ready";
+      targetingState = this.getIntextRelevantRuleTargetingState(relevantKeys, context);
+      updateStability();
+      const readiness = this.getIntextRuleTargetingReadiness({
+        context,
+        resolution,
+        nativeSlots,
+        targetingState,
+        stabilityPolls,
+      });
+      if (readiness.ready) {
+        reason = "relevant-targeting-stable";
+        readinessBasis = readiness.readinessBasis;
         break;
       }
     }
 
-    relevantSignalFound = relevantSignalFound || relevantKeys.some(
-      (key) => this.resolveIntextRuleTargeting(key, context).values.length > 0,
-    );
+    if (blockedEarly) {
+      targetingState = this.getIntextRelevantRuleTargetingState(relevantKeys, context);
+    }
     const elapsedMs = Math.max(0, now() - startedAt);
     const pubadsReady = resolution.api?.pubadsReady === true;
     const timedOut = reason === "timeout";
@@ -1763,7 +1857,11 @@ class IntextManager {
       elapsedMs,
       pubadsReady,
       nativeSlots: nativeSlots.length,
-      relevantSignalFound,
+      relevantSignalFound: targetingState.relevantSignalFound,
+      resolvedRelevantKeys: targetingState.resolvedKeys,
+      unresolvedRelevantKeys: targetingState.unresolvedKeys,
+      stabilityPolls,
+      readinessBasis,
       blockedEarly,
       timedOut,
       waitRequired: true,
@@ -1777,6 +1875,11 @@ class IntextManager {
       timedOut: result.timedOut,
       blockedEarly: result.blockedEarly,
       relevantSignalFound: result.relevantSignalFound,
+      relevantKeys: result.relevantKeys,
+      resolvedRelevantKeys: result.resolvedRelevantKeys,
+      unresolvedRelevantKeys: result.unresolvedRelevantKeys,
+      stabilityPolls: result.stabilityPolls,
+      readinessBasis: result.readinessBasis,
       scoped: result.scoped,
     });
     return result;

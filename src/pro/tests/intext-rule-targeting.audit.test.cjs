@@ -454,7 +454,7 @@ test('hotfix PSP reproduce elmundo: espera 400ms, reevalua premium y no adelanta
   assert.equal(finalLog[1].elapsedWaitMs, 400);
 });
 
-test('hotfix PSP no premium hace recheck final y despues permite inclusions', async () => {
+test('hotfix PSP no premium estable hace recheck y permite inclusions a 125ms', async () => {
   const fixture = createFixture({ psp: true, pubadsReady: null });
   fixture.manager.siteConfig = {
     exclusions: { keyValues: { isPremium: ['1', 'true'] } },
@@ -466,8 +466,8 @@ test('hotfix PSP no premium hace recheck final y despues permite inclusions', as
     now: () => elapsed,
     wait: async (delayMs) => {
       elapsed += delayMs;
-      if (elapsed === 125) fixture.window.ueDataLayer.isPremium = false;
-      if (elapsed === 175) {
+      if (elapsed === 100) {
+        fixture.window.ueDataLayer.isPremium = false;
         fixture.realGpt.pubadsReady = true;
         fixture.slots.push(slot('SelectorBased-slot-safe', { isPremium: ['0'] }));
       }
@@ -476,38 +476,41 @@ test('hotfix PSP no premium hace recheck final y despues permite inclusions', as
 
   assert.equal(await fixture.manager.isBlockedByExclusionsAfterTargetingReady(), false);
   assert.equal(fixture.manager.isAllowedByInclusions(), true);
-  assert.equal(elapsed, 175);
+  assert.equal(elapsed, 125);
 });
 
-test('helper PSP ya ready resuelve en la primera iteracion', async () => {
-  const fixture = createFixture({ psp: true, slots: Array.from({ length: 8 }, (_, index) => slot(`native-${index}`)) });
+test('helper PSP ya ready y con targeting estable resuelve en un poll', async () => {
+  const fixture = createFixture({ psp: true, slots: Array.from({ length: 8 }, (_, index) => slot(`native-${index}`, { isPremium: ['0'] })) });
   fixture.manager.siteConfig = { exclusions: { keyValues: { isPremium: ['1'] } } };
   let waitCalls = 0;
+  let elapsed = 0;
   const result = await fixture.manager.waitForIntextRuleTargetingReady(null, {
-    now: () => 0,
-    wait: async () => { waitCalls += 1; },
+    now: () => elapsed,
+    wait: async (delayMs) => { elapsed += delayMs; waitCalls += 1; },
   });
 
   assert.equal(result.ready, true);
-  assert.equal(result.reason, 'native-slots-ready');
+  assert.equal(result.reason, 'relevant-targeting-stable');
+  assert.equal(result.readinessBasis, 'native-slots+stable-relevant-snapshot');
   assert.equal(result.nativeSlots, 8);
-  assert.equal(result.elapsedMs, 0);
-  assert.equal(waitCalls, 0);
+  assert.equal(result.elapsedMs, 25);
+  assert.equal(result.stabilityPolls, 2);
+  assert.equal(waitCalls, 1);
 });
 
-test('pagina inicial acepta pubadsReady sin slots con recheck inmediato', async () => {
-  const fixture = createFixture({ psp: true, pubadsReady: true, slots: [] });
+test('pubadsReady y slots sin targeting relevante no evitan el timeout', async () => {
+  const fixture = createFixture({ psp: true, pubadsReady: true, slots: [slot('empty-ready-slot')] });
   fixture.manager.siteConfig = { exclusions: { keyValues: { isPremium: ['1'] } } };
-  let waitCalls = 0;
+  let elapsed = 0;
   const result = await fixture.manager.waitForIntextRuleTargetingReady(null, {
-    now: () => 0,
-    wait: async () => { waitCalls += 1; },
+    now: () => elapsed,
+    wait: async (delayMs) => { elapsed += delayMs; },
   });
 
-  assert.equal(result.reason, 'pubads-ready');
+  assert.equal(result.reason, 'timeout');
+  assert.equal(result.relevantSignalFound, false);
   assert.equal(result.finalRecheckRequired, true);
-  assert.equal(result.elapsedMs, 0);
-  assert.equal(waitCalls, 0);
+  assert.equal(result.elapsedMs, 600);
 });
 
 test('helper sin PSP no hace polling', async () => {
@@ -540,7 +543,7 @@ test('helper PSP con reglas solo random no hace polling', async () => {
 });
 
 test('timeout PSP termina a 600ms, hace recheck y conserva fail-open', async () => {
-  const fixture = createFixture({ psp: true, pubadsReady: null });
+  const fixture = createFixture({ psp: true, pubadsReady: true, slots: [slot('timeout-empty-slot')] });
   fixture.manager.siteConfig = {
     exclusions: { keyValues: { isPremium: ['1'] } },
     inclusions: { keyValues: { random1: ['8'] } },
@@ -566,28 +569,37 @@ test('timeout PSP termina a 600ms, hace recheck y conserva fail-open', async () 
 });
 
 test('cuatro exclusions no-random disparan un solo wait por decision', async () => {
-  const fixture = createFixture({ psp: true, slots: [slot('ready')] });
+  const fixture = createFixture({ psp: true, slots: [slot('ready', { newsid: ['safe'], tag: ['safe'], t: ['safe'], isPremium: ['0'] })] });
   fixture.manager.siteConfig = {
     exclusions: { keyValues: { newsid: ['x'], tag: ['x'], t: ['x'], isPremium: ['1'] } },
   };
   let waits = 0;
+  let elapsed = 0;
   const originalWait = fixture.manager.waitForIntextRuleTargetingReady.bind(fixture.manager);
-  fixture.manager.waitForIntextRuleTargetingReady = (...args) => {
+  fixture.manager.waitForIntextRuleTargetingReady = (context) => {
     waits += 1;
-    return originalWait(...args);
+    return originalWait(context, {
+      now: () => elapsed,
+      wait: async (delayMs) => { elapsed += delayMs; },
+    });
   };
 
   assert.equal(await fixture.manager.isBlockedByExclusionsAfterTargetingReady(), false);
   assert.equal(waits, 1);
 });
 
-test('navegacion continua espera el slot de B y no consulta el premium de A', async () => {
+test('navegacion continua espera targeting estable de B y no consulta el premium de A', async () => {
+  const targetingB = {};
   const fixture = createFixture({
     psp: true,
     pubadsReady: null,
-    slots: [slot('article-a-late-test', { isPremium: ['1'] })],
+    slots: [
+      slot('article-a-late-test', { isPremium: ['1'] }),
+      slot('article-b-late-test', targetingB),
+    ],
   });
   const elementB = {};
+  fixture.elements.set('article-b-late-test', elementB);
   const rootB = { contains: (element) => element === elementB };
   const scopedContext = {
     rootElement: rootB,
@@ -600,15 +612,12 @@ test('navegacion continua espera el slot de B y no consulta el premium de A', as
     now: () => elapsed,
     wait: async (delayMs) => {
       elapsed += delayMs;
-      if (elapsed === 250) {
-        fixture.elements.set('article-b-late-test', elementB);
-        fixture.slots.push(slot('article-b-late-test', { isPremium: ['1'] }));
-      }
+      if (elapsed === 150) targetingB.isPremium = ['0'];
     },
   });
 
-  assert.equal(await fixture.manager.isBlockedByExclusionsAfterTargetingReady(scopedContext), true);
-  assert.equal(elapsed, 250);
+  assert.equal(await fixture.manager.isBlockedByExclusionsAfterTargetingReady(scopedContext), false);
+  assert.equal(elapsed, 175);
 });
 
 test('extrae keys non-random de exclusions, inclusions y disableSlots sin duplicados', () => {
@@ -660,6 +669,42 @@ test('DataLayer premium tardio bloquea early a 75ms sin esperar GPT', async () =
   assert.equal(result.elapsedMs, 75);
 });
 
+test('slot existente sin targeting no completa readiness antes del premium a 175ms', async () => {
+  const lateTargeting = {};
+  const fixture = createFixture({ psp: true, pubadsReady: null });
+  fixture.manager.siteConfig = { exclusions: { keyValues: { isPremium: ['1', 'true'] } } };
+  let elapsed = 0;
+  const result = await fixture.manager.waitForIntextRuleTargetingReady(null, {
+    now: () => elapsed,
+    wait: async (delayMs) => {
+      elapsed += delayMs;
+      if (elapsed === 100) fixture.slots.push(slot('early-empty-slot', lateTargeting));
+      if (elapsed === 175) lateTargeting.isPremium = ['1'];
+    },
+  });
+
+  assert.equal(result.reason, 'exclusion-match');
+  assert.equal(result.elapsedMs, 175);
+  assert.deepEqual(Array.from(result.resolvedRelevantKeys), ['isPremium']);
+});
+
+test('pubadsReady prematuro no completa readiness antes del DataLayer premium', async () => {
+  const fixture = createFixture({ psp: true, pubadsReady: false });
+  fixture.manager.siteConfig = { exclusions: { keyValues: { isPremium: ['1', 'true'] } } };
+  let elapsed = 0;
+  const result = await fixture.manager.waitForIntextRuleTargetingReady(null, {
+    now: () => elapsed,
+    wait: async (delayMs) => {
+      elapsed += delayMs;
+      if (elapsed === 75) fixture.realGpt.pubadsReady = true;
+      if (elapsed === 150) fixture.window.ueDataLayer.isPremium = true;
+    },
+  });
+
+  assert.equal(result.reason, 'exclusion-match');
+  assert.equal(result.elapsedMs, 150);
+});
+
 test('slot-only premium tardio bloquea a 175ms', async () => {
   const fixture = createFixture({ psp: true, pubadsReady: null });
   fixture.manager.siteConfig = { exclusions: { keyValues: { isPremium: ['1'] } } };
@@ -676,7 +721,8 @@ test('slot-only premium tardio bloquea a 175ms', async () => {
   assert.equal(result.elapsedMs, 175);
 });
 
-test('false temprano no permite antes de que un slot premium aparezca a 200ms', async () => {
+test('false temprano y slot vacio no permiten antes del targeting premium a 200ms', async () => {
+  const lateSlotTargeting = {};
   const fixture = createFixture({ psp: true, pubadsReady: null });
   fixture.manager.siteConfig = {
     exclusions: { keyValues: { isPremium: ['1', 'true'] } },
@@ -689,7 +735,8 @@ test('false temprano no permite antes de que un slot premium aparezca a 200ms', 
     wait: async (delayMs) => {
       elapsed += delayMs;
       if (elapsed === 50) fixture.window.ueDataLayer.isPremium = false;
-      if (elapsed === 200) fixture.slots.push(slot('conflicting-premium', { isPremium: ['1'] }));
+      if (elapsed === 100) fixture.slots.push(slot('conflicting-premium', lateSlotTargeting));
+      if (elapsed === 200) lateSlotTargeting.isPremium = ['1'];
     },
   });
 
@@ -698,7 +745,8 @@ test('false temprano no permite antes de que un slot premium aparezca a 200ms', 
   assert.deepEqual(Array.from(fixture.manager.resolveIntextRuleTargeting('isPremium').values), ['1', 'false']);
 });
 
-test('key editorial tag tardia usa el mismo gate sin hardcode de premium', async () => {
+test('key editorial tag espera targeting aunque el slot exista antes', async () => {
+  const lateTagTargeting = {};
   const fixture = createFixture({ psp: true, pubadsReady: null });
   fixture.manager.siteConfig = { exclusions: { keyValues: { tag: ['bloqueo-publi'] } } };
   let elapsed = 0;
@@ -706,7 +754,8 @@ test('key editorial tag tardia usa el mismo gate sin hardcode de premium', async
     now: () => elapsed,
     wait: async (delayMs) => {
       elapsed += delayMs;
-      if (elapsed === 125) fixture.window.utag_data.tag = 'bloqueo-publi';
+      if (elapsed === 50) fixture.slots.push(slot('generic-tag-slot', lateTagTargeting));
+      if (elapsed === 125) lateTagTargeting.tag = ['bloqueo-publi'];
     },
   });
 
@@ -715,7 +764,25 @@ test('key editorial tag tardia usa el mismo gate sin hardcode de premium', async
   assert.equal(result.elapsedMs, 125);
 });
 
-test('scoped ignora pubadsReady global hasta tener slots del articulo B', async () => {
+test('slotless DataLayer estable usa pubadsReady y termina sin esperar timeout', async () => {
+  const fixture = createFixture({ psp: true, pubadsReady: true, slots: [] });
+  fixture.manager.siteConfig = { exclusions: { keyValues: { tag: ['bloqueada'] } } };
+  let elapsed = 0;
+  const result = await fixture.manager.waitForIntextRuleTargetingReady(null, {
+    now: () => elapsed,
+    wait: async (delayMs) => {
+      elapsed += delayMs;
+      if (elapsed === 100) fixture.window.ueDataLayer.tag = 'economia';
+    },
+  });
+
+  assert.equal(result.reason, 'relevant-targeting-stable');
+  assert.equal(result.readinessBasis, 'pubads+stable-relevant-snapshot');
+  assert.deepEqual(Array.from(result.resolvedRelevantKeys), ['tag']);
+  assert.equal(result.elapsedMs, 125);
+});
+
+test('scoped ignora pubadsReady global hasta tener targeting de slot del articulo B', async () => {
   const fixture = createFixture({ psp: true, pubadsReady: true, slots: [slot('article-a-global')] });
   fixture.manager.siteConfig = { exclusions: { keyValues: { isPremium: ['1'] } } };
   const elementB = {};
@@ -732,10 +799,11 @@ test('scoped ignora pubadsReady global hasta tener slots del articulo B', async 
     },
   });
 
-  assert.equal(result.reason, 'native-slots-ready');
+  assert.equal(result.reason, 'relevant-targeting-stable');
+  assert.equal(result.readinessBasis, 'native-slots+stable-relevant-snapshot');
   assert.equal(result.scoped, true);
   assert.equal(result.nativeSlots, 1);
-  assert.equal(result.elapsedMs, 250);
+  assert.equal(result.elapsedMs, 275);
 });
 
 test('el gate es unico antes de dos nodos y ninguna request cruza el boundary', () => {
