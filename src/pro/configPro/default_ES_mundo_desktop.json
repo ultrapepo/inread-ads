@@ -671,7 +671,14 @@
                 "style": {
                     "containerBackground": "transparent",
                     "fixedHeight": "360px",
-                    "useBlur": false
+                    "useBlur": false,
+                    "animation": {
+                        "enabled": false,
+                        "durationMs": 280,
+                        "translateYPx": 10,
+                        "scaleFrom": 0.99,
+                        "respectReducedMotion": true
+                    }
                 },
                 "loading": {
                     "rootMargin": "1000px 0px",
@@ -726,6 +733,19 @@
                 },
                 "video": {
                     "enabled": true,
+                    "mutedOnStart": true,
+                    "controls": {
+                        "enabled": true,
+                        "playPause": true,
+                        "muteToggle": true,
+                        "volumeControl": true,
+                        "progressControl": true,
+                        "timeDisplay": true,
+                        "fullscreen": false,
+                        "nativePictureInPicture": false,
+                        "autoHide": false,
+                        "showForJsAds": true
+                    },
                     "playerSize": [
                         640,
                         360

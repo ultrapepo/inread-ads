@@ -127,6 +127,8 @@ const windowFixture = {
   gexpIntextDebug: false,
   getComputedStyle: (element) => ({ display: element.style.display || 'none' }),
 };
+const debugMetrics = [];
+const debugVideoEvents = [];
 const context = vm.createContext({
   console,
   Date,
@@ -141,6 +143,7 @@ const context = vm.createContext({
   Boolean,
   Promise,
   Error,
+  URLSearchParams,
   window: windowFixture,
   document: documentFixture,
   IntersectionObserver: FakeIntersectionObserver,
@@ -151,20 +154,30 @@ const context = vm.createContext({
   logIntext() {},
   warnIntext() {},
   errorIntext() {},
-  intextDebugCollector: { attachManager() {}, recordTimeline() {}, recordMetric() {} },
+  intextDebugCollector: {
+    attachManager() {},
+    recordTimeline() {},
+    recordMetric(metric, payload) {
+      debugMetrics.push({ metric, payload });
+    },
+    recordVideoEvent(event, node, payload) {
+      debugVideoEvents.push({ event, node, payload });
+    },
+  },
 });
 const telemetryStandardFieldsSource = between(
   source,
   'const INTEXT_TELEMETRY_STANDARD_FIELDS',
-  '\n\n      class IntextManager',
+  'class IntextManager',
 );
 vm.runInContext(`
   const INTEXT_RANDOM_KEYS = Object.freeze(["random1", "random2", "random3", "random4"]);
   ${telemetryStandardFieldsSource}
   this.IntextManager = ${classSource('IntextManager', 'IntextPlacementEngine')};
   this.IntextNode = ${classSource('IntextNode', 'IntextContainer')};
+  this.IntextVideoCreative = ${classSource('IntextVideoCreative', 'WPromise')};
 `, context);
-const { IntextManager, IntextNode } = context;
+const { IntextManager, IntextNode, IntextVideoCreative } = context;
 
 const pipTelemetryFields = [
   'gexp-intext-pip-enabled',
@@ -517,8 +530,8 @@ test('51-54. no añade polling/scroll/observer y reutiliza el observer existente
   assert.doesNotMatch(pipMethods, /setInterval|addEventListener\(["']scroll/);
   const observerMethod = between(
     source,
-    '\n        setupIntextViewportTelemetryObserver() {',
-    '\n        teardownIntextViewportTelemetryObserver() {',
+    'setupIntextViewportTelemetryObserver() {',
+    'teardownIntextViewportTelemetryObserver() {',
   );
   assert.equal((observerMethod.match(/new IntersectionObserver/g) || []).length, 1);
   const fixture = nodeFixture();
@@ -1018,4 +1031,340 @@ test('146-150. bloqueos refresh viajan en el único delta antes del cierre', () 
   } finally {
     context.IntersectionObserver = savedObserver;
   }
+});
+
+function mediaLifecycleFixture({
+  currentTime = 0,
+  withVideoFrameCallback = false,
+  controlsConfig,
+} = {}) {
+  const fixture = nodeFixture();
+  const initialOpenAnimationCalls = [];
+  fixture.node.playInitialOpenAnimation = (surface, source) => {
+    initialOpenAnimationCalls.push({ surface, source });
+    return true;
+  };
+  if (controlsConfig !== undefined) {
+    fixture.node.config.video.controls = controlsConfig;
+  }
+  const playerListeners = new Map();
+  const mediaListeners = new Map();
+  let frameCallback = null;
+  let frameCallbackId = 0;
+
+  const addListener = (registry, name, handler) => {
+    const handlers = registry.get(name) || new Set();
+    handlers.add(handler);
+    registry.set(name, handlers);
+  };
+  const removeListener = (registry, name, handler) => {
+    const handlers = registry.get(name);
+    handlers?.delete(handler);
+    if (handlers?.size === 0) registry.delete(name);
+  };
+  const emit = (registry, name, payload) => {
+    [...(registry.get(name) || [])].forEach((handler) => handler(payload));
+  };
+
+  const media = fixture.media;
+  media.currentTime = currentTime;
+  media.addEventListener = (name, handler) =>
+    addListener(mediaListeners, name, handler);
+  media.removeEventListener = (name, handler) =>
+    removeListener(mediaListeners, name, handler);
+  if (withVideoFrameCallback) {
+    media.requestVideoFrameCallback = (callback) => {
+      frameCallback = callback;
+      frameCallbackId += 1;
+      return frameCallbackId;
+    };
+    media.cancelVideoFrameCallback = (id) => {
+      if (id === frameCallbackId) frameCallback = null;
+    };
+  }
+
+  fixture.playerRoot.querySelectorAll = () => [media];
+  const imaListeners = new Map();
+  const ima = (options) => {
+    ima.options = options;
+  };
+  ima.addEventListener = (name, handler) =>
+    addListener(imaListeners, name, handler);
+  ima.initializeAdDisplayContainer = () => {};
+  const player = {
+    el: () => fixture.playerRoot,
+    currentTime: () => media.currentTime,
+    duration: () => media.duration,
+    ended: () => media.ended,
+    paused: () => media.paused,
+    on(name, handler) {
+      addListener(playerListeners, name, handler);
+    },
+    ready(handler) {
+      handler();
+    },
+    play() {
+      return Promise.resolve();
+    },
+    dispose() {},
+    ima,
+  };
+
+  const creative = new IntextVideoCreative({
+    container: fixture.node.videoContainer,
+    adTagUrl: 'https://example.test/vast',
+    node: fixture.node,
+    config: fixture.node.config,
+    videoTiming: { trigger: 'initial' },
+  });
+  creative.player = player;
+  fixture.node.activeCreative = creative;
+  fixture.node.handleIntextPipIntersection({
+    isIntersecting: true,
+    intersectionRatio: 0.5,
+  });
+  fixture.node.handleIntextPipIntersection({
+    isIntersecting: false,
+    intersectionRatio: 0,
+  });
+
+  const requestPromise = creative.requestAds();
+  emit(playerListeners, 'adstart');
+
+  return {
+    ...fixture,
+    media,
+    player,
+    creative,
+    requestPromise,
+    playerListeners,
+    mediaListeners,
+    initialOpenAnimationCalls,
+    emitPlayer(name, payload) {
+      emit(playerListeners, name, payload);
+    },
+    emitMedia(name, payload) {
+      emit(mediaListeners, name, payload);
+    },
+    fireVideoFrame() {
+      const callback = frameCallback;
+      frameCallback = null;
+      callback?.(0, {});
+    },
+  };
+}
+
+async function waitForMediaObservation(fixture) {
+  for (let attempt = 0; attempt < 20; attempt += 1) {
+    if (fixture.creative._adMediaEl === fixture.media) return;
+    await new Promise((resolve) => setTimeout(resolve, 5));
+  }
+  assert.fail('IMA media element observation was not attached');
+}
+
+test('151-158. playing en cero revela y timeupdate confirma el frame sin nuevo scroll', async () => {
+  windowFixture.gexpIntextDebug = true;
+  debugVideoEvents.length = 0;
+  const fixture = mediaLifecycleFixture();
+  await waitForMediaObservation(fixture);
+
+  fixture.emitMedia('playing');
+  await fixture.requestPromise;
+
+  assert.equal(fixture.creative._playerRevealed, true);
+  assert.equal(fixture.node._intextPipPlayerRevealed, true);
+  assert.equal(fixture.node._intextPipFirstFrameConfirmed, false);
+  assert.equal(fixture.node._intextPipState, 'inline');
+  assert.equal(fixture.mediaListeners.has('timeupdate'), true);
+  assert.equal(fixture.creative._adMediaEl, fixture.media);
+
+  fixture.media.currentTime = 0.1;
+  fixture.emitMedia('timeupdate');
+
+  assert.equal(fixture.node._intextPipFirstFrameConfirmed, true);
+  assert.equal(fixture.node._intextPipState, 'floating');
+  assert.equal(
+    debugVideoEvents.filter(({ event }) => event === 'first-frame').length,
+    1,
+  );
+  assert.equal(fixture.mediaListeners.has('timeupdate'), false);
+  windowFixture.gexpIntextDebug = false;
+});
+
+test('159-163. requestVideoFrameCallback confirma una sola vez y playing puede confirmarlo directamente', async () => {
+  windowFixture.gexpIntextDebug = true;
+  debugVideoEvents.length = 0;
+  const callbackFixture = mediaLifecycleFixture({
+    withVideoFrameCallback: true,
+  });
+  await waitForMediaObservation(callbackFixture);
+  callbackFixture.fireVideoFrame();
+  assert.equal(callbackFixture.node._intextPipFirstFrameConfirmed, true);
+  assert.equal(callbackFixture.creative._playerRevealed, false);
+  callbackFixture.emitMedia('playing');
+  await callbackFixture.requestPromise;
+  callbackFixture.media.currentTime = 0.2;
+  callbackFixture.emitMedia('timeupdate');
+  assert.equal(
+    debugVideoEvents.filter(({ event }) => event === 'first-frame').length,
+    1,
+  );
+
+  debugVideoEvents.length = 0;
+  const playingFixture = mediaLifecycleFixture();
+  await waitForMediaObservation(playingFixture);
+  playingFixture.media.currentTime = 0.2;
+  playingFixture.emitMedia('playing');
+  await playingFixture.requestPromise;
+  assert.equal(playingFixture.node._intextPipFirstFrameConfirmed, true);
+  assert.equal(
+    debugVideoEvents.filter(({ event }) => event === 'first-frame').length,
+    1,
+  );
+  windowFixture.gexpIntextDebug = false;
+});
+
+test('164-168. terminal, destroy y token stale limpian o impiden first frame tardio', async () => {
+  const terminal = mediaLifecycleFixture();
+  await waitForMediaObservation(terminal);
+  const terminalResult = terminal.requestPromise.catch((error) => error);
+  terminal.emitPlayer('adend');
+  assert.match(String(await terminalResult), /video_ad_ended_before_reveal/);
+  assert.equal(terminal.creative._adMediaEl, null);
+  assert.equal(terminal.mediaListeners.size, 0);
+
+  const complete = mediaLifecycleFixture();
+  await waitForMediaObservation(complete);
+  complete.emitMedia('playing');
+  await complete.requestPromise;
+  complete.emitPlayer('adend');
+  assert.equal(complete.creative._adMediaEl, null);
+  assert.equal(complete.mediaListeners.size, 0);
+
+  const destroyed = mediaLifecycleFixture();
+  await waitForMediaObservation(destroyed);
+  const destroyedResult = destroyed.requestPromise.catch((error) => error);
+  destroyed.creative.destroy();
+  assert.equal(destroyed.creative._adMediaEl, null);
+  assert.equal(destroyed.mediaListeners.size, 0);
+  destroyed.creative.abort();
+  assert.match(String(await destroyedResult), /display_won_abort/);
+
+  windowFixture.gexpIntextDebug = true;
+  debugVideoEvents.length = 0;
+  const stale = mediaLifecycleFixture({ withVideoFrameCallback: true });
+  await waitForMediaObservation(stale);
+  stale.node._activeRenderToken = 2;
+  stale.node._renderTokenSeq = 2;
+  stale.fireVideoFrame();
+  assert.equal(stale.node._intextPipFirstFrameConfirmed, false);
+  assert.equal(
+    debugVideoEvents.filter(({ event }) => event === 'first-frame').length,
+    0,
+  );
+  stale.creative.abort();
+  await stale.requestPromise.catch(() => {});
+  windowFixture.gexpIntextDebug = false;
+});
+
+test('169-172. gates PIP conservan playback/reveal y onlyAfterFirstFrame configurable', () => {
+  const paused = nodeFixture();
+  paused.node._intextPipPlayerRevealed = true;
+  paused.node._intextPipFirstFrameConfirmed = true;
+  paused.node._intextPipAnchorEverVisible = true;
+  paused.node._intextPipLastIntersectionRatio = 0;
+  paused.media.paused = true;
+  assert.equal(paused.node.getIntextPipEntryBlockReason(), 'video-not-playing');
+
+  const noReveal = nodeFixture();
+  noReveal.node._intextPipFirstFrameConfirmed = true;
+  noReveal.node._intextPipAnchorEverVisible = true;
+  noReveal.node._intextPipLastIntersectionRatio = 0;
+  assert.equal(noReveal.node.getIntextPipEntryBlockReason(), 'player-not-revealed');
+
+  const optionalFrame = nodeFixture({ onlyAfterFirstFrame: false });
+  optionalFrame.node._intextPipPlayerRevealed = true;
+  optionalFrame.node._intextPipAnchorEverVisible = true;
+  optionalFrame.node._intextPipLastIntersectionRatio = 0;
+  assert.equal(optionalFrame.node.canEnterIntextPip(), true);
+});
+
+test('173-175. el render token real registra pip.enabled para el summary', () => {
+  const fixture = nodeFixture();
+  windowFixture.gexpIntextDebug = true;
+  debugMetrics.length = 0;
+  const renderToken = fixture.node.beginVisualRender('video', 'initial');
+  const metric = debugMetrics.find(
+    ({ metric: metricName }) => metricName === 'video_pip_config_effective',
+  );
+  assert.ok(metric);
+  assert.equal(metric.payload.pipEnabled, true);
+  assert.equal(metric.payload.node._activeRenderToken, renderToken);
+  assert.match(
+    source,
+    /group\._data\.video_pip_config_effective\?\.pipEnabled === true/,
+  );
+  windowFixture.gexpIntextDebug = false;
+});
+
+test('176-178. opciones IMA conservan skip y respetan showForJsAds', async () => {
+  const fixture = mediaLifecycleFixture({
+    controlsConfig: {
+      enabled: false,
+      showForJsAds: false,
+    },
+  });
+  assert.equal(fixture.player.ima.options.disableAdControls, false);
+  assert.equal(fixture.player.ima.options.showControlsForJSAds, false);
+  assert.equal(fixture.player.ima.options.showCountdown, true);
+  fixture.creative.abort();
+  await fixture.requestPromise.catch(() => {});
+});
+
+test('179-184. animación vídeo espera simultáneamente reveal y first frame', async () => {
+  const delayedFrame = mediaLifecycleFixture();
+  await waitForMediaObservation(delayedFrame);
+  assert.equal(delayedFrame.initialOpenAnimationCalls.length, 0);
+
+  delayedFrame.emitMedia('playing');
+  await delayedFrame.requestPromise;
+  assert.equal(delayedFrame.creative._playerRevealed, true);
+  assert.equal(delayedFrame.node._intextPipFirstFrameConfirmed, false);
+  assert.equal(delayedFrame.initialOpenAnimationCalls.length, 0);
+
+  delayedFrame.media.currentTime = 0.1;
+  delayedFrame.emitMedia('timeupdate');
+  assert.equal(delayedFrame.initialOpenAnimationCalls.length, 1);
+  assert.equal(
+    delayedFrame.initialOpenAnimationCalls[0].surface,
+    delayedFrame.playerRoot,
+  );
+  assert.equal(
+    delayedFrame.initialOpenAnimationCalls[0].source,
+    'video-first-frame',
+  );
+
+  delayedFrame.media.currentTime = 0.2;
+  delayedFrame.emitMedia('timeupdate');
+  assert.equal(delayedFrame.initialOpenAnimationCalls.length, 1);
+
+  const directFrame = mediaLifecycleFixture({ currentTime: 0.2 });
+  await waitForMediaObservation(directFrame);
+  directFrame.emitMedia('playing');
+  await directFrame.requestPromise;
+  assert.equal(directFrame.initialOpenAnimationCalls.length, 1);
+
+  const errorBeforeFrame = mediaLifecycleFixture();
+  await waitForMediaObservation(errorBeforeFrame);
+  const rejected = errorBeforeFrame.requestPromise.catch(() => null);
+  errorBeforeFrame.emitPlayer('adserror', {
+    data: {
+      AdError: {
+        getErrorCode: () => 303,
+        getMessage: () => 'empty vast',
+      },
+    },
+  });
+  await rejected;
+  assert.equal(errorBeforeFrame.initialOpenAnimationCalls.length, 0);
 });

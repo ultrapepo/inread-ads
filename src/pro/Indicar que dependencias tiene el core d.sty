@@ -1,0 +1,153 @@
+Indicar que dependencias tiene el core del intext sobre el resto del gam_kv, propuesta para realizar un intextmanager.js desacoplado del resto del core del gam_kv y gamexp, que pueda funcionar de manera independiente sin dependencias de éste y así poder lanzarse desde un js o repo independiente. La parte de telemetría que si depende del gam_kv entiendo que deberíamos dejarla desactivada y comentada por ahora hasta poder rediriguirla hacia otro lugar cuando llegue el momento, si llega. Llamadas a otros metodos fuera del intext como los que generan los floors etc... pues ver que opciones hay o si dejarlo también deshabilitado, la mejor opcion posible. Esto para display.
+Sobre la telemetría, a no ser que encuentres una solucion, proponla entonces.
+
+
+(() => {
+  const setCookie = (name, value) => {
+    document.cookie =
+      `${name}=${encodeURIComponent(value)}; path=/; SameSite=Lax`;
+  };
+
+  // Fuerza la entrada del Intext aunque no pertenezcas a la cohorte.
+  setCookie("gexp_intext_force", "1");
+
+  // Fuerza random1=5:
+  setCookie("gexp_intext_force_random1", "5");
+
+  // Salta exclusions, disableAll, key-values, ad units y disableSlots.
+  setCookie("gexp_intext_force_exclusions", "1");
+
+  // Activa debugger persistente para la siguiente carga.
+  localStorage.setItem("gexpIntextDebug", "true");
+
+  // Limpia el bloqueo generado por fallbacks blancos.
+  document.cookie =
+    "gexp_intext_teads_block=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; SameSite=Lax";
+
+  localStorage.removeItem(
+    "gexp_intext_fallback_blank_count"
+  );
+
+  location.reload();
+})();
+
+
+console.table({
+  debugActivo:
+    window.gexpIntextDebug === true,
+
+  herramientasDisponibles:
+    typeof window.gexpIntextDebugTools === "object",
+
+  numeroLogs:
+    window.gexpIntextDebugTools?.getLogs?.().length ?? 0
+});
+
+
+
+
+3. Ver los logs durante la prueba
+
+Todos los logs:
+
+window.gexpIntextDebugTools.getLogs();
+
+Solo los eventos métricos:
+
+window.gexpIntextDebugTools
+  .getLogs()
+  .filter((entry) =>
+    entry.message?.includes("[IntextMetrics]")
+  );
+
+Solo PIP:
+
+window.gexpIntextDebugTools
+  .getLogs()
+  .filter((entry) =>
+    entry.message?.includes("pip")
+  );
+
+Solo vídeo:
+
+window.gexpIntextDebugTools
+  .getLogs()
+  .filter((entry) =>
+    entry.message?.includes("video_")
+  );
+
+Resumen por slot, ciclo y render token:
+
+window.gexpIntextDebugTools.getSummary();
+
+Resumen visible en consola:
+
+console.dir(
+  window.gexpIntextDebugTools.getSummary(),
+  { depth: null }
+);
+
+La API actual expone downloadJSON, downloadTXT, getLogs, getSummary, clear y mark. El contenido capturado está solo en memoria.
+
+4. Añadir marcas manuales mientras pruebas
+
+Antes de llegar al Intext:
+
+window.gexpIntextDebugTools.mark(
+  "antes-de-llegar-al-intext",
+  {
+    scrollY: window.scrollY,
+    visibility: document.visibilityState
+  }
+);
+
+Cuando empiece el vídeo:
+
+window.gexpIntextDebugTools.mark(
+  "video-visible-y-reproduciendo"
+);
+
+Antes de sacar el slot del viewport:
+
+window.gexpIntextDebugTools.mark(
+  "antes-de-probar-pip"
+);
+
+Cuando aparezca el PIP:
+
+window.gexpIntextDebugTools.mark(
+  "pip-visible",
+  {
+    comentario:
+      "El player salió del viewport y apareció flotante"
+  }
+);
+
+Después de pulsar el aspa:
+
+window.gexpIntextDebugTools.mark(
+  "pip-cerrado-por-usuario"
+);
+5. Descargar el debugger
+
+Al terminar la prueba, antes de recargar o cerrar la página:
+
+window.gexpIntextDebugTools.downloadJSON();
+
+También puedes descargar la versión legible en texto:
+
+window.gexpIntextDebugTools.downloadTXT();
+
+Recomiendo descargar ambos:
+
+window.gexpIntextDebugTools.downloadJSON();
+window.gexpIntextDebugTools.downloadTXT();
+
+El JSON incluye:
+
+page
+debugger
+summary
+logs
+
+El buffer tiene límite de 5.000 entradas y aproximadamente 5 MB.

@@ -2756,57 +2756,6 @@ class IntextManager {
     return { api, source, pspDetected, proxy, controller };
   }
 
-  resolveIntextPrebidApi() {
-    const proxy = typeof window !== "undefined" ? window.pbjs : null;
-    if (!proxy) {
-      return { api: null, source: "pbjs-unavailable", pspDetected: false, proxy: null, controller: null };
-    }
-    const controller = proxy.__ctrl;
-    const pspDetected = Boolean(controller && typeof controller === "object");
-    const isUsable = (candidate) => Boolean(candidate && candidate.que && typeof candidate.que.push === "function" && typeof candidate.requestBids === "function");
-    let api = null;
-    let source = "pbjs-invalid";
-    if (pspDetected) {
-      if (isUsable(controller.realObj)) { api = controller.realObj; source = "__ctrl.realObj"; }
-      else source = "psp-real-pbjs-unavailable";
-    } else if (isUsable(proxy)) { api = proxy; source = "window.pbjs"; }
-    const diagnostic = {
-      pspDetected, source, hasController: Boolean(controller), hasRealObj: Boolean(controller?.realObj),
-      hasBaseObj: Boolean(controller?.baseObj), version: api?.version || null,
-      requestBidsType: typeof api?.requestBids, aliasBidderType: typeof api?.aliasBidder,
-      addAdUnitsType: typeof api?.addAdUnits,
-    };
-    logIntext(`[Intext:Prebid] intext_prebid_runtime_resolved`, diagnostic);
-    if (pspDetected) logIntext(`[Intext:Prebid] intext_prebid_proxy_detected`, diagnostic);
-    if (source === "psp-real-pbjs-unavailable") logIntext(`[Intext:Prebid] intext_prebid_real_api_unavailable`, diagnostic);
-    return { api, source, pspDetected, proxy, controller };
-  }
-
-  resolveIntextApstagApi() {
-    const proxy = typeof window !== "undefined" ? window.apstag : null;
-    if (!proxy) {
-      return { api: null, source: "apstag-unavailable", pspDetected: false, proxy: null, controller: null };
-    }
-    const controller = proxy.__ctrl;
-    const pspDetected = Boolean(controller && typeof controller === "object");
-    const isUsable = (candidate) => Boolean(candidate && typeof candidate.fetchBids === "function" && typeof candidate.setDisplayBids === "function");
-    let api = null;
-    let source = "apstag-invalid";
-    if (pspDetected) {
-      if (isUsable(controller.realObj)) { api = controller.realObj; source = "__ctrl.realObj"; }
-      else source = "psp-real-apstag-unavailable";
-    } else if (isUsable(proxy)) { api = proxy; source = "window.apstag"; }
-    const diagnostic = {
-      pspDetected, source, hasController: Boolean(controller), hasRealObj: Boolean(controller?.realObj),
-      hasBaseObj: Boolean(controller?.baseObj), fetchBidsType: typeof api?.fetchBids,
-      setDisplayBidsType: typeof api?.setDisplayBids,
-    };
-    logIntext(`[Intext:APS] intext_apstag_runtime_resolved`, diagnostic);
-    if (pspDetected) logIntext(`[Intext:APS] intext_apstag_proxy_detected`, diagnostic);
-    if (source === "psp-real-apstag-unavailable") logIntext(`[Intext:APS] intext_apstag_real_api_unavailable`, diagnostic);
-    return { api, source, pspDetected, proxy, controller };
-  }
-
   runIntextGptCommand(callback) {
     let initial;
     try {
@@ -3019,7 +2968,7 @@ class IntextManager {
         ? this.getScopedSlotsForRoot(rootElement)
         : (Array.isArray(scopedContext?.scopedSlots)
           ? scopedContext.scopedSlots
-          : this.getIntextNativeGptSlots());
+          : (googletag?.pubads?.().getSlots?.() || []));
       for (const slot of slots) {
         const slotId = String(slot?.getSlotElementId?.() || "");
         if (!slotId || slotId.startsWith("gexp-intext")) continue;
@@ -3111,81 +3060,6 @@ class IntextManager {
     return pageTargeting?.[key];
   }
 
-  normalizeIntextRuleTargetingValues(value) {
-    const normalized = [];
-    const collect = (candidate) => {
-      if (candidate === undefined || candidate === null) return;
-      if (Array.isArray(candidate)) { candidate.forEach(collect); return; }
-      if (typeof candidate === "string" && candidate.includes(",")) {
-        candidate.split(",").forEach((entry) => normalized.push(entry.trim()));
-        return;
-      }
-      normalized.push(String(candidate));
-    };
-    collect(value);
-    return Array.from(new Set(normalized));
-  }
-
-  getIntextNativeGptSlots(rootElement = null) {
-    try {
-      const pubads = this.resolveIntextGptApi().api?.pubads?.();
-      const slots = pubads?.getSlots?.();
-      if (!Array.isArray(slots)) return [];
-      return slots.filter((slot) => {
-        const slotElementId = String(slot?.getSlotElementId?.() || "");
-        if (/^gexp-intext(?:-|$)/.test(slotElementId)) return false;
-        if (!rootElement) return true;
-        const element = slotElementId ? document.getElementById(slotElementId) : null;
-        return Boolean(element && rootElement.contains(element));
-      });
-    } catch (e) { return []; }
-  }
-
-  resolveIntextRuleTargeting(key, context = null) {
-    const normalizedKey = String(key);
-    const resolution = this.resolveIntextGptApi();
-    const result = { key: normalizedKey, values: [], sources: [], pspDetected: resolution.pspDetected === true, slotsChecked: 0, slotsMatched: 0, scoped: Boolean(context?.rootElement) };
-    const add = (source, rawValue) => {
-      const values = this.normalizeIntextRuleTargetingValues(rawValue);
-      if (!values.length) return;
-      let sourceEntry = result.sources.find((entry) => entry.source === source);
-      if (!sourceEntry) { sourceEntry = { source, values: [] }; result.sources.push(sourceEntry); }
-      values.forEach((value) => {
-        if (!sourceEntry.values.includes(value)) sourceEntry.values.push(value);
-        if (!result.values.includes(value)) result.values.push(value);
-      });
-    };
-    if (INTEXT_RANDOM_KEYS.includes(normalizedKey)) {
-      add("gexp-slot-random-snapshot", this.getIntextRandomValue(normalizedKey));
-    } else {
-      add("context.targeting", context?.targeting?.[normalizedKey]);
-      add("data.customTargeting", typeof data !== "undefined" ? data?.customTargeting?.[normalizedKey] : undefined);
-      add("ueDFPData.customTargeting", typeof ueDFPData !== "undefined" ? ueDFPData?.customTargeting?.[normalizedKey] : undefined);
-      try { add("gpt-page-targeting", resolution.api?.pubads?.()?.getTargeting?.(normalizedKey)); } catch (e) { }
-      const slots = this.getIntextNativeGptSlots(context?.rootElement || null);
-      result.slotsChecked = slots.length;
-      slots.forEach((slot) => {
-        let values = [];
-        try { values = this.normalizeIntextRuleTargetingValues(slot?.getTargeting?.(normalizedKey)); } catch (e) { }
-        if (!values.length) {
-          try { values = this.normalizeIntextRuleTargetingValues(slot?.getTargetingMap?.()?.[normalizedKey]); } catch (e) { }
-        }
-        if (!values.length) return;
-        result.slotsMatched += 1;
-        add("gpt-slot-targeting", values);
-      });
-      add("ueDataLayer", typeof window !== "undefined" ? window.ueDataLayer?.[normalizedKey] : undefined);
-      add("utag_data", typeof window !== "undefined" ? window.utag_data?.[normalizedKey] : undefined);
-    }
-    logIntext(`[IntextManager] intext_rule_targeting_resolved`, {
-      key: result.key, values: result.values,
-      sources: Array.from(new Set(result.sources.map((entry) => entry.source))),
-      pspDetected: result.pspDetected, slotsChecked: result.slotsChecked,
-      slotsMatched: result.slotsMatched, scoped: result.scoped,
-    });
-    return result;
-  }
-
   getIntextRandomTelemetry() {
     const snapshot = this.intextRandomSnapshot || {};
     // The gexp-intext-randomN-effective fields are the canonical Intext
@@ -3217,7 +3091,11 @@ class IntextManager {
     const mismatchSlotIds = [];
     const unresolvedSlotIds = [];
     try {
-      const normalSlots = this.getIntextNativeGptSlots();
+      const slots = googletag?.pubads?.().getSlots?.() || [];
+      const normalSlots = slots.filter((slot) => {
+        const id = String(slot?.getSlotElementId?.() || "");
+        return id && !id.startsWith("gexp-intext");
+      });
       slotsFound = normalSlots.length;
       normalSlots.forEach((slot) => {
         const slotId = String(slot.getSlotElementId?.() || "unknown");
@@ -3604,9 +3482,11 @@ class IntextManager {
     let resolvedNetworkId = null;
 
     try {
-      const slots = this.getIntextNativeGptSlots();
+      const slots = googletag.pubads().getSlots();
       if (slots && slots.length > 0) {
         const refSlot = slots.find(s => {
+          const elId = s.getSlotElementId() || "";
+          if (elId.startsWith("gexp-intext")) return false;
           const path = s.getAdUnitPath() || "";
           if (/\/p_/.test(path)) return false;
           return true;
@@ -3753,9 +3633,8 @@ class IntextManager {
     }
 
     try {
-      const pubads = this.resolveIntextGptApi().api?.pubads?.();
-      if (pubads) {
-        const ctValues = pubads.getTargeting?.('ct');
+      if (typeof googletag !== 'undefined' && googletag.pubads && typeof googletag.pubads === 'function') {
+        const ctValues = googletag.pubads().getTargeting('ct');
         if (ctValues && ctValues.length > 0) {
           const normalized = IntextManager.CONTENT_TYPE_MAP[ctValues[0]] || ctValues[0];
           return normalized;
@@ -4455,8 +4334,20 @@ class IntextManager {
   }
 
   getScopedSlotsForRoot(rootElement) {
-    if (!rootElement) return [];
-    return this.getIntextNativeGptSlots(rootElement);
+    if (!rootElement || typeof googletag === "undefined" || !googletag.pubads || typeof googletag.pubads !== "function") {
+      return [];
+    }
+
+    try {
+      return googletag.pubads().getSlots().filter((slot) => {
+        const slotElId = slot?.getSlotElementId?.();
+        if (!slotElId || slotElId.indexOf("gexp-intext") === 0) return false;
+        const slotEl = document.getElementById(slotElId);
+        return Boolean(slotEl && rootElement.contains(slotEl));
+      });
+    } catch (e) {
+      return [];
+    }
   }
 
   getSlotTargetingMap(slot) {
@@ -4512,7 +4403,7 @@ class IntextManager {
     const scopedContext = {
       detectedNetworkId,
       detectedAdUnitPath,
-      targeting: { ...(pageTargeting || {}), ...(slotTargeting || {}) },
+      targeting: { ...(slotTargeting || {}), ...(pageTargeting || {}) },
       contentType,
       pageUrl,
       hostname,
@@ -4579,8 +4470,7 @@ class IntextManager {
       if (pageTargeting) {
         for (const [key, blockedValues] of Object.entries(excl.keyValues)) {
           if (!Array.isArray(blockedValues) || blockedValues.length === 0) continue;
-          const targetingResolution = this.resolveIntextRuleTargeting(key, context);
-          const rawPageValue = targetingResolution.values;
+          const rawPageValue = this.getIntextRuleTargetingValue(key, pageTargeting);
           if (rawPageValue === undefined || rawPageValue === null) continue;
 
           let pageValues;
@@ -4593,10 +4483,10 @@ class IntextManager {
             pageValues = [String(rawPageValue)];
           }
 
-          const normalizedBlockedValues = this.normalizeIntextRuleTargetingValues(blockedValues);
-          const matchedValue = pageValues.find((value) => normalizedBlockedValues.includes(value));
-          if (matchedValue !== undefined) {
-            logIntext(`[IntextManager] BLOCKED by exclusions.keyValues`, { key, matchedValue, sourceCandidates: Array.from(new Set(targetingResolution.sources.map((entry) => entry.source))) });
+          const matchedValue = blockedValues.find(blocked =>
+            pageValues.includes(String(blocked))
+          );
+          if (matchedValue) {
             logIntext(`[IntextManager] ❌ BLOCKED by exclusions.keyValues — key "${key}" has blocked value "${matchedValue}" (page values: [${pageValues.join(', ')}])`);
             return true;
           }
@@ -4658,7 +4548,7 @@ class IntextManager {
           });
           return true;
         }
-        const rawPageValue = this.resolveIntextRuleTargeting(key, context).values;
+        const rawPageValue = this.getIntextRuleTargetingValue(key, pageTargeting);
         const effectiveValue = INTEXT_RANDOM_KEYS.includes(String(key))
           ? rawPageValue
           : effectiveResolution.qaCookieApplied === true
@@ -4675,9 +4565,10 @@ class IntextManager {
           pageValues = [String(effectiveValue)];
         }
 
-        const normalizedAllowedValues = this.normalizeIntextRuleTargetingValues(allowedValues);
-        const matchedValue = pageValues.find((value) => normalizedAllowedValues.includes(value));
-        if (matchedValue !== undefined) {
+        const matchedValue = allowedValues.find(allowed =>
+          pageValues.includes(String(allowed))
+        );
+        if (matchedValue) {
           if (effectiveResolution.qaCookieApplied === true) {
             this.markIntextQaCookieApplied();
             logIntext(`[IntextManager] intext_qa_cookie_force_allow_applied`, {
@@ -4737,9 +4628,8 @@ class IntextManager {
       return withoutIntextRandoms(ueDFPData.customTargeting);
     }
     try {
-      const gptResolution = this.resolveIntextGptApi();
-      if (gptResolution.api) {
-        const pubads = gptResolution.api.pubads();
+      if (typeof googletag !== 'undefined' && googletag.pubads && typeof googletag.pubads === 'function') {
+        const pubads = googletag.pubads();
         if (pubads && typeof pubads.getTargetingKeys === 'function') {
           const keys = pubads.getTargetingKeys();
           if (keys && keys.length > 0) {
@@ -4794,11 +4684,11 @@ class IntextManager {
         }
 
         if (rule.ifKeyValues && typeof rule.ifKeyValues === 'object' && Object.keys(rule.ifKeyValues).length > 0) {
-          const pageTargeting = this.getPageCustomTargeting(context) || {};
+          const pageTargeting = this.getPageCustomTargeting(context);
           if (pageTargeting) {
             for (const [key, blockedValues] of Object.entries(rule.ifKeyValues)) {
               if (!Array.isArray(blockedValues) || blockedValues.length === 0) continue;
-              const rawVal = this.resolveIntextRuleTargeting(key, context).values;
+              const rawVal = this.getIntextRuleTargetingValue(key, pageTargeting);
               if (rawVal === undefined || rawVal === null) continue;
 
               let pageValues;
@@ -4806,8 +4696,7 @@ class IntextManager {
               else if (typeof rawVal === 'string' && rawVal.includes(',')) pageValues = rawVal.split(',').map(v => v.trim());
               else pageValues = [String(rawVal)];
 
-              const normalizedBlockedValues = this.normalizeIntextRuleTargetingValues(blockedValues);
-              if (pageValues.some((value) => normalizedBlockedValues.includes(value))) {
+              if (blockedValues.some(b => pageValues.includes(String(b)))) {
                 logIntext(`[IntextManager] Slot ${index}: DISABLED by disableSlots rule (keyValue "${key}" match)`);
                 return true;
               }
@@ -6134,17 +6023,12 @@ class IntextNode {
     });
   }
 
-  findIntextPipKeyValueMatch(rules, context) {
+  findIntextPipKeyValueMatch(rules, targeting) {
     if (!rules || typeof rules !== "object" || Array.isArray(rules)) return null;
     for (const [key, configuredValues] of Object.entries(rules)) {
       const allowedValues = this.normalizeIntextPipRuleValues(configuredValues);
       if (!allowedValues.length) continue;
-      const resolvedValues = this.manager?.resolveIntextRuleTargeting
-        ? this.manager.resolveIntextRuleTargeting(key, context?.scopedContext)
-        : null;
-      const pageValues = resolvedValues
-        ? resolvedValues.values
-        : this.normalizeIntextPipRuleValues(context?.targeting?.[key]);
+      const pageValues = this.normalizeIntextPipRuleValues(targeting?.[key]);
       const matchedValue = allowedValues.find((value) => pageValues.includes(String(value)));
       if (matchedValue !== undefined) return { key: String(key), value: String(matchedValue) };
     }
@@ -6170,7 +6054,7 @@ class IntextNode {
     }
     const hasKeyValues =
       rules.keyValues && typeof rules.keyValues === "object" && Object.keys(rules.keyValues).length > 0;
-    const match = hasKeyValues ? this.findIntextPipKeyValueMatch(rules.keyValues, context) : null;
+    const match = hasKeyValues ? this.findIntextPipKeyValueMatch(rules.keyValues, context.targeting) : null;
     if (hasKeyValues && !match) {
       return {
         allowed: false,
@@ -6214,7 +6098,7 @@ class IntextNode {
         match: null,
       };
     }
-    const match = this.findIntextPipKeyValueMatch(rules.keyValues, context);
+    const match = this.findIntextPipKeyValueMatch(rules.keyValues, context.targeting);
     if (match) {
       return {
         blocked: true,
@@ -8743,9 +8627,8 @@ class IntextNode {
     if (scopedValue !== null) return { value: scopedValue, source: "scopedContext.targeting" };
 
     try {
-      const gptResolution = this.manager?.resolveIntextGptApi?.();
-      if (gptResolution?.api) {
-        const pubads = gptResolution.api.pubads();
+      if (typeof googletag !== "undefined" && googletag.pubads) {
+        const pubads = googletag.pubads();
         if (pubads && typeof pubads.getTargeting === "function") {
           const value = this.normalizeHbValue(pubads.getTargeting(key));
           if (value !== null) return { value, source: "googletag.pubads" };
@@ -10023,9 +9906,8 @@ class IntextNode {
         this.clearDisplayRequestTargeting(this.slot);
         this.applyDisplayRequestTargeting(this.slot, preRequestDisplayTargeting.targeting);
         this.applyIntextRandomSnapshotToSlot(this.slot);
-        const apsAfterCore = this.manager.resolveIntextApstagApi().api;
-        if (apsAfterCore && typeof apsAfterCore.targetingKeys === "function") {
-          const tamKeys = apsAfterCore.targetingKeys();
+        if (window.apstag && window.apstag.targetingKeys) {
+          const tamKeys = window.apstag.targetingKeys();
           if (tamKeys && tamKeys[this.id]) {
             Object.entries(tamKeys[this.id]).forEach(([k, v]) => {
               this.slot.setTargeting(k, v);
@@ -10094,9 +9976,8 @@ class IntextNode {
         this.clearDisplayRequestTargeting(this.slot, "display_request_targeting_cleared_keys_post_core");
         this.applyDisplayRequestTargeting(this.slot, finalDisplayTargeting.targeting);
         this.applyDisplayBidTargeting(this.slot, bidResponse, this.waterfall?._lastCurrentBannerBids);
-        const aps = this.manager.resolveIntextApstagApi().api;
-        if (aps && typeof aps.targetingKeys === "function") {
-          const tamKeys = aps.targetingKeys();
+        if (window.apstag && window.apstag.targetingKeys) {
+          const tamKeys = window.apstag.targetingKeys();
           if (tamKeys && tamKeys[this.id]) {
             Object.entries(tamKeys[this.id]).forEach(([k, v]) => {
               this.slot.setTargeting(k, v);
@@ -11565,11 +11446,10 @@ class IntextWaterfall {
     this._aliasRegistrationPromise = null;
   }
 
-  getPbjsBidResponsesSafe(adUnitCode, pb = null) {
-    const selectedPb = pb || this.node.manager.resolveIntextPrebidApi().api;
+  getPbjsBidResponsesSafe(adUnitCode) {
     if (
-      !selectedPb ||
-      typeof selectedPb.getBidResponsesForAdUnitCode !== "function"
+      !window.pbjs ||
+      typeof window.pbjs.getBidResponsesForAdUnitCode !== "function"
     ) {
       if (!IntextWaterfall._loggedPbjsBidResponsesApiMissing) {
         IntextWaterfall._loggedPbjsBidResponsesApiMissing = true;
@@ -11581,7 +11461,7 @@ class IntextWaterfall {
     }
 
     try {
-      return selectedPb.getBidResponsesForAdUnitCode(adUnitCode) || { bids: [] };
+      return window.pbjs.getBidResponsesForAdUnitCode(adUnitCode) || { bids: [] };
     } catch (e) {
       if (!IntextWaterfall._loggedPbjsBidResponsesApiMissing) {
         IntextWaterfall._loggedPbjsBidResponsesApiMissing = true;
@@ -11593,8 +11473,8 @@ class IntextWaterfall {
     }
   }
 
-  getPbjsBidsSafe(adUnitCode, pb = null) {
-    const bidResponses = this.getPbjsBidResponsesSafe(adUnitCode, pb);
+  getPbjsBidsSafe(adUnitCode) {
+    const bidResponses = this.getPbjsBidResponsesSafe(adUnitCode);
     return Array.isArray(bidResponses?.bids) ? bidResponses.bids : [];
   }
 
@@ -12117,13 +11997,12 @@ class IntextWaterfall {
       }
       const currentState = this.node.state;
 
-      const refreshPb = this.node.manager.resolveIntextPrebidApi().api;
-      if (typeof refreshPb?.clearTargeting === "function") {
-        refreshPb.clearTargeting(this.node.id);
+      if (window.pbjs.clearTargeting) {
+        window.pbjs.clearTargeting(this.node.id);
       }
 
-      if (typeof refreshPb?.removeAdUnit === "function") {
-        refreshPb.removeAdUnit(this.node.id);
+      if (window.pbjs.removeAdUnit) {
+        window.pbjs.removeAdUnit(this.node.id);
       }
 
       if (this.node.activeCreative && this.node.activeCreative.player) {
@@ -12357,14 +12236,12 @@ class IntextWaterfall {
     let attempt = 0;
 
     const aliasesRequired = Boolean(this.getPrebidAliasesConfig().aliases);
-    let lastSource = "pbjs-unavailable";
-    const isReady = () => {
-      const resolution = this.node.manager.resolveIntextPrebidApi();
-      lastSource = resolution.source;
-      const pb = resolution.api;
-      return Boolean(pb && typeof pb.requestBids === "function" && pb.que && typeof pb.que.push === "function" && (!aliasesRequired || typeof pb.aliasBidder === "function"));
-    };
-    Object.defineProperty(scopedContext, "rootElement", { value: rootElement, enumerable: false });
+    const isReady = () =>
+      typeof window.pbjs !== "undefined" &&
+      typeof window.pbjs.requestBids === "function" &&
+      window.pbjs.que &&
+      typeof window.pbjs.que.push === "function" &&
+      (!aliasesRequired || typeof window.pbjs.aliasBidder === "function");
 
     if (isReady()) return Promise.resolve(true);
 
@@ -12385,7 +12262,7 @@ class IntextWaterfall {
         const elapsedMs = Date.now() - startedAt;
         if (elapsedMs >= waitMs) {
           logIntext(
-            `[Intext:Prebid:${this.node.id}] prebid_pbjs_wait_timeout - code=${configuration.code}, source=${lastSource}, elapsed_ms=${elapsedMs}, attempts=${attempt}`,
+            `[Intext:Prebid:${this.node.id}] prebid_pbjs_wait_timeout - code=${configuration.code}, elapsed_ms=${elapsedMs}, attempts=${attempt}`,
           );
           resolve(false);
           return;
@@ -12458,11 +12335,11 @@ class IntextWaterfall {
 
   executePrebid(configuration) {
     return new Promise((resolve) => {
-      const runPrebid = (pb) => pb.que.push(() => {
+      const runPrebid = () => window.pbjs.que.push(() => {
         let restoreVideoCacheConfig = null;
         try {
-          this.registerPrebidAdUnit(configuration, pb);
-          this.applyIntextDisplayFloorToPrebid(configuration, pb);
+          this.registerPrebidAdUnit(configuration);
+          this.applyIntextDisplayFloorToPrebid(configuration);
 
           const graceMs = this.config.prebid?.graceMs ?? 300;
           const watchdogMs = this.getPrebidTimeout() + graceMs + 1500;
@@ -12471,7 +12348,7 @@ class IntextWaterfall {
           let finalizeTimer = null;
 
           const resolveAuctionId = (auctionIdParam = null) => {
-            const raw = this.getPbjsBidsSafe(configuration.code, pb);
+            const raw = this.getPbjsBidsSafe(configuration.code);
             let id = auctionIdParam;
             if (!id && raw.length > 0) {
               id = raw[raw.length - 1].auctionId;
@@ -12498,7 +12375,7 @@ class IntextWaterfall {
             const auctionId = resolveAuctionId(auctionIdParam);
             this._currentAuctionId = auctionId;
 
-            const allRaw = this.getPbjsBidsSafe(configuration.code, pb);
+            const allRaw = this.getPbjsBidsSafe(configuration.code);
             const allResponses = auctionId
               ? allRaw.filter(b => b.auctionId === auctionId)
               : allRaw;
@@ -12533,7 +12410,7 @@ class IntextWaterfall {
             }
 
             try {
-              const noBids = pb.getNoBids?.() || [];
+              const noBids = window.pbjs.getNoBids?.() || [];
               const relevantNoBids = auctionId
                 ? noBids.filter(nb => nb.adUnitCode === configuration.code && nb.auctionId === auctionId)
                 : noBids.filter(nb => nb.adUnitCode === configuration.code);
@@ -12550,14 +12427,7 @@ class IntextWaterfall {
               );
             }
 
-            pb.setTargetingForGPTAsync([configuration.code]);
-            if (allResponses.length > 0 && typeof window !== "undefined" && window.gexpIntextDebug === true) {
-              const targeting = this.node.slot?.getTargetingMap?.() || {};
-              const expectedKeys = ["hb_pb", "hb_bidder", "hb_adid"];
-              if (!expectedKeys.some((key) => Object.prototype.hasOwnProperty.call(targeting, key))) {
-                warnIntext(`[Intext:Prebid:${this.node.id}] intext_prebid_targeting_missing_after_bid`, { code: configuration.code, expectedKeys });
-              }
-            }
+            window.pbjs.setTargetingForGPTAsync([configuration.code]);
             resolve("prebid_done");
           };
 
@@ -12593,10 +12463,10 @@ class IntextWaterfall {
               reason: videoCacheProfile.reason,
             });
 
-            restoreVideoCacheConfig = this.applyIntextVideoCacheOverride(videoCacheProfile, pb);
+            restoreVideoCacheConfig = this.applyIntextVideoCacheOverride(videoCacheProfile);
           }
 
-          pb.requestBids({
+          window.pbjs.requestBids({
             timeout: this.getPrebidTimeout(),
             adUnitCodes: [configuration.code],
             bidsBackHandler: (bidResponses, timedOut, auctionIdParam) => {
@@ -12606,7 +12476,7 @@ class IntextWaterfall {
                 );
               }
               if (timedOut && graceMs > 0) {
-                const bidsAtTimeout = this.getPbjsBidsSafe(configuration.code, pb).length;
+                const bidsAtTimeout = this.getPbjsBidsSafe(configuration.code).length;
                 logIntext(
                   `[Intext:Slot:${this.node.id}]   Prebid: TIMED OUT with ${bidsAtTimeout} bids — waiting ${graceMs}ms grace window for late bids...`,
                 );
@@ -12635,14 +12505,7 @@ class IntextWaterfall {
           resolve(null);
           return;
         }
-        const resolution = this.node.manager.resolveIntextPrebidApi();
-        const pb = resolution.api;
-        if (!pb) {
-          logIntext(`[Intext:Prebid:${this.node.id}] prebid_pbjs_resolution_lost`, { code: configuration.code, source: resolution.source });
-          resolve(null);
-          return;
-        }
-        const aliasesReady = await this.ensurePrebidAliasesRegistered(pb);
+        const aliasesReady = await this.ensurePrebidAliasesRegistered();
         if (!aliasesReady) {
           warnIntext(`[Intext:Prebid:${this.node.id}] prebid_alias_registration_incomplete`, {
             code: configuration.code,
@@ -12651,7 +12514,7 @@ class IntextWaterfall {
           return;
         }
         await this.waitForPrebidGlobalInitFlag(configuration);
-        runPrebid(pb);
+        runPrebid();
       }).catch((error) => {
         warnIntext(`[Intext:Prebid:${this.node.id}] prebid_alias_registration_failed`, {
           code: configuration.code,
@@ -12664,57 +12527,50 @@ class IntextWaterfall {
 
   executeAmazonTam(configuration) {
     return new Promise((resolve) => {
-      let settled = false;
-      let availabilityTimer = null;
-      const settleOnce = (value) => {
-        if (settled) return;
-        settled = true;
-        clearTimeout(_tamSafetyTimer);
-        if (availabilityTimer) clearTimeout(availabilityTimer);
-        resolve(value);
-      };
+      if (
+        typeof window.apstag === "undefined" ||
+        typeof window.apstag.fetchBids === "undefined"
+      ) {
+        logIntext(
+          `[Intext:Slot:${this.node.id}]   TAM: apstag not available`,
+        );
+        resolve(null);
+        return;
+      }
+
       const _tamSafetyTimer = setTimeout(() => {
         logIntext(`[Intext:Slot:${this.node.id}]   TAM: ⚠️ safety timeout — resolving to avoid blocking`);
-        settleOnce("tam_timeout");
+        resolve("tam_timeout");
       }, 2000);
-      const tryStart = () => {
-        if (settled) return;
-        const resolution = this.node.manager.resolveIntextApstagApi();
-        const aps = resolution.api;
-        if (!aps) {
-          if (!resolution.pspDetected) {
-            logIntext(`[Intext:Slot:${this.node.id}]   TAM: apstag not available`);
-            settleOnce(null);
-            return;
-          }
-          availabilityTimer = setTimeout(tryStart, 50);
-          return;
-        }
-        try {
-          aps.fetchBids(configuration, (bids) => {
-            if (settled) return;
-            try {
-              const hasBids = Array.isArray(bids) && bids.length > 0;
-              logIntext(`[Intext:Slot:${this.node.id}]   TAM: ${hasBids ? `${bids.length} bid(s) received` : "no bids"}`);
-              aps.setDisplayBids();
-              if (hasBids && typeof window !== "undefined" && window.gexpIntextDebug === true) {
-                const targeting = this.node.slot?.getTargetingMap?.() || {};
-                if (!Object.keys(targeting).some((key) => key.startsWith("amzn"))) {
-                  warnIntext(`[Intext:APS:${this.node.id}] intext_apstag_targeting_missing_after_bid`, { code: this.node.id });
-                }
-              }
-              settleOnce("tam_done");
-            } catch (err) {
-              warnIntext(`[Intext:Slot:${this.node.id}]   TAM: setDisplayBids failed`, err);
-              settleOnce("tam_error");
+
+      try {
+        window.apstag.fetchBids(configuration, (bids) => {
+          clearTimeout(_tamSafetyTimer);
+          try {
+            if (bids && bids.length > 0) {
+              logIntext(
+                `[Intext:Slot:${this.node.id}]   TAM: ${bids.length} bid(s) received`,
+              );
+            } else {
+              logIntext(
+                `[Intext:Slot:${this.node.id}]   TAM: no bids`,
+              );
             }
-          });
-        } catch (err) {
-          logIntext(`[Intext:Slot:${this.node.id}]   TAM: ❌ fetchBids threw — skipping`, err);
-          settleOnce("tam_error");
-        }
-      };
-      tryStart();
+            window.apstag.setDisplayBids();
+            resolve("tam_done");
+          } catch (err) {
+            warnIntext(
+              `[Intext:Slot:${this.node.id}]   TAM: setDisplayBids failed`,
+              err,
+            );
+            resolve("tam_error");
+          }
+        });
+      } catch (err) {
+        clearTimeout(_tamSafetyTimer);
+        logIntext(`[Intext:Slot:${this.node.id}]   TAM: ❌ fetchBids threw — skipping`, err);
+        resolve("tam_error");
+      }
     });
   }
 
@@ -12743,10 +12599,9 @@ class IntextWaterfall {
       logIntext(
         `[Intext:Slot:${this.node.id}] ├─ Using CACHED bids only (${bannerBids.length} banner, ${videoBids.length} video, age: ${cached.ageMs}ms)`,
       );
-    } else if (this.node.manager.resolveIntextPrebidApi().api) {
-      const pb = this.node.manager.resolveIntextPrebidApi().api;
+    } else if (typeof window.pbjs !== "undefined") {
       const currentAuctionId = this._currentAuctionId;
-      const allBids = this.getPbjsBidsSafe(code, pb)
+      const allBids = this.getPbjsBidsSafe(code)
         .filter(b => currentAuctionId ? b.auctionId === currentAuctionId : true);
 
       const seen = new Set();
@@ -12757,7 +12612,7 @@ class IntextWaterfall {
         return true;
       });
 
-      const totalBids = this.getPbjsBidsSafe(code, pb).length || 0;
+      const totalBids = this.getPbjsBidsSafe(code).length || 0;
       if (totalBids > uniqueBids.length) {
         logIntext(
           `[Intext:Slot:${this.node.id}] ├─ Bid filtering: ${totalBids} total, ${totalBids - uniqueBids.length} stale (from previous auctions), ${uniqueBids.length} current`,
@@ -13929,10 +13784,9 @@ class IntextWaterfall {
     let targetingFromPbjs = {};
     try {
       const code = this.getPrebidCode();
-      const pb = this.node.manager.resolveIntextPrebidApi().api;
-      if (Object.keys(targetingFromBid).length === 0 && pb?.getAdserverTargetingForAdUnitCode && code) {
+      if (Object.keys(targetingFromBid).length === 0 && window.pbjs?.getAdserverTargetingForAdUnitCode && code) {
         targetingFromPbjs = this.normalizeTargetingMap(
-          pb.getAdserverTargetingForAdUnitCode(code),
+          window.pbjs.getAdserverTargetingForAdUnitCode(code),
         );
       }
     } catch (err) { }
@@ -14028,7 +13882,7 @@ class IntextWaterfall {
       targetingSource: resolvedVideoTargeting.targetingSource,
     });
 
-    if (this.node.manager.resolveIntextPrebidApi().api && this._lastVideoBid) {
+    if (window.pbjs && this._lastVideoBid) {
       const bid = this._lastVideoBid;
       if (bid.source && bid.source.includes("prebid") && bid.cpm != null && Number(bid.cpm) > 0) {
         const diagnostics = this.getIntextVideoBidDiagnostics(bid);
@@ -14123,9 +13977,8 @@ class IntextWaterfall {
       });
     }
 
-    const aps = this.node.manager.resolveIntextApstagApi().api;
-    if (aps && typeof aps.targetingKeys === "function") {
-      const tamKeys = aps.targetingKeys();
+    if (window.apstag && window.apstag.targetingKeys) {
+      const tamKeys = window.apstag.targetingKeys();
       if (tamKeys && tamKeys[videoId]) {
         Object.entries(tamKeys[videoId]).forEach(([k, v]) => {
           const val = Array.isArray(v) ? v.join(",") : v;
@@ -14206,8 +14059,8 @@ class IntextWaterfall {
     return this.node.manager.resolveIntextVideoAdUnitPath(this.node.scopedContext) || "";
   }
 
-  registerPrebidAdUnit(configuration, pb = null) {
-    pb = pb || this.node.manager.resolveIntextPrebidApi().api;
+  registerPrebidAdUnit(configuration) {
+    const pb = window.pbjs;
     if (!pb) return;
 
     try {
@@ -14231,27 +14084,27 @@ class IntextWaterfall {
       });
     } catch (e) { /* ignore */ }
 
-    if (typeof pb.removeAdUnit === "function") pb.removeAdUnit(configuration.code);
-    if (typeof pb.addAdUnits === "function") pb.addAdUnits([configuration]);
+    pb.removeAdUnit(configuration.code);
+    pb.addAdUnits([configuration]);
   }
 
-  ensurePrebidAliasesRegistered(pb = null) {
+  ensurePrebidAliasesRegistered() {
     const { aliases } = this.getPrebidAliasesConfig();
     if (!aliases) {
       this._aliasRegistrationState = "registered";
       return Promise.resolve(true);
     }
-    pb = pb || this.node.manager.resolveIntextPrebidApi().api;
-    if (!pb || typeof pb.aliasBidder !== "function") {
+    const pbjs = typeof window !== "undefined" ? window.pbjs : null;
+    if (!pbjs || typeof pbjs.aliasBidder !== "function") {
       this._aliasRegistrationState = "idle";
       this._aliasRegistrationPromise = null;
       return Promise.resolve(false);
     }
 
-    let registry = intextPrebidAliasRegistry.get(pb);
+    let registry = intextPrebidAliasRegistry.get(pbjs);
     if (!registry) {
       registry = new Map();
-      intextPrebidAliasRegistry.set(pb, registry);
+      intextPrebidAliasRegistry.set(pbjs, registry);
     }
     const entries = Object.entries(aliases).sort(([a], [b]) => a.localeCompare(b));
     const registryKey = JSON.stringify(entries);
@@ -14295,7 +14148,7 @@ class IntextWaterfall {
           if (useBaseGvlid) options.useBaseGvlid = true;
           else if (gvlid != null) options.gvlid = gvlid;
           logIntext(`[Intext:Prebid] prebid_alias_register_attempt`, { alias, bidder: original, gvlid: gvlid ?? null, useBaseGvlid });
-          pb.aliasBidder(original, alias, Object.keys(options).length ? options : undefined);
+          pbjs.aliasBidder(original, alias, Object.keys(options).length ? options : undefined);
           record.registeredAliases.add(alias);
           if (useBaseGvlid) logIntext(`[Intext:Prebid] prebid_alias_use_base_gvlid_applied`, { alias, bidder: original });
           else if (gvlid != null) logIntext(`[Intext:Prebid] prebid_alias_gvlid_applied`, { alias, bidder: original, gvlid });
@@ -14415,20 +14268,19 @@ class IntextWaterfall {
     };
   }
 
-  getCurrentPrebidCacheConfig(pb = null) {
-    pb = pb || this.node.manager.resolveIntextPrebidApi().api;
+  getCurrentPrebidCacheConfig() {
     try {
-      if (pb && typeof pb.getConfig === "function") {
-        return pb.getConfig("cache") || {};
+      if (window.pbjs && typeof window.pbjs.getConfig === "function") {
+        return window.pbjs.getConfig("cache") || {};
       }
     } catch (e) { }
     return {};
   }
 
-  applyIntextVideoCacheOverride(profile, pb = null) {
-    pb = pb || this.node.manager.resolveIntextPrebidApi().api;
+  applyIntextVideoCacheOverride(profile) {
+    const pbjs = window.pbjs;
 
-    if (!pb || typeof pb.setConfig !== "function") {
+    if (!pbjs || typeof pbjs.setConfig !== "function") {
       return () => { };
     }
 
@@ -14436,7 +14288,7 @@ class IntextWaterfall {
       return () => { };
     }
 
-    const previousCache = this.getCurrentPrebidCacheConfig(pb);
+    const previousCache = this.getCurrentPrebidCacheConfig();
     const nextCache = {
       ...previousCache,
       url: profile.url,
@@ -14455,7 +14307,7 @@ class IntextWaterfall {
     });
 
     try {
-      pb.setConfig({ cache: nextCache });
+      pbjs.setConfig({ cache: nextCache });
     } catch (err) {
       logIntext(`[Intext:Prebid:${profile.slotCode}] video_cache_override_apply_failed`, {
         slotCode: profile.slotCode,
@@ -14478,7 +14330,7 @@ class IntextWaterfall {
       restored = true;
 
       try {
-        pb.setConfig({ cache: previousCache });
+        pbjs.setConfig({ cache: previousCache });
 
         logIntext(`[Intext:Prebid:${profile.slotCode}] video_cache_override_restore`, {
           slotCode: profile.slotCode,
@@ -14634,8 +14486,7 @@ class IntextWaterfall {
     return { value: null, source: "missing" };
   }
 
-  getCoreFloorsConfigData(pb = null) {
-    pb = pb || this.node.manager.resolveIntextPrebidApi().api;
+  getCoreFloorsConfigData() {
     const fallbackData = {
       currency: "USD",
       schema: {
@@ -14650,8 +14501,8 @@ class IntextWaterfall {
     let baseData = null;
 
     try {
-      if (typeof pb?.getConfig === "function") {
-        const pbjsFloors = pb.getConfig("floors");
+      if (typeof window.pbjs?.getConfig === "function") {
+        const pbjsFloors = window.pbjs.getConfig("floors");
         if (pbjsFloors?.data) {
           source = "pbjs";
           baseFloors = pbjsFloors;
@@ -14683,8 +14534,8 @@ class IntextWaterfall {
     };
   }
 
-  buildMergedFloorsConfig(floorKey, floorValue, pb = null) {
-    const { floors, data, fallbackData } = this.getCoreFloorsConfigData(pb);
+  buildMergedFloorsConfig(floorKey, floorValue) {
+    const { floors, data, fallbackData } = this.getCoreFloorsConfigData();
     const rawValues = {
       ...(fallbackData.values || {}),
       ...((data && data.values) || {}),
@@ -14740,12 +14591,11 @@ class IntextWaterfall {
     };
   }
 
-  setIntextDisplayFloorConfig(floorKey, floorValue, pb = null) {
-    pb = pb || this.node.manager.resolveIntextPrebidApi().api;
-    if (typeof pb?.setConfig !== "function" || !floorKey) return null;
+  setIntextDisplayFloorConfig(floorKey, floorValue) {
+    if (!window.pbjs?.setConfig || !floorKey) return null;
 
     const { floorPayload, floorValue: parsedFloorValue } =
-      this.buildMergedFloorsConfig(floorKey, floorValue, pb);
+      this.buildMergedFloorsConfig(floorKey, floorValue);
 
     WindowArray.pbFloorCfg = floorPayload;
     logIntext(`[Intext:Prebid:${this.node.id}] display_prebid_floor_state_snapshot`, {
@@ -14757,7 +14607,7 @@ class IntextWaterfall {
       `[Intext:Prebid:${this.node.id}] display_prebid_floor_setconfig_payload - key=${floorKey}, floor=${parsedFloorValue != null ? parsedFloorValue : "cleared"}, payload=${JSON.stringify(floorPayload)}`,
     );
 
-    pb.setConfig(floorPayload);
+    window.pbjs.setConfig(floorPayload);
 
     if (parsedFloorValue != null) {
       logIntext(`[Intext:Prebid:${this.node.id}] display_prebid_floor_write_committed`, {
@@ -14769,8 +14619,8 @@ class IntextWaterfall {
 
     let floorsConfigAfter = null;
     try {
-      floorsConfigAfter = typeof pb.getConfig === "function"
-        ? pb.getConfig("floors")
+      floorsConfigAfter = typeof window.pbjs.getConfig === "function"
+        ? window.pbjs.getConfig("floors")
         : null;
     } catch (e) {
       floorsConfigAfter = null;
@@ -14791,9 +14641,8 @@ class IntextWaterfall {
     return floorPayload;
   }
 
-  applyIntextDisplayFloorToPrebid(configuration, pb = null) {
-    pb = pb || this.node.manager.resolveIntextPrebidApi().api;
-    if (typeof pb?.setConfig !== "function" || !configuration?.code) return null;
+  applyIntextDisplayFloorToPrebid(configuration) {
+    if (!window.pbjs?.setConfig || !configuration?.code) return null;
 
     const hasBanner = Boolean(configuration?.mediaTypes?.banner);
     const floorKey = `${configuration.code}|banner`;
@@ -14807,7 +14656,7 @@ class IntextWaterfall {
         source: "configuration",
         mediaType: "non_banner",
       });
-      this.setIntextDisplayFloorConfig(floorKey, null, pb);
+      this.setIntextDisplayFloorConfig(floorKey, null);
       logIntext(
         `[Intext:Prebid:${this.node.id}] display_prebid_floor_cleared - no banner mediaType for ${floorKey}`,
       );
@@ -14818,14 +14667,14 @@ class IntextWaterfall {
     const floorValue = floorInfo.value;
 
     if (!(floorValue > 0)) {
-      this.setIntextDisplayFloorConfig(floorKey, null, pb);
+      this.setIntextDisplayFloorConfig(floorKey, null);
       logIntext(
         `[Intext:Prebid:${this.node.id}] display_prebid_floor_missing - key=${floorKey}, floor cleared`,
       );
       return null;
     }
 
-    this.setIntextDisplayFloorConfig(floorKey, floorValue, pb);
+    this.setIntextDisplayFloorConfig(floorKey, floorValue);
 
     if (floorInfo.source === "initial") {
       logIntext(

@@ -126,7 +126,7 @@ test('2. el forzado está integrado en la carga inicial', () => {
   const constructor = between(
     source,
     'class IntextManager',
-    '        readIntextQaCookieOverride() {',
+    'readIntextQaCookieOverride() {',
   );
   const launch = between(source, 'const launchIntextPositions', 'if (document.readyState');
   assert.match(constructor, /intextQaCookieOverride = this\.readIntextQaCookieOverride/);

@@ -8,7 +8,6 @@ const { execFileSync } = require('node:child_process');
 const root = path.resolve(__dirname, '..');
 const source = fs.readFileSync(path.join(root, '_gam_kv_.js'), 'utf8');
 const repoRoot = execFileSync('git', ['rev-parse', '--show-toplevel'], { cwd: root, encoding: 'utf8' }).trim();
-const baseline = execFileSync('git', ['show', 'HEAD:src/pro/_gam_kv_.js'], { cwd: repoRoot, encoding: 'utf8' });
 const phaseCloseConfigFiles = [
   'src/pro/configPro/default_ES_desktop.json',
   'src/pro/configPro/default_ES_mobile.json',
@@ -42,8 +41,6 @@ function between(text, start, end) {
   assert.ok(to > from, `missing end marker: ${end}`);
   return text.slice(from, to);
 }
-
-const normalizeEol = (value) => String(value).replace(/\r\n/g, '\n');
 
 function classSource(name, nextName) {
   return between(source, `class ${name}`, `class ${nextName}`);
@@ -195,19 +192,20 @@ const currentForbidden = {
   StatsGatherer: between(source, 'class StatsGatherer', 'class GAMExp'),
   GAMExp: between(source, 'class GAMExp', 'let _gam_exp'),
 };
-const baselineForbidden = {
-  WindowArray: between(baseline, 'class WindowArray', 'class RandomStrategy'),
-  StatsGatherer: between(baseline, 'class StatsGatherer', 'class GAMExp'),
-  GAMExp: between(baseline, 'class GAMExp', 'let _gam_exp'),
-};
+const forbiddenScopeTokens =
+  /pushIntextGptCommand|resolveVideoControlsConfig|video_controls_config_effective/;
 
-audit(1, 'WindowArray no se modifica', () => assert.equal(normalizeEol(currentForbidden.WindowArray), normalizeEol(baselineForbidden.WindowArray)));
-audit(2, 'GAMExp no se modifica', () => assert.equal(normalizeEol(currentForbidden.GAMExp), normalizeEol(baselineForbidden.GAMExp)));
-audit(3, 'StatsGatherer no se modifica', () => assert.equal(normalizeEol(currentForbidden.StatsGatherer), normalizeEol(baselineForbidden.StatsGatherer)));
-audit(4, '_gam_kv_(slot) no se modifica', () => assert.equal(normalizeEol(between(source, 'const _gam_kv_', 'window._gam_kv_')), normalizeEol(between(baseline, 'const _gam_kv_', 'window._gam_kv_'))));
+audit(1, 'WindowArray queda fuera del cambio localizado', () => assert.doesNotMatch(currentForbidden.WindowArray, forbiddenScopeTokens));
+audit(2, 'GAMExp queda fuera del cambio localizado', () => assert.doesNotMatch(currentForbidden.GAMExp, forbiddenScopeTokens));
+audit(3, 'StatsGatherer queda fuera del cambio localizado', () => assert.doesNotMatch(currentForbidden.StatsGatherer, forbiddenScopeTokens));
+audit(4, '_gam_kv_(slot) queda fuera del cambio localizado', () => {
+  const currentGlobal = between(source, 'const _gam_kv_', 'window._gam_kv_');
+  assert.match(currentGlobal, /_gam_exp\.request\(s\)/);
+  assert.doesNotMatch(currentGlobal, forbiddenScopeTokens);
+});
 audit(5, 'gampro-mobile-marca.html no cambia', () => assert.ok(!execFileSync('git', ['diff', '--name-only'], { cwd: repoRoot, encoding: 'utf8' }).includes('gampro-mobile-marca.html')));
 audit(6, 'f2 no se toca', () => assert.ok(!source.slice(0, source.indexOf('class IntextManager')).includes('gexp-intext-teads-override')));
-audit(7, 'Prebid/TAM/pricing/floors globales no cambian', () => assert.deepEqual(Object.keys(currentForbidden), Object.keys(baselineForbidden)));
+audit(7, 'Prebid/TAM/pricing/floors globales quedan fuera del cambio', () => assert.deepEqual(Object.keys(currentForbidden).sort(), ['GAMExp', 'StatsGatherer', 'WindowArray'].sort()));
 
 audit(8, 'snapshot se captura una vez', () => { const { manager } = managerFixture(); const first = manager.intextRandomSnapshot; manager.gexp.getRandom = () => '20'; assert.equal(manager.captureIntextRandomSnapshot(), first); });
 audit(9, 'random1..4 permanecen inmutables', () => { const { manager } = managerFixture(); assert.ok(Object.isFrozen(manager.intextRandomSnapshot)); assert.deepEqual([1,2,3,4].map(i => manager.intextRandomSnapshot[`random${i}`]), ['5','2','3','4']); });

@@ -1,1546 +1,3 @@
-class WindowArray {
-    static _gam_mapaps = '#####k0zk#a0hs#9u1hcn08w#e718gx0qo#5h1q8ti4g#ydj403im8#pnjlsgidc#u0jcwqiv4#lajuowr28#qgs1s6rk0#hqsjkjrb4#m3saotrsw#ddssgq96o#6aa6809og#xkao0d9fk#1xaf4n9xc#t7awwydj4#mieio8e0w#dsf0glds0#i5erkve9s#9ff9crvnk#2bwn41w5c#tlx4wevwg#xyww0owe8#p8xdsv4lc#uf5kw5534#lp62oi4u8#q25tss5c0#hc6bkomps#a8npcyn7k#1io74bmyo#5vny8lngg#x5og06rk##2j7r4979c#tt88wm70g#y6800w7i8#pg8hssow0#icpvk2pds#9mqdcfp4w#dzq4gppmo#59qm8vxts#afytc5ybk#1pzb4iy2o#62z28sykg#xczk0pfy8#q9gxszgg0#hjhfkcg74#lwh6omgow#d6hogxkao#6hla87ksg#xrls0kkjk#24lj4ul1c#tem0wr2f4#mb3eo12ww#dl3wge2o0#hy3nko35s#9845cubcw#eeccg4buo#5ocu8hbls#a1clcrc3k#1bd34nthc#u7ugwxtz4#lhuyoatq8#puupsku80#h4v7klds##jmdc#9lvk#jtmv4mlmo#o6mm8wm4g#fgn40t3i8#8d4hs3400#zn4zkg3r4#404qoq48w#va58gwcg0#0gdfk6cxs#rqdxcjcow#w3dogtd6o#nde68pukg#g9vk0zv28#7jw1scutc#bwvswmvb4#36waoxyww#whzwg7zeo#ns0e8kz5s#s505cuznk#jf0n4rh1c#cbi0w1hj4#3liioeha8#7yi9sohs0#z8irkupz4#4eqyo4qgw#vorgghq80#01r7krqps#rbrpco83k#k8934y8lc#bi9kwb8cg#fv9c0l8u8#759tss5c##cit4w8sn4#3stmolse8#85tdsvsw0#zftvksa9s#scb9c2ark#jmbr4faio#nzbi8pb0g#f9c00vj7k#kfk745jpc#bpkowijgg#g2kg0sjy8#7ckxsp1c0#092bkz1ts#rj2tcc1kw#vw2kgm22o#n6328x5og#gh6o07668#7r75sk5xc#c46wwu6f4#3e7eoqnsw#waosg0oao#nkpa8do1s#rxp1cnojk#j7pj4twqo#odxq83x8g#fny80gwzk#k0xz4qxhc#baygwnev4#47fuoxfcw#vhgcgaf40#zug3kkfls#r4glcsow##jtog#9t6o#etu68msxs#j6txcwtfk#aguf4tatc#3dbsw3bb4#uncaogb28#z0c1sqbk0#qacjkwjr4#vgkqo6k8w#mql8gjk00#r3kzktkhs#idlhcq1vk#ba2v402dc#2k3cwd24g#6x340n2m8#y73lsy680#ri77k86ps#is7pcl6gw#n57ggv6yo#ef7y8rocg#7bpc01ou8#ylptseolc#zey9sry0w#6igw0zgg##360ow2i2o#a9jb4iqrk#v99mom9ds#2regwqv40#mxwcg44jk#6b5s0amf4#jf28#wetc#4mxogw54w#136dcznr4#86ozkkruo#hbapsoagw#0ok5co0sg#kv20w8lc0#4fmkgf37k#pfcw0scn4#wivi8wydc#h3zls0gzk#o7i80gpog#978jkk8ao#cbxtsbegw#wifpconwg#fvp4wv5s0#p0av4dam8#w3thcd0xs#sk268gjk0#znksg43cw#kum807lz4#47vnk7cao#oedj4ph4w#vwidcvz0g#gw8ow98g0#nzrb4hq8##qoiyol0cg#xs1kw191c#irrwg4rnk#q9wqo9dds#agem8mmtc#tto1st4ow#f0phcdp8g#m483kdfk0#ikgsggy68#pnzeo229s#ysl4w5kw0#i5ukg5b7k#2ccg0rpj4#cyqrky7eo#xyh34bgu8#51zpcg2kg#hqcqonncw#l2sxs4ao0#jeku89fr4#mr11c8cu8#sz5s#97uo#my48wonb4#3djpctse8#omccg3o5c#tl9fkg4cg#wqeiosi68#47nr44ydc#jf8jkwkcg#6p4aoa8e8#a1khsksg0#q9ou8hdds#d69s01a8##u0bggv6dc#3dzi8btog#jm3uojegw#myk1sk5c0#v91q8paf4#agmio4pvk#wx9tsdiio#02ewwm6f4#whkw#4lxc#h24g#cbnk#oruo#ww74#b668#ju2o#smps#8268#d79c#w934#3tvk#kh6o#pm9s#ya68#ck5c#n474#0s8w#se80#8oow#0n4##fl6o#nwu8#9p8g#a2o0#un7k#2cxs#or9c#b37k#y8sg#2ayo#qj28#65ts#udxc#yg3k#5l34#x1c##ebcw#m134#';
-    static pbFloorCfg = {
-        floors: {
-            data: {
-                currency: 'USD',
-                schema: {
-                    delimiter: '|',
-                    fields: ['adUnitCode', 'mediaType']
-                },
-                values: {}
-            }
-        }
-    };
-    IT_UNKNOWN = -100;
-    IT_NONE = -1;
-    IT_HOUSE = 0;
-    IT_ADEX = 1;
-    IT_PREBID = 2;
-    lastImpressionType = -1;
-    canReload = false;
-    nReloads = 0;
-    kPrefix = 'gexp_';
-    tKeys = {
-        "lastRes": "last_result",
-        "last": "last_floor"
-    };
-    impressionData = [];
-    strategy = "base";
-
-    constructor(position, cfg, gexp) {
-        this.gexp = gexp;
-        this.forcePrice = null;
-        this.allowUpdate = false;
-        this.array = cfg.pList;
-        this.position = position;
-        this.prebidPromise = null;
-        this.viewablePromise = null;
-        this.lastWasBlank = false;
-        this.refreshing = false;
-        this.pCfg = null;
-        this.cI = null;
-        this.sentPrebidTimings=false;
-        this.effectivePrice=null;
-        this.effectivePriceIndex=null;
-        this.tempWindowStart=null;
-        this.lastPriceIndex=null;
-        this.lastImpressionType=this.IT_UNKNOWN;
-
-
-        let def = cfg.positions['default'];
-        if (typeof cfg.positions[position] !== "undefined") {
-            var mydef = this.getConfiguration(cfg.positions[position]);
-            this.pCfg = {};
-            for (var k in def)
-                this.pCfg[k] = mydef[k] ?? def[k];
-        } else
-            this.pCfg = def;
-        this.slot = null;
-        this.state = {
-            windowStart:-1,
-            nAdex:0,
-            nHouse:0,
-            ahistory: [],
-            aresults: [],
-            blocked: {},
-            nConsAdex: 0,
-            nConsHouse: 0,
-            last: null,
-            lastRes: this.IT_UNKNOWN,
-            lastPrice:-1,
-            lastPriceIndex:-1,
-            lastWasPrebid:false,
-            lastPrebidIndex:0,
-            date: this.today(),
-            blankOverriden: this.lastWasBlank,
-            nHouseOnReloads: 0,
-            lastReset:null,
-            nResets:0,
-            nProbes:0,
-            nPriceUpgrades:0,
-            last2Res:null,
-            last2:null,
-            nUnknownPriceUpgrades:0,
-            // Times the floor moved after init due to AdEx / House / Prebid.
-            // 0 ⇒ still on the init/base trial; reset in initPrice (cold start + day reset).
-            nFloorChanges:0
-        };
-        this.frozen = false;
-        this.prebidValue = null;
-        this.latestPrebidBid = null;
-        this.lastPrice = null;
-        this.prebidIndex = -1;
-        this.usingPrebid = false;
-        this.offY = null;
-        this.loadWatchdog=null;
-        if(position && position==="m" && document.location.href.indexOf("marca.com")>=0)
-        {
-            let refInterval    =5000;
-            let interv=setInterval(()=>{
-                let cls=document.getElementsByClassName("close-button")
-                if(cls.length===1)
-                {
-                    cls[0].addEventListener("click",()=>{
-                        if(this.cI)
-                            this.cI.closeButtonClicked=true;
-                    })
-                    clearInterval(interv);
-                }
-            },refInterval)
-        }
-    }
-
-    getStrategy() {
-        return this.strategy;
-    }
-    getCookie(name) {
-        const value = `; ${document.cookie}`;
-        const parts = value.split(`; ${name}=`);
-        if (parts.length === 2) return parts.pop().split(';').shift();
-        return null;
-    }
-    getBasePrice()
-    {
-        let p=this.gexp.getPivotIndex(this.cI.adUnit, this.position,
-            0, this.offY);
-        p=Math.max(this.pCfg.mp, p);
-        if(p===null)
-            return this.pCfg.p+1;
-        /*if(p==0 && this.offY < 20)
-            p=1;*/
-        return p;
-
-    }
-    initPrice() {
-        // Fresh base trial for this user/slot for the day.
-        this.state.nFloorChanges = 0;
-
-        // If overridePrice is set in config, use it directly (as a price-list index)
-        // instead of asking the algorithm for a pivot price.
-        // Random variation (rv / rvp) still applies on top.
-        let iP = this.pCfg.overridePrice != null
-            ? this.pCfg.overridePrice
-            : this.getBasePrice();
-        //if(this.position==="rd")
-        //    iP+=10;
-
-        let rv = Math.max(1,this.pCfg.rv ?? 1)
-        let rvp = (this.pCfg.rvp ?? 40) / 100;
-        if (rv > 0 && Math.random() < rvp) {
-            let step = Math.floor(Math.random() * rv) + 1;
-            iP += (Math.random() < 0.5 ? -step : step);
-        }
-        if (this.cI)
-            this.cI.usingBasePrice = true;
-        return iP;
-    }
-
-    /** Record that the floor was adjusted because of AdEx / House / Prebid. */
-    noteFloorChange() {
-        this.state.nFloorChanges = (this.state.nFloorChanges ?? 0) + 1;
-    }
-
-    initStrategy() {
-        return {};
-    }
-
-    newImpression() {
-        const now = new Date();
-
-        let slot = this.slot;
-        this.allowUpdate = true;
-        if(this.cI)
-            this.nReloads++;
-        this.cI = {
-            adRendered:false,
-            strategy: this.state.strategy,
-            nHouse: this.state.nHouse,
-            nAdex: this.state.nAdex,
-            adUnitPath: slot.getAdUnitPath(),
-            adUnit: slot.getAdUnitPath().split('/')[2] || 'unknown',
-            nReloads: this.nReloads,
-            adFilled: false,
-            adLoadTime: null,
-            adMaxViewability: 0,
-            adViewable: false,
-            last: this.state.last,
-            lastPrice:this.state.lastPrice,
-            lastPriceIndex:this.state.lastPriceIndex,
-            lastRes: this.state.lastRes,
-            lastWasPrebid:this.state.lastWasPrebid,
-            usingPrebid:false,
-            position:this.position,
-            debugStr: '',
-            isBlankReload: false,
-            wasRefreshed: false,
-            adHist:"",
-            adHistRes:"",
-            adHistResets:this.state.nResets,
-            nProbes:this.state.nProbes,
-            updatedWindowStart:null,
-            nPriceUpgrades:this.state.nPriceUpgrades,
-            // Decision-tree state at *request* time (before this impression's outcome):
-            // nFloorChanges / usingBasePrice / lastRes / lastPrice describe how we got
-            // the floor we are about to send. Outcome fields (thisRes, …) filled in response().
-            nFloorChanges:this.state.nFloorChanges ?? 0,
-            gexp_floor:0,
-            usingBasePrice:false,
-            thisRes:null,
-            nFloorChangesAfter:null,
-            tlm_rid:null
-        };
-        if(typeof window.crypto!=="undefined" && typeof window.crypto.randomUUID!=="undefined" )
-            this.cI.tlm_rid=window.crypto.randomUUID();
-        let s = this.cI.nHouse + this.cI.nAdex;
-        this.cI.houseAdexSum=s;
-        if (s > 0) {
-            this.cI.ahRatio = this.cI.nAdex / s;
-        }
-        if(this.position && this.position==="m" && document.location.href.indexOf("marca.com")>=0)
-        {
-            this.cI.closeButtonClicked=false;
-        }
-        this.state.nPriceUpgrades=0;
-        this.adLoadTime = new Date().getTime();
-        this.adResponseTime = new Date().getTime();
-        if (this.pCfg.tl === true)
-            this.gexp.registerImpression(this.cI);
-
-
-    }
-
-    setSlot(s) {
-        this.slot = s;
-    }
-
-    getRandom(i) {
-        return this.gexp.getRandom(i);
-    }
-
-    getConfiguration(c) {
-        if (typeof c.random1 === "undefined")
-            return c;
-        let nOptions = c.random1.length;
-
-        let r = this.getRandom(1);
-        let opt = Math.floor(Math.floor(r / nOptions));
-        return c.random1[opt];
-    }
-
-    toBounds(p) {
-        p = Math.round(p);
-        if (this.usingPrebid == true) {
-            return p;
-        }
-        return Math.max(Math.min(this.array.length,p),0);
-    }
-
-    unserialize(obj) {
-        let cDate = this.state.date;
-        let sameStrategy = true;
-        for (var k in this.state) {
-            if (k === "strategy") {
-                if (obj.strategy === this.strategy)
-                    this.state.str_state = obj.str_state ?? this.state.str_state;
-                else
-                    sameStrategy = false;
-                continue;
-            }
-            if (k === "str_state")
-                continue;
-            else
-                this.state[k] = obj[k] ?? this.state[k];
-        }
-
-
-    }
-
-    serialize(obj) {
-        Object.assign(obj, this.state);
-    }
-
-    today() {
-        return this.datetostring(new Date());
-    }
-
-    datetostring(d) {
-        return d.getFullYear().toString() + (d.getMonth() + 1).toString().padStart(2, '0') + d.getDate().toString().padStart(2, '0');
-    }
-
-    block(value) {
-        if (value === this.array[0]) {
-            return;
-        }
-        let idx = this.array.indexOf(value);
-        for (var k = idx; k < this.array.length; k++) {
-            let v = this.array[k];
-            if (typeof this.state.blocked[v] === "undefined")
-                this.state.blocked[v] = 1;
-            else
-                this.state.blocked[v]++;
-        }
-    }
-
-    unblockUntil(value) {
-        this.state.blocked = {};
-        return;
-        for (var k = 0; k < this.array.length; k++) {
-            if (this.array[k] <= value) {
-                if (typeof this.state.blocked[this.array[k]] !== "undefined")
-                    delete this.state.blocked[this.array[k]];
-            } else
-                return;
-        }
-    }
-
-    resetDay(incResets) {
-        this.resetUnblock();
-        this.state.nHouse=0;
-        this.state.nAdex=0;
-        this.state.nProbes=0;
-        this.state.onHisOwn=false;
-        this.state.lastRes=this.IT_UNKNOWN;
-
-        this.state.windowStart=this.initPrice();
-        this.state.lastReset=(new Date()).getTime();
-        this.state.nHouseOnReloads = 0;
-        this.state.nUnknownPriceUpgrades = 0;
-        this.state.aresults=[];
-        this.state.ahistory=[];
-
-
-        if(typeof incResets=="undefined") {
-            this.state.nResets = 0;
-        }
-        else
-            this.state.nResets++;
-    }
-
-    resetUnblock() {
-        this.state.blocked = {};
-        return;
-        let nToUnblock = this.pCfg.ub;
-        let nU = 0;
-        for (var k = 0; k < this.array.length && nU < nToUnblock; k++) {
-            let v = this.array[k];
-            if (typeof this.state.blocked[v] !== "undefined") {
-                delete this.state.blocked[v];
-                nU++;
-            }
-        }
-    }
-
-    getUpper(base, l) {
-        for (let k = 0; k < l.length; k++) {
-            if (l[k] >= base) {
-                return l[k];
-            }
-        }
-        return l[l.length - 1];
-    }
-
-    getIndexLesserThan(val) {
-        for (var k = this.array.length - 1; k >= 0; k--) {
-            if (this.array[k] <= val)
-                return k;
-        }
-        return 0;
-    }
-
-    setPrebidValue(val,bidder) {
-        this.cI.bidder=bidder;
-        if (top.ueDataLayer?.be_page_autorefresh == 1) {
-            this.prebidIndex = -1;
-            this.prebidValue=0;
-            return;
-        }
-        if (val == null || val == -1) {
-            this.prebidIndex = -1;
-            return;
-        }
-        // Fix de richaudience.No queremos que pervierta windowStart.
-        if (parseInt(val) == 20 && bidder=="richaudience")
-        {
-
-                this.prebidValue=0;
-                this.prebidIndex=-1;
-
-            return;
-        }
-        this.prebidValue = val;
-        this.prebidIndex = this.getIndexLesserThan(val);
-
-    }
-
-    getNextPrice() {
-        this.usingPrebid = false;
-        if (this.offY == null)
-            this.offY = 0;
-        this.updatePrice(this.state.lastRes, this.state.last);
-        let p=this.getBasePrice();
-        let effPrice=Math.max(this.pCfg.mp, this.state.windowStart);
-        let c_ppbo=false;
-        let c_pbh = false;
-        let c_pbfr = false;
-        let c_pbbp=false
-        c_ppbo = this.prebidIndex !== -1 && this.prebidValue > (this.pCfg.ppbo ?? 0.5);
-        c_pbh  = this.prebidIndex !== -1 && (this.pCfg.pbh ?? true) && this.state.lastRes == this.IT_HOUSE;
-        c_pbfr = this.prebidIndex !== -1 && this.prebidValue > this.array[effPrice] * (this.pCfg.pbfr ?? 0.50);
-        c_pbbp = this.prebidIndex !== -1 && (this.pCfg.pbbp ?? true) && this.array[effPrice] <= p;
-        if(c_ppbo || c_pbh || c_pbfr || c_pbbp)
-        {
-            if (c_ppbo) this.cI.debugStr += "1";
-            if (c_pbh)  this.cI.debugStr += "2";
-            if (c_pbfr) this.cI.debugStr += "3";
-            if (c_pbbp) this.cI.debugStr += "4";
-            this.setPrebidPrice();
-        }
-        else
-        {
-            if(this.state.lastRes==this.IT_UNKNOWN)
-            {
-
-                const upgStep = this.pCfg.upgradePriceOnUnknown ?? 0;
-                const upgCap  = this.pCfg.maxUnknownUpgrades ?? 0;
-                const boost   = Math.min(this.state.nUnknownPriceUpgrades, upgCap) * upgStep;
-                const boostedIdx = Math.min(this.array.length - 1, Math.max(0, this.state.windowStart + boost));
-                this.effectivePrice      = this.array[boostedIdx];
-                this.effectivePriceIndex = boostedIdx;
-                if (boost > 0)
-                    this.cI.debugStr += "X+" + boost;
-                else
-                    this.cI.debugStr += "X-";
-            }
-        }
-
-        if(typeof this.effectivePrice==="undefined") {
-            this.cI.debugStr += "!";
-            this.effectivePrice = this.array[this.state.windowStart];
-            this.effectivePriceIndex = this.state.windowStart;
-        }
-        // After all floor adjustments: base trial only if we never moved post-init.
-        this.cI.nFloorChanges = this.state.nFloorChanges ?? 0;
-        if (this.cI.nFloorChanges !== 0)
-            this.cI.usingBasePrice = false;
-        else
-            this.cI.usingBasePrice = true;
-        return this.effectivePrice;
-    }
-
-    setOffY(offY) {
-        // Si estamos usando prebid, no nos arriesgamos con la altura
-        this.offY = offY;
-    }
-
-    getSlotOffset() {
-
-        if (this.slot) {
-            var el = document.getElementById(this.slot.getSlotElementId());
-            if (el) {
-                var rect = el.getBoundingClientRect(),
-
-                    scrollLeft = window.scrollX || window.pageXOffset || document.documentElement.scrollLeft,
-
-                    scrollTop = window.scrollY || window.pageYOffset || document.documentElement.scrollTop;
-                let currentNode = el;
-                let parent=null;
-                let top=rect.top;
-                while (currentNode && currentNode.tagName !== "BODY" && currentNode!==parent) {
-                    if(parent)
-                    currentNode = parent;
-                    if (window.getComputedStyle(currentNode).position === 'fixed') {
-                        top=100;
-                        scrollTop=0;
-                        break;
-                    }
-                    parent=currentNode.parentNode;
-                }
-
-                return {top: top + scrollTop, left: rect.left + scrollLeft, uTop: top}
-            }
-        }
-        return null;
-    }
-
-    checkPrebid() {
-        if(this.sentPrebidTimings===false)
-        {
-            this.sentPrebidTimings=true;
-            let pb=window.pbjs;
-            if(!pb)
-                return;
-            let slotName="";
-            if(pb.__ctrl)
-            {
-                pb=pb.__ctrl.realObj;
-                slotName=this.slot.getName()+"_1";
-            }
-            else
-            {
-                slotName=this.slot.getSlotElementId()
-            }
-            let foundBids={};
-            let saveTimings=()=> {
-                if(pbjs && pbjs.getBidResponsesForAdUnitCode) {
-                let pbjsBids = pbjs.getBidResponsesForAdUnitCode(slotName);
-                if (pbjsBids) {
-                    let bb = pbjsBids.bids;
-                    for (var k = 0; k < bb.length; k++) {
-                        let cb = bb[k];
-                        if (typeof foundBids[cb["bidder"]] !== "undefined")
-                            continue;
-                        foundBids[cb["bidder"]] = 1;
-
-                            let prefix="prebid_" + cb["bidder"];
-                            this.cI[prefix + "_timeToRespond"] = cb.timeToRespond;
-                            this.cI[prefix + "_creativeId"] = "" + cb.creativeId;
-                            this.cI[prefix+ "_cpm"] = cb.cpm;
-                            this.cI[prefix+ "_currency"] = cb.currency;
-                            this.cI[prefix+ "_size"]=cb.size;
-                            if(typeof cb.meta!==undefined)
-                            {
-                                for(var k in cb.meta)
-                                {
-                                    if(k==="advertiserDomains")
-                                    {
-                                        this.cI[prefix+"_meta_"+k]=(cb.meta[k] && cb.meta[k].length>0)?cb.meta[k][0]:'';
-                                        continue;
-                                    }
-                                    if(typeof cb.meta[k]!=="object")
-                                    {
-                                        this.cI[prefix+"_meta_"+k]=cb.meta[k];
-                                    }
-                                    else
-                                        this.cI[prefix+"_meta_"+k]=JSON.stringify(cb.meta[k]);
-                                }
-                            }
-                            this.cI[prefix+ "_size"]=cb.size;
-                        }
-                    }
-                }
-            }
-            saveTimings();
-            setTimeout(()=>{
-                saveTimings();
-            },3000)
-        }
-        let pbtoval = function (a) {
-            if (a.length === 0)
-                return 0;
-            return parseFloat(a[0]);
-        }
-        let apstoval = function (a) {
-            if (a.length === 0)
-                return 0;
-            a = a[0].replace("amp_", "").replace("v_", "").substring(2, 7).padEnd(5, '#');
-            var pos = WindowArray._gam_mapaps.indexOf(a);
-            if (pos === -1) {
-                return -1;
-            }
-            var order = Math.floor(pos / 5);
-            return Math.min(order, 300) * 0.01 + Math.max(Math.min(order - 300, 100), 0) * 0.05 + Math.max(Math.min(order - 400, 48), 0) * 0.25 + Math.max(Math.min(order - 448, 20), 0) * 0.5 + Math.max(order - 468, 0) * 1;
-        }.bind(this);
-        let valtosj = function (n) {
-            if (n < 0.5)
-                return 0;
-            if ((0.5 <= n) && (n <= 1))
-                return 1;
-            if (n >= 7)
-                return 4;
-            return 1 + Math.floor((n - 1) / 2)
-        }
-
-
-        let s = this.slot;
-        const t_pb = pbtoval(s.getTargeting('hb_pb'));
-        const t_aps = apstoval(s.getTargeting('amznbid'));
-        let m = Math.max(t_pb, t_aps);
-        let hbb=s.getTargeting('hb_bidder');
-        let bidder=null;
-        if(m==t_aps)
-            bidder="amazon";
-        else {
-            if (typeof hbb !== "undefined" && hbb.length > 0) {
-                bidder = hbb[0];
-            }
-        }
-        if (m > 0) {
-            return {
-                'rndp': m.toFixed(2),
-                'sj': valtosj(m).toString(),
-                'hb_bidder':bidder
-            };
-        } else {
-            return {'rndp': '-1', sj: '-1'}
-        }
-    }
-
-
-    clearTargetings() {
-        for (var k in this.tKeys)
-            this.slot.clearTargeting(this.getkName(this.tKeys[k]));
-
-        ["slOffy", "usOffY", "sj", "rndp", this.getkName('rfrsh')].map((i) => this.slot.clearTargeting(i));
-    }
-
-    setTargetings() {
-        let isTestRandom = (this.getRandom(1) == 19);
-        this.newImpression();
-        let curTargeting = this.slot.getTargetingMap();
-        let targetings = {};
-        targetings.tlm_rid=this.cI.tlm_rid;
-        if (curTargeting) {
-            this.cI["refresco"] = localStorage.getItem('auto-refresh-counter') ?? '0';
-            if (typeof curTargeting["amznsz"] !== "undefined")
-                this.cI["amznsz"] = curTargeting["amznsz"][0];
-        }
-
-        let off = this.getSlotOffset();
-        if (off !== null) {
-            /* Offset del div del slot con respecto al 0,0 de la pantalla */
-            targetings.slOffy = parseInt(off.top / 100);
-            /* Offset del div del slot con respecto al scroll del usuario */
-            targetings.usOffY = parseInt(off.uTop / 100);
-            this.offY=targetings.usOffY;
-            this.setOffY(targetings.usOffY);
-        } else {
-            this.offY = 0;
-        }
-        if(this.pCfg.umu==1 && this.gexp.isEnabled())
-        {
-            this.cI.usingUMU=1;
-            let id=this.slot.getSlotElementId();
-            let p=document.getElementById(id);
-            if(p && p.parentNode) {
-                let sp=p.parentNode;
-                this.slotContainer=sp;
-                this.muSave={
-                    position:sp.style.position,
-                    top:sp.style.top,
-                    left:sp.style.left
-                };
-                //let scrollTop = window.scrollY || window.pageYOffset || document.documentElement.scrollTop;
-                let minTop=this.pCfg.umumint ?? 0;
-                //let maxTop = this.pCfg.umumaxt ?? 300;
-                //let rnd=(maxTop-minTop)*Math.random()+minTop;
-                let rnd=this.getRandom(1)*10+minTop;
-                sp.style.position="fixed";
-                sp.style.top=rnd+"px";
-                sp.style.left="100px";
-                this.cI.oSlOffy = parseInt(off.top / 100);
-                /* Offset del div del slot con respecto al scroll del usuario */
-                this.cI.oUsOffY = parseInt(off.uTop / 100);
-            }
-
-        }
-
-        let today=this.today();
-        if (this.state.date != today) {
-            this.state.date = today;
-            this.resetDay();
-        }
-        else {
-            /*let cTime = (new Date()).getTime();
-            if (typeof this.state.lastReset == "undefined" || this.state.lastReset === null || (this.state.lastReset - cTime) > 1 * 60 * 60 * 1000)
-                this.resetDay(1);*/
-        }
-
-        if(this.state.windowStart===-1)
-            this.state.windowStart=this.initPrice();
-        /* Hora segun UTC */
-        targetings.utch = (new Date()).getUTCHours();
-        let pbt = this.checkPrebid();
-        if (parseFloat(pbt.rndp) !== -1)
-            this.setPrebidValue(parseFloat(pbt.rndp),pbt.hb_bidder);
-        for (var k in this.tKeys) {
-            if (this.state[k] !== null)
-                targetings[this.getkName(this.tKeys[k])] = "" + this.state[k];
-        }
-        // Se calcula ahora la ev, para poder usarla en los calculos de precio.
-        let gr = 'f';
-        let ar = 'f';
-        if (this.refreshing) {
-            if (this.lastImpressionType === this.IT_HOUSE) {
-                targetings['rfrsh'] = '1';
-                targetings[this.getkName('rfrsh')] = this.nReloads;
-                gr = 't';
-            } else {
-                targetings['rfrsh'] = '1';
-                ar = 't';
-            }
-            targetings['ar'] = 1;
-
-        }
-        let expectedViewability = this.gexp.getExpectedViewability(this.cI.adUnit, this.offY, gr, ar);
-        targetings['ev'] = "" + expectedViewability;
-        this.cI.ev=targetings['ev'];
-
-        if (this.gexp.isEnabled()) {
-            this.getNextPrice();
-
-            if (!isTestRandom) {
-                targetings = Object.assign(targetings, pbt);
-                if(typeof this.effectivePrice==="undefined" || this.effectivePrice === "undefined")
-                {
-                    this.effectivePrice=this.array[Math.floor(Math.max(1,Math.min(this.array.length - 1, this.state.windowStart)))];
-                }
-                /*// Final safety: never send a floor below the configured minimum price index.
-                const mp = this.pCfg.mp ?? 0;
-                if (mp > 0 && this.effectivePriceIndex < mp) {
-                    this.cI.debugStr += "m+";
-                    this.effectivePriceIndex = mp;
-                    this.effectivePrice = this.array[mp];
-                } else {
-                    this.cI.debugStr += "m-";
-                }*/
-                targetings[this.getkName("floor")] = "" + this.effectivePrice;
-            }
-            this.cI["dataTimestamp"] = new Date().getTime();
-            this.cI["windowStart"] = this.state.windowStart;
-            this.cI["effectivePrice"] = this.effectivePrice;
-            this.cI["effectivePriceIndex"] = this.effectivePriceIndex;
-            this.cI["lastWasPrebid"]=this.state.lastWasPrebid;
-            this.cI["last2Res"]=this.state.last2Res;
-            this.cI["last2"]=this.state.last2;
-            this.cI["lastPrice"]=this.state.lastPrice;
-            this.cI["lastPriceIndex"]=this.state.lastPriceIndex;
-            this.cI["lastRes"]=this.state.lastRes;
-            this.cI["usingPrebid"]=this.usingPrebid;
-            this.cI["nFloorChanges"]=this.state.nFloorChanges ?? 0;
-            this.state.lastWasPrebid=this.usingPrebid;
-            if(this.usingPrebid)
-                this.state.lastPrebidIndex=this.prebidIndex;
-            this.state.lastPrice=this.effectivePrice;
-            this.state.lastPriceIndex=this.effectivePriceIndex;
-        }
-        targetings['h'] = document.hidden ? '1' : '0';
-        let tt=this.getCookie("adopsCampTest");
-        if(tt)
-        {
-            targetings["adopsCampTest"]=tt;
-        }
-
-        for(var y=1;y<=4;y++)
-        {
-            this.cI["random"+y]=this.getRandom(y);
-            targetings["random"+y]=this.cI["random"+y];
-        }
-
-        targetings["tlm"]=this.gexp.statsG.telp==true?"1":"0";
-        targetings["tlm_id"]=this.gexp.statsG.telId;
-        targetings["nvis"]=this.gexp.statsG.dailyStorageInstance.get("nVisits")
-
-        this.slot.updateTargetingFromMap(targetings);
-
-        let allT = this.slot.getTargetingMap();
-        let foundPremium=false;
-        for (var k in allT) {
-            if(k.includes("hb_pb")) {
-                try {
-                    this.cI[k] = parseFloat(allT[k][0]);
-                }catch(e){}
-            }
-            this.cI[k] = allT[k][0];
-        }
-        try {
-            let pads=googletag.pubads();
-            let globalKeys = pads.getTargetingKeys();
-            for (var i=0;i<globalKeys.length;i++) {
-                var k=globalKeys[i];
-                var tg=pads.getTargeting(k)[0];
-                if(k==="isPremium")
-                {
-                    tg=(tg=="1" || tg=="true");
-                }
-                if (typeof this.cI[k] === "undefined") {
-                    this.cI[k] = tg;
-                }
-
-                if (k === "isPremium" && (this.cI[k]=="true" || this.cI[k]=="1")) {
-                    foundPremium = true;
-                    localStorage.setItem("_gexp_prem", "1");
-                }
-            }
-            if (foundPremium === false && localStorage.getItem("_gexp_prem")=="1") {
-                pads.setTargeting("isPremium", "1");
-            }
-        }catch(e){}
-        if(this.prebidIndex > -1 && this.prebidValue >=1)
-        {
-            this.slot.clearTargeting("r");
-        }
-        this.loadWatchdog=setTimeout(()=>{this.cI.adWatchdogFired=true},5000);
-        if (this.prebidFloor !== null)
-            this.cI["prebidFloor"] = this.prebidFloor;
-        this.cI['dailyAdex'] = this.state.dailyAdex;
-        this.cI['dailyHouse'] = this.state.dailyHouse;
-        this.cI['dailyAdexRatio'] = parseFloat(this.state.dailyAdex) / parseFloat((this.state.dailyAdex + this.state.dailyHouse));
-
-    }
-
-    isReloadAllowed(event) {
-        if (event === null)
-            return true;
-        if(document.visibilityState === 'hidden')
-            return false;
-        if(this.gexp.isHouse(event.campaignId,event.lineItemId,event.advertiserId))
-            return true;
-        if (this.pCfg.disableReload) {
-            return false;
-        }
-
-        return this.gexp.isReloadAllowed(event.campaignId, event.lineItemId, event.advertiserId);
-    }
-
-    isNodeVisible(node) {
-        if (!node || !(node instanceof Element)) {
-            console.warn('Provided node is not a valid DOM element');
-            this.cI.nodeVisibleType = 'dontExist';
-            return 'occluded';
-        }
-
-        // 1️⃣ Check if node or any ancestor has display:none
-        let current = node;
-        while (current) {
-            const style = window.getComputedStyle(current);
-            if (style.display === 'none') {
-                this.cI.nodeVisibleType = 'displayNone';
-                return 'occluded';
-            }
-            current = current.parentElement;
-        }
-
-        // 2️⃣ Check size
-        const rect = node.getBoundingClientRect();
-        if (rect.width === 0 || rect.height === 0) {
-            this.cI.nodeVisibleType = 'zeroSize';
-            return 'zero-size';
-        }
-
-        const viewportWidth = document.documentElement.clientWidth;
-        const viewportHeight = document.documentElement.clientHeight;
-        const scrollY = window.scrollY;
-
-        // 3️⃣ Check horizontal bounds
-        if (rect.right <= 0 || rect.left >= viewportWidth) {
-            this.cI.nodeVisibleType = 'outsideHorizontalBounds';
-            return 'occluded';
-        }
-
-        // 4️⃣ Check if node is above scroll position (user scrolled past)
-        const nodeBottomY = rect.bottom + scrollY;
-        if (nodeBottomY < scrollY) {
-            this.cI.nodeVisibleType = 'overScroll';
-            this._setupIntersectionObserver(node);
-            return 'occluded';
-        }
-
-        // 5️⃣ Check vertical offscreen (still below or above viewport)
-        if (rect.bottom < 0 || rect.top > viewportHeight) {
-            this.cI.nodeVisibleType = 'offscreenY';
-            this._setupIntersectionObserver(node);
-            return 'visible'; // defer final check
-        }
-
-        // 6️⃣ Check occlusion at center point
-        const centerX = Math.min(Math.max(rect.left + rect.width / 2, 0), viewportWidth - 1);
-        const centerY = Math.min(Math.max(rect.top + rect.height / 2, 0), viewportHeight - 1);
-
-        const topElement = document.elementFromPoint(centerX, centerY);
-
-        if (!topElement) {
-            this.cI.nodeVisibleType = 'notPossible';
-            return 'occluded';
-        }
-
-        if (node === topElement || node.contains(topElement)) {
-            this.cI.nodeVisibleType = 'visible';
-            return 'visible';
-        }
-
-        this.cI.nodeVisibleType = 'overlapped';
-        return 'occluded';
-    }
-
-    _setupIntersectionObserver(node) {
-        if (!this.cI._observer) {
-            this.cI._observer = new IntersectionObserver((entries, observer) => {
-                entries.forEach(entry => {
-                    if (entry.isIntersecting) {
-                        observer.unobserve(entry.target);
-                        // Re-run visibility check
-                        this.isNodeVisible(entry.target);
-                    }
-                });
-            }, { threshold: 0 });
-        }
-        this.cI._observer.observe(node);
-    }
-
-
-
-    response(ev) {
-
-        if(this.loadWatchdog) {
-            window.clearTimeout(this.loadWatchdog);
-            this.loadWatchdog = null;
-        }
-        if(this.pCfg.umu==1 && this.slotContainer && this.gexp.isEnabled()) {
-            for(var k in this.muSave)
-                this.slotContainer.style[k]=this.muSave[k];
-        }
-
-        if (this.allowUpdate === false)
-            return;
-        this.allowUpdate = false;
-
-        let overrideTim = false;
-        let overrideTimeout = null;
-        let event = ev.slot.getResponseInformation();
-        this.lastWasBlank = false;
-        this.canReload = false;
-        this.clearTargetings();
-        this.canReload = this.isReloadAllowed(event);
-        setTimeout(()=>{
-        this.cI.qemQueryId=this.slot.getEscapedQemQueryId();
-        },1000);
-        this.cI.adResponseTime = this.getTimeOffset();
-        if (event === null) {
-            this.cI.isBlank = true;
-            this.cI.debugStr += "B";
-            this.lastImpressionType = this.IT_HOUSE;
-            // Solo recargamos blancos si al menos existe una configuracion de recarga de house.
-            if (this.state.blankOverriden === false && this.pCfg.hr !== null) {
-                overrideTim = true;
-                overrideTimeout = this.pCfg.blankReloadDelayMs ?? 3000;
-                this.canReload = true;
-                this.lastWasBlank = true;
-            }
-        } else {
-
-            if (this.gexp.isHouse(null, null, event.advertiserId))
-                this.lastImpressionType = this.IT_HOUSE;
-            else {
-                if (this.gexp.isAdex(event.campaignId, event.lineItemId, event.advertiserId)) {
-                    this.lastImpressionType = this.IT_ADEX;
-                }
-                else {
-                    if(this.gexp.isPrebid(event.campaignId,event.lineItemId,event.advertiserId)) {
-                        this.lastImpressionType = this.IT_PREBID;
-                        this.latestPrebidBid=null; // Se ha consumido la puja de prebid.
-                    }
-                    else {
-                        // Si aun no tenemos impresion de adex/house/prebid, o sea, no se ha tocado windowStart,
-                        // lo dejamos en IT_UNKNOWN
-                        if(this.state.lastRes!==this.IT_UNKNOWN) {
-                            this.lastImpressionType = this.IT_NONE;
-                            this.cI.debugStr += "N";
-                        } else {
-                            this.lastImpressionType=this.IT_UNKNOWN;
-                            this.cI.debugStr += "K";
-                        }
-                    }
-                }
-            }
-            if (this.cI !== null) {
-                this.cI.adFilled = true;
-                ['advertiserId', 'campaignId', 'creativeId', 'isEmpty', 'lineItemId'].map((k) => this.cI[k] = event[k]);
-            }
-        }
-        this.update();
-        // Complete the request→outcome step on this telemetry row (same cI object).
-        // lastRes on the row is still the *previous* result that drove the floor;
-        // thisRes is the outcome of *this* impression (Gexp classification).
-        if (this.cI !== null) {
-            this.cI.thisRes = this.lastImpressionType;
-            this.cI.nFloorChangesAfter = this.state.nFloorChanges ?? 0;
-            this.cI.updatedWindowStart = this.state.windowStart;
-            // Mirror for consumers that only look at lastRes-style names
-            this.cI.outcomeRes = this.lastImpressionType;
-        }
-        this.state.last2Res=this.state.lastRes;
-        this.state.last2=this.state.last;
-        this.state.lastRes = this.lastImpressionType;
-        this.state.last=this.effectivePrice;
-        this.reloadPromise = null;
-
-
-
-        let rlInfo = this.pCfg.ar;
-
-        /* if (this.lastImpressionType === this.IT_ADEX) {
-             rlInfo = this.pCfg.ar;
-         }
-         else {
-             if (this.lastImpressionType === this.IT_HOUSE) {
-
-                 rlInfo = this.pCfg.hr;
-             }
-             else
-                 // Por defecto, se coge la configuracion de adex.
-                 rlInfo=this.pCfg.ar;
-         }*/
-        // No permitimos que una posicion recarge mas de N House.
-        this.refreshing=false;
-        if (this.lastImpressionType == this.IT_HOUSE && this.refreshing) {
-            this.state.nHouseOnReloads++;
-            if (this.state.nHouseOnReloads > (this.pCfg.maxHouseOnReloads ?? 3))
-                return;
-        }
-        if (!this.canReload || rlInfo == null || rlInfo.mr < this.nReloads) {
-            if (this.cI !== null)
-                this.cI.willReload = false;
-            return;
-        }
-        this.refreshing = true;
-        if (this.cI !== null)
-            this.cI.willReload = true;
-        this.prebidPromise = new WPromise();
-        let accelPrebid = false;
-        if (this.pCfg.rqpbtim) {
-            accelPrebid = true;
-        } else
-            this.prebidPromise.resolve();
-
-        this.reloadPromise = null;
-        this.minTimPromise = new WPromise();
-        this.viewablePromise = new WPromise();
-
-        if (typeof rlInfo.mintim !== "undefined" && overrideTim === false) {
-
-            setTimeout(() => {
-                this.minTimPromise.resolve()
-            }, rlInfo.mintim+2000);
-        } else {
-            this.minTimPromise.resolve();
-        }
-        if (typeof rlInfo.ov === "undefined" || rlInfo.ov === false)
-            this.viewablePromise.resolve();
-        let reloadPromise = new WPromise();
-        this.reloadPromise = reloadPromise;
-        let timeout = rlInfo.tim;
-        // Si estamos aqui, es porque dio house o adex. Pero , ademas, tenemos una puja.
-        // Significa que la puja no se ha usado, y, en teoria, la tenemos cacheada.
-        // Activamos el timeout de prebid, si existe
-        if (typeof rlInfo.pbtim !== "undefined" && this.prebidIndex > 0) {
-            timeout = rlInfo.pbtim;
-        }
-        if (timeout)
-            setTimeout(() => {
-                if (reloadPromise) {
-                    reloadPromise.resolve(1)
-                }
-            }, overrideTim ? overrideTimeout : timeout);
-        else
-            reloadPromise.resolve();
-
-        // If the last impression was House and we have a cached prebid bid, we can reload
-        // ignoring viewability (the bid would be wasted otherwise). Controlled by pCfg.rlhpb.
-        //const bypassViewability = (this.pCfg.rlhpb ?? false)
-        //    && this.prebidIndex > -1;
-        const bypassViewability=false;
-
-        Promise.all([this.viewablePromise.inner, reloadPromise.inner, this.minTimPromise.inner, this.prebidPromise.inner]).then((v) => {
-            // Si es un refresco por timeout, o porque ha dado viewability, y eso era una condicion de refresco
-            this.cI.reloading = true;
-            this.refreshSlot(!accelPrebid, bypassViewability);
-        })
-        // Comprobacion de que el nodo es visible, desde el punto de vista HTML
-        var el = document.getElementById(this.slot.getSlotElementId());
-        var isVT=null;
-        var isVisible=null;
-        if(el) {
-            setTimeout(()=>{
-                isVT = this.isNodeVisible(el);
-                if(this.cI.isBlank)
-                {
-                    if(isVT!=="occluded")
-                        isVisible=true;
-                    else
-                        isVisible=false;
-                }
-                else
-                    isVisible=(isVT==='visible');
-                this.cI.nodeVisible=isVisible;
-            },1000)
-        }
-    }
-
-    doPrebid() {
-        this.prebidFloor = this.pCfg.pbDefaultFloor ?? 0.10;
-
-        var hb_p = [];
-        // apstag
-        var aps_data_r = {
-            slots: []
-        };
-        var sizes = this.slot.getSizes().filter(function (size) {
-            return size !== 'fluid'
-        });
-        if (sizes.length > 0) {
-            sizes = sizes.map(function (adSlotSize) {
-                return [adSlotSize.getWidth(), adSlotSize.getHeight()];
-            }).filter(function (size) {
-                return (size[0] !== 1) && (size[1] !== 1);
-            });
-            if (sizes.length > 0) {
-                aps_data_r.slots.push({
-                    slotID: this.slot.getSlotElementId(),
-                    slotName: this.slot.getAdUnitPath(),
-                    sizes: sizes
-                });
-
-
-                hb_p.push(new Promise(function (result, reject) {
-                        apstag.fetchBids(aps_data_r, function (bids) {
-                            apstag.setDisplayBids();
-                            result();
-                        });
-                    }
-                ));
-            }
-        }
-        let slot = this.slot;
-        hb_p.push(new Promise(function (result, reject) {
-                // Vemos si tenemos pujas en la cache.
-                let pbjsAdUnits = pbjs.adUnits;
-                let pbAdUnit = null;
-                for (var k = 0; k < pbjsAdUnits.length; k++) {
-                    if (pbjsAdUnits[k].code == slot.getSlotElementId()) {
-                        pbAdUnit = pbjsAdUnits[k];
-                        break;
-                    }
-                }
-                if (pbAdUnit) {
-                    let lKey = pbAdUnit.code + "|banner";
-                    let curBid = pbjs.getAdserverTargetingForAdUnitCode(pbAdUnit.code);
-                    if (curBid && typeof curBid.hb_pb !== "undefined") {
-                        let lowMult  = 1 + (this.pCfg.pbLowBidPct  ?? 200) / 100;
-                        let highMult = 1 + (this.pCfg.pbHighBidPct ?? 50)  / 100;
-                        let bidThr   = this.pCfg.pbLowBidThreshold ?? 0.5;
-                        let tmpBidFloor = curBid.hb_pb <= bidThr ? curBid.hb_pb * lowMult : curBid.hb_pb * highMult;
-                        this.prebidFloor = Math.max(tmpBidFloor, this.prebidFloor ?? 0);
-
-                        WindowArray.pbFloorCfg.floors.data.values[lKey] = parseFloat(curBid.hb_pb);
-                        pbjs.setConfig(WindowArray.pbFloorCfg);
-                    } else {
-                        if (this.prebidFloor !== null) {
-                            WindowArray.pbFloorCfg.floors.data.values[lKey] = parseFloat(this.prebidFloor);
-                            pbjs.setConfig(WindowArray.pbFloorCfg);
-                        } else {
-                            delete WindowArray.pbFloorCfg.floors.data.values[lKey];
-                            pbjs.setConfig(WindowArray.pbFloorCfg);
-                        }
-                    }
-                }
-                pbjs.requestBids({
-                    timeout: this.pCfg.pbRequestTimeout ?? 1000,
-                    adUnitCodes: [slot.getSlotElementId()],
-                    bidsBackHandler: (bidResponses, timedOut, auctionId) => {
-                        pbjs.setTargetingForGPTAsync([slot.getSlotElementId()]);
-                        let t = pbjs.getAdserverTargetingForAdUnitCode(slot.getSlotElementId());
-                        this.latestPrebidBid = (t && typeof t.hb_pb !== 'undefined') ? parseFloat(t.hb_pb) : null;
-                        result();
-                    }
-                });
-            }.bind(this)
-        ));
-
-        return Promise.all(hb_p);
-    }
-
-    refreshSlot(dp,ignoreViewability=false) {
-
-                
-        let f = (forceBypass = false) => {
-            if (this.cI) {
-                this.cI.wasRefreshed = true;
-            }
-            googletag.cmd.push(function () {
-                var el = document.getElementById(this.slot.getSlotElementId());
-                let isVT = this.isNodeVisible(el);
-
-                if((document.visibilityState!=="hidden" && isVT==="visible") || ignoreViewability || forceBypass){
-                    this.gexp.request(this.slot);
-                    googletag.pubads().refresh([this.slot]);
-                }
-            }.bind(this));
-        }
-        if (typeof dp === "undefined" || dp === true)
-            this.doPrebid().then(() => {
-                const rlpbov = this.pCfg.rlpbov ?? null;
-                const bypassForBid = rlpbov !== null && this.latestPrebidBid !== null && this.latestPrebidBid > rlpbov;
-                f(bypassForBid);
-            });
-        else
-            f();
-    }
-
-    update() {
-        this.cI.debugStr+="U";
-        let result = this.lastImpressionType;
-        this.state.lastWasPrebid =  this.usingPrebid;
-        // Se reinicia esta variable, para la proxima request.
-        //this.usingPrebid = false;
-        var value = this.effectivePrice;
-        // Solo por seguridad.
-        if (value === null) {
-
-            return;
-        }
-        // If AdEx won while we were probing with unknown-upgrade prices,
-        // anchor windowStart to the boosted index before escalation.
-        if (result === this.IT_ADEX && this.state.nUnknownPriceUpgrades > 0) {
-            this.cI.debugStr += "Y+" + this.state.nUnknownPriceUpgrades;
-            if (this.state.windowStart !== this.effectivePriceIndex) {
-                this.state.windowStart = this.effectivePriceIndex;
-                this.noteFloorChange();
-            }
-        } else if (result === this.IT_ADEX) {
-            this.cI.debugStr += "Y-";
-        }
-        switch(result)
-        {
-            case this.IT_ADEX:{
-                this.cI.debugStr+="a";
-                if(!this.usingPrebid) {
-                    this.state.nProbes++;
-                    if (this.state.nProbes < 5) {
-                        this.state.ahistory.push(this.effectivePriceIndex);
-                        this.state.aresults.push(result);
-                    }
-                }
-                this.state.nUnknownPriceUpgrades = 0;
-                this.state.nAdex++;
-                this.state.nConsAdex++;
-                this.state.nConsHouse = 0;
-                this.gexp.incAdex();
-            }break;
-            case this.IT_HOUSE:{
-
-                if(this.usingPrebid)
-                {
-                    this.cI.debugStr+="c+";
-                    this.state.lastImpressionType=this.IT_NONE;
-                }
-                else {
-                    this.cI.debugStr+="c-";
-                    this.state.nProbes++;
-                    this.cI.debugStr+="e";
-                    if (this.state.nProbes < 5) {
-                        this.cI.debugStr+="f";
-                        this.state.ahistory.push(this.effectivePriceIndex);
-                        this.state.aresults.push(result);
-                    }
-                    this.state.nHouse++;
-                    this.state.nConsAdex = 0;
-                    this.state.nConsHouse++;
-                    this.block(value);
-                    this.gexp.incHouse();
-                }
-                this.state.nUnknownPriceUpgrades = 0;
-                // House..
-            }break;
-            case this.IT_PREBID:{
-                if(this.usingPrebid) {
-                    this.cI.debugStr += "g+";
-                    this.state.nProbes++;
-                    const prevStart = this.state.windowStart;
-                    this.state.windowStart = Math.min(this.tempWindowStart,Math.max(this.pCfg.mp, Math.floor(this.effectivePriceIndex / 2)));
-                    if (this.state.windowStart !== prevStart)
-                        this.noteFloorChange();
-                    this.block(this.effectivePrice);
-                } else {
-                    this.cI.debugStr += "g-";
-                }
-                this.state.nUnknownPriceUpgrades = 0;
-            }break;
-            case this.IT_UNKNOWN:{
-                const cap = this.pCfg.maxUnknownUpgrades ?? 0;
-                if (cap > 0 && this.state.nUnknownPriceUpgrades < cap) {
-                    this.state.nUnknownPriceUpgrades++;
-                    this.cI.debugStr += "Z+" + this.state.nUnknownPriceUpgrades;
-                } else {
-                    this.cI.debugStr += "Z-";
-                }
-            }break;
-            case this.IT_NONE:{
-                this.cI.debugStr += "n";
-                this.state.nUnknownPriceUpgrades = 0;
-            }break;
-            default:{
-                this.state.nUnknownPriceUpgrades = 0;
-            }break;
-
-        }
-        if(this.state.ahistory.length > 5)
-            this.state.ahistory.length=5;
-        if(this.state.aresults.length > 5)
-            this.state.aresults.length=5;
-        this.cI.adHist=this.state.ahistory.join("-");
-        this.cI.adHistRes=this.state.aresults.join("-");
-        this.cI.nConsAdex = this.state.nConsAdex;
-        this.cI.nConsHouse = this.state.nConsHouse;
-        this.cI.updatedWindowStart=this.state.windowStart;
-    }
-    upgradePrice(amount,offY)
-    {
-        this.state.nPriceUpgrades++;
-        if(this.offY < offY) {
-
-            this.state.windowStart += amount;
-        }
-    }
-
-    setPrebidPrice()
-    {
-        this.cI.debugStr+="P";
-        this.tempWindowStart=this.state.windowStart;
-        this.usingPrebid = true;
-        this.effectivePrice=this.array[this.prebidIndex];
-        this.effectivePriceIndex=this.prebidIndex;
-        // Effective floor is no longer the init/base trial.
-        this.noteFloorChange();
-    }
-    updateHousePrice(result, value)
-    {
-        this.cI.debugStr += "H" + this.state.windowStart + "-" + this.state.nConsHouse;
-        const prevStart = this.state.windowStart;
-
-        // If the previous-previous impression was AdEx, anchor to that price.
-        if (this.state.last2Res == this.IT_ADEX) {
-            this.cI.debugStr += "d+";
-            this.effectivePriceIndex = this.getIndexLesserThan(this.state.last2);
-            this.effectivePrice = this.state.last2;
-            this.noteFloorChange();
-            return;
-        }
-        this.cI.debugStr += "d-";
-
-        // houseStepDown: array of ratios applied to windowStart on consecutive house impressions.
-        // Index 0 = first house, index 1 = second, etc. Last entry repeats beyond the array length.
-        // e.g. [0.5, 0.5, 0.5] → halve the floor each house. Default matches old high/mid/low behaviour.
-        const stepDown = this.pCfg.houseStepDown ?? [0.5, 0.5, 0.25];
-        const idx      = Math.min(this.state.nConsHouse, stepDown.length - 1);
-        const ratio    = stepDown[idx];
-
-        let p   = Math.floor(this.state.windowStart * ratio);
-        let min = Math.max((this.state.nConsHouse > 2) ? 0 : 1, this.pCfg.mp ?? 0);
-        p = Math.min(this.array.length - 1, Math.max(min, p));
-        this.cI.debugStr += "s" + ratio;
-
-        this.state.windowStart   = p;
-        this.effectivePrice      = this.array[this.state.windowStart];
-        this.effectivePriceIndex = this.state.windowStart;
-        // House-driven reprice leaves the init/base trial.
-        this.noteFloorChange();
-        if (this.state.windowStart === prevStart)
-            this.cI.debugStr += "s=";
-    }
-    updatePrebidAdexPrice(result,value)
-    {
-        this.cI.debugStr+="Q"+this.state.windowStart;
-        const prevStart = this.state.windowStart;
-        // Y el indice de prebid, era mas alto que el de gexp, se reajusta a esa posicion
-        if (this.state.windowStart < this.state.lastPriceIndex) {
-            this.cI.debugStr+="a+";
-            // Desbloqueamos todos los precios hasta el nuevo valor
-            this.unblockUntil(this.array[this.state.lastPriceIndex], null);
-            this.state.windowStart = Math.max(this.pCfg.mp ?? 0, this.state.lastPriceIndex);
-            //if(this.state.nProbes < 4) {
-            //    this.state.windowStart += Math.floor(this.state.lastPriceIndex / (this.state.lastPriceIndex>=15?4:2));
-            //    this.state.windowStart=Math.min(this.array.length-1,this.state.windowStart);
-            // this.state.windowStart = this.checkBlocked(Math.min(this.array.length-1,Math.max(1, this.state.windowStart)));
-            //}
-
-        } else {
-            this.cI.debugStr+="a-";
-        }
-        this.cI.debugStr+="r"+this.state.windowStart;
-        this.effectivePrice=this.array[this.state.windowStart];
-        this.effectivePriceIndex=this.state.windowStart;
-        // Reaction to AdEx after Prebid — leaves the init/base trial.
-        this.noteFloorChange();
-        if (this.state.windowStart === prevStart)
-            this.cI.debugStr += "s=";
-    }
-    updateAdexPrice(result, value)
-    {
-        this.cI.debugStr += "A";
-        const prevStart = this.state.windowStart;
-
-        // Safety cap: if the current floor is already far above the base price, stop.
-        let bp = this.getBasePrice();
-        if (bp > 0 && this.state.windowStart && this.array[this.state.windowStart] &&
-            this.array[this.state.windowStart] > (this.pCfg.maxPriceMultiplier ?? 12) * bp
-        ) {
-            this.cI.debugStr += "x+";
-            this.effectivePrice = this.array[this.state.windowStart];
-            this.effectivePriceIndex = this.state.windowStart;
-            // Cap path still means we are in post-AdEx progression, not a fresh base trial.
-            this.noteFloorChange();
-            return;
-        }
-        this.cI.debugStr += "x-";
-
-        // adexEscalation: step to add to windowStart per probe number.
-        // nhbsti: number of houses seen before we stop trying to improve (default 1).
-        // If nHouse has reached that threshold, leave the floor where it is (f=0).
-        const escalation = this.pCfg.adexEscalation ?? [0, 2, 3, 5];
-        const nhbsti     = this.pCfg.nhbsti ?? 1;
-        const s          = this.state.nProbes;
-
-        const f = (this.state.nHouse < nhbsti)
-            ? (escalation[Math.min(s, escalation.length - 1)] ?? 0)
-            : 0;
-        this.cI.debugStr += "F" + f;
-
-        const maxIdx = Math.min(this.pCfg.adexMaxStep ?? 20, this.array.length - 1);
-        const next   = Math.min(maxIdx, Math.max(1, this.state.windowStart + f));
-        this.state.windowStart    = this.checkBlocked(next);
-        this.effectivePrice       = this.array[this.state.windowStart];
-        this.effectivePriceIndex  = this.state.windowStart;
-        // Any AdEx-driven reprice pass leaves the init/base trial (even if step was 0).
-        this.noteFloorChange();
-        if (this.state.windowStart === prevStart)
-            this.cI.debugStr += "s=";
-    }
-    getTimeOffset()
-    {
-        return parseInt(performance.now());
-    }
-    checkBlocked(p)
-    {
-        if(typeof this.state.blocked!=="undefined")
-        {
-            this.cI.debugStr += ("u" + this.state.windowStart);
-            let curPrice=this.array[p];
-            for(let k in this.state.blocked)
-            {
-                if(parseFloat(k)<curPrice && this.state.blocked[k]>=(this.pCfg.nbb??1))
-                    curPrice=parseFloat(k);
-            }
-            if(curPrice!==this.array[p]) {
-                this.cI.debugStr += ("v" + this.state.windowStart);
-                p = Math.max(0,this.getIndexLesserThan(curPrice)-1);
-                this.cI.gexp_price_block=curPrice;
-                this.cI.debugStr += "W" + p;
-            }
-        }
-        return p;
-    }
-
-    updatePrice(result, value) {
-
-        let minPrebid = this.pCfg.ppbo;
-
-
-        if (result === this.IT_HOUSE) {
-            return this.updateHousePrice(result,value);
-        }
-
-        if (result == this.IT_ADEX && this.state.lastWasPrebid) {
-            return this.updatePrebidAdexPrice(result,value);
-        }
-
-        if (result == this.IT_ADEX || (result==this.IT_NONE && this.state.nProbes==0))
-            return this.updateAdexPrice(result, value);
-
-        this.cI.debugStr += "D";
-        this.effectivePrice=this.array[this.state.windowStart];
-        this.effectivePriceIndex=this.state.windowStart;
-    }
-
-    getkName(n) {
-        return this.kPrefix + n;
-    }
-
-    onViewable() {
-        if (this.cI !== null) {
-            this.cI.adViewable = true;
-        }
-        if (this.viewablePromise)
-            this.viewablePromise.resolve(2);
-    }
-
-    onSlotVisibilityChanged(percent) {
-        if (this.cI !== null) {
-            if (percent > this.cI.adMaxViewability)
-                this.cI.adMaxViewability = percent;
-        }
-    }
-    onRequested()
-    {
-        if(this.cI!==null)
-        {
-            this.cI.adRequestedTime=this.getTimeOffset();
-        }
-    }
-
-    onLoaded() {
-
-        if (this.cI !== null) {
-            this.cI.adLoadTime = this.getTimeOffset();
-        }
-        if (this.cI !== null && this.cI.willReload == true)
-            setTimeout(() => {
-                this.doPrebid();
-                if (this.prebidPromise)
-                    this.prebidPromise.resolve();
-            }, this.pCfg.rqpbtim ?? 4000);
-    }
-    onRendered()
-    {
-        if(this.cI!==null)
-        {
-            this.cI.adRendered=true;
-            this.cI.adRenderedTime=this.getTimeOffset();
-        }
-    }
-}
-
-class RandomStrategy extends WindowArray {
-    getStrategy() {
-        this.strategy = "rnd";
-        return this.strategy
-    };
-
-    initStrategy() {
-        let str = this.pCfg.str ?? {};
-        return {min: str.min ?? 0, max: str.max ?? 10}
-    }
-
-    initPrice() {
-        this.state.nFloorChanges = 0;
-        return this.state.str_state.min + Math.round(Math.random() * (this.state.str_state.max - this.state.str_state.min));
-    }
-
-    updatePrice(result, value, wasUsingPrebid) {
-        this.state.windowStart = this.initPrice();
-    }
-}
-
 const INtext_STYLE_ID = "gexp-intext-styles";
 const INtext_BASE_STYLES = `
         .gexp-intext-slot {
@@ -1634,46 +91,6 @@ const INtext_BASE_STYLES = `
             align-items: flex-start;
             justify-content: center;
             overflow: hidden;
-        }
-
-        .gexp-intext-first-open-surface {
-            animation:
-                gexp-intext-first-open-reveal
-                var(--gexp-intext-first-open-duration, 280ms)
-                cubic-bezier(0.16, 1, 0.3, 1)
-                both;
-        }
-
-        @keyframes gexp-intext-first-open-reveal {
-            from {
-                opacity: 0;
-                transform:
-                    translate3d(
-                        0,
-                        var(--gexp-intext-first-open-translate-y, 10px),
-                        0
-                    )
-                    scale(
-                        var(--gexp-intext-first-open-scale, 0.99)
-                    );
-            }
-
-            to {
-                opacity: 1;
-                transform:
-                    translate3d(0, 0, 0)
-                    scale(1);
-            }
-        }
-
-        @media (prefers-reduced-motion: reduce) {
-            .gexp-intext-first-open-surface:not(
-                .gexp-intext-first-open-ignore-reduced-motion
-            ) {
-                animation-duration: 1ms !important;
-                animation-delay: 0ms !important;
-                transform: none !important;
-            }
         }
 
         .gexp-intext-slot:not(.video-started) .video-js {
@@ -2219,22 +636,6 @@ const createIntextDebugCollector = (options = {}) => {
         firstFrameToRevealMs: delta(t, "video_first_frame", "video_player_revealed"),
         startedToCompleteMs: delta(t, "video_ima_started", "video_complete"),
       });
-      const controlsData =
-        group._data.video_controls_config_effective || {};
-      group.video.controls = {
-        enabled: controlsData.controlsEnabled ?? null,
-        playPause: controlsData.playPauseEnabled ?? null,
-        muteToggle: controlsData.muteToggleEnabled ?? null,
-        volumeControl: controlsData.volumeControlEnabled ?? null,
-        progressControl: controlsData.progressControlEnabled ?? null,
-        timeDisplay: controlsData.timeDisplayEnabled ?? null,
-        fullscreen: controlsData.fullscreenEnabled ?? null,
-        nativePictureInPicture:
-          controlsData.nativePictureInPictureEnabled ?? null,
-        autoHide: controlsData.autoHideEnabled ?? null,
-        showForJsAds: controlsData.showForJsAds ?? null,
-        mutedOnStart: controlsData.mutedOnStart ?? null,
-      };
       const pipEntries = group._events.video_pip_entered || [];
       const pipReturns = group._events.video_pip_returned_inline || [];
       const pipDismissals = group._events.video_pip_dismissed || [];
@@ -2249,10 +650,7 @@ const createIntextDebugCollector = (options = {}) => {
         0,
       );
       group.video.pip = {
-        enabled:
-          group._data.video_pip_config_effective?.pipEnabled === true ||
-          group._data.cycle_started?.pipEnabled === true ||
-          pipEntries.length > 0,
+        enabled: group._data.cycle_started?.pipEnabled === true || pipEntries.length > 0,
         entered: pipEntries.length > 0,
         entryCount: pipEntries.length,
         returnedInlineCount: pipReturns.length,
@@ -2376,7 +774,6 @@ const groupIntext = (...args) => { if (window.gexpIntextDebug) { intextDebugColl
 const groupEndIntext = () => { if (window.gexpIntextDebug) { intextDebugCollector.capture("groupEnd", [], "groupEnd"); console.groupEnd(); } };
 
 const INTEXT_RANDOM_KEYS = Object.freeze(["random1", "random2", "random3", "random4"]);
-const intextPrebidAliasRegistry = new WeakMap();
 const INTEXT_TELEMETRY_STANDARD_FIELDS = Object.freeze([
   "gexp-intext-telemetry-event-type",
   "gexp-intext-opportunity-id",
@@ -2694,7 +1091,7 @@ class IntextManager {
         if (this.siteConfig?.infiniteScroll?.enabled && infiniteScrollTypes.includes(this.siteContext.contentType)) {
           this.startNavContinuaObserver();
         }
-      }, true);
+      },true);
     };
 
     if (document.readyState === "loading") {
@@ -2702,164 +1099,6 @@ class IntextManager {
     } else {
       launchIntextPositions();
     }
-  }
-
-  isUsableIntextGptApi(api) {
-    return Boolean(
-      api &&
-      typeof api.defineSlot === "function" &&
-      typeof api.pubads === "function" &&
-      typeof api.display === "function" &&
-      typeof api.destroySlots === "function"
-    );
-  }
-
-  resolveIntextGptApi() {
-    const proxy = typeof window !== "undefined" ? window.googletag : null;
-    if (!proxy) {
-      return { api: null, source: "gpt-unavailable", pspDetected: false, proxy: null, controller: null };
-    }
-
-    const controller = proxy.__ctrl;
-    const pspDetected = Boolean(controller && typeof controller === "object");
-    let api = null;
-    let source = "gpt-invalid";
-    if (pspDetected) {
-      if (this.isUsableIntextGptApi(controller.baseObject)) {
-        api = controller.baseObject;
-        source = "__ctrl.baseObject";
-      } else if (this.isUsableIntextGptApi(controller.innerObject)) {
-        api = controller.innerObject;
-        source = "__ctrl.innerObject";
-      } else {
-        source = "psp-real-gpt-unavailable";
-      }
-    } else if (this.isUsableIntextGptApi(proxy)) {
-      api = proxy;
-      source = "window.googletag";
-    }
-
-    const diagnostic = {
-      pspDetected,
-      source,
-      hasController: Boolean(controller),
-      hasBaseObject: Boolean(controller?.baseObject),
-      hasInnerObject: Boolean(controller?.innerObject),
-      selectedApiReady: api?.apiReady,
-      selectedPubadsReady: api?.pubadsReady,
-      defineSlotType: typeof api?.defineSlot,
-      pubadsType: typeof api?.pubads,
-      displayType: typeof api?.display,
-    };
-    logIntext(`[Intext:GPT] intext_gpt_runtime_resolved`, diagnostic);
-    if (pspDetected) logIntext(`[Intext:GPT] intext_gpt_proxy_detected`, diagnostic);
-    return { api, source, pspDetected, proxy, controller };
-  }
-
-  resolveIntextPrebidApi() {
-    const proxy = typeof window !== "undefined" ? window.pbjs : null;
-    if (!proxy) {
-      return { api: null, source: "pbjs-unavailable", pspDetected: false, proxy: null, controller: null };
-    }
-    const controller = proxy.__ctrl;
-    const pspDetected = Boolean(controller && typeof controller === "object");
-    const isUsable = (candidate) => Boolean(candidate && candidate.que && typeof candidate.que.push === "function" && typeof candidate.requestBids === "function");
-    let api = null;
-    let source = "pbjs-invalid";
-    if (pspDetected) {
-      if (isUsable(controller.realObj)) { api = controller.realObj; source = "__ctrl.realObj"; }
-      else source = "psp-real-pbjs-unavailable";
-    } else if (isUsable(proxy)) { api = proxy; source = "window.pbjs"; }
-    const diagnostic = {
-      pspDetected, source, hasController: Boolean(controller), hasRealObj: Boolean(controller?.realObj),
-      hasBaseObj: Boolean(controller?.baseObj), version: api?.version || null,
-      requestBidsType: typeof api?.requestBids, aliasBidderType: typeof api?.aliasBidder,
-      addAdUnitsType: typeof api?.addAdUnits,
-    };
-    logIntext(`[Intext:Prebid] intext_prebid_runtime_resolved`, diagnostic);
-    if (pspDetected) logIntext(`[Intext:Prebid] intext_prebid_proxy_detected`, diagnostic);
-    if (source === "psp-real-pbjs-unavailable") logIntext(`[Intext:Prebid] intext_prebid_real_api_unavailable`, diagnostic);
-    return { api, source, pspDetected, proxy, controller };
-  }
-
-  resolveIntextApstagApi() {
-    const proxy = typeof window !== "undefined" ? window.apstag : null;
-    if (!proxy) {
-      return { api: null, source: "apstag-unavailable", pspDetected: false, proxy: null, controller: null };
-    }
-    const controller = proxy.__ctrl;
-    const pspDetected = Boolean(controller && typeof controller === "object");
-    const isUsable = (candidate) => Boolean(candidate && typeof candidate.fetchBids === "function" && typeof candidate.setDisplayBids === "function");
-    let api = null;
-    let source = "apstag-invalid";
-    if (pspDetected) {
-      if (isUsable(controller.realObj)) { api = controller.realObj; source = "__ctrl.realObj"; }
-      else source = "psp-real-apstag-unavailable";
-    } else if (isUsable(proxy)) { api = proxy; source = "window.apstag"; }
-    const diagnostic = {
-      pspDetected, source, hasController: Boolean(controller), hasRealObj: Boolean(controller?.realObj),
-      hasBaseObj: Boolean(controller?.baseObj), fetchBidsType: typeof api?.fetchBids,
-      setDisplayBidsType: typeof api?.setDisplayBids,
-    };
-    logIntext(`[Intext:APS] intext_apstag_runtime_resolved`, diagnostic);
-    if (pspDetected) logIntext(`[Intext:APS] intext_apstag_proxy_detected`, diagnostic);
-    if (source === "psp-real-apstag-unavailable") logIntext(`[Intext:APS] intext_apstag_real_api_unavailable`, diagnostic);
-    return { api, source, pspDetected, proxy, controller };
-  }
-
-  runIntextGptCommand(callback) {
-    let initial;
-    try {
-      initial = this.resolveIntextGptApi();
-    } catch (error) {
-      warnIntext(`[Intext:GPT] intext_gpt_command_failed`, {
-        reason: "initial-resolution-exception",
-        error: error?.message || String(error),
-      });
-      return Promise.resolve({ executed: false, reason: "initial-resolution-exception", error });
-    }
-    return new Promise((resolve) => {
-      let settled = false;
-      const settleOnce = (result) => {
-        if (settled) return;
-        settled = true;
-        clearTimeout(timeoutId);
-        resolve(result);
-      };
-      const fail = (reason, resolution = initial, error = null) => {
-        warnIntext(`[Intext:GPT] intext_gpt_command_failed`, {
-          reason,
-          pspDetected: resolution?.pspDetected === true,
-          source: resolution?.source || "unknown",
-          error: error?.message || (error ? String(error) : null),
-        });
-        settleOnce({ executed: false, reason, resolution, error });
-      };
-      const timeoutId = setTimeout(() => fail("command-timeout"), 2000);
-      if (!initial.proxy?.cmd || typeof initial.proxy.cmd.push !== "function") {
-        fail(initial.source || "gpt-command-queue-unavailable");
-        return;
-      }
-      const execute = () => {
-        if (settled) return;
-        const current = this.resolveIntextGptApi();
-        if (!current.api) {
-          fail(current.source, current);
-          return;
-        }
-        try {
-          settleOnce({ executed: true, value: callback(current.api, current), resolution: current });
-        } catch (error) {
-          fail("callback-exception", current, error);
-        }
-      };
-      try {
-        if (initial.pspDetected) initial.proxy.cmd.push(execute, true);
-        else initial.proxy.cmd.push(execute);
-      } catch (error) {
-        fail("queue-push-exception", initial, error);
-      }
-    });
   }
 
   createIntextTelemetryId(prefix = "intext") {
@@ -3019,7 +1258,7 @@ class IntextManager {
         ? this.getScopedSlotsForRoot(rootElement)
         : (Array.isArray(scopedContext?.scopedSlots)
           ? scopedContext.scopedSlots
-          : this.getIntextNativeGptSlots());
+          : (googletag?.pubads?.().getSlots?.() || []));
       for (const slot of slots) {
         const slotId = String(slot?.getSlotElementId?.() || "");
         if (!slotId || slotId.startsWith("gexp-intext")) continue;
@@ -3111,81 +1350,6 @@ class IntextManager {
     return pageTargeting?.[key];
   }
 
-  normalizeIntextRuleTargetingValues(value) {
-    const normalized = [];
-    const collect = (candidate) => {
-      if (candidate === undefined || candidate === null) return;
-      if (Array.isArray(candidate)) { candidate.forEach(collect); return; }
-      if (typeof candidate === "string" && candidate.includes(",")) {
-        candidate.split(",").forEach((entry) => normalized.push(entry.trim()));
-        return;
-      }
-      normalized.push(String(candidate));
-    };
-    collect(value);
-    return Array.from(new Set(normalized));
-  }
-
-  getIntextNativeGptSlots(rootElement = null) {
-    try {
-      const pubads = this.resolveIntextGptApi().api?.pubads?.();
-      const slots = pubads?.getSlots?.();
-      if (!Array.isArray(slots)) return [];
-      return slots.filter((slot) => {
-        const slotElementId = String(slot?.getSlotElementId?.() || "");
-        if (/^gexp-intext(?:-|$)/.test(slotElementId)) return false;
-        if (!rootElement) return true;
-        const element = slotElementId ? document.getElementById(slotElementId) : null;
-        return Boolean(element && rootElement.contains(element));
-      });
-    } catch (e) { return []; }
-  }
-
-  resolveIntextRuleTargeting(key, context = null) {
-    const normalizedKey = String(key);
-    const resolution = this.resolveIntextGptApi();
-    const result = { key: normalizedKey, values: [], sources: [], pspDetected: resolution.pspDetected === true, slotsChecked: 0, slotsMatched: 0, scoped: Boolean(context?.rootElement) };
-    const add = (source, rawValue) => {
-      const values = this.normalizeIntextRuleTargetingValues(rawValue);
-      if (!values.length) return;
-      let sourceEntry = result.sources.find((entry) => entry.source === source);
-      if (!sourceEntry) { sourceEntry = { source, values: [] }; result.sources.push(sourceEntry); }
-      values.forEach((value) => {
-        if (!sourceEntry.values.includes(value)) sourceEntry.values.push(value);
-        if (!result.values.includes(value)) result.values.push(value);
-      });
-    };
-    if (INTEXT_RANDOM_KEYS.includes(normalizedKey)) {
-      add("gexp-slot-random-snapshot", this.getIntextRandomValue(normalizedKey));
-    } else {
-      add("context.targeting", context?.targeting?.[normalizedKey]);
-      add("data.customTargeting", typeof data !== "undefined" ? data?.customTargeting?.[normalizedKey] : undefined);
-      add("ueDFPData.customTargeting", typeof ueDFPData !== "undefined" ? ueDFPData?.customTargeting?.[normalizedKey] : undefined);
-      try { add("gpt-page-targeting", resolution.api?.pubads?.()?.getTargeting?.(normalizedKey)); } catch (e) { }
-      const slots = this.getIntextNativeGptSlots(context?.rootElement || null);
-      result.slotsChecked = slots.length;
-      slots.forEach((slot) => {
-        let values = [];
-        try { values = this.normalizeIntextRuleTargetingValues(slot?.getTargeting?.(normalizedKey)); } catch (e) { }
-        if (!values.length) {
-          try { values = this.normalizeIntextRuleTargetingValues(slot?.getTargetingMap?.()?.[normalizedKey]); } catch (e) { }
-        }
-        if (!values.length) return;
-        result.slotsMatched += 1;
-        add("gpt-slot-targeting", values);
-      });
-      add("ueDataLayer", typeof window !== "undefined" ? window.ueDataLayer?.[normalizedKey] : undefined);
-      add("utag_data", typeof window !== "undefined" ? window.utag_data?.[normalizedKey] : undefined);
-    }
-    logIntext(`[IntextManager] intext_rule_targeting_resolved`, {
-      key: result.key, values: result.values,
-      sources: Array.from(new Set(result.sources.map((entry) => entry.source))),
-      pspDetected: result.pspDetected, slotsChecked: result.slotsChecked,
-      slotsMatched: result.slotsMatched, scoped: result.scoped,
-    });
-    return result;
-  }
-
   getIntextRandomTelemetry() {
     const snapshot = this.intextRandomSnapshot || {};
     // The gexp-intext-randomN-effective fields are the canonical Intext
@@ -3217,7 +1381,11 @@ class IntextManager {
     const mismatchSlotIds = [];
     const unresolvedSlotIds = [];
     try {
-      const normalSlots = this.getIntextNativeGptSlots();
+      const slots = googletag?.pubads?.().getSlots?.() || [];
+      const normalSlots = slots.filter((slot) => {
+        const id = String(slot?.getSlotElementId?.() || "");
+        return id && !id.startsWith("gexp-intext");
+      });
       slotsFound = normalSlots.length;
       normalSlots.forEach((slot) => {
         const slotId = String(slot.getSlotElementId?.() || "unknown");
@@ -3604,9 +1772,11 @@ class IntextManager {
     let resolvedNetworkId = null;
 
     try {
-      const slots = this.getIntextNativeGptSlots();
+      const slots = googletag.pubads().getSlots();
       if (slots && slots.length > 0) {
         const refSlot = slots.find(s => {
+          const elId = s.getSlotElementId() || "";
+          if (elId.startsWith("gexp-intext")) return false;
           const path = s.getAdUnitPath() || "";
           if (/\/p_/.test(path)) return false;
           return true;
@@ -3753,9 +1923,8 @@ class IntextManager {
     }
 
     try {
-      const pubads = this.resolveIntextGptApi().api?.pubads?.();
-      if (pubads) {
-        const ctValues = pubads.getTargeting?.('ct');
+      if (typeof googletag !== 'undefined' && googletag.pubads && typeof googletag.pubads === 'function') {
+        const ctValues = googletag.pubads().getTargeting('ct');
         if (ctValues && ctValues.length > 0) {
           const normalized = IntextManager.CONTENT_TYPE_MAP[ctValues[0]] || ctValues[0];
           return normalized;
@@ -4455,8 +2624,20 @@ class IntextManager {
   }
 
   getScopedSlotsForRoot(rootElement) {
-    if (!rootElement) return [];
-    return this.getIntextNativeGptSlots(rootElement);
+    if (!rootElement || typeof googletag === "undefined" || !googletag.pubads || typeof googletag.pubads !== "function") {
+      return [];
+    }
+
+    try {
+      return googletag.pubads().getSlots().filter((slot) => {
+        const slotElId = slot?.getSlotElementId?.();
+        if (!slotElId || slotElId.indexOf("gexp-intext") === 0) return false;
+        const slotEl = document.getElementById(slotElId);
+        return Boolean(slotEl && rootElement.contains(slotEl));
+      });
+    } catch (e) {
+      return [];
+    }
   }
 
   getSlotTargetingMap(slot) {
@@ -4512,7 +2693,7 @@ class IntextManager {
     const scopedContext = {
       detectedNetworkId,
       detectedAdUnitPath,
-      targeting: { ...(pageTargeting || {}), ...(slotTargeting || {}) },
+      targeting: { ...(slotTargeting || {}), ...(pageTargeting || {}) },
       contentType,
       pageUrl,
       hostname,
@@ -4579,8 +2760,7 @@ class IntextManager {
       if (pageTargeting) {
         for (const [key, blockedValues] of Object.entries(excl.keyValues)) {
           if (!Array.isArray(blockedValues) || blockedValues.length === 0) continue;
-          const targetingResolution = this.resolveIntextRuleTargeting(key, context);
-          const rawPageValue = targetingResolution.values;
+          const rawPageValue = this.getIntextRuleTargetingValue(key, pageTargeting);
           if (rawPageValue === undefined || rawPageValue === null) continue;
 
           let pageValues;
@@ -4593,10 +2773,10 @@ class IntextManager {
             pageValues = [String(rawPageValue)];
           }
 
-          const normalizedBlockedValues = this.normalizeIntextRuleTargetingValues(blockedValues);
-          const matchedValue = pageValues.find((value) => normalizedBlockedValues.includes(value));
-          if (matchedValue !== undefined) {
-            logIntext(`[IntextManager] BLOCKED by exclusions.keyValues`, { key, matchedValue, sourceCandidates: Array.from(new Set(targetingResolution.sources.map((entry) => entry.source))) });
+          const matchedValue = blockedValues.find(blocked =>
+            pageValues.includes(String(blocked))
+          );
+          if (matchedValue) {
             logIntext(`[IntextManager] ❌ BLOCKED by exclusions.keyValues — key "${key}" has blocked value "${matchedValue}" (page values: [${pageValues.join(', ')}])`);
             return true;
           }
@@ -4658,7 +2838,7 @@ class IntextManager {
           });
           return true;
         }
-        const rawPageValue = this.resolveIntextRuleTargeting(key, context).values;
+        const rawPageValue = this.getIntextRuleTargetingValue(key, pageTargeting);
         const effectiveValue = INTEXT_RANDOM_KEYS.includes(String(key))
           ? rawPageValue
           : effectiveResolution.qaCookieApplied === true
@@ -4675,9 +2855,10 @@ class IntextManager {
           pageValues = [String(effectiveValue)];
         }
 
-        const normalizedAllowedValues = this.normalizeIntextRuleTargetingValues(allowedValues);
-        const matchedValue = pageValues.find((value) => normalizedAllowedValues.includes(value));
-        if (matchedValue !== undefined) {
+        const matchedValue = allowedValues.find(allowed =>
+          pageValues.includes(String(allowed))
+        );
+        if (matchedValue) {
           if (effectiveResolution.qaCookieApplied === true) {
             this.markIntextQaCookieApplied();
             logIntext(`[IntextManager] intext_qa_cookie_force_allow_applied`, {
@@ -4737,9 +2918,8 @@ class IntextManager {
       return withoutIntextRandoms(ueDFPData.customTargeting);
     }
     try {
-      const gptResolution = this.resolveIntextGptApi();
-      if (gptResolution.api) {
-        const pubads = gptResolution.api.pubads();
+      if (typeof googletag !== 'undefined' && googletag.pubads && typeof googletag.pubads === 'function') {
+        const pubads = googletag.pubads();
         if (pubads && typeof pubads.getTargetingKeys === 'function') {
           const keys = pubads.getTargetingKeys();
           if (keys && keys.length > 0) {
@@ -4794,11 +2974,11 @@ class IntextManager {
         }
 
         if (rule.ifKeyValues && typeof rule.ifKeyValues === 'object' && Object.keys(rule.ifKeyValues).length > 0) {
-          const pageTargeting = this.getPageCustomTargeting(context) || {};
+          const pageTargeting = this.getPageCustomTargeting(context);
           if (pageTargeting) {
             for (const [key, blockedValues] of Object.entries(rule.ifKeyValues)) {
               if (!Array.isArray(blockedValues) || blockedValues.length === 0) continue;
-              const rawVal = this.resolveIntextRuleTargeting(key, context).values;
+              const rawVal = this.getIntextRuleTargetingValue(key, pageTargeting);
               if (rawVal === undefined || rawVal === null) continue;
 
               let pageValues;
@@ -4806,8 +2986,7 @@ class IntextManager {
               else if (typeof rawVal === 'string' && rawVal.includes(',')) pageValues = rawVal.split(',').map(v => v.trim());
               else pageValues = [String(rawVal)];
 
-              const normalizedBlockedValues = this.normalizeIntextRuleTargetingValues(blockedValues);
-              if (pageValues.some((value) => normalizedBlockedValues.includes(value))) {
+              if (blockedValues.some(b => pageValues.includes(String(b)))) {
                 logIntext(`[IntextManager] Slot ${index}: DISABLED by disableSlots rule (keyValue "${key}" match)`);
                 return true;
               }
@@ -5612,7 +3791,7 @@ class IntextPlacementEngine {
           `[IntextPlacement] ⚠️ Adjacency avoidance triggered: paragraph ${targetIndex + 1} is grouped with an ad ("${avoidance.selector}"). Searching for a safe paragraph...`
         );
         const preferUp = (avoidance.direction || "up") === "up";
-
+        
         const tryOrder = [];
         for (let d = 1; d < paragraphs.length; d++) {
           if (preferUp) {
@@ -5631,7 +3810,7 @@ class IntextPlacementEngine {
           if (newIdx >= paragraphs.length) continue;
           const newRemaining = paragraphs.length - (newIdx + 1);
           if (newRemaining < 1) continue;
-
+          
           const candidate = paragraphs[newIdx];
           if (candidate && !isAdjacentToAd(candidate)) {
             logIntext(
@@ -5705,11 +3884,6 @@ class IntextNode {
     this.activeCreative = null;
     this.wa = null;
     this.slot = null;
-    this._slotGptApi = null;
-    this._slotPubadsService = null;
-    this._slotGptSource = null;
-    this._initialDisplayRenderHandler = null;
-    this._persistentDisplayRenderHandler = null;
     this._coordinator = null;
     this.lockedHeight = 0;
     this._videoTiming = null;
@@ -5756,125 +3930,9 @@ class IntextNode {
     this._intextPipLastExitPlayedPct = null;
     this._intextPipPlaybackActive = false;
     this._intextPipPlaybackSource = "unresolved";
-    this._initialOpenAnimationPlayed = false;
     if (window.gexpIntextDebug) {
       intextDebugCollector.attachManager(this.manager);
       intextDebugCollector.recordTimeline("created", { node: this, slotId: this.id });
-    }
-  }
-
-  playInitialOpenAnimation(surface, source = "unknown") {
-    const animation =
-      this.config?.style?.animation || {};
-
-    if (
-      animation.enabled !== true ||
-      this._initialOpenAnimationPlayed === true ||
-      !surface ||
-      !surface.isConnected ||
-      typeof surface.classList?.add !== "function" ||
-      typeof surface.classList?.remove !== "function" ||
-      typeof surface.addEventListener !== "function" ||
-      typeof surface.removeEventListener !== "function"
-    ) {
-      return false;
-    }
-
-    const surfaceWrapper =
-      surface.closest?.(".gexp-intext-slot");
-    const wrapper =
-      surfaceWrapper ||
-      (String(source).startsWith("video")
-        ? this.videoContainer?.getElement?.()
-        : this.container?.getElement?.());
-
-    if (!wrapper?.style?.setProperty) {
-      return false;
-    }
-
-    const configuredDuration =
-      Number(animation.durationMs ?? 280);
-    const durationMs = Math.max(
-      0,
-      Number.isFinite(configuredDuration)
-        ? configuredDuration
-        : 280,
-    );
-
-    const configuredTranslateY =
-      Number(animation.translateYPx ?? 10);
-    const translateYPx = Math.max(
-      0,
-      Number.isFinite(configuredTranslateY)
-        ? configuredTranslateY
-        : 10,
-    );
-
-    const configuredScale =
-      Number(animation.scaleFrom ?? 0.99);
-    const scaleFrom = Math.min(
-      1,
-      Math.max(
-        0.9,
-        Number.isFinite(configuredScale)
-          ? configuredScale
-          : 0.99,
-      ),
-    );
-
-    const cleanup = () => {
-      try {
-        surface.classList.remove(
-          "gexp-intext-first-open-surface",
-        );
-        surface.classList.remove(
-          "gexp-intext-first-open-ignore-reduced-motion",
-        );
-        surface.removeEventListener(
-          "animationend",
-          cleanup,
-        );
-      } catch (error) {
-        // Visual cleanup must never affect the creative lifecycle.
-      }
-    };
-
-    try {
-      wrapper.style.setProperty(
-        "--gexp-intext-first-open-duration",
-        `${durationMs}ms`,
-      );
-      wrapper.style.setProperty(
-        "--gexp-intext-first-open-translate-y",
-        `${translateYPx}px`,
-      );
-      wrapper.style.setProperty(
-        "--gexp-intext-first-open-scale",
-        String(scaleFrom),
-      );
-
-      if (animation.respectReducedMotion === false) {
-        surface.classList.add(
-          "gexp-intext-first-open-ignore-reduced-motion",
-        );
-      }
-      surface.classList.add(
-        "gexp-intext-first-open-surface",
-      );
-      surface.addEventListener(
-        "animationend",
-        cleanup,
-        { once: true },
-      );
-      window.setTimeout(
-        cleanup,
-        durationMs + 100,
-      );
-      this._initialOpenAnimationPlayed = true;
-      return true;
-    } catch (error) {
-      cleanup();
-      return false;
     }
   }
 
@@ -6134,17 +4192,12 @@ class IntextNode {
     });
   }
 
-  findIntextPipKeyValueMatch(rules, context) {
+  findIntextPipKeyValueMatch(rules, targeting) {
     if (!rules || typeof rules !== "object" || Array.isArray(rules)) return null;
     for (const [key, configuredValues] of Object.entries(rules)) {
       const allowedValues = this.normalizeIntextPipRuleValues(configuredValues);
       if (!allowedValues.length) continue;
-      const resolvedValues = this.manager?.resolveIntextRuleTargeting
-        ? this.manager.resolveIntextRuleTargeting(key, context?.scopedContext)
-        : null;
-      const pageValues = resolvedValues
-        ? resolvedValues.values
-        : this.normalizeIntextPipRuleValues(context?.targeting?.[key]);
+      const pageValues = this.normalizeIntextPipRuleValues(targeting?.[key]);
       const matchedValue = allowedValues.find((value) => pageValues.includes(String(value)));
       if (matchedValue !== undefined) return { key: String(key), value: String(matchedValue) };
     }
@@ -6170,7 +4223,7 @@ class IntextNode {
     }
     const hasKeyValues =
       rules.keyValues && typeof rules.keyValues === "object" && Object.keys(rules.keyValues).length > 0;
-    const match = hasKeyValues ? this.findIntextPipKeyValueMatch(rules.keyValues, context) : null;
+    const match = hasKeyValues ? this.findIntextPipKeyValueMatch(rules.keyValues, context.targeting) : null;
     if (hasKeyValues && !match) {
       return {
         allowed: false,
@@ -6214,7 +4267,7 @@ class IntextNode {
         match: null,
       };
     }
-    const match = this.findIntextPipKeyValueMatch(rules.keyValues, context);
+    const match = this.findIntextPipKeyValueMatch(rules.keyValues, context.targeting);
     if (match) {
       return {
         blocked: true,
@@ -6709,30 +4762,11 @@ class IntextNode {
     this._lastVisualCycleId = this._intextTelemetryCycleId;
     this._visualState = source;
     this.resetIntextPipState(this._activeRenderToken);
-    const pipEnabled =
-      this.getIntextPipConfig?.().enabled === true;
-    const pipSlotEnabled =
-      this.isIntextPipSlotEnabled?.() === true;
-    const pipEffectiveEnabled =
-      this.isIntextPipEffectiveEnabled?.() === true;
     this.mergeIntextTelemetry({
       "gexp-intext-render-token": String(this._activeRenderToken),
       "gexp-intext-render-attempt": String(this._renderTokenSeq),
       "gexp-intext-visual-state": this._visualState,
-      "gexp-intext-pip-enabled": pipEnabled ? "true" : "false",
-      "gexp-intext-pip-effective-enabled": pipEffectiveEnabled ? "true" : "false",
-      "gexp-intext-pip-slot-enabled": pipSlotEnabled ? "true" : "false",
     });
-    if (typeof window !== "undefined" && window.gexpIntextDebug === true) {
-      intextDebugCollector.recordMetric("video_pip_config_effective", {
-        node: this,
-        source,
-        trigger,
-        pipEnabled,
-        pipEffectiveEnabled,
-        pipSlotEnabled,
-      });
-    }
     this.applyIntextWrapperDebugAttributes(this.container?.getElement?.(), {
       renderToken: this._activeRenderToken,
       visualState: this._visualState,
@@ -8743,9 +6777,8 @@ class IntextNode {
     if (scopedValue !== null) return { value: scopedValue, source: "scopedContext.targeting" };
 
     try {
-      const gptResolution = this.manager?.resolveIntextGptApi?.();
-      if (gptResolution?.api) {
-        const pubads = gptResolution.api.pubads();
+      if (typeof googletag !== "undefined" && googletag.pubads) {
+        const pubads = googletag.pubads();
         if (pubads && typeof pubads.getTargeting === "function") {
           const value = this.normalizeHbValue(pubads.getTargeting(key));
           if (value !== null) return { value, source: "googletag.pubads" };
@@ -9874,73 +7907,10 @@ class IntextNode {
     return window.innerWidth < 768;
   }
 
-  isUsableIntextPubadsService(pubads) {
-    return Boolean(pubads && typeof pubads.refresh === "function" && typeof pubads.addEventListener === "function" && typeof pubads.removeEventListener === "function");
-  }
-
-  removeIntextDisplayListeners() {
-    const pubads = this._slotPubadsService;
-    if (pubads && typeof pubads.removeEventListener === "function") {
-      if (this._initialDisplayRenderHandler) {
-        try { pubads.removeEventListener("slotRenderEnded", this._initialDisplayRenderHandler); } catch (e) { }
-      }
-      if (this._persistentDisplayRenderHandler) {
-        try { pubads.removeEventListener("slotRenderEnded", this._persistentDisplayRenderHandler); } catch (e) { }
-      }
-    }
-    this._initialDisplayRenderHandler = null;
-    this._persistentDisplayRenderHandler = null;
-    this._hasPersistentListener = false;
-  }
-
-  clearIntextGptSlotIdentity() {
-    this.slot = null;
-    this._slotGptApi = null;
-    this._slotPubadsService = null;
-    this._slotGptSource = null;
-  }
-
-  destroyIntextDisplaySlot(reason = "unknown") {
-    const slot = this.slot;
-    const storedGpt = this._slotGptApi;
-    const storedSource = this._slotGptSource;
-    const fallbackGpt = storedGpt || this.manager.resolveIntextGptApi().api;
-    this.removeIntextDisplayListeners();
-    this.clearIntextGptSlotIdentity();
-    if (!slot || typeof fallbackGpt?.destroySlots !== "function") return Promise.resolve(false);
-    return this.manager.runIntextGptCommand(() => {
-      fallbackGpt.destroySlots([slot]);
-      logIntext(`[Intext:GPT:${this.id}] intext_gpt_slot_destroyed`, {
-        reason,
-        source: storedGpt ? storedSource || "stored-api" : "resolved-fallback",
-      });
-    }).then((result) => result.executed === true);
-  }
-
   askDisplay(bidResponse, renderToken = this._activeRenderToken, trigger = "unknown") {
     return new Promise((resolve) => {
-      let settled = false;
-      let requestTimer = null;
-      const settleOnce = (result) => {
-        if (settled) return;
-        settled = true;
-        if (requestTimer) {
-          clearTimeout(requestTimer);
-          requestTimer = null;
-        }
-        if (this._initialDisplayRenderHandler && this._slotPubadsService) {
-          try { this._slotPubadsService.removeEventListener("slotRenderEnded", this._initialDisplayRenderHandler); } catch (e) { }
-          this._initialDisplayRenderHandler = null;
-        }
-        this._displayRequestInFlight = false;
-        if (result?.filled !== true && this._visualState === "asking_display") {
-          this._visualState = "idle";
-          this.mergeIntextTelemetry({ "gexp-intext-visual-state": this._visualState });
-        }
-        resolve(result);
-      };
       if (!this.isActiveRenderToken(renderToken, "askDisplay:start", trigger)) {
-        settleOnce({ filled: false, event: null, stale: true });
+        resolve({ filled: false, event: null, stale: true });
         return;
       }
       this.state = "asking_display";
@@ -9957,7 +7927,8 @@ class IntextNode {
       });
       if (!networkId || !adUnitPath) {
         logIntext(`[Intext:Display:${this.id}] intext_network_force_invalid - display request blocked`);
-        settleOnce({ filled: false, event: null, networkBlocked: true });
+        this._displayRequestInFlight = false;
+        resolve({ filled: false, event: null, networkBlocked: true });
         return;
       }
       const fullAdUnit = `/${networkId}/${adUnitPath}`;
@@ -9972,60 +7943,29 @@ class IntextNode {
         );
       }
 
-      requestTimer = setTimeout(() => {
-        warnIntext(`[Intext:GPT:${this.id}] intext_gpt_command_failed`, {
-          reason: "display-request-timeout",
-          source: this._slotGptSource || this.manager.resolveIntextGptApi().source,
-          trigger,
-        });
-        settleOnce({ filled: false, event: null, timeout: true });
-      }, 5000);
-
-      this.manager.runIntextGptCommand((gpt, resolution) => {
-        try {
+      googletag.cmd.push(() => {
         if (!this.isActiveRenderToken(renderToken, "askDisplay:googletag_cmd", trigger)) {
-          settleOnce({ filled: false, event: null, stale: true });
-          return;
-        }
-        const pubads = gpt.pubads();
-        if (!this.isUsableIntextPubadsService(pubads)) {
-          warnIntext(`[Intext:GPT:${this.id}] intext_gpt_command_failed`, { reason: "pubads-service-invalid", source: resolution.source });
-          settleOnce({ filled: false, event: null, gptError: "pubads-service-invalid" });
+          resolve({ filled: false, event: null, stale: true });
           return;
         }
         if (!this.slot) {
-          const candidateSlot = gpt.defineSlot(fullAdUnit, sizes, this.id);
-          if (!candidateSlot || typeof candidateSlot.addService !== "function") {
-            warnIntext(`[Intext:GPT:${this.id}] intext_gpt_slot_invalid`, {
-              pspDetected: resolution.pspDetected,
-              source: resolution.source,
-              candidateAddServiceType: typeof candidateSlot?.addService,
-            });
-            settleOnce({ filled: false, event: null, gptError: "slot-invalid" });
+          this.slot = googletag.defineSlot(fullAdUnit, sizes, this.id);
+          if (!this.slot) {
+            errorIntext(
+              `[Intext:Display:${this.id}] ❌ Slot definition failed`,
+            );
+            resolve({ filled: false, event: null });
             return;
           }
-          candidateSlot.addService(pubads);
-          this.slot = candidateSlot;
-          this._slotGptApi = gpt;
-          this._slotPubadsService = pubads;
-          this._slotGptSource = resolution.source;
-        } else if (this._slotGptApi !== gpt || this._slotPubadsService !== pubads) {
-          warnIntext(`[Intext:GPT:${this.id}] intext_gpt_command_failed`, {
-            reason: "slot-api-identity-mismatch",
-            source: resolution.source,
-            slotSource: this._slotGptSource,
-          });
-          settleOnce({ filled: false, event: null, gptError: "slot-api-identity-mismatch" });
-          return;
+          this.slot.addService(googletag.pubads());
         }
 
         const preRequestDisplayTargeting = this.resolveDisplayRequestTargeting();
         this.clearDisplayRequestTargeting(this.slot);
         this.applyDisplayRequestTargeting(this.slot, preRequestDisplayTargeting.targeting);
         this.applyIntextRandomSnapshotToSlot(this.slot);
-        const apsAfterCore = this.manager.resolveIntextApstagApi().api;
-        if (apsAfterCore && typeof apsAfterCore.targetingKeys === "function") {
-          const tamKeys = apsAfterCore.targetingKeys();
+        if (window.apstag && window.apstag.targetingKeys) {
+          const tamKeys = window.apstag.targetingKeys();
           if (tamKeys && tamKeys[this.id]) {
             Object.entries(tamKeys[this.id]).forEach(([k, v]) => {
               this.slot.setTargeting(k, v);
@@ -10094,9 +8034,8 @@ class IntextNode {
         this.clearDisplayRequestTargeting(this.slot, "display_request_targeting_cleared_keys_post_core");
         this.applyDisplayRequestTargeting(this.slot, finalDisplayTargeting.targeting);
         this.applyDisplayBidTargeting(this.slot, bidResponse, this.waterfall?._lastCurrentBannerBids);
-        const aps = this.manager.resolveIntextApstagApi().api;
-        if (aps && typeof aps.targetingKeys === "function") {
-          const tamKeys = aps.targetingKeys();
+        if (window.apstag && window.apstag.targetingKeys) {
+          const tamKeys = window.apstag.targetingKeys();
           if (tamKeys && tamKeys[this.id]) {
             Object.entries(tamKeys[this.id]).forEach(([k, v]) => {
               this.slot.setTargeting(k, v);
@@ -10108,8 +8047,9 @@ class IntextNode {
 
         const initialRenderHandler = (event) => {
           if (event.slot !== this.slot) return;
-          pubads.removeEventListener("slotRenderEnded", initialRenderHandler);
-          if (this._initialDisplayRenderHandler === initialRenderHandler) this._initialDisplayRenderHandler = null;
+          googletag
+            .pubads()
+            .removeEventListener("slotRenderEnded", initialRenderHandler);
           if (!this.isActiveRenderToken(renderToken, "display_initial_slotRenderEnded", trigger)) {
             if (this.isHouseLineItemSentinel(event)) {
               logIntext(`[Intext:Display:${this.id}] house_lineitem_sentinel_stale_callback_ignored`, {
@@ -10120,7 +8060,7 @@ class IntextNode {
                 lineItemId: event?.lineItemId,
               });
             }
-            settleOnce({ filled: false, event, stale: true });
+            resolve({ filled: false, event, stale: true });
             return;
           }
 
@@ -10181,24 +8121,25 @@ class IntextNode {
 
           if (this.isHouse1x1AutoRefreshCandidate(event)) {
             this.handleHouse1x1AutoRefresh(event, renderToken);
-            settleOnce({ filled: false, event, is1x1, suppressed: true, retrying: true, sentinelLineItemId: event?.lineItemId });
+            resolve({ filled: false, event, is1x1, suppressed: true, retrying: true, sentinelLineItemId: event?.lineItemId });
             return;
           }
 
           if (this.isHouse1x1AutoRefreshMaxReached(event)) {
             this.handleHouse1x1MaxAttemptsReached(event);
-            settleOnce({ filled: false, event, is1x1, suppressed: true, retrying: false, maxAttemptsReached: true, sentinelLineItemId: event?.lineItemId });
+            resolve({ filled: false, event, is1x1, suppressed: true, retrying: false, maxAttemptsReached: true, sentinelLineItemId: event?.lineItemId });
             return;
           }
 
-          settleOnce({ filled: hasContent, event, is1x1 });
+          resolve({ filled: hasContent, event, is1x1 });
         };
-        this._initialDisplayRenderHandler = initialRenderHandler;
-        pubads.addEventListener("slotRenderEnded", initialRenderHandler);
+        googletag
+          .pubads()
+          .addEventListener("slotRenderEnded", initialRenderHandler);
 
         if (!this._hasPersistentListener) {
           this._hasPersistentListener = true;
-          this._persistentDisplayRenderHandler = (event) => {
+          googletag.pubads().addEventListener("slotRenderEnded", (event) => {
             if (event.slot !== this.slot) return;
             if (this.state !== "display") return;
             const activeToken = this._activeRenderToken;
@@ -10285,12 +8226,11 @@ class IntextNode {
                 renderToken: activeToken,
               });
             }
-          };
-          pubads.addEventListener("slotRenderEnded", this._persistentDisplayRenderHandler);
+          });
         }
 
         logIntext(
-          `[Intext:Display:${this.id}] Calling resolved GPT display + refresh`,
+          `[Intext:Display:${this.id}] Calling googletag.display + refresh`,
         );
 
         let slotEl = document.getElementById(this.id);
@@ -10421,7 +8361,7 @@ class IntextNode {
         }
 
         if (slotEl && !slotEl.hasAttribute("data-gpt-displayed")) {
-          gpt.display(this.id);
+          googletag.display(this.id);
           slotEl.setAttribute("data-gpt-displayed", "true");
         }
 
@@ -10448,31 +8388,12 @@ class IntextNode {
           this.getDisplayGamRequestTargetingFinal(this.slot),
         );
         if (!this.isActiveRenderToken(renderToken, "askDisplay:before_refresh", trigger)) {
-          settleOnce({ filled: false, event: null, stale: true });
+          resolve({ filled: false, event: null, stale: true });
           return;
         }
         this.assertIntextRandomSnapshotOnSlot(this.slot, "immediately-before-gpt-refresh");
-        pubads.refresh([this.slot]);
-        } catch (error) {
-          warnIntext(`[Intext:GPT:${this.id}] intext_gpt_command_failed`, {
-            reason: "display-callback-exception",
-            pspDetected: resolution?.pspDetected === true,
-            source: resolution?.source || "unknown",
-            error: error?.message || String(error),
-          });
-          settleOnce({ filled: false, event: null, gptError: "display-callback-exception" });
-        }
-      }).then((commandResult) => {
-        if (!commandResult.executed) {
-          settleOnce({ filled: false, event: null, gptError: commandResult.reason || commandResult.resolution?.source || "command-failed" });
-        }
-      }).catch((error) => {
-        warnIntext(`[Intext:GPT:${this.id}] intext_gpt_command_failed`, {
-          reason: "command-promise-rejected",
-          error: error?.message || String(error),
-        });
-        settleOnce({ filled: false, event: null, gptError: "command-promise-rejected" });
-      });
+        googletag.pubads().refresh([this.slot]);
+      },true);
     });
   }
 
@@ -10719,23 +8640,6 @@ class IntextNode {
       }
     }
 
-    if (
-      displayResult?.filled === true &&
-      is1x1 !== true &&
-      this.isActiveRenderToken(
-        renderToken,
-        "showDisplay:first-open-animation",
-        trigger,
-      )
-    ) {
-      const creativeSurface =
-        this.findDisplayCreativeSurface(slotDoc);
-      this.playInitialOpenAnimation(
-        creativeSurface,
-        "display-first-fill",
-      );
-    }
-
     this.videoContainer.close({ destroy: true });
 
     this.completeVisualRender(renderToken, "display_completed");
@@ -10863,8 +8767,9 @@ class IntextNode {
     );
 
     if (this.slot) {
-      this.destroyIntextDisplaySlot(source);
-    };
+      googletag.cmd.push(() => googletag.destroySlots([this.slot]),true);
+      this.slot = null;
+    }
 
     const newWrapper = this.manager.createWrapperNode(this.id, "display");
     this.applyIntextWrapperDebugAttributes(newWrapper, {
@@ -10909,10 +8814,12 @@ class IntextNode {
   }
   discardDisplay() {
     if (this.slot) {
-      this.destroyIntextDisplaySlot("discard-display").then(() => {
+      googletag.cmd.push(() => {
+        googletag.destroySlots([this.slot]);
+        this.slot = null;
         const el = document.getElementById(this.id);
         if (el) el.removeAttribute("data-gpt-displayed");
-      });
+      },true);
     }
     this.container.close({ destroy: true });
   }
@@ -11284,10 +9191,7 @@ class IntextNode {
     this.teardownIntextViewportTelemetryObserver();
     this.flushIntextTelemetryToCI({ register: true, reason: "destroy" });
     if (this.slot) {
-      this.destroyIntextDisplaySlot("node-reset");
-    } else {
-      this.removeIntextDisplayListeners();
-      this.clearIntextGptSlotIdentity();
+      googletag.cmd.push(() => googletag.destroySlots([this.slot]),true);
     }
     this.activeCreative?.destroy?.();
     this.container.destroy();
@@ -11561,15 +9465,12 @@ class IntextWaterfall {
     this._lastFetchExpiredTrigger = null;
     this._renderWaitForFetchStartedAt = null;
     this._renderWaitedForFetch = false;
-    this._aliasRegistrationState = "idle";
-    this._aliasRegistrationPromise = null;
   }
 
-  getPbjsBidResponsesSafe(adUnitCode, pb = null) {
-    const selectedPb = pb || this.node.manager.resolveIntextPrebidApi().api;
+  getPbjsBidResponsesSafe(adUnitCode) {
     if (
-      !selectedPb ||
-      typeof selectedPb.getBidResponsesForAdUnitCode !== "function"
+      !window.pbjs ||
+      typeof window.pbjs.getBidResponsesForAdUnitCode !== "function"
     ) {
       if (!IntextWaterfall._loggedPbjsBidResponsesApiMissing) {
         IntextWaterfall._loggedPbjsBidResponsesApiMissing = true;
@@ -11581,7 +9482,7 @@ class IntextWaterfall {
     }
 
     try {
-      return selectedPb.getBidResponsesForAdUnitCode(adUnitCode) || { bids: [] };
+      return window.pbjs.getBidResponsesForAdUnitCode(adUnitCode) || { bids: [] };
     } catch (e) {
       if (!IntextWaterfall._loggedPbjsBidResponsesApiMissing) {
         IntextWaterfall._loggedPbjsBidResponsesApiMissing = true;
@@ -11593,8 +9494,8 @@ class IntextWaterfall {
     }
   }
 
-  getPbjsBidsSafe(adUnitCode, pb = null) {
-    const bidResponses = this.getPbjsBidResponsesSafe(adUnitCode, pb);
+  getPbjsBidsSafe(adUnitCode) {
+    const bidResponses = this.getPbjsBidResponsesSafe(adUnitCode);
     return Array.isArray(bidResponses?.bids) ? bidResponses.bids : [];
   }
 
@@ -11788,6 +9689,7 @@ class IntextWaterfall {
   async runPrebidPhase(trigger, effectiveMode) {
     const prebidPromises = [];
 
+    this.registerPrebidAliases();
     const multiConfig = this.getPrebidMultiFormatConfig();
     if (multiConfig) {
       const mediaTypesStr = Object.keys(multiConfig.mediaTypes).join("+");
@@ -12117,13 +10019,12 @@ class IntextWaterfall {
       }
       const currentState = this.node.state;
 
-      const refreshPb = this.node.manager.resolveIntextPrebidApi().api;
-      if (typeof refreshPb?.clearTargeting === "function") {
-        refreshPb.clearTargeting(this.node.id);
+      if (window.pbjs.clearTargeting) {
+        window.pbjs.clearTargeting(this.node.id);
       }
 
-      if (typeof refreshPb?.removeAdUnit === "function") {
-        refreshPb.removeAdUnit(this.node.id);
+      if (window.pbjs.removeAdUnit) {
+        window.pbjs.removeAdUnit(this.node.id);
       }
 
       if (this.node.activeCreative && this.node.activeCreative.player) {
@@ -12319,6 +10220,7 @@ class IntextWaterfall {
 
     const prebidPromises = [];
 
+    this.registerPrebidAliases();
     const multiConfig = this.getPrebidMultiFormatConfig();
     if (multiConfig) {
       const bannerBidders = multiConfig.bids.filter(b => !(this.config.prebid?.videoBidders || []).includes(b)).length;
@@ -12342,29 +10244,17 @@ class IntextWaterfall {
     this.decideWinner();
   }
 
-  getPrebidAliasesConfig() {
-    const networkId = this.node.manager.resolveIntextRequestNetworkId(this.node.scopedContext);
-    if (!networkId) return { networkId: null, aliases: null };
-    const prebidNetworks = this.config.prebid?.networks || {};
-    const targetNetwork = prebidNetworks[networkId] || prebidNetworks.default || {};
-    return { networkId, aliases: targetNetwork.aliases || null };
-  }
-
   waitForPbjsAvailability(configuration) {
     const waitMs = this.config.prebid?.pbjsAvailabilityWaitMs ?? 1200;
     const intervalMs = this.config.prebid?.pbjsAvailabilityRetryMs ?? 150;
     const startedAt = Date.now();
     let attempt = 0;
 
-    const aliasesRequired = Boolean(this.getPrebidAliasesConfig().aliases);
-    let lastSource = "pbjs-unavailable";
-    const isReady = () => {
-      const resolution = this.node.manager.resolveIntextPrebidApi();
-      lastSource = resolution.source;
-      const pb = resolution.api;
-      return Boolean(pb && typeof pb.requestBids === "function" && pb.que && typeof pb.que.push === "function" && (!aliasesRequired || typeof pb.aliasBidder === "function"));
-    };
-    Object.defineProperty(scopedContext, "rootElement", { value: rootElement, enumerable: false });
+    const isReady = () =>
+      typeof window.pbjs !== "undefined" &&
+      typeof window.pbjs.requestBids === "function" &&
+      window.pbjs.que &&
+      typeof window.pbjs.que.push === "function";
 
     if (isReady()) return Promise.resolve(true);
 
@@ -12385,7 +10275,7 @@ class IntextWaterfall {
         const elapsedMs = Date.now() - startedAt;
         if (elapsedMs >= waitMs) {
           logIntext(
-            `[Intext:Prebid:${this.node.id}] prebid_pbjs_wait_timeout - code=${configuration.code}, source=${lastSource}, elapsed_ms=${elapsedMs}, attempts=${attempt}`,
+            `[Intext:Prebid:${this.node.id}] prebid_pbjs_wait_timeout - code=${configuration.code}, elapsed_ms=${elapsedMs}, attempts=${attempt}`,
           );
           resolve(false);
           return;
@@ -12458,11 +10348,11 @@ class IntextWaterfall {
 
   executePrebid(configuration) {
     return new Promise((resolve) => {
-      const runPrebid = (pb) => pb.que.push(() => {
+      const runPrebid = () => window.pbjs.que.push(() => {
         let restoreVideoCacheConfig = null;
         try {
-          this.registerPrebidAdUnit(configuration, pb);
-          this.applyIntextDisplayFloorToPrebid(configuration, pb);
+          this.registerPrebidAdUnit(configuration);
+          this.applyIntextDisplayFloorToPrebid(configuration);
 
           const graceMs = this.config.prebid?.graceMs ?? 300;
           const watchdogMs = this.getPrebidTimeout() + graceMs + 1500;
@@ -12471,7 +10361,7 @@ class IntextWaterfall {
           let finalizeTimer = null;
 
           const resolveAuctionId = (auctionIdParam = null) => {
-            const raw = this.getPbjsBidsSafe(configuration.code, pb);
+            const raw = this.getPbjsBidsSafe(configuration.code);
             let id = auctionIdParam;
             if (!id && raw.length > 0) {
               id = raw[raw.length - 1].auctionId;
@@ -12498,7 +10388,7 @@ class IntextWaterfall {
             const auctionId = resolveAuctionId(auctionIdParam);
             this._currentAuctionId = auctionId;
 
-            const allRaw = this.getPbjsBidsSafe(configuration.code, pb);
+            const allRaw = this.getPbjsBidsSafe(configuration.code);
             const allResponses = auctionId
               ? allRaw.filter(b => b.auctionId === auctionId)
               : allRaw;
@@ -12533,7 +10423,7 @@ class IntextWaterfall {
             }
 
             try {
-              const noBids = pb.getNoBids?.() || [];
+              const noBids = window.pbjs.getNoBids?.() || [];
               const relevantNoBids = auctionId
                 ? noBids.filter(nb => nb.adUnitCode === configuration.code && nb.auctionId === auctionId)
                 : noBids.filter(nb => nb.adUnitCode === configuration.code);
@@ -12550,14 +10440,7 @@ class IntextWaterfall {
               );
             }
 
-            pb.setTargetingForGPTAsync([configuration.code]);
-            if (allResponses.length > 0 && typeof window !== "undefined" && window.gexpIntextDebug === true) {
-              const targeting = this.node.slot?.getTargetingMap?.() || {};
-              const expectedKeys = ["hb_pb", "hb_bidder", "hb_adid"];
-              if (!expectedKeys.some((key) => Object.prototype.hasOwnProperty.call(targeting, key))) {
-                warnIntext(`[Intext:Prebid:${this.node.id}] intext_prebid_targeting_missing_after_bid`, { code: configuration.code, expectedKeys });
-              }
-            }
+            window.pbjs.setTargetingForGPTAsync([configuration.code]);
             resolve("prebid_done");
           };
 
@@ -12593,10 +10476,10 @@ class IntextWaterfall {
               reason: videoCacheProfile.reason,
             });
 
-            restoreVideoCacheConfig = this.applyIntextVideoCacheOverride(videoCacheProfile, pb);
+            restoreVideoCacheConfig = this.applyIntextVideoCacheOverride(videoCacheProfile);
           }
 
-          pb.requestBids({
+          window.pbjs.requestBids({
             timeout: this.getPrebidTimeout(),
             adUnitCodes: [configuration.code],
             bidsBackHandler: (bidResponses, timedOut, auctionIdParam) => {
@@ -12606,7 +10489,7 @@ class IntextWaterfall {
                 );
               }
               if (timedOut && graceMs > 0) {
-                const bidsAtTimeout = this.getPbjsBidsSafe(configuration.code, pb).length;
+                const bidsAtTimeout = this.getPbjsBidsSafe(configuration.code).length;
                 logIntext(
                   `[Intext:Slot:${this.node.id}]   Prebid: TIMED OUT with ${bidsAtTimeout} bids — waiting ${graceMs}ms grace window for late bids...`,
                 );
@@ -12627,7 +10510,7 @@ class IntextWaterfall {
         }
       });
 
-      this.waitForPbjsAvailability(configuration).then(async (isAvailable) => {
+      this.waitForPbjsAvailability(configuration).then((isAvailable) => {
         if (!isAvailable) {
           logIntext(
             `[Intext:Slot:${this.node.id}]   Prebid [${configuration.code}]: pbjs not available after wait`,
@@ -12635,86 +10518,57 @@ class IntextWaterfall {
           resolve(null);
           return;
         }
-        const resolution = this.node.manager.resolveIntextPrebidApi();
-        const pb = resolution.api;
-        if (!pb) {
-          logIntext(`[Intext:Prebid:${this.node.id}] prebid_pbjs_resolution_lost`, { code: configuration.code, source: resolution.source });
-          resolve(null);
-          return;
-        }
-        const aliasesReady = await this.ensurePrebidAliasesRegistered(pb);
-        if (!aliasesReady) {
-          warnIntext(`[Intext:Prebid:${this.node.id}] prebid_alias_registration_incomplete`, {
-            code: configuration.code,
-          });
-          resolve(null);
-          return;
-        }
-        await this.waitForPrebidGlobalInitFlag(configuration);
-        runPrebid(pb);
-      }).catch((error) => {
-        warnIntext(`[Intext:Prebid:${this.node.id}] prebid_alias_registration_failed`, {
-          code: configuration.code,
-          error: error?.message || String(error),
-        });
-        resolve(null);
+        this.waitForPrebidGlobalInitFlag(configuration).then(() => runPrebid());
       });
     });
   }
 
   executeAmazonTam(configuration) {
     return new Promise((resolve) => {
-      let settled = false;
-      let availabilityTimer = null;
-      const settleOnce = (value) => {
-        if (settled) return;
-        settled = true;
-        clearTimeout(_tamSafetyTimer);
-        if (availabilityTimer) clearTimeout(availabilityTimer);
-        resolve(value);
-      };
+      if (
+        typeof window.apstag === "undefined" ||
+        typeof window.apstag.fetchBids === "undefined"
+      ) {
+        logIntext(
+          `[Intext:Slot:${this.node.id}]   TAM: apstag not available`,
+        );
+        resolve(null);
+        return;
+      }
+
       const _tamSafetyTimer = setTimeout(() => {
         logIntext(`[Intext:Slot:${this.node.id}]   TAM: ⚠️ safety timeout — resolving to avoid blocking`);
-        settleOnce("tam_timeout");
+        resolve("tam_timeout");
       }, 2000);
-      const tryStart = () => {
-        if (settled) return;
-        const resolution = this.node.manager.resolveIntextApstagApi();
-        const aps = resolution.api;
-        if (!aps) {
-          if (!resolution.pspDetected) {
-            logIntext(`[Intext:Slot:${this.node.id}]   TAM: apstag not available`);
-            settleOnce(null);
-            return;
-          }
-          availabilityTimer = setTimeout(tryStart, 50);
-          return;
-        }
-        try {
-          aps.fetchBids(configuration, (bids) => {
-            if (settled) return;
-            try {
-              const hasBids = Array.isArray(bids) && bids.length > 0;
-              logIntext(`[Intext:Slot:${this.node.id}]   TAM: ${hasBids ? `${bids.length} bid(s) received` : "no bids"}`);
-              aps.setDisplayBids();
-              if (hasBids && typeof window !== "undefined" && window.gexpIntextDebug === true) {
-                const targeting = this.node.slot?.getTargetingMap?.() || {};
-                if (!Object.keys(targeting).some((key) => key.startsWith("amzn"))) {
-                  warnIntext(`[Intext:APS:${this.node.id}] intext_apstag_targeting_missing_after_bid`, { code: this.node.id });
-                }
-              }
-              settleOnce("tam_done");
-            } catch (err) {
-              warnIntext(`[Intext:Slot:${this.node.id}]   TAM: setDisplayBids failed`, err);
-              settleOnce("tam_error");
+
+      try {
+        window.apstag.fetchBids(configuration, (bids) => {
+          clearTimeout(_tamSafetyTimer);
+          try {
+            if (bids && bids.length > 0) {
+              logIntext(
+                `[Intext:Slot:${this.node.id}]   TAM: ${bids.length} bid(s) received`,
+              );
+            } else {
+              logIntext(
+                `[Intext:Slot:${this.node.id}]   TAM: no bids`,
+              );
             }
-          });
-        } catch (err) {
-          logIntext(`[Intext:Slot:${this.node.id}]   TAM: ❌ fetchBids threw — skipping`, err);
-          settleOnce("tam_error");
-        }
-      };
-      tryStart();
+            window.apstag.setDisplayBids();
+            resolve("tam_done");
+          } catch (err) {
+            warnIntext(
+              `[Intext:Slot:${this.node.id}]   TAM: setDisplayBids failed`,
+              err,
+            );
+            resolve("tam_error");
+          }
+        });
+      } catch (err) {
+        clearTimeout(_tamSafetyTimer);
+        logIntext(`[Intext:Slot:${this.node.id}]   TAM: ❌ fetchBids threw — skipping`, err);
+        resolve("tam_error");
+      }
     });
   }
 
@@ -12743,10 +10597,9 @@ class IntextWaterfall {
       logIntext(
         `[Intext:Slot:${this.node.id}] ├─ Using CACHED bids only (${bannerBids.length} banner, ${videoBids.length} video, age: ${cached.ageMs}ms)`,
       );
-    } else if (this.node.manager.resolveIntextPrebidApi().api) {
-      const pb = this.node.manager.resolveIntextPrebidApi().api;
+    } else if (typeof window.pbjs !== "undefined") {
       const currentAuctionId = this._currentAuctionId;
-      const allBids = this.getPbjsBidsSafe(code, pb)
+      const allBids = this.getPbjsBidsSafe(code)
         .filter(b => currentAuctionId ? b.auctionId === currentAuctionId : true);
 
       const seen = new Set();
@@ -12757,7 +10610,7 @@ class IntextWaterfall {
         return true;
       });
 
-      const totalBids = this.getPbjsBidsSafe(code, pb).length || 0;
+      const totalBids = this.getPbjsBidsSafe(code).length || 0;
       if (totalBids > uniqueBids.length) {
         logIntext(
           `[Intext:Slot:${this.node.id}] ├─ Bid filtering: ${totalBids} total, ${totalBids - uniqueBids.length} stale (from previous auctions), ${uniqueBids.length} current`,
@@ -13929,10 +11782,9 @@ class IntextWaterfall {
     let targetingFromPbjs = {};
     try {
       const code = this.getPrebidCode();
-      const pb = this.node.manager.resolveIntextPrebidApi().api;
-      if (Object.keys(targetingFromBid).length === 0 && pb?.getAdserverTargetingForAdUnitCode && code) {
+      if (Object.keys(targetingFromBid).length === 0 && window.pbjs?.getAdserverTargetingForAdUnitCode && code) {
         targetingFromPbjs = this.normalizeTargetingMap(
-          pb.getAdserverTargetingForAdUnitCode(code),
+          window.pbjs.getAdserverTargetingForAdUnitCode(code),
         );
       }
     } catch (err) { }
@@ -14028,7 +11880,7 @@ class IntextWaterfall {
       targetingSource: resolvedVideoTargeting.targetingSource,
     });
 
-    if (this.node.manager.resolveIntextPrebidApi().api && this._lastVideoBid) {
+    if (window.pbjs && this._lastVideoBid) {
       const bid = this._lastVideoBid;
       if (bid.source && bid.source.includes("prebid") && bid.cpm != null && Number(bid.cpm) > 0) {
         const diagnostics = this.getIntextVideoBidDiagnostics(bid);
@@ -14123,9 +11975,8 @@ class IntextWaterfall {
       });
     }
 
-    const aps = this.node.manager.resolveIntextApstagApi().api;
-    if (aps && typeof aps.targetingKeys === "function") {
-      const tamKeys = aps.targetingKeys();
+    if (window.apstag && window.apstag.targetingKeys) {
+      const tamKeys = window.apstag.targetingKeys();
       if (tamKeys && tamKeys[videoId]) {
         Object.entries(tamKeys[videoId]).forEach(([k, v]) => {
           const val = Array.isArray(v) ? v.join(",") : v;
@@ -14206,18 +12057,16 @@ class IntextWaterfall {
     return this.node.manager.resolveIntextVideoAdUnitPath(this.node.scopedContext) || "";
   }
 
-  registerPrebidAdUnit(configuration, pb = null) {
-    pb = pb || this.node.manager.resolveIntextPrebidApi().api;
+  registerPrebidAdUnit(configuration) {
+    const pb = window.pbjs;
     if (!pb) return;
 
     try {
       pb.markWinningBidAsUsed({ adUnitCode: configuration.code });
     } catch (e) { /* ignore if no winning bid */ }
     try {
-      this.node.manager.runIntextGptCommand((gpt) => {
-        const pubads = this.node._slotPubadsService || gpt.pubads();
-        if (!pubads || typeof pubads.getSlots !== "function") return;
-        const gptSlots = pubads.getSlots();
+      googletag.cmd.push(() => {
+        const gptSlots = googletag.pubads().getSlots();
         gptSlots.forEach(slot => {
           if (slot.getSlotElementId() === configuration.code && typeof slot.getTargetingMap === "function") {
             const tMap = slot.getTargetingMap();
@@ -14228,102 +12077,95 @@ class IntextWaterfall {
             });
           }
         });
-      });
+      },true);
     } catch (e) { /* ignore */ }
 
-    if (typeof pb.removeAdUnit === "function") pb.removeAdUnit(configuration.code);
-    if (typeof pb.addAdUnits === "function") pb.addAdUnits([configuration]);
+    pb.removeAdUnit(configuration.code);
+    pb.addAdUnits([configuration]);
   }
 
-  ensurePrebidAliasesRegistered(pb = null) {
-    const { aliases } = this.getPrebidAliasesConfig();
-    if (!aliases) {
-      this._aliasRegistrationState = "registered";
-      return Promise.resolve(true);
-    }
-    pb = pb || this.node.manager.resolveIntextPrebidApi().api;
-    if (!pb || typeof pb.aliasBidder !== "function") {
-      this._aliasRegistrationState = "idle";
-      this._aliasRegistrationPromise = null;
-      return Promise.resolve(false);
-    }
+  registerPrebidAliases() {
+    if (this._aliasesRegistered) return;
+    this._aliasesRegistered = true;
 
-    let registry = intextPrebidAliasRegistry.get(pb);
-    if (!registry) {
-      registry = new Map();
-      intextPrebidAliasRegistry.set(pb, registry);
-    }
-    const entries = Object.entries(aliases).sort(([a], [b]) => a.localeCompare(b));
-    const registryKey = JSON.stringify(entries);
-    let record = registry.get(registryKey);
-    if (!record) {
-      record = { state: "idle", promise: null, registeredAliases: new Set() };
-      registry.set(registryKey, record);
-    }
-    if (record.state === "registered") {
-      this._aliasRegistrationState = "registered";
-      return Promise.resolve(true);
-    }
-    if (record.state === "registering" && record.promise) {
-      this._aliasRegistrationState = "registering";
-      const sharedPromise = record.promise.then((result) => {
-        this._aliasRegistrationState = result ? "registered" : "idle";
-        this._aliasRegistrationPromise = null;
-        return result;
+    const networkId = this.node.manager.resolveIntextRequestNetworkId(this.node.scopedContext);
+    if (!networkId) return;
+    const prebidNetworks = this.config.prebid?.networks || {};
+    const targetNetwork = prebidNetworks[networkId] || prebidNetworks.default || {};
+    const aliases = targetNetwork.aliases;
+    if (!aliases || !window.pbjs) {
+      logIntext(`[Intext:Prebid] prebid_alias_register_skipped`, {
+        reason: !aliases ? "missing_aliases" : "missing_pbjs",
       });
-      this._aliasRegistrationPromise = sharedPromise;
-      return sharedPromise;
+      return;
     }
 
-    record.state = "registering";
-    this._aliasRegistrationState = "registering";
-    record.promise = Promise.resolve().then(() => {
-      let succeeded = true;
-      for (const [alias, aliasConfig] of entries) {
-        if (record.registeredAliases.has(alias)) continue;
+    window.pbjs.que.push(() => {
+      if (typeof window.pbjs.aliasBidder !== "function") {
+        logIntext(`[Intext:Prebid] prebid_alias_register_skipped`, {
+          reason: "missing_aliasBidder",
+        });
+        return;
+      }
+
+      for (const [alias, aliasConfig] of Object.entries(aliases)) {
         const isObjectConfig = aliasConfig && typeof aliasConfig === "object";
         const original = isObjectConfig ? aliasConfig.bidder : aliasConfig;
         const gvlid = isObjectConfig ? aliasConfig.gvlid : null;
         const useBaseGvlid = isObjectConfig && aliasConfig.useBaseGvlid === true;
+
         if (!original) {
-          succeeded = false;
-          logIntext(`[Intext:Prebid] prebid_alias_register_skipped`, { alias, reason: "missing_original_bidder" });
+          logIntext(`[Intext:Prebid] prebid_alias_register_skipped`, {
+            alias,
+            reason: "missing_original_bidder",
+          });
           continue;
         }
+
         try {
           const options = {};
-          if (useBaseGvlid) options.useBaseGvlid = true;
-          else if (gvlid != null) options.gvlid = gvlid;
-          logIntext(`[Intext:Prebid] prebid_alias_register_attempt`, { alias, bidder: original, gvlid: gvlid ?? null, useBaseGvlid });
-          pb.aliasBidder(original, alias, Object.keys(options).length ? options : undefined);
-          record.registeredAliases.add(alias);
-          if (useBaseGvlid) logIntext(`[Intext:Prebid] prebid_alias_use_base_gvlid_applied`, { alias, bidder: original });
-          else if (gvlid != null) logIntext(`[Intext:Prebid] prebid_alias_gvlid_applied`, { alias, bidder: original, gvlid });
-          logIntext(`[Intext:Prebid] prebid_alias_register_success`, { alias, bidder: original });
+          if (useBaseGvlid) {
+            options.useBaseGvlid = true;
+          } else if (gvlid != null) {
+            options.gvlid = gvlid;
+          }
+          const hasOptions = Object.keys(options).length > 0;
+          logIntext(`[Intext:Prebid] prebid_alias_register_attempt`, {
+            alias,
+            bidder: original,
+            gvlid: gvlid ?? null,
+            useBaseGvlid,
+          });
+          window.pbjs.aliasBidder(
+            original,
+            alias,
+            hasOptions ? options : undefined
+          );
+          if (useBaseGvlid) {
+            logIntext(`[Intext:Prebid] prebid_alias_use_base_gvlid_applied`, {
+              alias,
+              bidder: original,
+            });
+          } else if (gvlid != null) {
+            logIntext(`[Intext:Prebid] prebid_alias_gvlid_applied`, {
+              alias,
+              bidder: original,
+              gvlid,
+            });
+          }
+          logIntext(`[Intext:Prebid] prebid_alias_register_success`, {
+            alias,
+            bidder: original,
+          });
         } catch (e) {
-          succeeded = false;
-          warnIntext(`[Intext:Prebid] prebid_alias_register_error`, { alias, bidder: original, error: e?.message || String(e) });
+          warnIntext(`[Intext:Prebid] prebid_alias_register_error`, {
+            alias,
+            bidder: original,
+            error: e?.message || String(e),
+          });
         }
       }
-      record.state = succeeded ? "registered" : "idle";
-      record.promise = null;
-      this._aliasRegistrationState = record.state;
-      this._aliasRegistrationPromise = null;
-      return succeeded;
-    }).catch((error) => {
-      record.state = "idle";
-      record.promise = null;
-      this._aliasRegistrationState = "idle";
-      this._aliasRegistrationPromise = null;
-      warnIntext(`[Intext:Prebid] prebid_alias_register_error`, { alias: null, bidder: null, error: error?.message || String(error) });
-      return false;
     });
-    this._aliasRegistrationPromise = record.promise;
-    return record.promise;
-  }
-
-  registerPrebidAliases() {
-    return this.ensurePrebidAliasesRegistered();
   }
 
   getPrebidCode() {
@@ -14415,20 +12257,19 @@ class IntextWaterfall {
     };
   }
 
-  getCurrentPrebidCacheConfig(pb = null) {
-    pb = pb || this.node.manager.resolveIntextPrebidApi().api;
+  getCurrentPrebidCacheConfig() {
     try {
-      if (pb && typeof pb.getConfig === "function") {
-        return pb.getConfig("cache") || {};
+      if (window.pbjs && typeof window.pbjs.getConfig === "function") {
+        return window.pbjs.getConfig("cache") || {};
       }
     } catch (e) { }
     return {};
   }
 
-  applyIntextVideoCacheOverride(profile, pb = null) {
-    pb = pb || this.node.manager.resolveIntextPrebidApi().api;
+  applyIntextVideoCacheOverride(profile) {
+    const pbjs = window.pbjs;
 
-    if (!pb || typeof pb.setConfig !== "function") {
+    if (!pbjs || typeof pbjs.setConfig !== "function") {
       return () => { };
     }
 
@@ -14436,7 +12277,7 @@ class IntextWaterfall {
       return () => { };
     }
 
-    const previousCache = this.getCurrentPrebidCacheConfig(pb);
+    const previousCache = this.getCurrentPrebidCacheConfig();
     const nextCache = {
       ...previousCache,
       url: profile.url,
@@ -14455,7 +12296,7 @@ class IntextWaterfall {
     });
 
     try {
-      pb.setConfig({ cache: nextCache });
+      pbjs.setConfig({ cache: nextCache });
     } catch (err) {
       logIntext(`[Intext:Prebid:${profile.slotCode}] video_cache_override_apply_failed`, {
         slotCode: profile.slotCode,
@@ -14478,7 +12319,7 @@ class IntextWaterfall {
       restored = true;
 
       try {
-        pb.setConfig({ cache: previousCache });
+        pbjs.setConfig({ cache: previousCache });
 
         logIntext(`[Intext:Prebid:${profile.slotCode}] video_cache_override_restore`, {
           slotCode: profile.slotCode,
@@ -14634,8 +12475,7 @@ class IntextWaterfall {
     return { value: null, source: "missing" };
   }
 
-  getCoreFloorsConfigData(pb = null) {
-    pb = pb || this.node.manager.resolveIntextPrebidApi().api;
+  getCoreFloorsConfigData() {
     const fallbackData = {
       currency: "USD",
       schema: {
@@ -14650,8 +12490,8 @@ class IntextWaterfall {
     let baseData = null;
 
     try {
-      if (typeof pb?.getConfig === "function") {
-        const pbjsFloors = pb.getConfig("floors");
+      if (typeof window.pbjs?.getConfig === "function") {
+        const pbjsFloors = window.pbjs.getConfig("floors");
         if (pbjsFloors?.data) {
           source = "pbjs";
           baseFloors = pbjsFloors;
@@ -14683,8 +12523,8 @@ class IntextWaterfall {
     };
   }
 
-  buildMergedFloorsConfig(floorKey, floorValue, pb = null) {
-    const { floors, data, fallbackData } = this.getCoreFloorsConfigData(pb);
+  buildMergedFloorsConfig(floorKey, floorValue) {
+    const { floors, data, fallbackData } = this.getCoreFloorsConfigData();
     const rawValues = {
       ...(fallbackData.values || {}),
       ...((data && data.values) || {}),
@@ -14740,12 +12580,11 @@ class IntextWaterfall {
     };
   }
 
-  setIntextDisplayFloorConfig(floorKey, floorValue, pb = null) {
-    pb = pb || this.node.manager.resolveIntextPrebidApi().api;
-    if (typeof pb?.setConfig !== "function" || !floorKey) return null;
+  setIntextDisplayFloorConfig(floorKey, floorValue) {
+    if (!window.pbjs?.setConfig || !floorKey) return null;
 
     const { floorPayload, floorValue: parsedFloorValue } =
-      this.buildMergedFloorsConfig(floorKey, floorValue, pb);
+      this.buildMergedFloorsConfig(floorKey, floorValue);
 
     WindowArray.pbFloorCfg = floorPayload;
     logIntext(`[Intext:Prebid:${this.node.id}] display_prebid_floor_state_snapshot`, {
@@ -14757,7 +12596,7 @@ class IntextWaterfall {
       `[Intext:Prebid:${this.node.id}] display_prebid_floor_setconfig_payload - key=${floorKey}, floor=${parsedFloorValue != null ? parsedFloorValue : "cleared"}, payload=${JSON.stringify(floorPayload)}`,
     );
 
-    pb.setConfig(floorPayload);
+    window.pbjs.setConfig(floorPayload);
 
     if (parsedFloorValue != null) {
       logIntext(`[Intext:Prebid:${this.node.id}] display_prebid_floor_write_committed`, {
@@ -14769,8 +12608,8 @@ class IntextWaterfall {
 
     let floorsConfigAfter = null;
     try {
-      floorsConfigAfter = typeof pb.getConfig === "function"
-        ? pb.getConfig("floors")
+      floorsConfigAfter = typeof window.pbjs.getConfig === "function"
+        ? window.pbjs.getConfig("floors")
         : null;
     } catch (e) {
       floorsConfigAfter = null;
@@ -14791,9 +12630,8 @@ class IntextWaterfall {
     return floorPayload;
   }
 
-  applyIntextDisplayFloorToPrebid(configuration, pb = null) {
-    pb = pb || this.node.manager.resolveIntextPrebidApi().api;
-    if (typeof pb?.setConfig !== "function" || !configuration?.code) return null;
+  applyIntextDisplayFloorToPrebid(configuration) {
+    if (!window.pbjs?.setConfig || !configuration?.code) return null;
 
     const hasBanner = Boolean(configuration?.mediaTypes?.banner);
     const floorKey = `${configuration.code}|banner`;
@@ -14807,7 +12645,7 @@ class IntextWaterfall {
         source: "configuration",
         mediaType: "non_banner",
       });
-      this.setIntextDisplayFloorConfig(floorKey, null, pb);
+      this.setIntextDisplayFloorConfig(floorKey, null);
       logIntext(
         `[Intext:Prebid:${this.node.id}] display_prebid_floor_cleared - no banner mediaType for ${floorKey}`,
       );
@@ -14818,14 +12656,14 @@ class IntextWaterfall {
     const floorValue = floorInfo.value;
 
     if (!(floorValue > 0)) {
-      this.setIntextDisplayFloorConfig(floorKey, null, pb);
+      this.setIntextDisplayFloorConfig(floorKey, null);
       logIntext(
         `[Intext:Prebid:${this.node.id}] display_prebid_floor_missing - key=${floorKey}, floor cleared`,
       );
       return null;
     }
 
-    this.setIntextDisplayFloorConfig(floorKey, floorValue, pb);
+    this.setIntextDisplayFloorConfig(floorKey, floorValue);
 
     if (floorInfo.source === "initial") {
       logIntext(
@@ -14901,12 +12739,9 @@ class IntextVideoCreative {
     this._videoTiming = videoTiming || null;
     this._renderToken = node?._activeRenderToken || 0;
     this._adMediaEl = null;
-    this._adMediaFirstFrameCleanup = null;
     this._adMediaCleanup = null;
     this._adMediaDiscoveryTimers = [];
     this._lastAdDuration = null;
-    this._mutedOverrideRejectedLogged = false;
-    this._videoControlsMetricRenderToken = null;
   }
 
   async render() {
@@ -14991,66 +12826,6 @@ class IntextVideoCreative {
     );
   }
 
-  resolveVideoControlsConfig() {
-    const configured =
-      this.config?.video?.controls ||
-      {};
-
-    if (
-      this.config?.video?.mutedOnStart === false &&
-      this._mutedOverrideRejectedLogged !== true &&
-      typeof window !== "undefined" &&
-      window.gexpIntextDebug === true
-    ) {
-      this._mutedOverrideRejectedLogged = true;
-      intextDebugCollector.recordMetric(
-        "intext_video_muted_override_rejected",
-        {
-          node: this.node,
-          creative: this,
-          renderToken: this._renderToken,
-          configuredMutedOnStart: false,
-          mutedOnStart: true,
-        },
-      );
-    }
-
-    return {
-      enabled:
-        configured.enabled !== false,
-
-      playPause:
-        configured.playPause !== false,
-
-      muteToggle:
-        configured.muteToggle !== false,
-
-      volumeControl:
-        configured.volumeControl !== false,
-
-      progressControl:
-        configured.progressControl !== false,
-
-      timeDisplay:
-        configured.timeDisplay !== false,
-
-      fullscreen:
-        configured.fullscreen === true,
-
-      nativePictureInPicture:
-        configured
-          .nativePictureInPicture === true,
-
-      autoHide:
-        configured.autoHide === true,
-
-      showForJsAds:
-        configured.showForJsAds !== false,
-
-      mutedOnStart: true,
-    };
-  }
-
   createVideoElement() {
     const el = document.createElement("video");
     el.id = this.playerId;
@@ -15058,7 +12833,6 @@ class IntextVideoCreative {
     el.setAttribute("playsinline", "true");
     el.setAttribute("webkit-playsinline", "true");
     el.setAttribute("muted", "");
-    el.defaultMuted = true;
     el.muted = true;
     const sourceEl = document.createElement("source");
     sourceEl.src =
@@ -15077,139 +12851,16 @@ class IntextVideoCreative {
   initVideoJS() {
     if (typeof window.videojs === "undefined") return;
 
-    const controls =
-      this.resolveVideoControlsConfig();
-
-    const volumePanelChildren = [];
-
-    if (controls.muteToggle) {
-      volumePanelChildren.push(
-        "muteToggle",
-      );
-    }
-
-    if (controls.volumeControl) {
-      volumePanelChildren.push(
-        "volumeControl",
-      );
-    }
-
-    const volumePanel =
-      volumePanelChildren.length > 0
-        ? {
-          inline: false,
-          children:
-            volumePanelChildren,
-        }
-        : false;
-
-    this.player = window.videojs(
-      this.videoEl,
-      {
-        controls: controls.enabled,
-        autoplay: false,
-        muted: true,
-        fluid: false,
-        width: 640,
-        height: 360,
-
-        inactivityTimeout:
-          controls.autoHide
-            ? 2000
-            : 0,
-
-        controlBar:
-          controls.enabled
-            ? {
-              playToggle:
-                controls.playPause,
-
-              volumePanel,
-
-              progressControl:
-                controls
-                  .progressControl,
-
-              currentTimeDisplay:
-                controls.timeDisplay,
-
-              timeDivider:
-                controls.timeDisplay,
-
-              durationDisplay:
-                controls.timeDisplay,
-
-              remainingTimeDisplay:
-                false,
-
-              fullscreenToggle:
-                controls.fullscreen,
-
-              pictureInPictureToggle:
-                controls
-                  .nativePictureInPicture,
-            }
-            : false,
-
-        errorDisplay: false,
-      },
-    );
-
-    this.player.muted(true);
-    this.player.controls(
-      controls.enabled,
-    );
-
-    if (!controls.autoHide) {
-      this.player.userActive(true);
-    }
-
-    if (
-      typeof window !== "undefined" &&
-      window.gexpIntextDebug === true &&
-      this._videoControlsMetricRenderToken !==
-      this._renderToken
-    ) {
-      this._videoControlsMetricRenderToken =
-        this._renderToken;
-      intextDebugCollector.recordMetric(
-        "video_controls_config_effective",
-        {
-          node: this.node,
-          creative: this,
-          renderToken: this._renderToken,
-          controlsEnabled: controls.enabled,
-          playPauseEnabled: controls.playPause,
-          muteToggleEnabled: controls.muteToggle,
-          volumeControlEnabled:
-            controls.volumeControl,
-          progressControlEnabled:
-            controls.progressControl,
-          timeDisplayEnabled:
-            controls.timeDisplay,
-          fullscreenEnabled:
-            controls.fullscreen,
-          nativePictureInPictureEnabled:
-            controls.nativePictureInPicture,
-          autoHideEnabled: controls.autoHide,
-          showForJsAds: controls.showForJsAds,
-          mutedOnStart: true,
-        },
-      );
-    }
-
-    this.player.on(
-      "adstart",
-      () => {
-        this.player.controls(
-          controls.enabled,
-        );
-
-        if (!controls.autoHide) {
-          this.player.userActive(true);
-        }
-      },
-    );
+    this.player = window.videojs(this.videoEl, {
+      controls: true,
+      autoplay: false,
+      muted: true,
+      fluid: false,
+      width: 640,
+      height: 360,
+      controlBar: { fullscreenToggle: false },
+      errorDisplay: false,
+    });
 
     this.player.on("error", () => {
       this.node?.setIntextPipPlaybackActive?.(false, "videojs-error");
@@ -15298,15 +12949,6 @@ class IntextVideoCreative {
       this._adMediaDiscoveryTimers = [];
     }
 
-    if (this._adMediaFirstFrameCleanup) {
-      try {
-        this._adMediaFirstFrameCleanup();
-      } catch (e) {
-        // ignore
-      }
-      this._adMediaFirstFrameCleanup = null;
-    }
-
     if (this._adMediaCleanup) {
       try {
         this._adMediaCleanup();
@@ -15370,9 +13012,8 @@ class IntextVideoCreative {
 
       let settled = false;
       let adStarted = false;
-      let playerRevealed = false;
-      let firstFrameConfirmed = false;
-      let mediaFrameCallbackRequested = false;
+      let firstFramePlayed = false;
+      let intextDebugFirstFrameLogged = false;
       let terminalEvent = null;
       let terminalHandled = false;
       let adTimeout = null;
@@ -15404,20 +13045,7 @@ class IntextVideoCreative {
         clearAdTimeout();
         clearNativeStartedFallbackTimer();
         clearMediaReadyConfirmTimer();
-        const keepMediaObservation =
-          type === "resolve" &&
-          playerRevealed &&
-          !terminalEvent &&
-          !terminalHandled &&
-          !this._aborted &&
-          this.isRenderTokenActive(
-            "IntextVideoCreative.settle:resolved-media-observation",
-          );
-        if (!keepMediaObservation) {
-          this.cleanupAdMediaObservation();
-        } else if (firstFrameConfirmed) {
-          this._adMediaFirstFrameCleanup?.();
-        }
+        this.cleanupAdMediaObservation();
         if (type === "resolve") resolve(value);
         else reject(value);
       };
@@ -15454,8 +13082,9 @@ class IntextVideoCreative {
           );
           return;
         }
-        if (playerRevealed) return;
-        playerRevealed = true;
+        if (firstFramePlayed) return;
+        markIntextDebugFirstFrame(source);
+        firstFramePlayed = true;
         this._playerRevealed = true;
         if (adstartAt) {
           logIntext(
@@ -15489,14 +13118,13 @@ class IntextVideoCreative {
           this.node._intextPipPlayerRevealed = true;
           this.node.maybeEnterIntextPipFromLastIntersection?.();
         }
-        maybePlayInitialOpenAnimation();
         settle("resolve");
       };
 
       const rejectBeforePlayback = (error, terminalSource) => {
         if (!this.isRenderTokenActive(`IntextVideoCreative.rejectBeforePlayback:${terminalSource || "unknown"}`)) return;
         if (terminalSource && !markTerminal(terminalSource)) return;
-        if (playerRevealed) return;
+        if (firstFramePlayed) return;
         settle("reject", error);
         setTimeout(() => {
           try { this.destroy(); } catch (e) { /* ignore */ }
@@ -15504,7 +13132,7 @@ class IntextVideoCreative {
       };
 
       const isRevealBlocked = () =>
-        playerRevealed || terminalEvent || terminalHandled || this._aborted || !this.player || !this.isRenderTokenActive("IntextVideoCreative.isRevealBlocked");
+        firstFramePlayed || terminalEvent || terminalHandled || this._aborted || !this.player || !this.isRenderTokenActive("IntextVideoCreative.isRevealBlocked");
 
       const getMediaCurrentTime = () => {
         const mediaEl = this._adMediaEl;
@@ -15512,52 +13140,19 @@ class IntextVideoCreative {
         const currentTime = Number(mediaEl.currentTime);
         return Number.isFinite(currentTime) ? currentTime : 0;
       };
-      const maybePlayInitialOpenAnimation = () => {
-        if (
-          !firstFrameConfirmed ||
-          !playerRevealed ||
-          !this.isRenderTokenActive(
-            "IntextVideoCreative.firstOpenAnimation",
-          )
-        ) {
-          return false;
-        }
-        return this.node?.playInitialOpenAnimation?.(
-          this.player?.el?.(),
-          "video-first-frame",
-        ) === true;
-      };
-      const confirmIntextFirstFrame = (source, options = {}) => {
-        if (
-          firstFrameConfirmed ||
-          terminalEvent ||
-          terminalHandled ||
-          this._aborted ||
-          !this._adMediaEl
-        ) return false;
-        if (!this.isRenderTokenActive(`IntextVideoCreative.firstFrame:${source}`)) {
-          this.cleanupAdMediaObservation();
-          return false;
-        }
-        const mediaEl = this._adMediaEl;
-        const currentTime = Number(mediaEl?.currentTime);
-        const hasAdvancedTime =
-          Number.isFinite(currentTime) && currentTime > 0;
-        const frameCallbackConfirmed =
-          options.frameCallbackConfirmed === true;
-        if (!hasAdvancedTime && !frameCallbackConfirmed) return false;
-        firstFrameConfirmed = true;
+      const markIntextDebugFirstFrame = (source) => {
+        const currentTime = getMediaCurrentTime();
+        if (intextDebugFirstFrameLogged || currentTime <= 0) return false;
+        intextDebugFirstFrameLogged = true;
         debugVideo("first-frame", {
           source,
-          currentTime: Number.isFinite(currentTime)
-            ? currentTime
-            : null,
-          mediaElement: mediaEl,
+          currentTime,
+          mediaElement: this._adMediaEl,
         });
-        this.node._intextPipFirstFrameConfirmed = true;
-        this.node.maybeEnterIntextPipFromLastIntersection?.();
-        maybePlayInitialOpenAnimation();
-        this._adMediaFirstFrameCleanup?.();
+        if (this.isRenderTokenActive(`IntextVideoCreative.firstFrame:${source}`)) {
+          this.node._intextPipFirstFrameConfirmed = true;
+          this.node.maybeEnterIntextPipFromLastIntersection?.();
+        }
         return true;
       };
 
@@ -15566,13 +13161,13 @@ class IntextVideoCreative {
         const confirmPlayback = () => {
           if (isRevealBlocked()) return;
           if (getMediaCurrentTime() > 0) {
-            confirmIntextFirstFrame("media-loadeddata-confirmed");
+            markIntextDebugFirstFrame("media_loadeddata_confirmed");
             revealPlayer("media_loadeddata_confirmed");
           }
         };
 
         confirmPlayback();
-        if (playerRevealed || terminalEvent) return;
+        if (firstFramePlayed || terminalEvent) return;
 
         mediaReadyConfirmTimer = setTimeout(() => {
           mediaReadyConfirmTimer = null;
@@ -15604,7 +13199,7 @@ class IntextVideoCreative {
         const onPlaying = () => {
           logIntext(`[Intext:Video:IMA] ad_media_playing`);
           this.node?.setIntextPipPlaybackActive?.(true, "ima-media-playing");
-          confirmIntextFirstFrame("media-playing");
+          markIntextDebugFirstFrame("media_playing");
           revealPlayer("media_playing");
         };
         const onTimeUpdate = () => {
@@ -15614,21 +13209,19 @@ class IntextVideoCreative {
               mediaTimeupdateLogged = true;
               logIntext(`[Intext:Video:IMA] ad_media_timeupdate_started`);
             }
-            confirmIntextFirstFrame("media-timeupdate");
+            markIntextDebugFirstFrame("media_timeupdate");
             revealPlayer("media_timeupdate");
           }
         };
         const onError = () => {
           this.node?.setIntextPipPlaybackActive?.(false, "ima-media-error");
           logIntext(`[Intext:Video:IMA] ad_media_error`);
-          this.cleanupAdMediaObservation();
         };
         const onStalled = () => {
           logIntext(`[Intext:Video:IMA] ad_media_stalled`);
         };
         const onAbort = () => {
           logIntext(`[Intext:Video:IMA] ad_media_abort`);
-          this.cleanupAdMediaObservation();
         };
 
         mediaEl.addEventListener("loadeddata", onLoadedData);
@@ -15639,60 +13232,21 @@ class IntextVideoCreative {
         mediaEl.addEventListener("stalled", onStalled);
         mediaEl.addEventListener("abort", onAbort);
 
-        let firstFrameListenersCleaned = false;
-        let frameCallbackId = null;
-        const cleanupFirstFrameListeners = () => {
-          if (firstFrameListenersCleaned) return;
-          firstFrameListenersCleaned = true;
+        this._adMediaCleanup = () => {
           mediaEl.removeEventListener("loadeddata", onLoadedData);
           mediaEl.removeEventListener("canplay", onCanPlay);
-          mediaEl.removeEventListener("timeupdate", onTimeUpdate);
-          if (
-            frameCallbackId !== null &&
-            typeof mediaEl.cancelVideoFrameCallback === "function"
-          ) {
-            try {
-              mediaEl.cancelVideoFrameCallback(frameCallbackId);
-            } catch (e) {
-              // ignore
-            }
-          }
-          frameCallbackId = null;
-          clearMediaReadyConfirmTimer();
-          if (this._adMediaFirstFrameCleanup === cleanupFirstFrameListeners) {
-            this._adMediaFirstFrameCleanup = null;
-          }
-        };
-        this._adMediaFirstFrameCleanup = cleanupFirstFrameListeners;
-
-        this._adMediaCleanup = () => {
-          cleanupFirstFrameListeners();
           mediaEl.removeEventListener("playing", onPlaying);
+          mediaEl.removeEventListener("timeupdate", onTimeUpdate);
           mediaEl.removeEventListener("error", onError);
           mediaEl.removeEventListener("stalled", onStalled);
           mediaEl.removeEventListener("abort", onAbort);
         };
-
-        if (
-          !mediaFrameCallbackRequested &&
-          typeof mediaEl.requestVideoFrameCallback === "function"
-        ) {
-          mediaFrameCallbackRequested = true;
-          frameCallbackId = mediaEl.requestVideoFrameCallback(() => {
-            frameCallbackId = null;
-            confirmIntextFirstFrame(
-              "request-video-frame-callback",
-              { frameCallbackConfirmed: true },
-            );
-          });
-        }
 
         if (getMediaCurrentTime() > 0) {
           if (!mediaTimeupdateLogged) {
             mediaTimeupdateLogged = true;
             logIntext(`[Intext:Video:IMA] ad_media_timeupdate_started`);
           }
-          confirmIntextFirstFrame("media-timeupdate");
           revealPlayer("media_timeupdate");
         }
       };
@@ -15717,7 +13271,7 @@ class IntextVideoCreative {
 
       const handleTerminalBeforeReveal = (source, error) => {
         if (terminalHandled) return;
-        if (playerRevealed) {
+        if (firstFramePlayed) {
           markTerminal(source);
           return;
         }
@@ -15768,7 +13322,7 @@ class IntextVideoCreative {
 
       const markFastFallbackVideoError = (errCode, errMsg, source) => {
         const normalizedCode = String(errCode || "");
-        const beforePlayback = !playerRevealed;
+        const beforePlayback = !firstFramePlayed;
         const fastFallbackConfig = resolveFastFallbackVideoErrorCodes();
         const enabled = isFastFallbackVideoError(normalizedCode);
         const reason = getFastFallbackVideoReason(normalizedCode);
@@ -15836,7 +13390,7 @@ class IntextVideoCreative {
         setTimeout(() => {
           if (
             adStarted &&
-            !playerRevealed &&
+            !firstFramePlayed &&
             !terminalEvent &&
             !this._aborted &&
             this.player &&
@@ -15850,7 +13404,7 @@ class IntextVideoCreative {
       });
 
       this.player.on("timeupdate", () => {
-        if (adStarted && !playerRevealed && !terminalEvent && !this.spinnerHidden) {
+        if (adStarted && !firstFramePlayed && !terminalEvent && !this.spinnerHidden) {
           startAdMediaObservation();
         }
       });
@@ -15868,7 +13422,7 @@ class IntextVideoCreative {
         logIntext(`[Intext:Video:IMA] player_adserror - code: ${normalizedErrCode}, msg: ${errMsg}`);
         this.node?.cleanupIntextPip?.("video-error");
 
-        if (!playerRevealed) {
+        if (!firstFramePlayed) {
           markFastFallbackVideoError(normalizedErrCode, errMsg, "player_adserror");
           rejectBeforePlayback(new Error(`video_ad_error: [${normalizedErrCode}] ${errMsg}`), "adserror");
         } else {
@@ -15894,7 +13448,7 @@ class IntextVideoCreative {
               "gexp-intext-video-error-code": normalizedErrCode,
               "gexp-intext-video-error-msg": errMsg,
               "gexp-intext-video-error-message": errMsg,
-              "gexp-intext-video-before-playback": playerRevealed ? "false" : "true",
+              "gexp-intext-video-before-playback": firstFramePlayed ? "false" : "true",
               "gexp-intext-load-end-distance-px": this.node.getIntextDistancePx(),
             });
             this.node.flushIntextTelemetryToCI();
@@ -16010,21 +13564,11 @@ class IntextVideoCreative {
             window.google.ima.settings.setVpaidMode(window.google.ima.ImaSdkSettings.VpaidMode.INSECURE);
           }
 
-          const controls =
-            this.resolveVideoControlsConfig();
-
           const options = {
             id: this.playerId,
             showCountdown: true,
-            disableAdControls: false,
-            showControlsForJSAds:
-              controls.showForJsAds,
-            vpaidMode: window.google?.ima
-              ?.ImaSdkSettings
-              ? window.google.ima
-                .ImaSdkSettings
-                .VpaidMode
-                .INSECURE
+            vpaidMode: (window.google && window.google.ima && window.google.ima.ImaSdkSettings)
+              ? window.google.ima.ImaSdkSettings.VpaidMode.INSECURE
               : "insecure",
             autoPlayAdBreaks: true,
             debug: true,
@@ -16064,7 +13608,7 @@ class IntextVideoCreative {
                     `[Intext:Video:IMA:Native] native_ad_error - code=${errCode}, msg=${errMsg}, vast=${err?.getVastErrorCode?.()}`,
                   );
                   this.node?.cleanupIntextPip?.("video-error");
-                  if (!playerRevealed) {
+                  if (!firstFramePlayed) {
                     markFastFallbackVideoError(errCode, errMsg, "native_ad_error");
                     rejectBeforePlayback(
                       new Error(`video_ad_error: [${errCode}] ${errMsg}`),
@@ -16216,2079 +13760,3 @@ class IntextVideoCreative {
     }
   }
 }
-class WPromise
-{
-    constructor() {
-        let res, rej;
-        this.inner = new Promise((resolve, reject) => {
-            res = resolve;
-            rej = reject;
-        });
-        this.reject = rej;
-
-        this.resolve = function (ret) {
-            res.apply(null, [ret])
-        };
-        this.then = function (r, e) {
-            return this.inner.then(r, e);
-        }
-    }
-}
-/**
- * BfCacheEventTracker
- * Tracks pageshow/pagehide events with bfcache detection.
- * Includes fallback when APIs are unavailable.
- */
-class BfCacheEventTracker {
-    constructor() {
-        // Detect API support
-        this.isSupported = 'onpageshow' in window && 'onpagehide' in window;
-
-        // Counters
-        this.pageshowTotal = 0;
-        this.pageshowFromBfcache = 0;
-        this.pageshowNotFromBfcache = 0;
-
-        this.pagehideTotal = 0;
-        this.pagehideToBfcache = 0;
-        this.pagehideNotToBfcache = 0;
-
-        // Fallback state
-        this.isFallback = !this.isSupported;
-
-        this._boundPageshow = this._handlePageshow.bind(this);
-        this._boundPagehide = this._handlePagehide.bind(this);
-
-        this._setupListeners();
-    }
-
-    _setupListeners() {
-        if (this.isSupported) {
-            window.addEventListener('pageshow', this._boundPageshow);
-            window.addEventListener('pagehide', this._boundPagehide);
-        }
-    }
-
-    _handlePageshow(event) {
-        this.pageshowTotal++;
-        if (event && 'persisted' in event) {
-            if (event.persisted) {
-                this.pageshowFromBfcache++;
-            } else {
-                this.pageshowNotFromBfcache++;
-            }
-        } else {
-            // Rare: event exists but no persisted → treat as non-bfcache
-            this.pageshowNotFromBfcache++;
-        }
-    }
-
-    _handlePagehide(event) {
-        this.pagehideTotal++;
-        if (event && 'persisted' in event) {
-            if (event.persisted) {
-                this.pagehideToBfcache++;
-            } else {
-                this.pagehideNotToBfcache++;
-            }
-        } else {
-            this.pagehideNotToBfcache++;
-        }
-    }
-
-    /**
-     * Returns counts with compatibility flag.
-     * If APIs not supported: all counts = 0, isFallback = true.
-     */
-    getCounts() {
-        if (this.isFallback) {
-            return {
-                pageshowTotal: 0,
-                pageshowFromBfcache: 0,
-                pageshowNotFromBfcache: 0,
-                pagehideTotal: 0,
-                pagehideToBfcache: 0,
-                pagehideNotToBfcache: 0,
-                isFallback: true,
-                isSupported: false,
-            };
-        }
-
-        return {
-            pageshowTotal: this.pageshowTotal,
-            pageshowFromBfcache: this.pageshowFromBfcache,
-            pageshowNotFromBfcache: this.pageshowNotFromBfcache,
-            pagehideTotal: this.pagehideTotal,
-            pagehideToBfcache: this.pagehideToBfcache,
-            pagehideNotToBfcache: this.pagehideNotToBfcache,
-            isFallback: false,
-            isSupported: true,
-        };
-    }
-
-    reset() {
-        this.pageshowTotal = 0;
-        this.pageshowFromBfcache = 0;
-        this.pageshowNotFromBfcache = 0;
-        this.pagehideTotal = 0;
-        this.pagehideToBfcache = 0;
-        this.pagehideNotToBfcache = 0;
-    }
-
-    destroy() {
-        if (this.isSupported) {
-            window.removeEventListener('pageshow', this._boundPageshow);
-            window.removeEventListener('pagehide', this._boundPagehide);
-        }
-    }
-}
-
-class PageVisibilityTracker {
-    constructor({ minVisibleMs = 300 } = {}) {
-        this.minVisibleMs = minVisibleMs; // minimum visible duration to count
-        this.lastVisibleTime = 0; // timestamp when page was last visible
-        this.isVisibleNow = false;
-        this.initialVisibilityState=document.visibilityState;
-        this.lastVisibilityState=document.visibilityState;
-        setInterval(()=>{this.lastVisibilityState=document.visibilityState;},5000);
-        this.nVisibilityChanges=0;
-        this.totalVisibleTime = 0; // total visible time in ms
-        this._lastUpdateTime = Date.now(); // for delta calculations
-        this._pageLoadTime = this._lastUpdateTime; // track page lifetime
-
-        // Bind events
-        document.addEventListener('visibilitychange', () =>{this.nVisibilityChanges++;this._update()});
-        window.addEventListener('resize', () => this._update());
-
-        // Initial check
-        this._update();
-    }
-
-    /**
-     * Internal update function
-     */
-    _update() {
-        const now = Date.now();
-
-        // Accumulate visible time if previously visible
-        if (this.isVisibleNow) {
-            this.totalVisibleTime += now - this._lastUpdateTime;
-        }
-
-        this.isVisibleNow = this._checkVisible();
-        if (this.isVisibleNow) this.lastVisibleTime = now;
-
-        this._lastUpdateTime = now;
-    }
-
-    /**
-     * Returns true if tab is selected and window is not minimized
-     */
-    _checkVisible() {
-        const tabVisible = document.visibilityState === 'visible';
-        const windowVisible = window.innerWidth > 0 && window.innerHeight > 0;
-        return tabVisible && windowVisible;
-    }
-
-    /**
-     * Returns true if page has been recently visible (avoiding very brief flips)
-     */
-    isRecentlyVisible() {
-        return Date.now() - this.lastVisibleTime < this.minVisibleMs;
-    }
-
-    /**
-     * Returns total visible time and percentage of page lifetime
-     */
-    getTotalVisibleTime() {
-        this._update();
-
-        const now = Date.now();
-        const pageLifetime = now - this._pageLoadTime;
-        const visiblePercentage = pageLifetime > 0
-            ? (this.totalVisibleTime / pageLifetime) * 100
-            : 0;
-
-        return {
-            absoluteMs: this.totalVisibleTime,
-            percentage: visiblePercentage
-        };
-    }
-
-    /**
-     * Callback helper for visibility changes
-     */
-    onChange(callback) {
-        const checkAndCallback = () => callback(this.isRecentlyVisible());
-        document.addEventListener('visibilitychange', checkAndCallback);
-        window.addEventListener('resize', checkAndCallback);
-    }
-}
-
-class BaseStorage {
-    constructor(storageKey) {
-        this.storageKey = storageKey;
-        this.startTime = performance.now();
-        this.data = this.load();
-    }
-
-    // Set a key-value pair
-    set(key, value) {
-        this.data[key] = value;
-        this.save();
-    }
-    get(key)
-    {
-        return this.data[key] ?? null;
-    }
-    // Get all stored data
-    getAll() {
-        return this.data;
-    }
-
-    // Load data from storage (to be implemented by derived classes)
-    load() {
-        // By default, load nothing and initialize data
-        return {};
-    }
-
-    // Save current data to storage (for derived classes to implement)
-    save() {}
-
-    // Get the time the page visit started
-    getVisitStart() {
-        return this.startTime;
-    }
-
-    // Get the elapsed time from the start of the page visit in milliseconds
-    getVisitOffset() {
-        return performance.now() - this.startTime;
-    }
-}
-
-class SessionStorage extends BaseStorage {
-    constructor() {
-        super("sessionStorageData");
-    }
-
-    load() {
-        const sessionData = sessionStorage.getItem(this.storageKey);
-        return sessionData ? JSON.parse(sessionData) : {};
-    }
-
-    save() {
-        sessionStorage.setItem(this.storageKey, JSON.stringify(this.data));
-    }
-}
-
-class DailyStorage extends BaseStorage {
-    constructor() {
-        super("gexpDaily");
-
-    }
-
-    load() {
-        this.currentDate = new Date().toDateString();
-        const dailyData = localStorage.getItem(this.storageKey);
-        const parsedData = dailyData ? JSON.parse(dailyData) : {};
-
-        // Check if data is from the current day, reset if not
-        if (parsedData.date !== this.currentDate) {
-            this.data=this.initDay(parsedData);
-            this.save();
-        } else {
-            this.data = parsedData.data || this.initDay({});
-        }
-
-        return this.data;
-    }
-    initDay(curVal)
-    {
-        return {};
-    }
-
-    save() {
-        const dataToStore = { date: this.currentDate, data: this.data };
-        localStorage.setItem(this.storageKey, JSON.stringify(dataToStore));
-    }
-}
-
-class HistoryStorage extends BaseStorage {
-    constructor() {
-        super("gexpHistory");
-    }
-    load() {
-        const historyData = localStorage.getItem(this.storageKey);
-        let hh=historyData ? JSON.parse(historyData) : {};
-        if(typeof hh.firstSeen_t ==="undefined") {
-            if(typeof hh.firstSeen!=="undefined")
-                hh.firstSeen_t=hh.firstSeen;
-            else
-                hh.firstSeen_t = (new Date()).getTime();
-        }
-        return hh;
-
-
-    }
-    save() {
-        localStorage.setItem(this.storageKey, JSON.stringify(this.data));
-    }
-}
-
-class StatsGatherer
-{
-    sessionStorageInstance= new SessionStorage();
-    dailyStorageInstance = new DailyStorage();
-    historyStorageInstance = new HistoryStorage();
-
-    rows=[];
-    extra={};
-    required={};
-    constructor(sendProbability, npProbability, telemetryName, gexp) {
-        let baseNumber=localStorage.getItem("telP");
-        let baseId=localStorage.getItem("telPId")
-        this.visTracker=new PageVisibilityTracker({minVisibleMs:500});
-        this.bfCacheTracker=new BfCacheEventTracker();
-        if(baseNumber===null || baseId===null)
-        {
-            baseNumber=Math.floor(Math.random()*1000);
-            if(typeof window.crypto!=="undefined" && typeof window.crypto.randomUUID!=="undefined")
-                baseId=window.crypto.randomUUID();
-            else
-                baseId="0";
-            localStorage.setItem('telP', baseNumber);
-            localStorage.setItem('telPId', baseId);
-        }
-        this.scrollData={};
-        const satisfiesProportional = sendProbability > 0 && (baseNumber % sendProbability === 0);
-        const satisfiesNP = !satisfiesProportional && npProbability > 0 && (baseNumber % npProbability === 0);
-        // Cookie override: force telemetry regardless of sampling probability.
-        this.forceTelemetry = this.readForceGexpCookie();
-        this.telp = this.forceTelemetry || satisfiesProportional || satisfiesNP;
-        this.proportionalTelemetry = satisfiesProportional;
-        this.telId=baseId;
-        this.tln=telemetryName;
-        this.cData=null;
-        this.gexp=gexp;
-        this.internalReference=(new Date()).getTime();
-        this.extra={};
-        this.measureCPULoad(
-            {
-                resultObject: this.extra,
-                intervals: [0, 10, 25, 30],
-                samplesPerInterval: 5
-            }
-        );
-        if(typeof this.extra.__longTaskObserver !== "undefined")
-            delete this.extra.__longTaskObserver;
-
-        this.init()
-        this.captureScrollMetrics();
-        this.captureReferrerInfo();
-        this.captureVisitFrequency();
-        this.execOnElements();
-        if(typeof this.gexp.cfg!=="undefined" && typeof this.gexp.cfg.config_version!=="undefined")
-            this.required["config_version"]=this.gexp.cfg.config_version;
-
-        this.dlInterval=null;
-        this.ignoreProperties=["cmp_cookie_consent_accepted","privacy","be_bt_modules_showed","be_emailing_campaign","be_external_campaign","be_galleries_count","be_galleries_position","be_galleries_quantity","be_internal_campaign","be_internal_search_kw","be_product_section_conversion","be_product_subsection_conversion","be_product_title_conversion","be_scroll_type","user_adobe_id","be_page_url","be_page_url_qs","be_page_url_raw","be_page_hierarchy","be_adblocking","be_page_cwv","error_log","client_subscription_expiration"];
-    }
-
-    /** True when cookie _forceGexp is truthy (true / 1 / yes). */
-    readForceGexpCookie() {
-        try {
-            const m = document.cookie.match(/(?:^|;\s*)_forceGexp=([^;]*)/);
-            if (!m) return false;
-            const v = decodeURIComponent(m[1].trim()).toLowerCase();
-            return v === "true" || v === "1" || v === "yes";
-        } catch (e) {
-            return false;
-        }
-    }
-
-    init()
-    {
-        let evs=this.rows;
-        this.captureResourceTimings();
-        if(this.telp) {
-            window.addEventListener('beforeunload', () => {
-               this.sendData();
-            });
-            window.addEventListener('pagehide', () => {this.sendData();})
-            this.initWatchdog();
-        }
-        setInterval(()=>{
-            if (typeof ueDataLayer !== "undefined") {
-                for(var j=0;j<this.rows.length;j++)
-                {
-                    for (var k in ueDataLayer) {
-                        if (this.ignoreProperties.indexOf(k) < 0)
-                            this.rows[j][k] = ueDataLayer[k];
-                    }
-                }
-            }
-        },5000);
-    }
-
-    reset() {
-        if (this.telp) {
-            this.sendData();
-        }
-    }
-
-    measureCPULoad(config = {}) {
-    const resultObject = config.resultObject || {};
-    const intervals = config.intervals || [0, 5, 25]; // Seconds
-    const samplesPerInterval = config.samplesPerInterval || 5;
-    const timeoutDuration = 500; // 1 second in milliseconds
-
-    // 1. Copy hardwareConcurrency if supported
-    if ('hardwareConcurrency' in navigator) {
-        resultObject.hardwareConcurrency = navigator.hardwareConcurrency;
-    }
-
-    // 2. Timeout-based interval measurement
-    function measureTimeoutOffset(callback) {
-        const startTime = performance.now();
-        setTimeout(() => {
-            const endTime = performance.now();
-            const elapsed = endTime - startTime;
-            const offset = elapsed - timeoutDuration;
-            callback(offset);
-        }, timeoutDuration);
-    }
-
-    function collectSamples(intervalIndex, sampleCount = 0, offsets = []) {
-        if (sampleCount >= samplesPerInterval) {
-            // Calculate average offset and store in resultObject
-            const averageOffset = offsets.reduce((sum, offset) => sum + offset, 0) / samplesPerInterval;
-            resultObject[`performance_timing_${intervals[intervalIndex]}`] = averageOffset;
-            // Schedule next interval if any
-            if (intervalIndex + 1 < intervals.length) {
-                const delay = (intervals[intervalIndex + 1] - intervals[intervalIndex]) * 1000;
-                setTimeout(() => collectSamples(intervalIndex + 1), delay);
-            }
-            return;
-        }
-
-        measureTimeoutOffset(offset => {
-            offsets.push(offset);
-            collectSamples(intervalIndex, sampleCount + 1, offsets);
-        });
-    }
-
-    // Start timeout-based measurement
-    collectSamples(0);
-
-    // 3. Long Tasks API observer (if supported)
-    if ('PerformanceObserver' in window && PerformanceObserver.supportedEntryTypes.includes('longtask')) {
-        // Store top 3 longest tasks
-        const longestTasks = [];
-
-        const observer = new PerformanceObserver(list => {
-            list.getEntries().forEach(entry => {
-                // Extract relevant fields from the long task
-                const taskData = {
-                    startTime: entry.startTime,
-                    name: entry.name,
-                    duration: entry.duration,
-                    containerSrc: entry.attribution[0]?.containerSrc || '',
-                    containerName: entry.attribution[0]?.containerName || '',
-                    containerId: entry.attribution[0]?.containerId || '',
-                };
-
-                // Insert task into longestTasks, sorted by duration
-                longestTasks.push(taskData);
-                longestTasks.sort((a, b) => b.duration - a.duration); // Descending order
-                if (longestTasks.length > 3) {
-                    longestTasks.pop(); // Keep only top 3
-                }
-
-                // Update resultObject with top 3 tasks
-                longestTasks.forEach((task, index) => {
-                    resultObject[`performance_longtask${index + 1}_startTime`] = task.startTime;
-                    resultObject[`performance_longtask${index + 1}_name`] = task.name;
-                    resultObject[`performance_longtask${index + 1}_duration`] = task.duration;
-                    resultObject[`performance_longtask${index + 1}_containerSrc`] = task.containerSrc;
-                    resultObject[`performance_longtask${index + 1}_containerId`] = task.containerId;
-                    resultObject[`performance_longtask${index + 1}_containerName`] = task.containerName;
-                });
-            });
-        });
-
-        observer.observe({ entryTypes: ['longtask'] });
-        // Store observer in resultObject to allow manual disconnection if needed
-        resultObject.__longTaskObserver = observer;
-    }
-
-    return resultObject;
-}
-
-    initWatchdog()
-    {
-        let inactivityTimeout;
-        const INACTIVITY_TIME = 10*60*1000; // 10 minutes in milliseconds
-        let resetInactivityTimer=function() {
-            clearTimeout(inactivityTimeout);
-            inactivityTimeout = setTimeout(()=>this.sendData(), INACTIVITY_TIME);
-        }.bind(this);
-
-// List of user activity events
-        const activityEvents = [
-            'mousemove',
-            'keydown',
-            'click',
-            'scroll',
-            'touchstart' // For touch devices
-        ];
-
-// Add event listeners for user activity
-        activityEvents.forEach(event => {
-            document.addEventListener(event, resetInactivityTimer, { passive: true });
-        });
-
-// Handle page visibility changes (tab switch, minimize)
-        document.addEventListener('visibilitychange', () => {
-            if (document.hidden) {
-                // Page is hidden (tab switched or minimized)
-                clearTimeout(inactivityTimeout);
-                // Nota: en un futuro, se enviarian updates
-                this.sendData(); // Trigger immediately or keep timer running, depending on your needs
-            } else {
-                // Page is visible again, reset timer
-                resetInactivityTimer();
-            }
-        }, { passive: true });
-
-// Initialize the timer on page load
-        resetInactivityTimer();
-    }
-    sendData()
-    {
-        let visInfo=this.visTracker.getTotalVisibleTime();
-        let currentVisible=this.visTracker.isRecentlyVisible();
-        if(this.rows.length===0)
-            return;
-        try {
-            let cls = this.captureCLS();
-            let customMetrics = this.captureCustomMetrics();
-            /*if(this.rows.length == 0 && Object.keys(this.required).length>0)
-                this.rows.push(this.required);*/
-
-            for (var k=0;k<this.rows.length;k++) {
-                this.rows[k] = Object.assign(this.rows[k], cls);
-                this.rows[k] = Object.assign(this.rows[k],this.extra);
-                this.rows[k] = Object.assign(this.rows[k],customMetrics)
-                for(var j in this.required)
-                    this.rows[k][j]=this.required[j];
-                this.rows[k]=Object.assign(this.rows[k],this.resourceTimings);
-                this.rows[k]["session"]=this.sessionStorageInstance.getAll();
-                this.rows[k]["daily"]=this.dailyStorageInstance.getAll();
-                this.rows[k]["history"]=this.historyStorageInstance.getAll();
-                this.rows[k]["scroll"]=this.scrollData;
-                this.rows[k].gexp_enabled=this.gexp.enabled;
-                this.rows[k].gexp_error=this.gexp.error;
-                this.rows[k].gexp_errored=this.gexp.errored;
-                this.rows[k].newUser=this.gexp.isNewUser();
-                this.rows[k].initialVisibilityState=this.visTracker.initialVisibilityState;
-                this.rows[k].lastVisibilityState=this.visTracker.lastVisibilityState;
-                this.rows[k].nVisibilityChanges=this.visTracker.nVisibilityChanges;
-                this.rows[k].recentlyVisible=currentVisible;
-                this.rows[k].visibleTime=visInfo.absoluteMs;
-                this.rows[k].visibleTimePercentage=visInfo.percentage;
-                this.rows[k].tel_id=this.telId;
-                this.rows[k].proportionalTelemetry=this.proportionalTelemetry;
-                this.rows[k].forceGexpTelemetry=this.forceTelemetry === true;
-                if(this.rows[k]["gexp_floor"]==="undefined")
-                    this.rows[k]["gexp_floor"]=-1;
-                let bfCounts=this.bfCacheTracker.getCounts();
-                for(var bk in bfCounts)
-                    this.rows[k][bk]=bfCounts[bk];
-            }
-
-            const data = JSON.stringify({
-                telemetryType: this.tln,
-                datas: this.rows
-            });
-            navigator.sendBeacon('https://adttelemetry2.unidadeditorial.es:8080/json', data);
-            this.rows=[];
-        }catch(e)
-        {
-
-        }
-    }
-    getCookie(name) {
-        const value = `; ${document.cookie}`;
-        const parts = value.split(`; ${name}=`);
-        if (parts.length === 2) return parts.pop().split(';').shift();
-        return null;
-    }
-    captureCustomMetrics()
-    {
-        return {
-            custom_1_f:this.getCookie("_vis_opt_exp_238_combi")
-        }
-    }
-    getQueryParam(param) {
-        const urlParams = new URLSearchParams(window.location.search);
-        return urlParams.get(param);
-    }
-    captureResourceTimings() {
-    // Collect all resource timings from the Performance API
-// Object of telemetry keys and corresponding URLs to monitor
-        const targetResources = {
-            "resourceTimings_didomi": "https://sdk.privacy-center.org/sdk/7991bda51eb5539e21b1b8c0f37470a264eb2db9/modern/sdk.7991bda51eb5539e21b1b8c0f37470a264eb2db9.js",
-            "resourceTimings_gpt": "https://securepubads.g.doubleclick.net/tag/js/gpt.js",
-            "resourceTimings_prebid": "https://e00-elmundo.uecdn.es/js/pbm",
-            "resourceTimings_permutive":"https://cdn.permutive.com/10453011",
-            "resourceTimings_utag":"https://tags.tiqcdn.com/utag/unidadeditorial/marca/prod/utag.js",
-            "resourceTimings_utag_code":"https://tags.tiqcdn.com/utag/unidadeditorial/marca/prod/utag.14.js?utv=ut4.48.202205051108",
-            "resourceTimings_gfk":"https://es-config.sensic.net/s2s-web.js",
-            "resourceTimings_piano":"https://api-esp.piano.io/public/sdk/v04/sdk.js?v=xxx"
-        };
-        const targetSelectors={
-            "pageElements_mundoDynamicSignwall":".ue-cintillo-premium-scroll-dynamic-mid",
-            "pageElements_mundoDynamicPaywall":".ue-cintillo-premium-scroll-dynamic-high",
-            "pageElements_mundoPaywall":".ue-c-article__premium",
-            "pageElements_expansionDynamicPaywall":".ue-cintillo-premium-scroll-paywall",
-            "pageElements_expansionDynamicSignwall":".ue-cintillo-premium-scroll-signwall",
-            "pageElements_expansionPaywall":".paywall-block"
-        }
-        this.resourceTimings={};
-        for(var k in targetSelectors)
-            this.resourceTimings[k]=false;
-// Object to store the timing data of completed resources, keyed by telemetry key
-
-// Interval function to periodically check for resource completion
-        const checkResourceInterval = setInterval(() => {
-            // Get all resource performance entries
-            const resourceTimings = performance.getEntriesByType("resource");
-
-            // Iterate over each telemetry key and its associated URL
-            Object.entries(targetResources).forEach(([telemetryKey, url]) => {
-                const entry = resourceTimings.find((resource) => resource.name.includes(url));
-
-                // If resource is found and has completed loading
-                if (entry && entry.responseEnd > 0) {
-                    // Store relevant timing metrics in the object, using the telemetry key
-                    this.resourceTimings[telemetryKey+"_start"] = parseInt(entry.startTime);
-                    this.resourceTimings[telemetryKey+"_duration"]=parseInt(entry.duration);
-                    // Remove the telemetry key from targetResources once completed
-                    delete targetResources[telemetryKey];
-                }
-            });
-
-            // Clear the interval if all target resources have been processed
-            if (Object.keys(targetResources).length === 0) {
-                clearInterval(checkResourceInterval);
-            }
-        }, 1500);
-        const checkSelectorInterval = setInterval(() => {
-            Object.entries(targetSelectors).forEach(([telemetryKey, selector]) => {
-                let v=document.querySelectorAll(selector);
-                if(v && v.length>0) {
-                    this.resourceTimings[telemetryKey] = true;
-                    delete targetSelectors[telemetryKey];
-                }
-            })
-
-            // Clear the interval if all target resources have been processed
-            if (Object.keys(targetSelectors).length === 0) {
-                clearInterval(checkSelectorInterval);
-            }
-        }, 1500);
-}
-    execOnElements()
-    {
-        let cur=this;
-        const selectorCallbacks = {
-            '.tbl-feed-container': (element) => {
-                    setInterval(()=>{
-                        let l=element.querySelectorAll('[data-item-syndicated]');
-                        cur.extra.taboola_number_of_cards=l.length;
-                        if(l.length>0)
-                        {
-                            cur.extra.taboola_card_title=(l[0].getAttribute('data-item-title') ?? null);
-                        }
-                    },3000);
-            }
-        };
-            // Store callbacks and track processed elements
-            const callbacks = new Map(Object.entries(selectorCallbacks));
-            const processedElements = new WeakSet();
-            const intervalId = setInterval(checkElements, 1000);
-            // Function to check for matching elements
-            function checkElements() {
-                if(Object.keys(selectorCallbacks).length===0)
-                {
-                    clearInterval(intervalId);
-                    return;
-                }
-                callbacks.forEach((callback, selector) => {
-                    document.querySelectorAll(selector).forEach(element => {
-                        // Only process new elements
-                        if (!processedElements.has(element)) {
-                            processedElements.add(element);
-                            callback(element);
-                        }
-                    });
-                });
-            }
-    }
-
-    getDeviceType() {
-        const userAgent = navigator.userAgent;
-        if (/Mobi|Android/i.test(userAgent)) {
-            return 'Mobile';
-        } else if (/Tablet|iPad/i.test(userAgent)) {
-            return 'Tablet';
-        }
-        return 'Desktop';
-    }
-
-    getBrowserType() {
-        const userAgent = navigator.userAgent;
-        if (userAgent.indexOf('Firefox') > -1) {
-            return 'Firefox';
-        } else if (userAgent.indexOf('Chrome') > -1) {
-            return 'Chrome';
-        } else if (userAgent.indexOf('Safari') > -1) {
-            return 'Safari';
-        } else if (userAgent.indexOf('Edge') > -1) {
-            return 'Edge';
-        } else if (userAgent.indexOf('Trident') > -1) {
-            return 'Internet Explorer';
-        }
-        return 'Unknown';
-
-    }
-    getCommonData()
-    {
-        if(this.cData!==null)
-            return this.cData;
-        this.cData={
-            domain: window.location.hostname,
-            url: window.location.href,
-            userDate: new Date().getTime(),
-            deviceType: this.getDeviceType(),
-            browserType: this.getBrowserType(),
-            // Esta duplicado, se obtiene de otro sitio que desconozco, aqui que lo comento aqui.
-            //userAgent: navigator.userAgent,
-            screenDimensions: {
-                width: screen.width,
-                height: screen.height,
-                availableWidth: screen.availWidth,
-                availableHeight: screen.availHeight
-            },
-            viewportDimensions: {
-                width: window.innerWidth,
-                height: window.innerHeight
-            },
-            referrer: document.referrer,
-            language: navigator.language || navigator.userLanguage,
-            connectionType: navigator.connection ? navigator.connection.effectiveType : 'unknown',
-            platform: navigator.platform,
-            timeZoneOffset: new Date().getTimezoneOffset(),
-            cookiesEnabled: navigator.cookieEnabled,
-            doNotTrack: navigator.doNotTrack || 'unspecified',
-            utm_source: this.getQueryParam("utm_source"),
-            utm_source_CID:this.getQueryParam("cid"),
-            utm_campaign:this.getQueryParam("utm_campaign"),
-            ueUserContentGoogle:"" + (window.ueUserContentGoogle ?? "")
-        };
-
-        return this.cData;
-    }
-    registerRow(cI)
-    {
-        this.rows.push(cI);
-        let gd=this.getCommonData();
-        for(var k in gd)
-            cI[k]=gd[k];
-        let f=()=> {
-            if (typeof ueDataLayer !== "undefined") {
-                for (var k in ueDataLayer) {
-                    if (this.ignoreProperties.indexOf(k) < 0)
-                        cI[k] = ueDataLayer[k];
-                }
-            }
-        }
-        // Esto es porque queremos hacerlo lo antes posibles..No queremos ni esperar a los 2 segundos del intervalo.
-
-        if(typeof ueDataLayer!=="undefined" )
-            f();
-        cI["timestamp"]=new Date().getTime();
-        cI["timestamp_t"]=new Date().getTime();
-    }
-    captureScrollMetrics() {
-
-        // =============================================
-        // Variables principales
-        // =============================================
-        const startTime = Date.now();
-
-        let maxScrollDepthPx = 0;
-        let lastScrollY = 0;
-        let totalPixelsScrolled = 0;
-
-        let sampleCounter = 0;
-        let scrollBehaviour = "";
-        let currentIntervalPixels = 0;
-
-        // Nuevas métricas solicitadas
-        let maxScrollPercentage = 0;
-        const timeToScroll = { 25: null, 50: null, 75: null, 90: null };
-
-        const INTERVAL_SAMPLES = 4;        // 4 × 500ms = 2 segundos
-        const PIXELS_PER_UNIT = 100;
-        const MAX_SAMPLES=40;
-        let nSamples=0;
-
-        // Inicializar sessionStorage
-        this.scrollData["maxScrollDepth"]= 0;
-        this.scrollData["maxScrollPercentage"]= 0;
-        this.scrollData["scrollVelocity"]= 0;
-        this.scrollData["totalPixelsScrolled"]= 0;
-        this.scrollData["scrollBehaviour"]= "";
-        this.scrollData["timeToScroll"]= timeToScroll;   // objeto con tiempos en segundos
-
-        let scTimeout = null;
-
-        // =============================================
-        // Función para calcular porcentaje de scroll actual
-        // =============================================
-        const getScrollPercentage = (scrollY) => {
-            const scrollableHeight = document.documentElement.scrollHeight - window.innerHeight;
-            if (scrollableHeight <= 0) return 0;
-            return Math.min(Math.round((scrollY / scrollableHeight) * 100), 100);
-        };
-
-        // =============================================
-        // Inicialización inmediata (scroll inicial)
-        // =============================================
-
-        const initialY = window.scrollY ??
-            window.pageYOffset ??
-            document.documentElement.scrollTop ??
-            document.body.scrollTop ?? 0;
-        this.scrollData["initialY"]=initialY;
-        if (initialY < 1000) {
-            totalPixelsScrolled += initialY;
-            currentIntervalPixels += initialY;
-            maxScrollDepthPx = initialY;
-
-            const perc = getScrollPercentage(initialY);
-            maxScrollPercentage = perc;
-
-            // Registrar como scroll inicial hacia abajo
-            scrollBehaviour += "D" + Math.round(initialY / PIXELS_PER_UNIT);
-            this.scrollData["scrollBehaviour"]= scrollBehaviour;
-
-            // Registrar tiempos de umbrales si ya los supera al cargar
-            const nowSec = 0; // justo al inicio
-            if (perc >= 25 && timeToScroll[25] === null) timeToScroll[25] = nowSec;
-            if (perc >= 50 && timeToScroll[50] === null) timeToScroll[50] = nowSec;
-            if (perc >= 75 && timeToScroll[75] === null) timeToScroll[75] = nowSec;
-            if (perc >= 90 && timeToScroll[90] === null) timeToScroll[90] = nowSec;
-        }
-
-        lastScrollY = initialY;
-        this.scrollData["maxScrollDepth"]=Math.round(maxScrollDepthPx);
-        this.scrollData["maxScrollPercentage"]= maxScrollPercentage;
-        this.scrollData["timeToScroll"]= timeToScroll;
-
-        let currentY=initialY;
-
-        // =============================================
-        // Función principal (ejecutada cada ~500ms)
-        // =============================================
-        const scTimeoutFunc = () => {
-
-            currentY = window.scrollY ??
-                window.pageYOffset ??
-                document.documentElement.scrollTop ??
-                document.body.scrollTop ?? 0;
-
-
-            const diff = Math.abs(currentY - lastScrollY);
-            if (diff > 5) {
-                totalPixelsScrolled += diff;
-                currentIntervalPixels += diff;
-            }
-
-            maxScrollDepthPx = Math.max(maxScrollDepthPx, currentY);
-
-            // Calcular porcentaje actual
-            const currentPercentage = getScrollPercentage(currentY);
-            maxScrollPercentage = Math.max(maxScrollPercentage, currentPercentage);
-
-            // Registrar tiempo para cada umbral (solo la primera vez)
-            const elapsedSeconds = Math.round((Date.now() - startTime) / 1000);
-            if (currentPercentage >= 25 && timeToScroll[25] === null) timeToScroll[25] = elapsedSeconds;
-            if (currentPercentage >= 50 && timeToScroll[50] === null) timeToScroll[50] = elapsedSeconds;
-            if (currentPercentage >= 75 && timeToScroll[75] === null) timeToScroll[75] = elapsedSeconds;
-            if (currentPercentage >= 90 && timeToScroll[90] === null) timeToScroll[90] = elapsedSeconds;
-
-            // Velocidad media (px/s desde el inicio)
-            const totalElapsedSec = (Date.now() - startTime) / 1000 || 0.001;
-            const scrollVelocity = Math.round(totalPixelsScrolled / totalElapsedSec);
-
-            // Actualizar storage
-            this.scrollData["maxScrollDepth"]=Math.round(maxScrollDepthPx);
-            this.scrollData["maxScrollPercentage"]= maxScrollPercentage;
-            this.scrollData["scrollVelocity"]=scrollVelocity;
-            this.scrollData["totalPixelsScrolled"]=Math.round(totalPixelsScrolled);
-            this.scrollData["lastScrollY"]=Math.round(currentY);
-            this.scrollData["timeToScroll"]= { ...timeToScroll }; // copia para guardar correctamente
-
-            // =============================================
-            // Scroll Behaviour cada 2 segundos
-            // =============================================
-            sampleCounter++;
-
-            if (sampleCounter >= INTERVAL_SAMPLES && nSamples < MAX_SAMPLES) {
-                nSamples++;
-                let code = "-";
-                if (currentIntervalPixels > 15) {
-
-                    const units = Math.ceil(currentIntervalPixels / PIXELS_PER_UNIT);
-                    const direction = (currentY > lastScrollY) ? "D" : "U";
-
-                    code = direction + units;
-                }
-
-
-                scrollBehaviour += code;
-                this.scrollData["scrollBehaviour"]= scrollBehaviour;
-
-                currentIntervalPixels = 0;
-                sampleCounter = 0;
-            }
-            lastScrollY = currentY;
-
-
-        };
-
-        scTimeoutFunc();
-        setInterval(scTimeoutFunc,500);
-
-    }
-    captureReferrerInfo() {
-            this.addVariable("referrer", document.referrer);
-    }
-    captureVisitFrequency() {
-        let h=this.historyStorageInstance.getAll();
-        let d=this.dailyStorageInstance.getAll();
-        let s=this.sessionStorageInstance.getAll();
-        let dailyVisits=d.nVisits || 0;
-        let sVisits=s.nVisits || 0;
-
-        const lastVisit = h.lastVisit || Date.now();
-        const nVisits= h.nVisits || 0;
-        const currentVisit = Date.now();
-        const timeSinceLastVisit = currentVisit - lastVisit;
-
-        this.dailyStorageInstance.set("visitRecency", timeSinceLastVisit);
-        this.dailyStorageInstance.set("nVisits",dailyVisits+1);
-
-        this.historyStorageInstance.set("lastVisit", currentVisit);
-        this.historyStorageInstance.set("nVisits", nVisits+1);
-        this.sessionStorageInstance.set("nVisits", sVisits+1);
-    }
-    getTimeReference()
-    {
-        const [navTiming] = performance.getEntriesByType("navigation");
-        if(navTiming)
-            return parseInt( window.performance.timeOrigin);
-
-        let p=window.performance.timing;
-        if(p)
-        {
-            return window.performance.timing.connectStart;
-        }
-        return this.internalReference;
-    }
-    captureCLS()
-    {
-        // Relative time calculation helper
-
-        const [navTiming] = performance.getEntriesByType("navigation");
-
-        if (!navTiming) return; // Navigation timing may not be available in some contexts.
-        const navigationStart = navTiming.startTime;
-        const relativeTime = (metric) =>{return (typeof navTiming[metric]==="undefined" || navTiming[metric]===null)?null:parseInt(navTiming[metric] - navigationStart)};
-
-        let d = {
-            page_fetchStart: relativeTime("fetchStart"),
-            page_requestStart: relativeTime("requestStart"),
-            page_responseStart: relativeTime("responseStart"),
-            page_responseEnd: relativeTime("responseEnd"),
-            page_domInteractive: relativeTime("domInteractive"),
-            page_domContentLoadedEventStart: relativeTime("domContentLoadedEventStart"),
-            page_domContentLoadedEventEnd: relativeTime("domContentLoadedEventEnd"),
-            page_domComplete: relativeTime("domComplete"),
-            page_loadEventStart: relativeTime("loadEventStart"),
-            page_loadEventEnd: relativeTime("loadEventEnd"),
-            visitDuration:parseInt(Date.now() - navTiming.startTime - performance.timeOrigin)
-        };
-
-         return d;
-    }
-    addVariable(v,val)
-    {
-        this.extra[v]=val;
-    }
-    addRequiredVariable(v,val)
-    {
-        this.required[v]=val;
-    }
-}
-
-
-
-class GAMExp {
-    constructor() {
-        this.statsG = null;
-        this.intextManager = null;
-        // Dual-load: PSP sets window.__disable_gam_kv__ = true so old Gexp
-        // must not own Prebid/GPT globally, but still serve gexp-intext*.
-        this.dualMode = (window.__disable_gam_kv__ === true);
-        this.random1 = Math.floor(Math.random() * 20 + 1).toString();
-        this.random2 = localStorage.getItem('random2');
-        if (this.random2 === null) {
-            this.random2 = Math.floor(Math.random() * 20 + 1).toString();
-            localStorage.setItem('random2', this.random2);
-        }
-        this.random3 = Math.floor(Math.random() * 20 + 1).toString();
-        this.random4 = Math.floor(Math.random() * 20 + 1).toString();
-
-        this.error = "";
-        this.errored = false;
-        this.isNew = false;
-        this.country = 'ES';
-        this.houseAdexRatio = -1;
-        this.initialized = false;
-        this.enabled = false;
-        this.paywallShown = false;
-        this.signWallShown = false;
-        this.gptListenersAttached = false;
-
-        // Full-owner mode only: configure Prebid. Dual-mode must not touch pbjs.
-        if (!this.dualMode) {
-            try {
-                pbjs.que.push(() => {
-                    pbjs.setConfig({ useBidCache: true });
-                    pbjs.setConfig({ floors: {} });
-                    pbjs.setConfig({
-                        "currency": {
-                            "adServerCurrency": "EUR",
-                            "granularityMultiplier": 1,
-                            "defaultRates": { "USD": { "EUR": 1 } }
-                        }
-                    });
-                });
-            } catch (e) {
-                // pbjs may be absent in some embeds
-            }
-        }
-
-        this.loadConfig().then(() => {
-            this.initialize();
-            // Always init Intext (needed under dual-mode when PSP owns the page).
-            this.intextManager = new IntextManager(this.cfg, this);
-        });
-    }
-
-    /**
-     * Positions still managed by old Gexp when dualMode (PSP on page).
-     * Match gexp-intext and gexp-intext-*.
-     */
-    isIntextPosition(position) {
-        return typeof position === "string" && position.indexOf("gexp-intext") === 0;
-    }
-
-    /** Whether this instance should handle a given position name. */
-    shouldHandlePosition(position) {
-        if (!this.dualMode)
-            return true;
-        return this.isIntextPosition(position);
-    }
-
-    getSlotPositionName(slot) {
-        if (!slot)
-            return null;
-        if (typeof slot.__position !== "undefined" && slot.__position !== null)
-            return slot.__position;
-        try {
-            const t = slot.getTargeting && slot.getTargeting("p");
-            if (t && t.length)
-                return t[0];
-        } catch (e) {}
-        return null;
-    }
-
-    shouldHandleSlot(slot) {
-        if (!this.dualMode)
-            return true;
-        return this.shouldHandlePosition(this.getSlotPositionName(slot));
-    }
-
-    /**
-     * Resolve a usable GPT API under PSP proxy or standalone.
-     * Prefer __ctrl.innerObject when present; else proxy once pubads is live.
-     */
-    resolveGptApi() {
-        try {
-            const g = window.googletag;
-            if (!g)
-                return null;
-            const ctrl = g.__ctrl;
-            if (ctrl && ctrl.innerObject && typeof ctrl.innerObject.pubads === "function")
-                return ctrl.innerObject;
-            if (typeof g.pubads === "function")
-                return g;
-        } catch (e) {}
-        return null;
-    }
-
-    /**
-     * Core init: config, state, telemetry, windows. Safe under dual-mode
-     * (no pbjs / no googletag.cmd dependency for listener attach).
-     */
-    initializeCore() {
-        this.houseCounters = {};
-        let tCfg = this.cfg;
-        for (var k in tCfg)
-            this[k] = tCfg[k];
-        for (var k = this.pList[this.pList.length - 1] + 0.25; k < 20; k += 0.25)
-            this.pList.push(k);
-        this.windows = {};
-
-        this.load();
-        if (typeof this.info.adexCounter !== "undefined") {
-            if (this.info.adexCounter == -1) {
-                if (this.info.houseCounter == -1)
-                    this.houseAdexRatio = -1;
-                else
-                    this.houseAdexRatio = 0;
-            } else {
-                if (this.info.houseCounter == -1)
-                    this.houseAdexRatio = 1;
-                else
-                    this.houseAdexRatio = this.info.adexCounter / this.info.houseCounter;
-            }
-        }
-        this.info.adexCounter = -1;
-        this.info.houseCounter = -1;
-        let telP = this.cfg.telemetryProb ?? 0;
-        let npTelP = this.cfg.npTelemetryProb ?? 0;
-        this.statsG = new StatsGatherer(telP, npTelP, "test", this);
-        if (this.cfg.name)
-            this.statsG.addRequiredVariable("gam_cfg", this.cfg.name);
-        if (this.cfg.gexp_cfg_country)
-            this.statsG.addRequiredVariable("gam_cfg_country", this.cfg.gexp_cfg_country);
-
-        window.tel_envioPreviewModuloGenerico = (evType) => {
-            this.statsG.addRequiredVariable("paywallType", evType);
-        };
-        window.tel_addTelemetry = (eventName, eventValue) => {
-            this.statsG.addRequiredVariable("tel_" + eventValue);
-        };
-        window.tel_envioPaywallEvent = (eventName, eventValue) => {
-            if (typeof eventValue === "undefined")
-                eventValue = "exists";
-            if (typeof eventValue === "string" && eventValue.indexOf("NaN") >= 0)
-                return;
-            this.statsG.addRequiredVariable("suscr_" + eventName, eventValue);
-        };
-    }
-
-    /** Wire pubads listeners on a concrete GPT API object. */
-    attachGptListenersTo(gtag) {
-        if (this.gptListenersAttached || !gtag || typeof gtag.pubads !== "function")
-            return;
-        const pads = gtag.pubads();
-        pads.addEventListener("impressionViewable", (event) => { this.onSlotViewable(event.slot); });
-        pads.addEventListener("slotVisibilityChanged", (event) => { this.onSlotVisibilityChanged(event); });
-        pads.addEventListener("slotOnload", (event) => { this.onSlotLoaded(event.slot); });
-        pads.addEventListener("slotResponseReceived", (event) => { this.response(event); });
-        pads.addEventListener("slotRequested", (event) => { this.onSlotRequested(event.slot); });
-        pads.addEventListener("slotRenderEnded", (event) => { this.onSlotRenderEnded(event.slot); });
-        this.gptListenersAttached = true;
-    }
-
-    /** Full-owner mode: queue on window.googletag.cmd (normal GPT load). */
-    attachGptListenersFullMode() {
-        googletag.cmd.push(() => {
-            this.attachGptListenersTo(googletag);
-        });
-    }
-
-    /**
-     * Dual-mode (PSP proxy): cmd.push is swallowed for non-whitelisted stacks.
-     * Wait for resolveGptApi() and attach directly to pubads.
-     */
-    attachGptListenersDualMode() {
-        const tryAttach = () => {
-            const api = this.resolveGptApi();
-            if (!api)
-                return false;
-            try {
-                if (api.apiReady === false)
-                    return false;
-                this.attachGptListenersTo(api);
-                return this.gptListenersAttached;
-            } catch (e) {
-                return false;
-            }
-        };
-        if (tryAttach())
-            return;
-        let n = 0;
-        const t = setInterval(() => {
-            n++;
-            if (tryAttach() || n > 200)
-                clearInterval(t);
-        }, 50);
-    }
-
-    initialize(){
-        if(this.initialized)
-            return;
-        try {
-            this.enabled = true;
-            this.initialized = true;
-
-            // 1) Always-safe core (no pbjs / no cmd dependency)
-            this.initializeCore();
-
-            // 2) GPT listeners: dual uses real/resolved API; full uses cmd queue
-            if (this.dualMode)
-                this.attachGptListenersDualMode();
-            else
-                this.attachGptListenersFullMode();
-        }catch(e)
-        {
-            this.reportError(e);
-        }
-    }
-    incAdex()
-    {
-        if(this.info.adexCounter==-1)
-            this.info.adexCounter=1;
-        else
-            this.info.adexCounter++;
-    }
-    incHouse()
-    {
-        if(this.info.houseCounter==-1)
-            this.info.houseCounter=1;
-        else
-            this.info.houseCounter++;
-    }
-    getAdexHouseRatio()
-    {
-        return this.houseAdexRatio;
-    }
-    getStats()
-    {
-        return this.statsG;
-    }
-    getWindowFromSlot(slot)
-    {
-        if(typeof slot.__position!=="undefined")
-            return this.windows[slot.__position];
-        let position = slot.getTargeting('p')[0];
-        let w=this.getWindow(position);
-        w.setSlot(slot);
-        slot.__position=position;
-        return w;
-    }
-    onSlotViewable(slot)
-    {
-        try {
-            if (!this.shouldHandleSlot(slot))
-                return;
-            let w = this.getWindowFromSlot(slot);
-            if (w) {
-                w.onViewable();
-            }
-        }catch(e)
-        {
-            this.reportError(e);
-        }
-    }
-    onSlotVisibilityChanged(event)
-    {
-        try {
-            if (!this.shouldHandleSlot(event.slot))
-                return;
-            let w = this.getWindowFromSlot(event.slot);
-            if (w) {
-                w.onSlotVisibilityChanged(event.inViewPercentage);
-            }
-        }catch(e)
-        {
-            this.reportError(e);
-        }
-    }
-    onSlotLoaded(slot)
-    {
-        try {
-            if (!this.shouldHandleSlot(slot))
-                return;
-            let w = this.getWindowFromSlot(slot)
-            w.onLoaded();
-        }catch(e)
-        {
-            this.reportError(e);
-        }
-    }
-    onSlotRenderEnded(slot)
-    {
-        try {
-            if (!this.shouldHandleSlot(slot))
-                return;
-            let w = this.getWindowFromSlot(slot)
-            w.onRendered();
-        }catch(e)
-        {
-            this.reportError(e);
-        }
-    }
-
-    onSlotRequested(slot){
-        try {
-            if (!this.shouldHandleSlot(slot))
-                return;
-            let w = this.getWindowFromSlot(slot)
-            w.onRequested();
-        }catch(e)
-        {
-            this.reportError(e);
-        }
-    }
-    getRandom(i)
-    {
-        return this["random"+i];
-    }
-    getWindow(position)
-    {
-        if(typeof this.windows[position]!=="undefined")
-            return this.windows[position];
-        let w=null;
-        switch(parseInt(this.random2)) {
-           /* case 1:{
-                w = new RandomStrategy(position,this.cfg,this);
-            }break;
-            case 2:{
-                w = new FixedStrategy(position,this.cfg,this);
-            }break;
-            case 3:{
-                w=new AggrStrategy(position,this.cfg,this);
-            }break;*/
-            default: {
-                w = new WindowArray(position, this.cfg, this)
-            }
-        }
-        if (this.info.ptypes[position])
-            w.unserialize(this.info.ptypes[position]);
-        this.windows[position]=w;
-        return w;
-    }
-    getSessionVisits()
-    {
-        return this.statsG.sessionStorageInstance.get("nVisits");
-    }
-    getDailyVisits()
-    {
-        return this.statsG.dailyStorageInstance.get("nVisits");
-    }
-
-    getTimeReference()
-    {
-        return this.statsG.getTimeReference();
-    }
-    getTimeOffset()
-    {
-        return parseInt(Date.now()-this.statsG.getTimeReference())
-    }
-
-    update(position, result) {
-        if(typeof this.windows[position]==="undefined")
-            return;
-        this.windows[position].update(this.windows[position], result);
-        this.save();
-    }
-
-    request(slot) {
-        if (!this.enabled)
-            return;
-        // Dual-mode: only gexp-intext* (PSP owns all other inventory).
-        if (typeof slot !== "undefined" && !this.shouldHandleSlot(slot))
-            return;
-        if(typeof slot==="undefined")
-        {
-            try {
-                for (var k in this.windows) {
-                    if (!this.shouldHandlePosition(k))
-                        continue;
-                    let w = this.windows[k];
-                    w.setTargetings();
-                }
-                this.save();
-            }catch(error)
-            {
-                if (slot)
-                    slot.setTargeting("gexp_error","true");
-                this.reportError(error);
-            }
-            return;
-        }
-
-        var w;
-        try {
-            w=this.getWindowFromSlot(slot);
-            w.setTargetings();
-            slot.updateTargetingFromMap({
-                random1:this.getRandom(1),
-                random2:this.getRandom(2),
-                random3:this.getRandom(3),
-                random4:this.getRandom(4),
-                tlm:this.statsG.telp==true?"1":"0",
-                tlm_id:this.statsG.telId,
-                nvis:this.statsG.dailyStorageInstance.get("nVisits")
-            })
-            this.save();
-        } catch (error) {
-            slot.setTargeting("gexp_error","true");
-            this.reportError(error);
-
-        }
-    }
-
-    response(event) {
-        if (this.enabled == false)
-            return;
-        try{
-            const slot = event.slot;
-            if (!this.shouldHandleSlot(slot))
-                return;
-            let c = this.getWindowFromSlot(slot);
-            c.response(event);
-            this.save();
-        } catch (e) {
-            this.reportError(e);
-        }
-    }
-    reportError(exception)
-    {
-        this.error=exception.stack.toString();
-        this.errored=true;
-        this.enabled = false;
-        this.info = this.init;
-        this.save();
-        if(this.statsG) {
-            this.statsG.sendData();
-        }
-    }
-    addVariable(v,val)
-    {
-        this.statsG.addRequiredVariable(v,val);
-    }
-    isPrebid(campaignId,lineItemId,advertiserId)
-    {
-        return this.prebidIds.includes(advertiserId) || this.prebidIds.includes(lineItemId) || this.prebidIds.includes(campaignId);
-    }
-    isAdex(campaignId,lineItemId,advertiserId)
-    {
-        return this.adexIds.includes(campaignId) || this.adexIds.includes(lineItemId);
-    }
-    isHouse(campaignId,lineItemId,advertiserId)
-    {
-        return this.houseIds.includes(advertiserId);
-    }
-    isReloadAllowed(campaignId,lineItemId,advertiserId)
-    {
-        return this.reloadIds.includes(advertiserId) || this.reloadCampaignIds.includes(campaignId);
-    }
-
-    /** Secondary localStorage key for overflow (same base name + "_1"). */
-    getLSInfoSecondaryKey() {
-        return this.itemName + "_1";
-    }
-
-    /**
-     * Read primary + optional secondary localStorage blobs and merge into one info object.
-     * Secondary is expected to hold the second half of ptypes (and any extra top-level keys).
-     */
-    getLSInfo() {
-        let primary = null;
-        let secondary = null;
-        try {
-            const raw0 = localStorage.getItem(this.itemName);
-            if (raw0)
-                primary = JSON.parse(raw0);
-        } catch (e) {
-            primary = null;
-        }
-        try {
-            const raw1 = localStorage.getItem(this.getLSInfoSecondaryKey());
-            if (raw1)
-                secondary = JSON.parse(raw1);
-        } catch (e) {
-            secondary = null;
-        }
-
-        if (!primary && !secondary)
-            return null;
-        if (!primary)
-            primary = {};
-        if (!secondary)
-            return primary;
-
-        // Merge ptypes from both shards (secondary overwrites on key clash).
-        primary.ptypes = primary.ptypes || {};
-        if (secondary.ptypes && typeof secondary.ptypes === "object") {
-            for (const k in secondary.ptypes) {
-                if (Object.prototype.hasOwnProperty.call(secondary.ptypes, k))
-                    primary.ptypes[k] = secondary.ptypes[k];
-            }
-        }
-        // Other top-level keys from secondary only fill gaps on primary.
-        for (const k in secondary) {
-            if (k === "ptypes")
-                continue;
-            if (!Object.prototype.hasOwnProperty.call(secondary, k))
-                continue;
-            if (typeof primary[k] === "undefined")
-                primary[k] = secondary[k];
-        }
-        return primary;
-    }
-
-    /**
-     * Split info into two localStorage payloads by partitioning ptypes keys
-     * (stable sort, first half → primary, second half → secondary).
-     * @returns {{ part0: object, part1: object }}
-     */
-    splitLSInfoForSave(info) {
-        const ptypes = (info && info.ptypes && typeof info.ptypes === "object")
-            ? info.ptypes
-            : {};
-        const keys = Object.keys(ptypes).sort();
-        const mid = Math.ceil(keys.length / 2);
-        const ptypes0 = {};
-        const ptypes1 = {};
-        for (let i = 0; i < keys.length; i++) {
-            const k = keys[i];
-            if (i < mid)
-                ptypes0[k] = ptypes[k];
-            else
-                ptypes1[k] = ptypes[k];
-        }
-        // Primary keeps full metadata (v, positions, …) + first half of ptypes.
-        const part0 = Object.assign({}, info, { ptypes: ptypes0 });
-        // Secondary is a thin shard: remaining ptypes (+ version for sanity).
-        const part1 = { ptypes: ptypes1 };
-        if (typeof info.v !== "undefined")
-            part1.v = info.v;
-        return { part0, part1 };
-    }
-
-    isNewUser()
-    {
-        return this.isNew;
-    }
-    load() {
-        try {
-            this.info = this.getLSInfo();
-            if (!this.info) {
-                this.info = this.init;
-                this.isNew=true;
-            } else {
-                if (
-                    typeof this.info.v === 'undefined' ||
-                    this.info.v !== this.init.v) {
-                    this.info = this.init;
-                }
-            }
-
-            if (!this.info.ptypes)
-                this.info.ptypes = {};
-            for (var k in this.info.ptypes) {
-                if (this.info.ptypes[k].window) {
-                    this.windows[k] = new WindowArray(k,this.cfg,this);
-                    this.windows[k].unserialize(this.info.ptypes[k]);
-                }
-            }
-        } catch (e) {
-            this.error=e;
-            this.enabled = false;
-        }
-    }
-
-    save() {
-        if (!this.info.ptypes)
-            this.info.ptypes = {};
-        for (var k in this.windows) {
-            this.info.ptypes[k] = {};
-            this.windows[k].serialize(this.info.ptypes[k]);
-        }
-        // Keep full state in memory; only the localStorage write is sharded.
-        const { part0, part1 } = this.splitLSInfoForSave(this.info);
-        try {
-            localStorage.setItem(this.itemName, JSON.stringify(part0));
-            localStorage.setItem(this.getLSInfoSecondaryKey(), JSON.stringify(part1));
-        } catch (e) {
-            // Quota / private mode — keep running with in-memory state.
-            this.error = e;
-        }
-    }
-
-    isEnabled()
-    {
-        if(typeof this.cfg.enabled!=="undefined" && this.cfg.enabled===false)
-            return false;
-        return true;
-    }
-    registerImpression(cI)
-    {
-        cI.gexp_version=this.version;
-        this.statsG.registerRow(cI);
-    }
-
-    today() {
-        return this.datetostring(new Date());
-    }
-
-    datetostring(d) {
-        return d.getFullYear().toString() + (d.getMonth() + 1).toString().padStart(2, '0') + d.getDate().toString().padStart(2, '0');
-    }
-    isMobileDevice() {
-        const isMobileScreen = window.matchMedia("(max-width: 768px)").matches;
-        const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0 || navigator.msMaxTouchPoints > 0;
-        return isMobileScreen && isTouchDevice;
-    }
-
-    geo() {
-        let geoPromise=new WPromise();
-
-        let geoCached = localStorage.getItem('geocached');
-        var geoInfo = null;
-        if (geoCached) {
-            try {
-                geoInfo = JSON.parse(geoCached);
-                geoPromise.resolve();
-            } catch (e) {
-            }
-        }
-        if (geoInfo === null) {
-            fetch("https://www.marca.com/edge-services/user-geo.html").
-            then(response => response.json()).
-            then(
-                (geo)=>{
-                    localStorage.setItem('geocached', JSON.stringify(geo));
-                    geoPromise.resolve();
-                }
-            )
-        }
-        return geoPromise;
-    }
-
-    resolveConfig(cfg)
-    {
-        if(typeof cfg.sw==="undefined")
-            return cfg;
-        let pType=null;
-        let opts={};
-        let value=null;
-        for(var k in cfg)
-        {
-            if(k=="sw")
-                pType=cfg[k];
-            else
-            {
-                let p=k.split(",").map((el)=>{opts[el]=cfg[k]});
-            }
-        }
-        switch(pType)
-        {
-            case "geo":{
-                let geoCached = localStorage.getItem('geocached');
-                let country=null;
-                if(!geoCached)
-                    value='ES';
-                else {
-                    try {
-                        let inf=JSON.parse(geoCached);
-                        value=inf.country_code ?? 'ES';
-                    }catch(e){
-                        value='ES';
-                    }
-                }
-            }break;
-            case 'adunit':{
-                var s=googletag.pubads().getSlots();
-                if(s.length==0)
-                    value="default";
-                else
-                    value=s[0].getAdUnitPath().split("/")[2];
-            }break;
-        }
-        let curcfg=null;
-        if(typeof opts[value]==="undefined")
-        {
-            curcfg=opts["default"];
-        }
-        else
-            curcfg=opts[value];
-        return this.resolveConfig(curcfg);
-    }
-    getIndexFromOffY(usOffY)
-    {
-        let idx=0;
-        if(usOffY > 0 && usOffY <=5)
-            idx=1;
-        if(usOffY>5 && usOffY<=15)
-            idx=2;
-        if(usOffY>15)
-            idx=3;
-        return ""+idx;
-    }
-    yRanges=null;
-    buildVYRanges()
-    {
-        if(this.yRanges!==null)
-            return this.yRanges;
-        const ranges = [
-            "*--10.0",
-            "-12.0--10.0",
-            "-10.0--8.0",
-            "-8.0--6.0",
-            "-6.0--4.0",
-            "-4.0--2.0",
-            "-2.0-0.0",
-            "0.0-2.0",
-            "2.0-4.0",
-            "4.0-6.0",
-            "6.0-8.0",
-            "8.0-10.0",
-            "10.0-12.0",
-            "12.0-14.0",
-            "14.0-16.0",
-            "16.0-18.0",
-            "18.0-20.0",
-            "20.0-25.0",
-            "25.0-30.0",
-            "30.0-35.0",
-            "35.0-*"
-        ];
-        const regex = new RegExp(/((?:-?[0-9]+(?:\.[0-9]+)?)|\*)-((?:-?[0-9]+(?:\.[0-9]+)?)|\*)/);
-        this.yRanges= ranges.map(range => {
-            const match = range.match(regex);
-            if (match) {
-                let m1=match[1],m2=match[2];
-                if(m1=="*")
-                    m1=-Infinity;
-                else
-                    m1=parseFloat(m1);
-                if(m2=="*")
-                    m2=Infinity;
-                else
-                    m2=parseFloat(m2);
-                return [m1, m2];
-            }
-            return null; // Handle cases where the regex doesn't match
-        }).filter(pair => pair !== null);
-        return this.yRanges;
-    }
-    getVIndexFromOffY(number)
-    {
-        let pairs=this.buildVYRanges();
-        for (let i = 0; i < pairs.length; i++) {
-            const [start, end] = pairs[i];
-
-            if (number >= start && number < end) {
-                return i;
-            }
-        }
-
-        // Return -1 if the number doesn't fit in any range (unlikely with * boundaries)
-        return -1;
-    }
-    // Devuelve el indice de precio con mejor ecpm segun la altura de la posicion de publi,
-    // segun los datos calculados en telemetria.
-    getPivotIndex(adunit, position,upPoints,offY) {
-        if (!this.enabled) return null;
-        if(this.cfg?.ext?.sites?.pp2)
-        {
-            return this.cfg?.ext?.sites?.pp2?.[adunit]?.[this.country]?.[position] ?? null;
-        }
-
-        return null;
-
-    }
-    /*getPriceProbability(adunit, priceIdx,position, offY)
-    {
-        if (!this.enabled) return null;
-        let idx=this.getIndexFromOffY(offY);
-        if(position=="m")
-            idx=1;
-        else
-        {
-            if(position[0]=="r" || position[0]=="s")
-                position=position[0];
-        }
-        let pNode=this.cfg?.ext?.sites?.pp1?.[adunit]?.[this.country]?.[position] ?? null;
-        if (typeof pNode === "number") {
-            // Position-only p1-like value has no probability distribution.
-            return -1;
-        }
-        let t1=pNode?.["i"+idx]?.["p"+priceIdx] ?? pNode?.["i1"]?.["p"+priceIdx] ?? -1;
-        if(t1!=-1)
-            return t1;
-        return this.cfg?.ext?.sites?.pp1?.[adunit]?.[this.country]?.['r']?.["i"+idx]?.["p"+priceIdx] ?? -1;
-
-    }*/
-    getExpectedViewability(adunit,offY,gr,ar)
-    {
-        if(!this.enabled) return -1;
-        if(typeof ueDataLayer==="undefined")
-            return -1;
-        let type = ueDataLayer?.be_page_content_type ?? "-1";
-        let idx=this.getVIndexFromOffY(offY);
-        return this.cfg?.ext?.sites?.vv?.[adunit]?.[type]?.[idx]?.[gr]?.[ar] ?? -1;
-    }
-    findGPTSlotByDivId(divId) {
-        if (typeof googletag === 'undefined' || !googletag.apiReady) {
-            console.warn('Google Publisher Tag no está cargado o no está listo.');
-            return null;
-        }
-
-        // Obtenemos todos los slots definidos
-        const slots = googletag.pubads().getSlots();
-
-        // Buscamos el slot cuyo div ID coincida
-        for (const slot of slots) {
-            if (slot.getSlotElementId() === divId) {
-                return slot;
-            }
-        }
-
-        console.warn(`No se encontró ningún slot para el div ID: ${divId}`);
-        return null;
-    }
-
-    // Devuelve la informacion para un floor, y un usOffY, segun lo que se ha recibido de telemetria.
-
-    resolveRandomConfig(obj, topLevel) {
-        if (obj === null || typeof obj !== 'object' || Array.isArray(obj))
-            return obj;
-        for (let key in obj) {
-            if (key === 'ext') continue;
-            let val = obj[key];
-            if (val !== null && typeof val === 'object' && !Array.isArray(val)) {
-                if (typeof val.__randoms !== 'undefined') {
-                    let randomIndex = val.__random ?? 1;
-                    let randomValue = parseInt(this.getRandom(randomIndex));
-                    let resolved = undefined;
-                    let defaultVal = undefined;
-                    for (let entry of val.__randoms) {
-                        if (typeof entry.randoms === 'undefined') {
-                            defaultVal = entry.value;
-                        } else if (entry.randoms.includes(randomValue)) {
-                            resolved = entry.value;
-                            break;
-                        }
-                    }
-                    if (typeof resolved === 'undefined')
-                        resolved = defaultVal;
-                    obj[key] = resolved;
-                    this.resolveRandomConfig(obj[key]);
-                } else {
-                    this.resolveRandomConfig(val);
-                }
-            }
-        }
-        return obj;
-    }
-
-    loadConfig()
-    {
-        let country='ES';
-        let loadPromise=new WPromise();
-        /*** config ***/
-        this.geo().then(()=>{
-            let geoCached = localStorage.getItem('geocached');
-            let country=null;
-            if(geoCached)
-            {
-                try {
-                    let inf=JSON.parse(geoCached);
-                    country=inf.country_code ?? 'ES';
-                }catch(e){
-                    country='ES';
-                }
-            }
-            this.country=country;
-            let device=this.isMobileDevice();
-            let site=window.location.hostname;
-            let siteParts=site.split(".");
-            siteParts.pop();
-            if(siteParts[0]==='www')
-                siteParts.shift();
-            site=siteParts.join(".");
-            let cfgUrl=this.cfgUrl+"-"+site+"-"+country+"-"+(device?"m":"d")+".php";
-            fetch(cfgUrl).
-            then(response =>{
-
-                response.json().then(
-                    (cfg)=>{
-                        this.resolveRandomConfig(cfg);
-                        this.cfg=cfg;
-                        loadPromise.resolve();
-                    }
-                )
-
-            })
-
-        })
-        return loadPromise;
-    }
-    cfgUrl = 'https://adtcdn2.unidadeditorial.es/gexp/getCfg';
-    itemName = 'GAMExp';
-    init = {
-        positions: {},
-        v: 13
-    };
-    version="0.016";
-    info = this.init;
-}
-
-
-class RewardedAdManager {
-    constructor(adUnitPath, options = {}, callbacks = {}) {
-        this.adUnitPath = adUnitPath;
-        this.options = options;
-        this.callbacks = {
-            onRewardEarned: callbacks.onRewardEarned || (() => {}),
-            onAdClosedBeforeReward: callbacks.onAdClosedBeforeReward || (() => {}),
-            onAdUnavailable: callbacks.onAdUnavailable || (() => {})
-        };
-
-        this.rewardedSlot = null;
-        this.rewardEarnedFlag = false;
-
-        // Bind event handlers to maintain the class scope ('this')
-        this._onRewardedSlotReady = this._onRewardedSlotReady.bind(this);
-        this._onRewardedSlotClosed = this._onRewardedSlotClosed.bind(this);
-        this._onRewardedSlotGranted = this._onRewardedSlotGranted.bind(this);
-        this._onSlotRenderEnded = this._onSlotRenderEnded.bind(this);
-    }
-
-    run() {
-
-        let gtag=googletag;
-        if(typeof gtag.__ctrl !=="undefined")
-            gtag=gtag.__ctrl.baseObject;
-
-        googletag.cmd.push(() => {
-            console.log("Configuring GPT ad listeners...");
-            gtag.setConfig({ disableInitialLoad: false });
-            // 1. Establish event listeners on the pubads service
-            gtag.pubads().addEventListener('rewardedSlotReady', this._onRewardedSlotReady);
-            gtag.pubads().addEventListener('rewardedSlotClosed', this._onRewardedSlotClosed);
-            gtag.pubads().addEventListener('rewardedSlotGranted', this._onRewardedSlotGranted); // Fixed Event Name
-            gtag.pubads().addEventListener('slotRenderEnded', this._onSlotRenderEnded);
-
-            // 2. Define the out-of-page rewarded ad slot
-            this.rewardedSlot = gtag.defineOutOfPageSlot(this.adUnitPath, googletag.enums.OutOfPageFormat.REWARDED);
-
-            if (!this.rewardedSlot) {
-                console.log("Error: Could not define out-of-page slot.");
-                this._cleanupAndTerminate('unavailable');
-                return;
-            }
-            this.options.targeting["p"]="rw";
-            // 3. Inject custom targeting key-values if passed
-            if (this.options.targeting) {
-                for (const [key, value] of Object.entries(this.options.targeting)) {
-                    this.rewardedSlot.setTargeting(key, value);
-                }
-            }
-
-            this.rewardedSlot.addService(googletag.pubads());
-
-            // 4. Fire the ad request pipeline
-            console.log("Calling googletag.display()...");
-            gtag.display(this.rewardedSlot);
-            //gtag.pubads().refresh([this.rewardedSlot]);
-
-        },true);
-    }
-
-    _onSlotRenderEnded(event) {
-        if (event.slot === this.rewardedSlot && event.isEmpty) {
-            console.log("SlotRenderEnded event caught: Ad slot came back empty.");
-            this._cleanupAndTerminate('unavailable');
-        }
-    }
-
-    _onRewardedSlotReady(event) {
-        if (event.slot === this.rewardedSlot) {
-            console.log("RewardedSlotReady event caught: Presenting overlay...");
-            // Immediate presentation as user configuration/consent has already happened
-            event.makeRewardedVisible();
-        }
-    }
-
-    _onRewardedSlotGranted(event) {
-        if (event.slot === this.rewardedSlot) {
-            console.log("rewardedSlotGranted event caught: Verification successful.");
-            this.rewardEarnedFlag = true;
-            this.callbacks.onRewardEarned(event.reward);
-        }
-    }
-
-    _onRewardedSlotClosed(event) {
-        if (event.slot === this.rewardedSlot) {
-            console.log("RewardedSlotClosed event caught.");
-            if (!this.rewardEarnedFlag) {
-                this.callbacks.onAdClosedBeforeReward();
-            }
-            this._cleanupAndTerminate('closed');
-        }
-    }
-
-    _cleanupAndTerminate(reason) {
-        googletag.cmd.push(() => {
-            console.log("Scrubbing listeners and clearing active slots...");
-
-            // Remove dynamic single-use event hooks to prevent memory leaks
-            googletag.pubads().removeEventListener('rewardedSlotReady', this._onRewardedSlotReady);
-            googletag.pubads().removeEventListener('rewardedSlotClosed', this._onRewardedSlotClosed);
-            googletag.pubads().removeEventListener('rewardedSlotGranted', this._onRewardedSlotGranted); // Fixed Event Name
-            googletag.pubads().removeEventListener('slotRenderEnded', this._onSlotRenderEnded);
-
-            // Drop the specific slots from active memory maps
-            if (this.rewardedSlot) {
-                googletag.destroySlots([this.rewardedSlot]);
-            }
-
-            if (reason === 'unavailable') {
-                this.callbacks.onAdUnavailable();
-            }
-        },true);
-    }
-}
-
-
-let _gam_exp = new GAMExp();
-
-const _gam_kv_ = function(s) {
-    _gam_exp.request(s);
-}
-
-window._gam_kv_ = _gam_kv_;
-

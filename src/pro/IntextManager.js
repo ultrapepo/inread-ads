@@ -34,6 +34,47 @@ const INtext_BASE_STYLES = `
             margin-top: 16px;
             margin-bottom: 36px !important;
         }
+        .gexp-intext-pip-player {
+            position: fixed !important;
+            z-index: var(--gexp-intext-pip-z-index, 100000) !important;
+            width: var(--gexp-intext-pip-width, 360px) !important;
+            max-width: var(--gexp-intext-pip-max-width, 90vw) !important;
+            height: auto !important;
+            aspect-ratio: 16 / 9;
+            right: var(--gexp-intext-pip-right, 16px) !important;
+            bottom: var(--gexp-intext-pip-bottom, 16px) !important;
+            left: auto !important;
+            top: auto !important;
+            margin: 0 !important;
+            box-shadow: 0 6px 24px rgba(0, 0, 0, 0.35);
+            background: #000;
+            transform: translateZ(0);
+        }
+        .gexp-intext-slot.gexp-intext-pip-active {
+            overflow: visible !important;
+        }
+        .gexp-intext-pip-close {
+            position: absolute;
+            top: 6px;
+            right: 6px;
+            z-index: 10000;
+            width: 28px;
+            height: 28px;
+            border: 0;
+            border-radius: 50%;
+            background: rgba(0, 0, 0, 0.72);
+            color: #fff;
+            cursor: pointer;
+            font-size: 20px;
+            line-height: 28px;
+            text-align: center;
+            pointer-events: auto;
+            touch-action: manipulation;
+        }
+        .gexp-intext-pip-close:focus-visible {
+            outline: 2px solid #fff;
+            outline-offset: 2px;
+        }
         .gexp-intext-slot.gexp-intext-layout-wide-standard {
             display: flex;
             align-items: center;
@@ -187,13 +228,689 @@ const formatLog = (args, defaultBadge) => {
   return [`${prefixStr}%c ${mainText}`, prefixStyle, '', ...args.slice(1)];
 };
 
-const logIntext = (...args) => { if (window.gexpIntextDebug) console.log(...formatLog(args, badgeLog)); };
-const warnIntext = (...args) => { if (window.gexpIntextDebug) console.warn(...formatLog(args, badgeWarn)); };
-const errorIntext = (...args) => { console.error(...formatLog(args, badgeErr)); };
-const groupIntext = (...args) => { if (window.gexpIntextDebug) console.groupCollapsed(...formatLog(args, badgeLog)); };
-const groupEndIntext = () => { if (window.gexpIntextDebug) console.groupEnd(); };
+const sanitizeIntextDebugString = (value, maxLength = 10000) => {
+  let text = String(value ?? "");
+  text = text.replace(/https?:\/\/[^\s"'<>]+/gi, (raw) => {
+    try { const url = new URL(raw); return `${url.origin}${url.pathname}`.slice(0, 1000); }
+    catch (e) { return raw.split(/[?#]/)[0].slice(0, 1000); }
+  });
+  text = text.replace(/\bBearer\s+[A-Z0-9._~+\/-]+=*/gi, "Bearer [RedactedToken]");
+  text = text.replace(/(^|[\s,{])(token|access_token|id_token|authorization|password|secret|sessionid|userid|pvid|ppid|ueid|permid|sharedid|id5|tdid|pubcid|gaid|idfa|deviceid)\s*[=:]\s*[^\s,;}]+/gi, "$1$2=[Redacted]");
+  text = text.replace(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi, "[RedactedEmail]");
+  return text.length > maxLength
+    ? `${text.slice(0, maxLength)}...[Truncated ${text.length - maxLength} chars]`
+    : text;
+};
+
+const serializeIntextLogValue = (value, options = {}) => {
+  const limits = {
+    depth: Number(options.maxDepth ?? 3),
+    array: Number(options.maxArray ?? 100),
+    keys: Number(options.maxKeys ?? 60),
+    string: Number(options.maxString ?? 10000),
+  };
+  const seen = new WeakSet();
+  const sensitiveKeys = new Set([
+    "cookie", "token", "accesstoken", "idtoken", "authorization", "password", "secret",
+    "sessionid", "userid", "pvid", "ppid", "ueid", "permid", "sharedid", "id5",
+    "tdid", "pubcid", "gaid", "idfa", "deviceid", "email",
+  ]);
+  const normalizeSensitiveKey = (key) => String(key || "").trim().toLowerCase().replace(/[^a-z0-9]/g, "");
+  const isSensitive = (key) => sensitiveKeys.has(normalizeSensitiveKey(key));
+  const shortDescriptor = (current, type) => ({
+    type,
+    id: String(current?.id || current?.playerId || current?.videoId || ""),
+    slotIndex: current?.slotIndex ?? null,
+    navIndex: current?.navIndex ?? null,
+    cycleId: current?._intextTelemetryCycleId ?? null,
+    renderToken: current?._activeRenderToken ?? current?._renderToken ?? null,
+    state: String(current?.state || current?._visualState || ""),
+  });
+  const walk = (current, depth, key = "") => {
+    if (isSensitive(key)) return "[Redacted]";
+    if (current === undefined) return "[Undefined]";
+    if (current === null || ["boolean", "number"].includes(typeof current)) return current;
+    if (typeof current === "string") return sanitizeIntextDebugString(current, limits.string);
+    if (typeof current === "bigint") return `${current}n`;
+    if (typeof current === "function") return `[Function ${current.name || "anonymous"}]`;
+    if (typeof current === "symbol") return `[Symbol ${current.description || ""}]`;
+    if (depth >= limits.depth) return "[MaxDepth]";
+    if (typeof current !== "object") return String(current);
+    if (seen.has(current)) return "[Circular]";
+    seen.add(current);
+    try {
+      if (current instanceof Date) return { type: "Date", value: current.toISOString() };
+      if (current instanceof Error || (current?.message && current?.stack)) {
+        return { type: "Error", name: String(current.name || "Error"), message: sanitizeIntextDebugString(current.message, limits.string), stack: sanitizeIntextDebugString(current.stack, limits.string) };
+      }
+      if (current?.nodeType === 1 && current?.tagName) {
+        let rect = null;
+        try { const raw = current.getBoundingClientRect?.(); if (raw) rect = Object.fromEntries(["top", "right", "bottom", "left", "width", "height"].map((name) => [name, Number(raw[name] || 0)])); } catch (e) { }
+        return { type: "DOMElement", tagName: String(current.tagName), id: String(current.id || ""), className: String(typeof current.className === "string" ? current.className : ""), dataset: walk({ ...(current.dataset || {}) }, depth + 1), rect, isConnected: current.isConnected === true };
+      }
+      if (typeof current?.getSlotElementId === "function") {
+        return { type: "GPTSlot", slotElementId: String(current.getSlotElementId?.() || ""), adUnitPath: sanitizeIntextDebugString(current.getAdUnitPath?.() || "", 1000) };
+      }
+      const constructorName = String(current?.constructor?.name || "");
+      if (constructorName === "IntextNode" || (current?.manager && current?.container && "_intextTelemetryCycleId" in current)) return shortDescriptor(current, "IntextNode");
+      if (constructorName === "IntextManager" || (Array.isArray(current?.nodes) && current?.siteConfig)) return { type: "IntextManager", nodeCount: Number(current.nodes?.length || 0) };
+      if (/google\.ima|AdsManager|AdsRequest/i.test(constructorName)) return { type: "IMA", name: constructorName };
+      if (/Player|Creative/i.test(constructorName) || (current?.player && current?.node)) return shortDescriptor(current, /Creative/i.test(constructorName) ? "Creative" : "Player");
+      if (Array.isArray(current)) {
+        const result = current.slice(0, limits.array).map((item) => walk(item, depth + 1));
+        if (current.length > limits.array) result.push(`[Truncated ${current.length - limits.array} items]`);
+        return result;
+      }
+      const result = {};
+      const keys = Reflect.ownKeys(current);
+      keys.slice(0, limits.keys).forEach((objectKey) => {
+        const name = String(objectKey);
+        try { result[name] = isSensitive(name) ? "[Redacted]" : walk(current[objectKey], depth + 1, name); }
+        catch (error) { result[name] = `[GetterError: ${sanitizeIntextDebugString(error?.message || error, 500)}]`; }
+      });
+      if (keys.length > limits.keys) result["[TruncatedKeys]"] = keys.length - limits.keys;
+      return result;
+    } catch (error) { return `[SerializationError: ${sanitizeIntextDebugString(error?.message || error, 500)}]`; }
+  };
+  return walk(value, 0);
+};
+const serializeIntextDebugValue = serializeIntextLogValue;
+
+const INTEXT_DEBUG_ONE_SHOT_VIDEO_METRICS = new Set([
+  "video_request_started",
+  "video_player_ads_load",
+  "video_vast_processed",
+  "video_ima_loaded",
+  "video_player_adstart",
+  "video_ima_started",
+  "video_first_frame",
+  "video_player_revealed",
+  "video_pipeline_completed",
+  "video_first_quartile",
+  "video_midpoint",
+  "video_third_quartile",
+  "video_complete",
+  "video_skipped",
+  "video_timeout",
+  "video_pip_dismissed",
+]);
+
+const resolveIntextDebugMetricFormat = (metricName, explicitFormat, nodeState) => {
+  if (String(metricName).startsWith("video_")) return "video";
+  if (String(metricName).startsWith("display_")) return "display";
+  if (explicitFormat === "video" || explicitFormat === "display") return explicitFormat;
+  if (nodeState === "video" || nodeState === "display") return nodeState;
+  return null;
+};
+
+const createIntextDebugCollector = (options = {}) => {
+  const maxEntries = Math.max(1, Number(options.maxEntries || 5000));
+  const maxBytes = Math.max(1, Number(options.maxBytes || 5 * 1024 * 1024));
+  let intextDebugLogBuffer = null;
+  let videoMetricDedupeKeys = new Set();
+  let videoMetricOccurrenceCounts = new Map();
+  let videoMetricEventSequence = 0;
+  let displayGptSignalKeys = new Set();
+  let manager = null;
+  const active = () => typeof window !== "undefined" && window.gexpIntextDebug === true;
+  const createBuffer = () => ({ startedAt: Date.now(), sequence: 0, groupDepth: 0, droppedEntries: 0, approximateBytes: 0, entries: [] });
+  const ensureActive = () => {
+    if (!active()) return false;
+    if (!intextDebugLogBuffer) {
+      intextDebugLogBuffer = createBuffer();
+      videoMetricDedupeKeys = new Set();
+      videoMetricOccurrenceCounts = new Map();
+      videoMetricEventSequence = 0;
+      displayGptSignalKeys = new Set();
+    }
+    if (window.gexpIntextDebugTools !== api) window.gexpIntextDebugTools = api;
+    return true;
+  };
+  const push = (entry) => {
+    const size = JSON.stringify(entry).length;
+    intextDebugLogBuffer.entries.push(entry);
+    intextDebugLogBuffer.approximateBytes += size;
+    while (intextDebugLogBuffer.entries.length > maxEntries || intextDebugLogBuffer.approximateBytes > maxBytes) {
+      const removed = intextDebugLogBuffer.entries.shift();
+      intextDebugLogBuffer.approximateBytes = Math.max(0, intextDebugLogBuffer.approximateBytes - JSON.stringify(removed).length);
+      intextDebugLogBuffer.droppedEntries += 1;
+    }
+    return entry;
+  };
+  const capture = (level, args = [], kind = level) => {
+    if (!active() || !ensureActive()) return null;
+    const values = Array.from(args || []);
+    if (kind === "groupEnd") intextDebugLogBuffer.groupDepth = Math.max(0, intextDebugLogBuffer.groupDepth - 1);
+    const now = Date.now();
+    const hasMessage = typeof values[0] === "string";
+    const message = sanitizeIntextDebugString(hasMessage ? values[0] : values.map((item) => item instanceof Error ? `${item.name}: ${item.message}` : "[Object]").join(" "));
+    const entry = push({
+      sequence: ++intextDebugLogBuffer.sequence,
+      timestamp: now,
+      isoTime: new Date(now).toISOString(),
+      elapsedMs: now - intextDebugLogBuffer.startedAt,
+      level,
+      groupDepth: intextDebugLogBuffer.groupDepth,
+      message,
+      args: (hasMessage ? values.slice(1) : values).map((item) => serializeIntextLogValue(item)),
+    });
+    if (kind === "group") intextDebugLogBuffer.groupDepth += 1;
+    return entry;
+  };
+  const rectOf = (element) => {
+    try {
+      const rect = element?.getBoundingClientRect?.();
+      return rect ? Object.fromEntries(["top", "bottom", "left", "right", "width", "height"].map((key) => [key, Number(rect[key] || 0)])) : null;
+    } catch (e) { return null; }
+  };
+  const intersectionRatio = (rect) => {
+    if (!rect) return null;
+    const width = Math.max(0, Math.min(rect.right, Number(window?.innerWidth || 0)) - Math.max(rect.left, 0));
+    const height = Math.max(0, Math.min(rect.bottom, Number(window?.innerHeight || 0)) - Math.max(rect.top, 0));
+    return rect.width * rect.height > 0 ? Math.min(1, (width * height) / (rect.width * rect.height)) : 0;
+  };
+  const number = (value) => {
+    try {
+      const resolved = typeof value === "function" ? value() : value;
+      return resolved === null || resolved === undefined || resolved === "" || !Number.isFinite(Number(resolved)) ? null : Number(resolved);
+    }
+    catch (e) { return null; }
+  };
+  const recordMetric = (metric, data = {}) => {
+    if (!active() || !ensureActive()) return null;
+    const node = data.node || null;
+    const metricName = String(metric);
+    const source = String(data.source || "unknown");
+    const slotId = String(data.slotId || data.slotCode || node?.id || "unknown");
+    const cycleId = data.cycleId ?? node?._intextTelemetryCycleId ?? null;
+    const renderToken = data.renderToken ?? node?._activeRenderToken ?? null;
+    const contextKey = `${slotId}:${cycleId ?? "unknown"}:${renderToken ?? "unknown"}`;
+    let occurrence = null;
+    let eventSequence = null;
+    if (INTEXT_DEBUG_ONE_SHOT_VIDEO_METRICS.has(metricName)) {
+      const dedupeKey = `${contextKey}:${metricName}:${source}`;
+      if (videoMetricDedupeKeys.has(dedupeKey)) return null;
+      if (videoMetricDedupeKeys.size >= maxEntries) {
+        videoMetricDedupeKeys.delete(videoMetricDedupeKeys.values().next().value);
+      }
+      videoMetricDedupeKeys.add(dedupeKey);
+    } else if (metricName.startsWith("video_")) {
+      const occurrenceKey = `${contextKey}:${metricName}`;
+      occurrence = (videoMetricOccurrenceCounts.get(occurrenceKey) || 0) + 1;
+      if (!videoMetricOccurrenceCounts.has(occurrenceKey) && videoMetricOccurrenceCounts.size >= maxEntries) {
+        videoMetricOccurrenceCounts.delete(videoMetricOccurrenceCounts.keys().next().value);
+      }
+      videoMetricOccurrenceCounts.set(occurrenceKey, occurrence);
+      eventSequence = ++videoMetricEventSequence;
+    }
+    const creative = data.creative || node?.activeCreative || null;
+    const player = data.player || creative?.player || null;
+    const media = data.mediaElement || creative?._adMediaEl || null;
+    const format = resolveIntextDebugMetricFormat(metricName, data.format, node?.state);
+    const element = data.element || (format === "video" ? node?.videoContainer?.getElement?.() : node?.container?.getElement?.());
+    const wrapperRect = data.wrapperRect || rectOf(element);
+    const wrapperIntersection = data.wrapperIntersectionRatio ?? data.intersectionRatio ?? intersectionRatio(wrapperRect);
+    const explicitGptPercentage = number(data.gptInViewPercentage);
+    const callbackGptPercentage = number(data.inViewPercentage);
+    const isDisplayGptSignal = metricName === "display_visibility_changed" || metricName === "display_impression_viewable";
+    if (isDisplayGptSignal) {
+      if (!displayGptSignalKeys.has(contextKey) && displayGptSignalKeys.size >= maxEntries) {
+        displayGptSignalKeys.delete(displayGptSignalKeys.values().next().value);
+      }
+      displayGptSignalKeys.add(contextKey);
+    }
+    const isVideoMetric = format === "video";
+    const storedDisplayGptPercentage = !isVideoMetric && displayGptSignalKeys.has(contextKey)
+      ? number(node?.wa?.cI?.adMaxViewability)
+      : null;
+    const resolvedGptPercentage = explicitGptPercentage
+      ?? (!isVideoMetric && isDisplayGptSignal ? callbackGptPercentage : null)
+      ?? storedDisplayGptPercentage;
+    const gptViewabilityAvailable = resolvedGptPercentage !== null;
+    const domViewabilityPercentage = number(wrapperIntersection) === null ? null : number(wrapperIntersection) * 100;
+    const viewabilitySource = gptViewabilityAvailable
+      ? "gpt"
+      : (domViewabilityPercentage !== null ? "dom-intersection" : "unknown");
+    const viewabilityPercentage = gptViewabilityAvailable ? resolvedGptPercentage : domViewabilityPercentage;
+    const now = Date.now();
+    if (node && !node._intextDebugTimings) node._intextDebugTimings = { cycleStartedAt: null, requestStartedAt: null, imaLoadedAt: null, startedAt: null, firstFrameAt: null, completedAt: null };
+    const timings = node?._intextDebugTimings || {};
+    if (metric === "cycle_started") timings.cycleStartedAt = now;
+    if (metric === "video_request_started" || metric === "display_request_started") timings.requestStartedAt = now;
+    if (metric === "video_ima_loaded") timings.imaLoadedAt = now;
+    if (metric === "video_ima_started") timings.startedAt = now;
+    if (metric === "video_first_frame") timings.firstFrameAt = now;
+    if (metric === "video_complete") timings.completedAt = now;
+    const currentTime = number(data.currentTime ?? media?.currentTime ?? (() => player?.currentTime?.()));
+    const duration = number(data.duration ?? media?.duration ?? creative?._lastAdDuration ?? (() => player?.duration?.()));
+    const payload = {
+      metric: metricName,
+      source,
+      format,
+      phase: data.phase ?? data.eventPhase ?? null,
+      state: data.state ?? node?.state ?? null,
+      slotId,
+      slotIndex: data.slotIndex ?? node?.slotIndex ?? null,
+      navIndex: data.navIndex ?? node?.navIndex ?? null,
+      cycleId,
+      renderToken,
+      trigger: data.trigger || node?.waterfall?.lastTrigger || "unknown",
+      requestType: data.requestType || (metricName.startsWith("video_") ? "video" : (metricName.startsWith("display_") ? "display" : null)),
+      isRefresh: data.isRefresh ?? String(data.trigger || "").includes("refresh"),
+      isFallback: data.isFallback ?? String(data.trigger || "").includes("fallback"),
+      timestamp: now,
+      documentVisibility: String(document?.visibilityState || "unknown"),
+      scrollY: Number(window?.scrollY || 0),
+      viewportHeight: Number(window?.innerHeight || 0),
+      wrapperRect,
+      intersectionRatio: wrapperIntersection,
+      wrapperIntersectionRatio: wrapperIntersection,
+      gptViewabilityAvailable,
+      viewabilitySource,
+      viewabilityPercentage,
+      gptInViewPercentage: resolvedGptPercentage,
+      maxInViewPercentage: data.maxInViewPercentage ?? resolvedGptPercentage,
+      ...(occurrence !== null ? { occurrence, eventSequence } : {}),
+      currentTime,
+      duration,
+      remainingTime: currentTime !== null && duration !== null ? Math.max(0, duration - currentTime) : null,
+      muted: data.muted ?? media?.muted ?? null,
+      volume: number(data.volume ?? media?.volume ?? (() => player?.volume?.())),
+      elapsedFromCycleStartMs: timings.cycleStartedAt ? now - timings.cycleStartedAt : null,
+      elapsedFromRequestMs: timings.requestStartedAt ? now - timings.requestStartedAt : null,
+      elapsedFromVideoRequestMs: metricName.startsWith("video_") && timings.requestStartedAt ? now - timings.requestStartedAt : null,
+      elapsedFromImaLoadedMs: timings.imaLoadedAt ? now - timings.imaLoadedAt : null,
+      elapsedFromStartedMs: timings.startedAt ? now - timings.startedAt : null,
+      elapsedFromFirstFrameMs: timings.firstFrameAt ? now - timings.firstFrameAt : null,
+      errorCode: data.errorCode ?? data.imaErrorCode ?? null,
+      errorMessage: data.errorMessage ?? data.imaErrorMessage ?? null,
+      ...Object.fromEntries(Object.entries(data).filter(([key]) => ![
+        "node", "element", "creative", "player", "mediaElement", "wrapperRect",
+        "currentTime", "duration", "volume", "muted", "gptInViewPercentage",
+        "maxInViewPercentage", "gptViewabilityAvailable", "viewabilitySource",
+        "viewabilityPercentage", "occurrence", "eventSequence", "format",
+      ].includes(key))),
+    };
+    return logIntext(`[IntextMetrics] ${metricName}`, payload);
+  };
+  const timelineMetricMap = {
+    created: "display_slot_created",
+    "render-logical": "intext_real_render",
+    "intersection-change": "intext_intersection_changed",
+    "wrapper-open": "display_opened",
+    "wrapper-close": "display_closed",
+    "fetch-margin-entered": "cycle_fetch_margin_entered",
+    "render-margin-entered": "cycle_render_margin_entered",
+    "request-start": "display_request_started",
+    "request-end": "display_waterfall_result",
+  };
+  const videoMetricMap = {
+    "video-request-start": "video_request_started",
+    "video-request-complete": "video_pipeline_completed",
+    "player-ads-load": "video_player_ads_load",
+    "vast-processed": "video_vast_processed",
+    loaded: "video_ima_loaded",
+    "player-adstart": "video_player_adstart",
+    started: "video_ima_started",
+    "first-frame": "video_first_frame",
+    revealed: "video_player_revealed",
+    "first-quartile": "video_first_quartile",
+    midpoint: "video_midpoint",
+    "third-quartile": "video_third_quartile",
+    complete: "video_complete",
+    skipped: "video_skipped",
+    paused: "video_paused",
+    resumed: "video_resumed",
+    click: "video_click",
+    error: "video_error",
+    timeout: "video_timeout",
+    "fallback-started": "video_fallback_started",
+    "fallback-display-requested": "video_fallback_display_requested",
+  };
+  const recordTimeline = (event, data = {}) => recordMetric(timelineMetricMap[event] || String(event).replace(/-/g, "_"), data);
+  const recordVideoEvent = (event, node, data = {}) => recordMetric(videoMetricMap[event] || String(event).replace(/-/g, "_"), { source: data.source || event, ...data, node });
+  const getSummary = () => {
+    if (!active() || !ensureActive()) return { totalEntries: 0, slotsAndCycles: [] };
+    const groups = {};
+    intextDebugLogBuffer.entries.forEach((entry) => {
+      if (!entry.message.startsWith("[IntextMetrics] ")) return;
+      const data = entry.args?.[0] || {};
+      const metric = String(data.metric || entry.message.slice(16));
+      const key = `${data.slotId || "unknown"}:${data.cycleId ?? "unknown"}:${data.renderToken ?? "unknown"}`;
+      const group = groups[key] ||= { slotId: data.slotId || "unknown", cycleId: data.cycleId ?? null, renderToken: data.renderToken ?? null, navIndex: data.navIndex ?? null, display: {}, video: {}, overall: {}, flags: {}, _times: {}, _data: {}, _events: {} };
+      group._times[metric] ??= entry.timestamp;
+      group._data[metric] ??= data;
+      (group._events[metric] ||= []).push({ ...data, timestamp: data.timestamp ?? entry.timestamp });
+      const viewPercentage = data.viewabilityPercentage;
+      if (viewPercentage != null && Number.isFinite(Number(viewPercentage))) {
+        const percentage = Number(viewPercentage);
+        const metricFormat = resolveIntextDebugMetricFormat(metric, data.format, data.state);
+        const isDisplay = metricFormat === "display";
+        const isVideo = metricFormat === "video";
+        if (isDisplay) group.display.maxInViewPercentage = Math.max(Number(group.display.maxInViewPercentage ?? 0), percentage);
+        if (isVideo) group.video.maxInViewPercentage = Math.max(Number(group.video.maxInViewPercentage ?? 0), percentage);
+        group.overall.maxInViewPercentage = Math.max(Number(group.overall.maxInViewPercentage ?? 0), percentage);
+      }
+    });
+    const delta = (times, from, to) => times[from] != null && times[to] != null ? times[to] - times[from] : null;
+    const resolveViewability = (data = {}) => {
+      if (data.viewabilityPercentage != null && Number.isFinite(Number(data.viewabilityPercentage))) {
+        return { percentage: Number(data.viewabilityPercentage), source: data.viewabilitySource || "unknown" };
+      }
+      const gpt = data.gptInViewPercentage;
+      if (data.gptViewabilityAvailable === true && gpt != null && Number.isFinite(Number(gpt))) return { percentage: Number(gpt), source: "gpt" };
+      const ratio = data.wrapperIntersectionRatio ?? data.intersectionRatio;
+      if (ratio != null && Number.isFinite(Number(ratio))) return { percentage: Number(ratio) * 100, source: "dom-intersection" };
+      return { percentage: null, source: "unknown" };
+    };
+    Object.values(groups).forEach((group) => {
+      const t = group._times;
+      const has = (name) => t[name] != null;
+      Object.assign(group.display, {
+        requestStarted: has("display_request_started"),
+        slotResponseReceived: has("display_slot_response_received"),
+        waterfallResult: has("display_waterfall_result"),
+        renderEnded: has("display_slot_render_ended"),
+        gamFilled: has("display_gam_filled"),
+        realFilled: has("display_real_filled"),
+        empty: has("display_empty"), house: has("display_house"), sentinel: has("display_sentinel"),
+        opened: has("display_opened") || has("display_wrapper_opened"), impressionViewable: has("display_impression_viewable"),
+        requestToResponseMs: delta(t, "display_request_started", "display_slot_response_received"),
+        responseToRenderMs: delta(t, "display_slot_response_received", "display_slot_render_ended"),
+        renderToOpenMs: delta(t, "display_slot_render_ended", has("display_wrapper_opened") ? "display_wrapper_opened" : "display_opened"),
+        renderToViewableMs: delta(t, "display_slot_render_ended", "display_impression_viewable"),
+      });
+      Object.assign(group.video, {
+        requestStarted: has("video_request_started"),
+        playerAdsLoad: has("video_player_ads_load"),
+        vastProcessed: has("video_vast_processed"),
+        pipelineCompleted: has("video_pipeline_completed"),
+        imaLoaded: has("video_ima_loaded"),
+        playerAdstart: has("video_player_adstart"), imaStarted: has("video_ima_started"), firstFrame: has("video_first_frame"),
+        playerRevealed: has("video_player_revealed"), quartile25: has("video_first_quartile"), quartile50: has("video_midpoint"),
+        quartile75: has("video_third_quartile"), complete: has("video_complete"), skipped: has("video_skipped"),
+        error: has("video_error"), timeout: has("video_timeout"), fallback: has("video_fallback_started"),
+        requestToImaLoadedMs: delta(t, "video_request_started", "video_ima_loaded"),
+        imaLoadedToStartedMs: delta(t, "video_ima_loaded", "video_ima_started"),
+        startedToFirstFrameMs: delta(t, "video_ima_started", "video_first_frame"),
+        firstFrameToRevealMs: delta(t, "video_first_frame", "video_player_revealed"),
+        startedToCompleteMs: delta(t, "video_ima_started", "video_complete"),
+      });
+      const pipEntries = group._events.video_pip_entered || [];
+      const pipReturns = group._events.video_pip_returned_inline || [];
+      const pipDismissals = group._events.video_pip_dismissed || [];
+      const pipReplacements = group._events.video_pip_replaced || [];
+      const pipEnded = group._events.video_pip_video_ended || [];
+      const pipExits = [...pipReturns, ...pipDismissals, ...pipEnded]
+        .sort((a, b) => Number(a.timestamp || 0) - Number(b.timestamp || 0));
+      const firstPipEntry = pipEntries[0] || {};
+      const lastPipExit = pipExits[pipExits.length - 1] || {};
+      const totalFloatingMs = pipExits.reduce(
+        (max, event) => Math.max(max, Number(event.accumulatedPipVisibleMs) || 0),
+        0,
+      );
+      group.video.pip = {
+        enabled:
+          group._data.video_pip_config_effective?.pipEnabled === true ||
+          group._data.cycle_started?.pipEnabled === true ||
+          pipEntries.length > 0,
+        entered: pipEntries.length > 0,
+        entryCount: pipEntries.length,
+        returnedInlineCount: pipReturns.length,
+        dismissed: pipDismissals.length > 0,
+        replaced: pipReplacements.length > 0,
+        endedWhileActive: pipEnded.length > 0,
+        totalFloatingMs,
+        firstEntryPlayedPct: firstPipEntry.playedPct ?? null,
+        lastExitPlayedPct: lastPipExit.playedPct ?? null,
+        firstEntryIntersectionRatio: firstPipEntry.anchorIntersectionRatio ?? null,
+        lastExitReason: lastPipExit.reason ?? null,
+      };
+      const startedData = group._data.video_ima_started || {};
+      const firstFrameData = group._data.video_first_frame || {};
+      const revealData = group._data.video_player_revealed || {};
+      const displayOpenData = group._data.display_wrapper_opened || group._data.display_opened || {};
+      const firstFrameViewability = resolveViewability(firstFrameData);
+      const revealViewability = resolveViewability(revealData);
+      const displayOpenViewability = resolveViewability(displayOpenData);
+      group.viewabilitySource = {
+        firstFrame: firstFrameViewability.source,
+        playerRevealed: revealViewability.source,
+        displayOpened: displayOpenViewability.source,
+      };
+      Object.assign(group.flags, {
+        startedWithoutFirstFrame: group.video.imaStarted ? !group.video.firstFrame : "not-applicable",
+        firstFrameWithoutReveal: group.video.firstFrame ? !group.video.playerRevealed : "not-applicable",
+        startedWithPageHidden: group.video.imaStarted ? startedData.documentVisibility === "hidden" : "not-applicable",
+        firstFrameBelow50Percent: !group.video.firstFrame ? "not-applicable" : (firstFrameViewability.percentage === null ? "unknown" : firstFrameViewability.percentage < 50),
+        firstFrameOutsideViewport: !group.video.firstFrame ? "not-applicable" : (firstFrameViewability.percentage === null ? "unknown" : firstFrameViewability.percentage <= 0),
+        revealedAfterViewportExit: !group.video.playerRevealed ? "not-applicable" : (revealViewability.percentage === null ? "unknown" : revealViewability.percentage <= 0),
+        completedBeforeReveal: group.video.complete ? (!group.video.playerRevealed || t.video_complete < t.video_player_revealed) : "not-applicable",
+        fallbackBeforeStarted: group.video.fallback ? (!group.video.imaStarted || t.video_fallback_started < t.video_ima_started) : "not-applicable",
+        fallbackAfterStarted: group.video.fallback ? (group.video.imaStarted && t.video_fallback_started >= t.video_ima_started) : "not-applicable",
+        displayRenderedButNeverViewable: group.display.renderEnded ? !group.display.impressionViewable : "not-applicable",
+        displayOpenedOutsideViewport: !group.display.opened ? "not-applicable" : (displayOpenViewability.percentage === null ? "unknown" : displayOpenViewability.percentage <= 0),
+        pipEnteredBeforeFirstFrame: pipEntries.some((event) =>
+          t.video_first_frame == null || Number(event.timestamp) < Number(t.video_first_frame)
+        ),
+        pipEnteredBeforeReveal: pipEntries.some((event) =>
+          t.video_player_revealed == null || Number(event.timestamp) < Number(t.video_player_revealed)
+        ),
+        pipEnteredWithPageHidden: pipEntries.some((event) => event.documentVisibility !== "visible"),
+        pipRemainedAfterVideoEnd: pipEnded.some((endedEvent) =>
+          pipEntries.some((entryEvent) => {
+            const enteredAt = Number(entryEvent.timestamp);
+            const endedAt = Number(endedEvent.timestamp);
+            if (enteredAt > endedAt) return false;
+            return !pipReturns.some((returnEvent) => {
+              const returnedAt = Number(returnEvent.timestamp);
+              return returnedAt >= enteredAt && returnedAt <= endedAt;
+            });
+          })
+        ),
+        multiplePipPlayersDetected: pipEntries.some((event) => event.multiplePipPlayersDetected === true),
+        pipDismissedButReenteredSameToken: pipDismissals.some((dismissedEvent) =>
+          pipEntries.some((entryEvent) =>
+            Number(entryEvent.timestamp) > Number(dismissedEvent.timestamp)
+          )
+        ),
+      });
+      delete group._times;
+      delete group._data;
+      delete group._events;
+    });
+    return { totalEntries: intextDebugLogBuffer.entries.length, slotsAndCycles: Object.values(groups) };
+  };
+  const getPage = () => {
+    const source = window?.ueDataLayer || window?.utag_data || {};
+    const origin = String(window?.location?.origin || "");
+    const pathname = String(window?.location?.pathname || "/");
+    return { origin, pathname, be_page_newsID: source?.be_page_newsID ?? null, contentType: manager?.siteContext?.contentType || source?.be_page_content_type || "unknown", domain: manager?.siteContext?.site || source?.be_page_domain || window?.location?.hostname || "unknown" };
+  };
+  const getPackage = () => {
+    if (!active() || !ensureActive()) return null;
+    const now = Date.now();
+    return { schemaVersion: "1.0.0", generatedAt: new Date(now).toISOString(), startedAt: new Date(intextDebugLogBuffer.startedAt).toISOString(), durationMs: now - intextDebugLogBuffer.startedAt, page: getPage(), debugger: { totalEntries: intextDebugLogBuffer.entries.length, droppedEntries: intextDebugLogBuffer.droppedEntries, approximateBytes: intextDebugLogBuffer.approximateBytes }, summary: getSummary(), logs: intextDebugLogBuffer.entries.slice() };
+  };
+  const download = (content, mime, extension) => {
+    const page = getPage();
+    const domain = String(page.domain || "unknown").replace(/[^a-z0-9.-]/gi, "_");
+    const contentId = String(page.be_page_newsID || "unknown-news").replace(/[^a-z0-9._-]/gi, "_");
+    const filename = `gexp-intext-debug_${domain}_${contentId}_${new Date().toISOString().replace(/[:.]/g, "-")}.${extension}`;
+    const blob = new Blob([content], { type: mime });
+    const href = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = href; anchor.download = filename; anchor.style.display = "none";
+    document.body?.appendChild?.(anchor); anchor.click(); anchor.remove?.();
+    setTimeout(() => URL.revokeObjectURL(href), 1000);
+    return { filename, sizeBytes: blob.size };
+  };
+  const downloadJSON = () => { const pkg = getPackage(); return pkg ? download(JSON.stringify(pkg, null, 2), "application/json;charset=utf-8", "json") : null; };
+  const downloadTXT = () => {
+    if (!active() || !ensureActive()) return null;
+    const lines = intextDebugLogBuffer.entries.map((entry) => `${String(entry.sequence).padStart(5, "0")} +${entry.elapsedMs}ms [${entry.level}] ${"  ".repeat(entry.groupDepth || 0)}${entry.message}${entry.args?.length ? ` ${JSON.stringify(entry.args.length === 1 ? entry.args[0] : entry.args)}` : ""}`);
+    return download(lines.join("\n"), "text/plain;charset=utf-8", "txt");
+  };
+  const getLogs = () => active() && ensureActive() ? intextDebugLogBuffer.entries.slice() : [];
+  const mark = (label, data = null) => capture("marker", [String(label), data], "marker");
+  const clear = () => {
+    if (!active()) return false;
+    intextDebugLogBuffer = createBuffer();
+    videoMetricDedupeKeys = new Set();
+    videoMetricOccurrenceCounts = new Map();
+    videoMetricEventSequence = 0;
+    displayGptSignalKeys = new Set();
+    return true;
+  };
+  const attachManager = (candidate) => { if (!active()) return false; manager = candidate || manager; return ensureActive(); };
+  const api = { downloadJSON, downloadTXT, getLogs, getSummary, clear, mark };
+  return { isActive: active, ensureActive, capture, recordMetric, recordTimeline, recordVideoEvent, attachManager, getSummary, clear, mark, downloadJSON, downloadTXT, getLogs, getStateForTests: () => intextDebugLogBuffer };
+};
+
+const intextDebugCollector = createIntextDebugCollector();
+intextDebugCollector.ensureActive();
+const logIntext = (...args) => { if (window.gexpIntextDebug) { intextDebugCollector.capture("log", args); console.log(...formatLog(args, badgeLog)); } };
+const warnIntext = (...args) => { if (window.gexpIntextDebug) { intextDebugCollector.capture("warn", args); console.warn(...formatLog(args, badgeWarn)); } };
+const warnIntextAlways = (...args) => { if (window.gexpIntextDebug) intextDebugCollector.capture("warn", args); console.warn(...formatLog(args, badgeWarn)); };
+const errorIntext = (...args) => { if (window.gexpIntextDebug) intextDebugCollector.capture("error", args); console.error(...formatLog(args, badgeErr)); };
+const groupIntext = (...args) => { if (window.gexpIntextDebug) { intextDebugCollector.capture("group", args, "group"); console.groupCollapsed(...formatLog(args, badgeLog)); } };
+const groupEndIntext = () => { if (window.gexpIntextDebug) { intextDebugCollector.capture("groupEnd", [], "groupEnd"); console.groupEnd(); } };
 
 const INTEXT_RANDOM_KEYS = Object.freeze(["random1", "random2", "random3", "random4"]);
+const intextPrebidAliasRegistry = new WeakMap();
+const INTEXT_TELEMETRY_STANDARD_FIELDS = Object.freeze([
+  "gexp-intext-telemetry-event-type",
+  "gexp-intext-opportunity-id",
+  "gexp-intext-manager-event-id",
+  "gexp-intext-decision",
+  "gexp-intext-decision-reason",
+  "gexp-intext-decision-scope",
+  "gexp-intext-fallback-blank-event-id",
+  "gexp-intext-fallback-blank-control-enabled",
+  "gexp-intext-fallback-blank-control-threshold",
+  "gexp-intext-fallback-blank-control-cookie",
+  "gexp-intext-fallback-blank-control-count",
+  "gexp-intext-fallback-blank-control-counted",
+  "gexp-intext-fallback-blank-control-source",
+  "gexp-intext-fallback-blank-control-reason",
+  "gexp-intext-fallback-blank-control-cookie-set",
+  "gexp-intext-fallback-blank-control-blocked",
+  "gexp-intext-fallback-blank-control-counter-before",
+  "gexp-intext-fallback-blank-control-counter-after",
+  "gexp-intext-fallback-blank-control-threshold-reached",
+  "gexp-intext-fallback-blank-control-cookie-set-attempted",
+  "gexp-intext-fallback-blank-control-cookie-set-confirmed",
+  "gexp-intext-fallback-blank-control-cookie-set-error",
+  "gexp-intext-random-source",
+  "gexp-intext-random1-effective",
+  "gexp-intext-random2-effective",
+  "gexp-intext-random3-effective",
+  "gexp-intext-random4-effective",
+  "gexp-intext-random-consistency-slots",
+  "gexp-intext-random-slots-found",
+  "gexp-intext-random-slots-checked",
+  "gexp-intext-random-slots-unresolved-count",
+  "gexp-intext-random-slots-mismatch-count",
+  "gexp-intext-random-mismatch-slot-ids",
+  "gexp-intext-random-unresolved-slot-ids",
+  "gexp-intext-random-mismatch-corrected",
+  "gexp-intext-random-expected",
+  "gexp-intext-random-observed",
+  "gexp-intext-diagnostic-key",
+  "gexp-intext-diagnostic-context",
+  "gexp-intext-lifecycle-event",
+  "gexp-intext-lifecycle-payload",
+  "gexp-intext-reference-slot-id",
+  "gexp-intext-reference-slot-position",
+  "gexp-intext-reference-slot-pvid",
+  "gexp-intext-telemetry-sampled",
+  "gexp-intext-page-instance-id",
+  "gexp-intext-content-id",
+  "gexp-intext-content-id-source",
+  "be_page_newsID",
+  "gexp-intext-qa-inclusion-forced",
+  "gexp-intext-qa-original-random1",
+  "gexp-intext-qa-cookie-enabled",
+  "gexp-intext-qa-cookie-random1",
+  "gexp-intext-qa-cookie-applied",
+  "gexp-intext-qa-cookie-force-exclusions",
+  "gexp-intext-qa-cookie-exclusions-bypassed",
+  "gexp-intext-qa-cookie-exclusions-bypass-source",
+  "gexp-intext-placement-result",
+  "gexp-intext-placements-found",
+  "gexp-intext-placements-created",
+  "gexp-intext-parent-tlm-rid",
+  "gexp-intext-cycle-finalized-after-early-flush",
+  "gexp-intext-telemetry-commit-reason",
+  "gexp-intext-request-type",
+  "gexp-intext-video",
+  "gexp-intext-display",
+  "gexp-intext-is-refresh",
+  "gexp-intext-refresh",
+  "gexp-intext-is-fallback",
+  "gexp-intext-fallback",
+  "gexp-intext-video-failed",
+  "gexp-intext-video-error-code",
+  "gexp-intext-video-error-message",
+  "gexp-intext-network-id-mode",
+  "gexp-intext-network-id-configured",
+  "gexp-intext-network-id-detected",
+  "gexp-intext-network-id-request",
+  "gexp-intext-network-id-source",
+  "gexp-intext-network-id-forced",
+  "gexp-intext-display-adunit-request",
+  "gexp-intext-video-adunit-request",
+  "gexp-intext-refresh-blocked",
+  "gexp-intext-refresh-blocked-reason",
+  "gexp-intext-pip-enabled",
+  "gexp-intext-pip-effective-enabled",
+  "gexp-intext-pip-slot-enabled",
+  "gexp-intext-pip-targeting-allowed",
+  "gexp-intext-pip-targeting-reason",
+  "gexp-intext-pip-inclusion-site-matched",
+  "gexp-intext-pip-inclusion-keyvalue-matched",
+  "gexp-intext-pip-exclusion-site-matched",
+  "gexp-intext-pip-exclusion-keyvalue-matched",
+  "gexp-intext-pip-targeting-matched-key",
+  "gexp-intext-pip-targeting-matched-value",
+  "gexp-intext-pip-playback-source",
+  "gexp-intext-pip-video-playing",
+  "gexp-intext-pip-entered",
+  "gexp-intext-pip-entry-count",
+  "gexp-intext-pip-visible-ms",
+  "gexp-intext-pip-dismissed",
+  "gexp-intext-pip-ended-while-active",
+  "gexp-intext-pip-last-exit-reason",
+  "gexp-intext-pip-entry-played-pct",
+  "gexp-intext-pip-exit-played-pct",
+  "gexp-intext-ad-rendered-logical",
+  "gexp-intext-ad-filled-logical",
+  "gexp-intext-gam-line-item-type",
+  "gexp-intext-gam-event-size",
+  "gexp-intext-render-layout",
+  "adFilled",
+  "adRendered",
+  "isEmpty",
+  "lineItemId",
+  "creativeId",
+  "campaignId",
+  "advertiserId",
+  "slot-id",
+  "slot-index",
+  "cycle-id",
+  "render-token",
+  "pvid",
+  "navIndex",
+  "domain",
+  "country",
+  "contentType",
+  "timestamp",
+  "tlm_rid",
+  "random1",
+  "random2",
+  "random3",
+  "random4",
+]);
 
 class IntextManager {
   constructor(config, gexpInstance) {
@@ -205,10 +922,31 @@ class IntextManager {
     this.baseSiteConfig = this.siteConfig ? JSON.parse(JSON.stringify(this.siteConfig)) : null;
     this.intextQaCookieOverride = this.readIntextQaCookieOverride();
     this._intextQaCookieApplied = false;
+    this._intextQaInclusionForced = false;
     this._intextQaCookieExclusionsBypassed = false;
-    this._intextQaCookieExclusionsBypassSource = "none";
+    this._intextQaCookieExclusionsBypassSource = null;
+    this.intextRandomSnapshot = null;
+    this._intextSyntheticEventKeys = new Set();
+    this._intextOpportunityDecisionKeys = new Set();
+    this._intextContentIdentityByNavIndex = new Map();
+    this._intextTelemetrySampled = this.gexp?.statsG?.telp === true;
+    this._activeIntextPipNode = null;
+    Object.defineProperty(this, "_intextPageInstanceId", {
+      value: this.createIntextTelemetryId("intext-page"),
+      writable: false,
+      configurable: false,
+      enumerable: false,
+    });
     this.adUnitPath = this.extractStaticAdUnitPath();
-    this.networkId = this.config?.networkId || "99071977";
+    this.detectedAdUnitPath = null;
+    this.detectedNetworkId = null;
+    this.configuredNetworkId = this.normalizeIntextNetworkId(
+      this.siteConfig?.gam?.networkId ?? this.config?.networkId,
+    );
+    this.requestNetworkId = null;
+    this.networkIdResolutionSource = "unresolved";
+    this.networkId = this.resolveIntextRequestNetworkId();
+    if (window.gexpIntextDebug) intextDebugCollector.attachManager(this);
     ensureBaseStyles();
 
     if (!this.siteConfig) return;
@@ -250,16 +988,22 @@ class IntextManager {
           });
         }
 
-        if (this.intextQaCookieOverride?.enabled && !filter.allowedDomains.some(domain => currentDomain.includes(domain))) {
+        if (
+          !filter.allowedDomains.some(domain => currentDomain.includes(domain))
+          && this.intextQaCookieOverride?.enabled !== true
+        ) {
+          logIntext(`🛑 [IntextManager] Ejecución bloqueada. Dominio '${currentDomain}' no permitido.`);
+          return;
+        }
+        if (
+          !filter.allowedDomains.some(domain => currentDomain.includes(domain))
+          && this.intextQaCookieOverride?.enabled === true
+        ) {
           this.markIntextQaCookieApplied();
           logIntext(`[IntextManager] intext_qa_cookie_force_allow_applied`, {
             key: "domainFilter.allowedDomains",
-            forcedValue: "qa-cookie",
-            originalValue: currentDomain || "unknown",
+            currentDomain,
           });
-        } else if (!filter.allowedDomains.some(domain => currentDomain.includes(domain))) {
-          logIntext(`🛑 [IntextManager] Ejecución bloqueada. Dominio '${currentDomain}' no permitido.`);
-          return;
         }
       }
     }
@@ -269,12 +1013,11 @@ class IntextManager {
     }
 
     if (!this.gexp.isEnabled()) {
-      if (this.intextQaCookieOverride?.enabled) {
+      if (this.intextQaCookieOverride?.enabled === true) {
         this.markIntextQaCookieApplied();
         logIntext(`[IntextManager] intext_qa_cookie_force_allow_applied`, {
           key: "gexp.isEnabled",
-          forcedValue: "qa-cookie",
-          originalValue: "false",
+          originalValue: false,
         });
       } else {
         return;
@@ -289,11 +1032,7 @@ class IntextManager {
 
     if (this.siteConfig?.exclusions?.disableAll === true) {
       if (this.isIntextQaExclusionsBypassEnabled()) {
-        this.markIntextQaExclusionsBypassApplied("constructor");
-        logIntext(`[IntextManager] intext_qa_cookie_exclusions_bypass_applied`, {
-          key: "exclusions.disableAll",
-          source: "constructor",
-        });
+        this.markIntextQaExclusionsBypassApplied("constructor-exclusions.disableAll");
       } else {
         logIntext(`[IntextManager] ❌ BLOCKED by exclusions.disableAll = true`);
         return;
@@ -301,12 +1040,27 @@ class IntextManager {
     }
     const launchIntextPositions = () => {
       googletag.cmd.push(() => {
-        this.resolveAdUnit();
+        if (this.resolveAdUnit() === false) return;
         this.siteContext.contentType = this.detectContentType();
         logIntext(`[IntextManager] Detected content type: "${this.siteContext.contentType}"`);
 
         this.siteConfig = this.resolveContentTypeProfile(this.siteConfig, this.siteContext.contentType);
         if (!this.isContentTypeAllowed(this.siteConfig, this.siteContext.contentType, "[IntextManager]")) {
+          return;
+        }
+        const snapshot = this.captureIntextRandomSnapshot();
+        if (!this.validateIntextRandomSnapshot(snapshot)) {
+          this.registerIntextManagerDecision({
+            navIndex: 0,
+            scope: "initial",
+            decision: "blocked",
+            reason: "random-snapshot-invalid",
+          });
+          this.registerIntextDiagnosticEvent({
+            diagnosticKey: "random-snapshot-invalid",
+            "gexp-intext-decision": "blocked",
+            "gexp-intext-decision-reason": "random-snapshot-invalid",
+          });
           return;
         }
         if (this.isBlockedByExclusions()) {
@@ -317,7 +1071,25 @@ class IntextManager {
           return;
         }
 
-        this.createIntextPositions();
+        if (this.shouldBlockIntextByFallbackBlankControl()) {
+          logIntext(`[IntextManager] intext_blocked_by_fallback_blank_cookie`);
+          this.registerIntextManagerDecision({
+            navIndex: 0,
+            scope: "initial",
+            decision: "blocked",
+            reason: "fallback-blank-cookie",
+          });
+          return;
+        }
+
+        const placement = this.createIntextPositions();
+        this.registerIntextManagerDecision({
+          navIndex: 0,
+          scope: "initial",
+          decision: "allowed",
+          reason: "passed",
+          placement,
+        });
 
         const infiniteScrollTypes = ["noticia", "noticia-especial"];
         if (this.siteConfig?.infiniteScroll?.enabled && infiniteScrollTypes.includes(this.siteContext.contentType)) {
@@ -334,16 +1106,32 @@ class IntextManager {
   }
 
   isUsableIntextGptApi(api) {
-    return Boolean(api && typeof api.defineSlot === "function" && typeof api.pubads === "function" && typeof api.display === "function" && typeof api.destroySlots === "function");
+    return Boolean(
+      api &&
+      typeof api.defineSlot === "function" &&
+      typeof api.pubads === "function" &&
+      typeof api.display === "function" &&
+      typeof api.destroySlots === "function"
+    );
   }
 
   resolveIntextGptApi() {
     const proxy = typeof window !== "undefined" ? window.googletag : null;
-    if (!proxy) return { api: null, source: "gpt-unavailable", pspDetected: false, proxy: null, controller: null };
+    if (!proxy) {
+      return {
+        api: null,
+        source: "gpt-unavailable",
+        pspDetected: false,
+        proxy: null,
+        controller: null,
+      };
+    }
+
     const controller = proxy.__ctrl;
     const pspDetected = Boolean(controller && typeof controller === "object");
     let api = null;
     let source = "gpt-invalid";
+
     if (pspDetected) {
       if (this.isUsableIntextGptApi(controller.baseObject)) {
         api = controller.baseObject;
@@ -358,6 +1146,7 @@ class IntextManager {
       api = proxy;
       source = "window.googletag";
     }
+
     const diagnostic = {
       pspDetected,
       source,
@@ -371,54 +1160,101 @@ class IntextManager {
       displayType: typeof api?.display,
     };
     logIntext(`[Intext:GPT] intext_gpt_runtime_resolved`, diagnostic);
-    if (pspDetected) logIntext(`[Intext:GPT] intext_gpt_proxy_detected`, diagnostic);
+    if (pspDetected) {
+      logIntext(`[Intext:GPT] intext_gpt_proxy_detected`, diagnostic);
+    }
+
     return { api, source, pspDetected, proxy, controller };
   }
 
   resolveIntextPrebidApi() {
     const proxy = typeof window !== "undefined" ? window.pbjs : null;
-    if (!proxy) return { api: null, source: "pbjs-unavailable", pspDetected: false, proxy: null, controller: null };
+    if (!proxy) {
+      return { api: null, source: "pbjs-unavailable", pspDetected: false, proxy: null, controller: null };
+    }
+
     const controller = proxy.__ctrl;
     const pspDetected = Boolean(controller && typeof controller === "object");
-    const isUsable = (candidate) => Boolean(candidate && candidate.que && typeof candidate.que.push === "function" && typeof candidate.requestBids === "function");
+    const isUsable = (candidate) => Boolean(
+      candidate &&
+      candidate.que &&
+      typeof candidate.que.push === "function" &&
+      typeof candidate.requestBids === "function"
+    );
     let api = null;
     let source = "pbjs-invalid";
     if (pspDetected) {
-      if (isUsable(controller.realObj)) { api = controller.realObj; source = "__ctrl.realObj"; }
-      else source = "psp-real-pbjs-unavailable";
-    } else if (isUsable(proxy)) { api = proxy; source = "window.pbjs"; }
+      if (isUsable(controller.realObj)) {
+        api = controller.realObj;
+        source = "__ctrl.realObj";
+      } else {
+        source = "psp-real-pbjs-unavailable";
+      }
+    } else if (isUsable(proxy)) {
+      api = proxy;
+      source = "window.pbjs";
+    }
+
     const diagnostic = {
-      pspDetected, source, hasController: Boolean(controller), hasRealObj: Boolean(controller?.realObj),
-      hasBaseObj: Boolean(controller?.baseObj), version: api?.version || null,
-      requestBidsType: typeof api?.requestBids, aliasBidderType: typeof api?.aliasBidder,
+      pspDetected,
+      source,
+      hasController: Boolean(controller),
+      hasRealObj: Boolean(controller?.realObj),
+      hasBaseObj: Boolean(controller?.baseObj),
+      version: api?.version || null,
+      requestBidsType: typeof api?.requestBids,
+      aliasBidderType: typeof api?.aliasBidder,
       addAdUnitsType: typeof api?.addAdUnits,
     };
     logIntext(`[Intext:Prebid] intext_prebid_runtime_resolved`, diagnostic);
     if (pspDetected) logIntext(`[Intext:Prebid] intext_prebid_proxy_detected`, diagnostic);
-    if (source === "psp-real-pbjs-unavailable") logIntext(`[Intext:Prebid] intext_prebid_real_api_unavailable`, diagnostic);
+    if (source === "psp-real-pbjs-unavailable") {
+      logIntext(`[Intext:Prebid] intext_prebid_real_api_unavailable`, diagnostic);
+    }
     return { api, source, pspDetected, proxy, controller };
   }
 
   resolveIntextApstagApi() {
     const proxy = typeof window !== "undefined" ? window.apstag : null;
-    if (!proxy) return { api: null, source: "apstag-unavailable", pspDetected: false, proxy: null, controller: null };
+    if (!proxy) {
+      return { api: null, source: "apstag-unavailable", pspDetected: false, proxy: null, controller: null };
+    }
+
     const controller = proxy.__ctrl;
     const pspDetected = Boolean(controller && typeof controller === "object");
-    const isUsable = (candidate) => Boolean(candidate && typeof candidate.fetchBids === "function" && typeof candidate.setDisplayBids === "function");
+    const isUsable = (candidate) => Boolean(
+      candidate &&
+      typeof candidate.fetchBids === "function" &&
+      typeof candidate.setDisplayBids === "function"
+    );
     let api = null;
     let source = "apstag-invalid";
     if (pspDetected) {
-      if (isUsable(controller.realObj)) { api = controller.realObj; source = "__ctrl.realObj"; }
-      else source = "psp-real-apstag-unavailable";
-    } else if (isUsable(proxy)) { api = proxy; source = "window.apstag"; }
+      if (isUsable(controller.realObj)) {
+        api = controller.realObj;
+        source = "__ctrl.realObj";
+      } else {
+        source = "psp-real-apstag-unavailable";
+      }
+    } else if (isUsable(proxy)) {
+      api = proxy;
+      source = "window.apstag";
+    }
+
     const diagnostic = {
-      pspDetected, source, hasController: Boolean(controller), hasRealObj: Boolean(controller?.realObj),
-      hasBaseObj: Boolean(controller?.baseObj), fetchBidsType: typeof api?.fetchBids,
+      pspDetected,
+      source,
+      hasController: Boolean(controller),
+      hasRealObj: Boolean(controller?.realObj),
+      hasBaseObj: Boolean(controller?.baseObj),
+      fetchBidsType: typeof api?.fetchBids,
       setDisplayBidsType: typeof api?.setDisplayBids,
     };
     logIntext(`[Intext:APS] intext_apstag_runtime_resolved`, diagnostic);
     if (pspDetected) logIntext(`[Intext:APS] intext_apstag_proxy_detected`, diagnostic);
-    if (source === "psp-real-apstag-unavailable") logIntext(`[Intext:APS] intext_apstag_real_api_unavailable`, diagnostic);
+    if (source === "psp-real-apstag-unavailable") {
+      logIntext(`[Intext:APS] intext_apstag_real_api_unavailable`, diagnostic);
+    }
     return { api, source, pspDetected, proxy, controller };
   }
 
@@ -427,11 +1263,15 @@ class IntextManager {
     try {
       initial = this.resolveIntextGptApi();
     } catch (error) {
-      warnIntext(`[Intext:GPT] intext_gpt_command_failed`, { reason: "initial-resolution-exception", error: error?.message || String(error) });
+      warnIntext(`[Intext:GPT] intext_gpt_command_failed`, {
+        reason: "initial-resolution-exception",
+        error: error?.message || String(error),
+      });
       return Promise.resolve({ executed: false, reason: "initial-resolution-exception", error });
     }
     return new Promise((resolve) => {
       let settled = false;
+      const timeoutMs = 2000;
       const settleOnce = (result) => {
         if (settled) return;
         settled = true;
@@ -447,28 +1287,543 @@ class IntextManager {
         });
         settleOnce({ executed: false, reason, resolution, error });
       };
-      const timeoutId = setTimeout(() => fail("command-timeout"), 2000);
+      const timeoutId = setTimeout(() => fail("command-timeout"), timeoutMs);
+
       if (!initial.proxy?.cmd || typeof initial.proxy.cmd.push !== "function") {
         fail(initial.source || "gpt-command-queue-unavailable");
         return;
       }
+
       const execute = () => {
         if (settled) return;
         const current = this.resolveIntextGptApi();
-        if (!current.api) return fail(current.source, current);
+        if (!current.api) {
+          fail(current.source, current);
+          return;
+        }
         try {
-          settleOnce({ executed: true, value: callback(current.api, current), resolution: current });
+          const value = callback(current.api, current);
+          settleOnce({ executed: true, value, resolution: current });
         } catch (error) {
           fail("callback-exception", current, error);
         }
       };
+
       try {
-        if (initial.pspDetected) initial.proxy.cmd.push(execute, true);
-        else initial.proxy.cmd.push(execute);
+        if (initial.pspDetected) {
+          initial.proxy.cmd.push(execute, true);
+        } else {
+          initial.proxy.cmd.push(execute);
+        }
       } catch (error) {
         fail("queue-push-exception", initial, error);
       }
     });
+  }
+
+  createIntextTelemetryId(prefix = "intext") {
+    try {
+      if (typeof window !== "undefined" && typeof window.crypto?.randomUUID === "function") {
+        return `${prefix}:${window.crypto.randomUUID()}`;
+      }
+    } catch (e) { }
+    this._intextTelemetryIdSequence = (this._intextTelemetryIdSequence || 0) + 1;
+    return `${prefix}:${Date.now()}:${this._intextTelemetryIdSequence}:${Math.random().toString(36).slice(2, 10)}`;
+  }
+
+  resolveIntextNewsIdentity(rootElement = null, scopedContext = null) {
+    const readAttribute = (name) => {
+      try {
+        const value = rootElement?.getAttribute?.(name);
+        return value !== undefined && value !== null && value !== "" ? String(value) : null;
+      } catch (e) {
+        return null;
+      }
+    };
+    const candidates = [
+      [readAttribute("data-ue-news-id"), "root:data-ue-news-id"],
+      [readAttribute("data-news-id"), "root:data-news-id"],
+      [readAttribute("data-article-id"), "root:data-article-id"],
+      [scopedContext?.be_page_newsID, "scopedContext.be_page_newsID"],
+      [typeof window !== "undefined" ? window.ueDataLayer?.be_page_newsID : null, "ueDataLayer.be_page_newsID"],
+      [typeof window !== "undefined" ? window.utag_data?.be_page_newsID : null, "utag_data.be_page_newsID"],
+    ];
+    const resolved = candidates.find(([value]) => value !== undefined && value !== null && value !== "");
+    return resolved
+      ? Object.freeze({ id: String(resolved[0]), source: resolved[1], resolved: true })
+      : Object.freeze({ id: null, source: "unresolved", resolved: false });
+  }
+
+  resolveIntextNewsId(rootElement = null, scopedContext = null) {
+    return this.resolveIntextNewsIdentity(rootElement, scopedContext).id;
+  }
+
+  getPreviousResolvedIntextNewsId(navIndex) {
+    const current = Number(navIndex) || 0;
+    let previous = null;
+    this._intextContentIdentityByNavIndex?.forEach?.((identity, index) => {
+      if (Number(index) < current && identity?.resolved && (!previous || Number(index) > previous.index)) {
+        previous = { index: Number(index), id: String(identity.newsId) };
+      }
+    });
+    return previous?.id || null;
+  }
+
+  getScopedIntextNewsIdentityCandidate(mainElement, scopedContext = null) {
+    const readAttribute = (element, name) => {
+      try {
+        const value = element?.getAttribute?.(name);
+        return value !== undefined && value !== null && value !== "" ? String(value) : null;
+      } catch (e) {
+        return null;
+      }
+    };
+    const attributes = ["data-ue-news-id", "data-news-id", "data-article-id"];
+    for (const attribute of attributes) {
+      const value = readAttribute(mainElement, attribute);
+      if (value) return { id: value, source: `root:${attribute}`, scoped: true };
+    }
+    for (const attribute of attributes) {
+      let descendant = null;
+      try { descendant = mainElement?.querySelector?.(`[${attribute}]`) || null; } catch (e) { }
+      const value = readAttribute(descendant, attribute);
+      if (value) return { id: value, source: `descendant:${attribute}`, scoped: true };
+    }
+    if (scopedContext?.be_page_newsID !== undefined && scopedContext?.be_page_newsID !== null && scopedContext.be_page_newsID !== "") {
+      return { id: String(scopedContext.be_page_newsID), source: "scopedContext.be_page_newsID", scoped: true };
+    }
+    const scopedSlots = this.getScopedSlotsForRoot(mainElement);
+    for (const slot of scopedSlots) {
+      for (const key of ["be_page_newsID", "be_page_newsid", "newsID", "news_id", "article_id"]) {
+        const value = this.normalizeIntextDiagnosticTargetingValue(slot?.getTargeting?.(key));
+        if (value !== null) {
+          return { id: value, source: `scoped-slot:${slot?.getSlotElementId?.() || "unknown"}:${key}`, scoped: true };
+        }
+      }
+    }
+    const ueValue = typeof window !== "undefined" ? window.ueDataLayer?.be_page_newsID : null;
+    if (ueValue !== undefined && ueValue !== null && ueValue !== "") {
+      return { id: String(ueValue), source: "ueDataLayer.be_page_newsID", scoped: false };
+    }
+    const utagValue = typeof window !== "undefined" ? window.utag_data?.be_page_newsID : null;
+    if (utagValue !== undefined && utagValue !== null && utagValue !== "") {
+      return { id: String(utagValue), source: "utag_data.be_page_newsID", scoped: false };
+    }
+    return null;
+  }
+
+  async resolveScopedIntextNewsIdentity(mainElement, navIndex, scopedContext = null) {
+    const normalizedNavIndex = Number(navIndex) || 0;
+    const previousNewsId = this.getPreviousResolvedIntextNewsId(normalizedNavIndex);
+    const waitMs = Math.max(0, Number(this.siteConfig?.infiniteScroll?.contentIdentityWaitMs ?? 500));
+    const pollMs = Math.max(10, Number(this.siteConfig?.infiniteScroll?.contentIdentityPollMs ?? 50));
+    const startedAt = Date.now();
+    while (true) {
+      const candidate = this.getScopedIntextNewsIdentityCandidate(mainElement, scopedContext);
+      if (candidate && (candidate.scoped || !previousNewsId || candidate.id !== previousNewsId)) {
+        return Object.freeze({ id: candidate.id, source: candidate.source, resolved: true });
+      }
+      if (Date.now() - startedAt >= waitMs) {
+        return Object.freeze({ id: null, source: "unresolved", resolved: false });
+      }
+      await new Promise((resolve) => setTimeout(resolve, Math.min(pollMs, waitMs - (Date.now() - startedAt))));
+    }
+  }
+
+  requestActiveIntextPip(node) {
+    if (!node) return false;
+    const previousNode = this._activeIntextPipNode;
+    if (previousNode === node) return true;
+    if (previousNode) {
+      previousNode.exitIntextPip?.("replaced-by-another-slot");
+    }
+    this._activeIntextPipNode = node;
+    return true;
+  }
+
+  releaseActiveIntextPip(node) {
+    if (this._activeIntextPipNode !== node) return false;
+    this._activeIntextPipNode = null;
+    return true;
+  }
+
+  captureIntextContentIdentity(navIndex = 0, rootElement = null, scopedContext = null, resolvedIdentity = null) {
+    const normalizedNavIndex = Number(navIndex) || 0;
+    if (this._intextContentIdentityByNavIndex?.has(normalizedNavIndex)) {
+      return this._intextContentIdentityByNavIndex.get(normalizedNavIndex);
+    }
+    if (!this._intextContentIdentityByNavIndex) this._intextContentIdentityByNavIndex = new Map();
+    const resolved = resolvedIdentity || this.resolveIntextNewsIdentity(rootElement, scopedContext);
+    const identity = Object.freeze({
+      id: resolved.id || `unknown-news:${normalizedNavIndex}`,
+      newsId: resolved.id || null,
+      source: resolved.source,
+      resolved: resolved.resolved,
+      navIndex: normalizedNavIndex,
+    });
+    this._intextContentIdentityByNavIndex.set(normalizedNavIndex, identity);
+    if (!identity.resolved) {
+      this.registerIntextDiagnosticEvent({
+        diagnosticKey: `content-id-unresolved:${normalizedNavIndex}`,
+        navIndex: String(normalizedNavIndex),
+        "gexp-intext-diagnostic-context": `navIndex:${normalizedNavIndex}`,
+      });
+    }
+    return identity;
+  }
+
+  resolveOptionalIntextSlotPvid(rootElement = null, scopedContext = null) {
+    try {
+      const slots = rootElement
+        ? this.getScopedSlotsForRoot(rootElement)
+        : (Array.isArray(scopedContext?.scopedSlots)
+          ? scopedContext.scopedSlots
+          : this.getIntextNativeGptSlots());
+      for (const slot of slots) {
+        const slotId = String(slot?.getSlotElementId?.() || "");
+        if (!slotId || slotId.startsWith("gexp-intext")) continue;
+        const value = this.normalizeIntextDiagnosticTargetingValue(slot?.getTargeting?.("pvid"));
+        if (value !== null) return value;
+      }
+    } catch (e) { }
+    return null;
+  }
+
+  resolveIntextCountry() {
+    const value =
+      (typeof window !== "undefined" ? window.ueDataLayer?.be_page_country : null) ||
+      (typeof window !== "undefined" ? window.utag_data?.be_page_country : null) ||
+      this.gexp?.country ||
+      this.config?.gexp_cfg_country ||
+      "unknown";
+    return String(value);
+  }
+
+  captureIntextRandomSnapshot() {
+    if (this.intextRandomSnapshot) return this.intextRandomSnapshot;
+    try {
+      this.intextRandomSnapshot = Object.freeze({
+        random1: String(this.gexp.getRandom(1)),
+        random2: String(this.gexp.getRandom(2)),
+        random3: String(this.gexp.getRandom(3)),
+        random4: String(this.gexp.getRandom(4)),
+        source: "gexp-slot-random-snapshot",
+      });
+    } catch (e) {
+      this.intextRandomSnapshot = Object.freeze({
+        random1: "",
+        random2: "",
+        random3: "",
+        random4: "",
+        source: "gexp-slot-random-snapshot",
+      });
+    }
+    return this.intextRandomSnapshot;
+  }
+
+  validateIntextRandomSnapshot(snapshot = this.intextRandomSnapshot) {
+    if (!snapshot || !Object.isFrozen(snapshot)) return false;
+    const invalidLiterals = new Set(["", "undefined", "null", "nan"]);
+    return INTEXT_RANDOM_KEYS.every((key) => {
+      const raw = String(snapshot[key] ?? "").trim();
+      if (invalidLiterals.has(raw.toLowerCase())) return false;
+      const value = Number(raw);
+      return Number.isInteger(value) && value >= 1 && value <= 20;
+    });
+  }
+
+  validateIntextRandomSnapshotStability(context = "runtime") {
+    const snapshot = this.intextRandomSnapshot;
+    if (!this.validateIntextRandomSnapshot(snapshot)) return false;
+    let current = null;
+    try {
+      current = {
+        random1: String(this.gexp.getRandom(1)),
+        random2: String(this.gexp.getRandom(2)),
+        random3: String(this.gexp.getRandom(3)),
+        random4: String(this.gexp.getRandom(4)),
+      };
+    } catch (e) {
+      return false;
+    }
+    const stable = INTEXT_RANDOM_KEYS.every((key) => current[key] === snapshot[key]);
+    if (!stable) {
+      this.registerIntextDiagnosticEvent({
+        diagnosticKey: `gexp-random-changed-after-snapshot:${context}`,
+        "gexp-intext-diagnostic-context": String(context),
+        "gexp-intext-random-expected": JSON.stringify(snapshot),
+        "gexp-intext-random-observed": JSON.stringify(current),
+      });
+    }
+    return stable;
+  }
+
+  getIntextRandomValue(key) {
+    if (!INTEXT_RANDOM_KEYS.includes(String(key))) return null;
+    const snapshot = this.intextRandomSnapshot;
+    return snapshot && snapshot[key] !== undefined ? String(snapshot[key]) : null;
+  }
+
+  getIntextRuleTargetingValue(key, pageTargeting = null) {
+    const snapshotValue = this.getIntextRandomValue(key);
+    if (INTEXT_RANDOM_KEYS.includes(String(key))) return snapshotValue;
+    return pageTargeting?.[key];
+  }
+
+  normalizeIntextRuleTargetingValues(value) {
+    const normalized = [];
+    const collect = (candidate) => {
+      if (candidate === undefined || candidate === null) return;
+      if (Array.isArray(candidate)) { candidate.forEach(collect); return; }
+      if (typeof candidate === "string" && candidate.includes(",")) {
+        candidate.split(",").forEach((entry) => normalized.push(entry.trim()));
+        return;
+      }
+      normalized.push(String(candidate));
+    };
+    collect(value);
+    return Array.from(new Set(normalized));
+  }
+
+  getIntextNativeGptSlots(rootElement = null) {
+    try {
+      const pubads = this.resolveIntextGptApi().api?.pubads?.();
+      const slots = pubads?.getSlots?.();
+      if (!Array.isArray(slots)) return [];
+      return slots.filter((slot) => {
+        const slotElementId = String(slot?.getSlotElementId?.() || "");
+        if (/^gexp-intext(?:-|$)/.test(slotElementId)) return false;
+        if (!rootElement) return true;
+        const element = slotElementId ? document.getElementById(slotElementId) : null;
+        return Boolean(element && rootElement.contains(element));
+      });
+    } catch (e) { return []; }
+  }
+
+  resolveIntextRuleTargeting(key, context = null) {
+    const normalizedKey = String(key);
+    const resolution = this.resolveIntextGptApi();
+    const result = { key: normalizedKey, values: [], sources: [], pspDetected: resolution.pspDetected === true, slotsChecked: 0, slotsMatched: 0, scoped: Boolean(context?.rootElement) };
+    const add = (source, rawValue) => {
+      const values = this.normalizeIntextRuleTargetingValues(rawValue);
+      if (!values.length) return;
+      let sourceEntry = result.sources.find((entry) => entry.source === source);
+      if (!sourceEntry) { sourceEntry = { source, values: [] }; result.sources.push(sourceEntry); }
+      values.forEach((value) => {
+        if (!sourceEntry.values.includes(value)) sourceEntry.values.push(value);
+        if (!result.values.includes(value)) result.values.push(value);
+      });
+    };
+    if (INTEXT_RANDOM_KEYS.includes(normalizedKey)) {
+      add("gexp-slot-random-snapshot", this.getIntextRandomValue(normalizedKey));
+    } else {
+      add("context.targeting", context?.targeting?.[normalizedKey]);
+      add("data.customTargeting", typeof data !== "undefined" ? data?.customTargeting?.[normalizedKey] : undefined);
+      add("ueDFPData.customTargeting", typeof ueDFPData !== "undefined" ? ueDFPData?.customTargeting?.[normalizedKey] : undefined);
+      try { add("gpt-page-targeting", resolution.api?.pubads?.()?.getTargeting?.(normalizedKey)); } catch (e) { }
+      const slots = this.getIntextNativeGptSlots(context?.rootElement || null);
+      result.slotsChecked = slots.length;
+      slots.forEach((slot) => {
+        let values = [];
+        try { values = this.normalizeIntextRuleTargetingValues(slot?.getTargeting?.(normalizedKey)); } catch (e) { }
+        if (!values.length) {
+          try { values = this.normalizeIntextRuleTargetingValues(slot?.getTargetingMap?.()?.[normalizedKey]); } catch (e) { }
+        }
+        if (!values.length) return;
+        result.slotsMatched += 1;
+        add("gpt-slot-targeting", values);
+      });
+      add("ueDataLayer", typeof window !== "undefined" ? window.ueDataLayer?.[normalizedKey] : undefined);
+      add("utag_data", typeof window !== "undefined" ? window.utag_data?.[normalizedKey] : undefined);
+    }
+    logIntext(`[IntextManager] intext_rule_targeting_resolved`, {
+      key: result.key, values: result.values,
+      sources: Array.from(new Set(result.sources.map((entry) => entry.source))),
+      pspDetected: result.pspDetected, slotsChecked: result.slotsChecked,
+      slotsMatched: result.slotsMatched, scoped: result.scoped,
+    });
+    return result;
+  }
+
+  getIntextRandomTelemetry() {
+    const snapshot = this.intextRandomSnapshot || {};
+    // The gexp-intext-randomN-effective fields are the canonical Intext
+    // analysis values. Bare randomN fields remain for compatibility only.
+    return {
+      "gexp-intext-random-source": String(snapshot.source || "unresolved"),
+      "gexp-intext-random1-effective": String(snapshot.random1 || ""),
+      "gexp-intext-random2-effective": String(snapshot.random2 || ""),
+      "gexp-intext-random3-effective": String(snapshot.random3 || ""),
+      "gexp-intext-random4-effective": String(snapshot.random4 || ""),
+      random1: String(snapshot.random1 || ""),
+      random2: String(snapshot.random2 || ""),
+      random3: String(snapshot.random3 || ""),
+      random4: String(snapshot.random4 || ""),
+    };
+  }
+
+  normalizeIntextDiagnosticTargetingValue(value) {
+    if (Array.isArray(value)) return value.length ? String(value[0]) : null;
+    if (value === undefined || value === null || value === "") return null;
+    return String(value);
+  }
+
+  getIntextRandomConsistencyDiagnostics(context = "manager-decision", navIndex = 0) {
+    const snapshot = this.intextRandomSnapshot;
+    let slotConsistency = "slots-not-present";
+    let slotsFound = 0;
+    let slotsChecked = 0;
+    const mismatchSlotIds = [];
+    const unresolvedSlotIds = [];
+    try {
+      const normalSlots = this.getIntextNativeGptSlots();
+      slotsFound = normalSlots.length;
+      normalSlots.forEach((slot) => {
+        const slotId = String(slot.getSlotElementId?.() || "unknown");
+        const position = this.normalizeIntextDiagnosticTargetingValue(slot.getTargeting?.("p")) || "unknown";
+        const observed = {};
+        INTEXT_RANDOM_KEYS.forEach((key) => {
+          observed[key] = this.normalizeIntextDiagnosticTargetingValue(slot.getTargeting?.(key));
+        });
+        const ready = INTEXT_RANDOM_KEYS.every((key) => {
+          const value = observed[key];
+          return value !== null && /^\d+$/.test(value) && Number(value) >= 1 && Number(value) <= 20;
+        });
+        if (!ready) {
+          unresolvedSlotIds.push(slotId);
+          return;
+        }
+        slotsChecked += 1;
+        const matches = INTEXT_RANDOM_KEYS.every((key) => observed[key] === String(snapshot?.[key] || ""));
+        if (!matches) {
+          mismatchSlotIds.push(slotId);
+          this.registerIntextDiagnosticEvent({
+            diagnosticKey: `normal-slot-random-mismatch:${slotId}:${context}`,
+            "gexp-intext-diagnostic-context": context,
+            "gexp-intext-reference-slot-id": slotId,
+            "gexp-intext-reference-slot-position": position,
+            "gexp-intext-random-expected": JSON.stringify(INTEXT_RANDOM_KEYS.reduce((acc, key) => ({ ...acc, [key]: snapshot?.[key] }), {})),
+            "gexp-intext-random-observed": JSON.stringify(observed),
+            navIndex: String(Number(navIndex) || 0),
+            timestamp: String(Date.now()),
+          });
+        }
+      });
+      if (slotsFound > 0 && slotsChecked === 0) slotConsistency = "slots-not-ready";
+      else if (slotsChecked > 0) slotConsistency = mismatchSlotIds.length ? "false" : "true";
+    } catch (e) { }
+    return {
+      "gexp-intext-random-consistency-slots": slotConsistency,
+      "gexp-intext-random-slots-found": String(slotsFound),
+      "gexp-intext-random-slots-checked": String(slotsChecked),
+      "gexp-intext-random-slots-unresolved-count": String(unresolvedSlotIds.length),
+      "gexp-intext-random-slots-mismatch-count": String(mismatchSlotIds.length),
+      "gexp-intext-random-mismatch-slot-ids": mismatchSlotIds.length ? mismatchSlotIds.join(",") : "none",
+      "gexp-intext-random-unresolved-slot-ids": unresolvedSlotIds.length ? unresolvedSlotIds.join(",") : "none",
+    };
+  }
+
+  filterIntextSyntheticEvent(event = {}) {
+    // This allowlist filters only the Intext-specific synthetic payload
+    // before registerImpression(). StatsGatherer.registerRow() may later
+    // append its common data and DataLayer properties to the stored row.
+    if (typeof window !== "undefined" && window.gexpIntextDebug === true) {
+      return { ...event };
+    }
+    const filtered = {};
+    Object.keys(event || {}).forEach((key) => {
+      if (INTEXT_TELEMETRY_STANDARD_FIELDS.includes(key)) filtered[key] = event[key];
+    });
+    return filtered;
+  }
+
+  registerIntextSyntheticEvent(eventType, payload = {}, dedupeKey = null) {
+    if (!this.gexp?.registerImpression) return false;
+    const eventKey = dedupeKey || `${eventType}:${payload["gexp-intext-opportunity-id"] || this.createIntextTelemetryId("event")}`;
+    if (this._intextSyntheticEventKeys.has(eventKey)) return false;
+    this._intextSyntheticEventKeys.add(eventKey);
+    if (this._intextTelemetrySampled !== true) return false;
+    const navIndex = Number(payload.navIndex) || 0;
+    const identity = this.captureIntextContentIdentity(navIndex, payload.rootElement || null, payload.scopedContext || null);
+    const optionalPvid = this.resolveOptionalIntextSlotPvid(payload.rootElement || null, payload.scopedContext || null);
+    const event = {
+      ...payload,
+      navIndex: String(navIndex),
+      domain: this.getHostnameNormalized(this.siteContext?.site),
+      contentType: String(payload.contentType || this.siteContext?.contentType || "unknown"),
+      "gexp-intext-telemetry-sampled": "true",
+      "gexp-intext-telemetry-event-type": eventType,
+      "gexp-intext-page-instance-id": this._intextPageInstanceId,
+      "gexp-intext-content-id": identity.id,
+      "gexp-intext-content-id-source": identity.source,
+      country: this.resolveIntextCountry(),
+      timestamp: String(Date.now()),
+      tlm_rid: this.createIntextTelemetryId(eventType),
+      ...this.getIntextRandomTelemetry(),
+    };
+    delete event.rootElement;
+    delete event.scopedContext;
+    delete event.be_page_newsID;
+    delete event.pvid;
+    delete event["gexp-intext-reference-slot-pvid"];
+    if (identity.resolved && identity.newsId) event.be_page_newsID = identity.newsId;
+    if (optionalPvid) {
+      event.pvid = optionalPvid;
+      event["gexp-intext-reference-slot-pvid"] = optionalPvid;
+    }
+    if (typeof window !== "undefined" && window.gexpIntextDebug === true) {
+      const unknownFields = Object.keys(event).filter((key) =>
+        key.startsWith("gexp-intext-") && !INTEXT_TELEMETRY_STANDARD_FIELDS.includes(key)
+      );
+      if (unknownFields.length) {
+        warnIntext(`[IntextManager] intext_telemetry_fields_outside_standard_allowlist`, unknownFields);
+      }
+    }
+    this.gexp.registerImpression(this.filterIntextSyntheticEvent(event));
+    return true;
+  }
+
+  registerIntextManagerDecision({ navIndex = 0, scope = "initial", decision, reason, contentType = null, rootElement = null, scopedContext = null, placement = null } = {}) {
+    const normalizedNavIndex = Number(navIndex) || 0;
+    const identity = this.captureIntextContentIdentity(normalizedNavIndex, rootElement, scopedContext);
+    const opportunityContent = identity.resolved ? identity.id : "unknown-news";
+    const opportunityId = `${this._intextPageInstanceId}:${opportunityContent}:${normalizedNavIndex}`;
+    const dedupeKey = `${opportunityId}:manager-decision`;
+    if (this._intextOpportunityDecisionKeys.has(dedupeKey)) return false;
+    this._intextOpportunityDecisionKeys.add(dedupeKey);
+    const managerEventId = `${opportunityId}:manager-decision`;
+    return this.registerIntextSyntheticEvent("manager-decision", {
+      "gexp-intext-opportunity-id": opportunityId,
+      "gexp-intext-manager-event-id": managerEventId,
+      "gexp-intext-decision": String(decision || "blocked"),
+      "gexp-intext-decision-reason": String(reason || "random-slot-unresolved"),
+      "gexp-intext-decision-scope": String(scope),
+      navIndex: String(normalizedNavIndex),
+      contentType: String(contentType || this.siteContext?.contentType || "unknown"),
+      ...(placement ? {
+        "gexp-intext-placement-result": String(placement.result || "creation-error"),
+        "gexp-intext-placements-found": String(placement.found ?? 0),
+        "gexp-intext-placements-created": String(placement.created ?? 0),
+      } : {}),
+      ...this.getFallbackBlankControlTelemetry(),
+      "gexp-intext-fallback-blank-control-blocked": reason === "fallback-blank-cookie" ? "true" : "false",
+      "gexp-intext-fallback-blank-control-source": "manager-decision",
+      "gexp-intext-fallback-blank-control-reason": reason === "fallback-blank-cookie" ? "fallback-blank-cookie" : "not-applicable",
+      ...this.getIntextRandomConsistencyDiagnostics(`manager-decision:${scope}:${navIndex}`, normalizedNavIndex),
+      rootElement,
+      scopedContext,
+    }, dedupeKey);
+  }
+
+  registerIntextDiagnosticEvent({ diagnosticKey = "unknown", ...payload } = {}) {
+    return this.registerIntextSyntheticEvent("diagnostic", {
+      "gexp-intext-diagnostic-key": String(diagnosticKey),
+      ...payload,
+    }, `diagnostic:${diagnosticKey}`);
+  }
+
+  registerIntextFallbackBlankEvent(payload = {}, dedupeKey = null) {
+    return this.registerIntextSyntheticEvent("fallback-blank", payload, dedupeKey);
   }
 
   extractStaticAdUnitPath() {
@@ -479,10 +1834,233 @@ class IntextManager {
     return this.config?.adUnit || "";
   }
 
+  normalizeIntextNetworkId(value) {
+    const normalized = String(value ?? "").trim();
+    return /^\d{3,20}$/.test(normalized) ? normalized : null;
+  }
+
+  normalizeIntextAdUnitPath(value, networkId = null) {
+    const parts = String(value ?? "").trim().replace(/^\/+|\/+$/g, "").split("/").filter(Boolean);
+    const embeddedNetworkId = this.normalizeIntextNetworkId(parts[0]);
+    if (embeddedNetworkId) {
+      parts.shift();
+      if (networkId && embeddedNetworkId !== String(networkId)) {
+        const payload = {
+          source: "mismatched-network-prefix",
+          embeddedNetworkId,
+          requestNetworkId: String(networkId),
+          normalizedAdUnitPath: parts.join("/"),
+        };
+        this.recordIntextNetworkDebug(
+          "intext_adunit_network_prefix_normalized",
+          payload,
+        );
+        logIntext(
+          "[IntextManager] intext_adunit_network_prefix_normalized",
+          payload,
+        );
+      }
+    }
+    return parts.join("/");
+  }
+
+  getIntextGamConfig() {
+    return this.siteConfig?.gam || this.baseSiteConfig?.gam || {};
+  }
+
+  recordIntextNetworkDebug(metric, payload = {}) {
+    if (typeof window !== "undefined" && window.gexpIntextDebug === true) {
+      intextDebugCollector.recordMetric(metric, {
+        manager: this,
+        source: payload.source || this.networkIdResolutionSource,
+        ...payload,
+      });
+    }
+  }
+
+  resolveScopedDetectedNetworkId(scopedContext = null) {
+    const hasDetectedProperty = Object.prototype.hasOwnProperty.call(
+      scopedContext || {},
+      "detectedNetworkId",
+    );
+    return this.normalizeIntextNetworkId(
+      hasDetectedProperty
+        ? scopedContext.detectedNetworkId
+        : scopedContext?.networkId,
+    );
+  }
+
+  resolveIntextNetworkResolution(scopedContext = null) {
+    const gamConfig = this.getIntextGamConfig();
+    const mode = gamConfig.networkIdMode === "force" ? "force" : "auto";
+    const configured = this.normalizeIntextNetworkId(gamConfig.networkId);
+    const legacy = this.normalizeIntextNetworkId(this.config?.networkId);
+    const configuredNetworkId = configured || legacy || null;
+    const scopedDetectedNetworkId =
+      this.resolveScopedDetectedNetworkId(scopedContext);
+    const pageDetectedNetworkId =
+      this.normalizeIntextNetworkId(this.detectedNetworkId);
+    let requestNetworkId = null;
+    let source = "unresolved";
+
+    if (mode === "force") {
+      requestNetworkId = configured || legacy;
+      source = configured ? "gam-config-forced" : legacy ? "legacy-config-forced" : "force-invalid";
+    } else if (scopedDetectedNetworkId) {
+      requestNetworkId = scopedDetectedNetworkId;
+      source = "scoped-gpt-detected";
+    } else if (pageDetectedNetworkId) {
+      requestNetworkId = pageDetectedNetworkId;
+      source = "page-gpt-detected";
+    } else if (configured) {
+      requestNetworkId = configured;
+      source = "gam-config";
+    } else if (legacy) {
+      requestNetworkId = legacy;
+      source = "legacy-config";
+    } else {
+      requestNetworkId = "99071977";
+      source = "default";
+    }
+
+    return {
+      mode,
+      requestNetworkId,
+      configuredNetworkId,
+      scopedDetectedNetworkId,
+      pageDetectedNetworkId,
+      detectedNetworkId:
+        scopedDetectedNetworkId || pageDetectedNetworkId || null,
+      source,
+      forced: mode === "force",
+      valid: Boolean(requestNetworkId),
+    };
+  }
+
+  resolveIntextRequestNetworkId(scopedContext = null) {
+    const resolution =
+      this.resolveIntextNetworkResolution(scopedContext);
+    const {
+      mode,
+      requestNetworkId,
+      configuredNetworkId,
+      scopedDetectedNetworkId,
+      detectedNetworkId,
+      source,
+    } = resolution;
+
+    this.configuredNetworkId = configuredNetworkId;
+    this.requestNetworkId = requestNetworkId;
+    this.networkId = requestNetworkId;
+    this.networkIdResolutionSource = source;
+    if (
+      mode === "force" &&
+      scopedDetectedNetworkId &&
+      requestNetworkId &&
+      scopedDetectedNetworkId !== requestNetworkId
+    ) {
+      this.recordIntextNetworkDebug("intext_network_scoped_ignored", {
+        source,
+        scopedNetworkId: scopedDetectedNetworkId,
+        requestNetworkId,
+      });
+    }
+    if (!resolution.valid) {
+      logIntext("[IntextManager] intext_network_force_invalid");
+      this.recordIntextNetworkDebug("intext_network_force_invalid", {
+        source,
+        configuredNetworkId:
+          this.getIntextGamConfig().networkId ?? null,
+        legacyNetworkId: this.config?.networkId ?? null,
+      });
+      this.registerIntextDiagnosticEvent?.({
+        diagnosticKey: "intext-network-force-invalid",
+        "gexp-intext-decision": "blocked",
+        "gexp-intext-decision-reason": "intext-network-force-invalid",
+      });
+      return null;
+    }
+    const debugMetric = mode === "force" ? "intext_network_forced" : "intext_network_resolved";
+    this.recordIntextNetworkDebug(debugMetric, {
+      source,
+      mode,
+      configuredNetworkId,
+      detectedNetworkId,
+      requestNetworkId,
+    });
+    logIntext(`[IntextManager] ${debugMetric}`, {
+      mode,
+      source,
+      configuredNetworkId,
+      detectedNetworkId,
+      requestNetworkId,
+    });
+    return requestNetworkId;
+  }
+
+  getIntextNetworkTelemetry(scopedContext = null) {
+    const resolution =
+      this.resolveIntextNetworkResolution(scopedContext);
+    return {
+      "gexp-intext-network-id-mode": resolution.mode,
+      "gexp-intext-network-id-configured": String(
+        resolution.configuredNetworkId || "none",
+      ),
+      "gexp-intext-network-id-detected": String(
+        resolution.detectedNetworkId || "none",
+      ),
+      "gexp-intext-network-id-request": String(
+        resolution.requestNetworkId || "none",
+      ),
+      "gexp-intext-network-id-source": String(resolution.source),
+      "gexp-intext-network-id-forced":
+        resolution.forced ? "true" : "false",
+    };
+  }
+
+  getIntextNetworkOverride(networkId = this.requestNetworkId) {
+    if (!networkId) return null;
+    return this.baseSiteConfig?.networks?.[networkId] || this.siteConfig?.networks?.[networkId] || null;
+  }
+
+  resolveIntextDisplayAdUnitPath(scopedContext = null) {
+    const requestNetworkId = this.resolveIntextRequestNetworkId(scopedContext);
+    if (!requestNetworkId) return null;
+    const gamConfig = this.getIntextGamConfig();
+    const networkOverride = this.getIntextNetworkOverride(requestNetworkId);
+    const resolved =
+      this.normalizeIntextAdUnitPath(gamConfig.displayAdUnitPath, requestNetworkId) ||
+      this.normalizeIntextAdUnitPath(networkOverride?.display?.adUnitPath, requestNetworkId) ||
+      this.normalizeIntextAdUnitPath(
+        scopedContext?.detectedAdUnitPath ?? scopedContext?.adUnitPath,
+        requestNetworkId,
+      ) ||
+      this.normalizeIntextAdUnitPath(this.detectedAdUnitPath, requestNetworkId) ||
+      this.normalizeIntextAdUnitPath(this.adUnitPath, requestNetworkId) ||
+      this.normalizeIntextAdUnitPath(this.siteConfig?.display?.adUnitPath, requestNetworkId);
+    return resolved || null;
+  }
+
+  resolveIntextVideoAdUnitPath(scopedContext = null) {
+    const requestNetworkId = this.resolveIntextRequestNetworkId(scopedContext);
+    if (!requestNetworkId) return null;
+    const gamConfig = this.getIntextGamConfig();
+    const networkOverride = this.getIntextNetworkOverride(requestNetworkId);
+    const configured =
+      this.normalizeIntextAdUnitPath(gamConfig.videoAdUnitPath, requestNetworkId) ||
+      this.normalizeIntextAdUnitPath(networkOverride?.video?.adUnitPath, requestNetworkId);
+    if (configured) return configured;
+    const displayPath = this.resolveIntextDisplayAdUnitPath(scopedContext);
+    if (!displayPath) return null;
+    const parts = displayPath.split("/").filter(Boolean);
+    if (parts.length) parts[parts.length - 1] = "video-intext";
+    return parts.join("/") || null;
+  }
+
   resolveAdUnit() {
     let source = "config_fallback";
     let resolvedPath = this.adUnitPath;
-    let resolvedNetworkId = this.networkId;
+    let resolvedNetworkId = null;
 
     try {
       const slots = this.getIntextNativeGptSlots();
@@ -505,7 +2083,7 @@ class IntextManager {
         }
       }
     } catch (e) {
-      console.warn("[IntextManager] GPT slot resolution failed, using static fallback", e);
+      warnIntextAlways("[IntextManager] GPT slot resolution failed, using static fallback", e);
     }
 
     if (source === "config_fallback") {
@@ -564,8 +2142,16 @@ class IntextManager {
       source = "config_display_fallback";
     }
 
-    this.adUnitPath = resolvedPath;
-    this.networkId = resolvedNetworkId;
+    this.detectedAdUnitPath = this.normalizeIntextAdUnitPath(resolvedPath, resolvedNetworkId);
+    this.detectedNetworkId = this.normalizeIntextNetworkId(resolvedNetworkId);
+    const requestNetworkId = this.resolveIntextRequestNetworkId();
+    if (!requestNetworkId) return false;
+    this.adUnitPath =
+      this.resolveIntextDisplayAdUnitPath() ||
+      this.detectedAdUnitPath ||
+      this.normalizeIntextAdUnitPath(this.siteConfig?.display?.adUnitPath, requestNetworkId) ||
+      "";
+    this.networkId = requestNetworkId;
 
     const KNOWN_NETWORKS = {
       "99071977": "Unidad Editorial",
@@ -576,11 +2162,13 @@ class IntextManager {
     logIntext(`[IntextManager] AdUnit resolved: ${this.adUnitPath} (source: ${source})`);
     logIntext(`[IntextManager] Network: ${networkName} (${this.networkId})`);
 
-    const networkOverrides = this.siteConfig?.networks?.[this.networkId];
+    const networkOverrides = this.getIntextNetworkOverride(this.requestNetworkId);
     if (networkOverrides) {
       this.siteConfig = IntextManager.deepMerge(this.siteConfig, networkOverrides);
       logIntext(`[IntextManager] Applied network overrides for ${networkName} (${this.networkId})`);
     }
+    this.adUnitPath = this.resolveIntextDisplayAdUnitPath() || this.adUnitPath;
+    return true;
   }
 
   getSiteContext() {
@@ -653,10 +2241,12 @@ class IntextManager {
   readIntextQaCookieOverride() {
     const disabled = {
       enabled: false,
+      forceRawValue: null,
       random1: "none",
       random1Value: null,
+      random1RawValue: null,
       defaultForced: false,
-      invalidValue: null,
+      invalidRandom1Value: null,
       forceExclusions: false,
       forceExclusionsRawValue: null,
     };
@@ -677,61 +2267,222 @@ class IntextManager {
         }
       });
 
-      const forceValue = String(cookies.gexp_intext_force || "").trim().toLowerCase();
+      const forceRawValue = cookies.gexp_intext_force ?? null;
+      const forceValue = String(forceRawValue || "").trim().toLowerCase();
       const enabled = ["1", "true", "yes"].includes(forceValue);
-      if (!enabled) return disabled;
-
-      const rawRandom1 = cookies.gexp_intext_force_random1;
-      const normalizedRandom1 = rawRandom1 === undefined || rawRandom1 === null
-        ? "none"
-        : String(rawRandom1).trim().toLowerCase();
+      const random1RawValue = cookies.gexp_intext_force_random1 ?? null;
+      const normalizedRandom1 = String(random1RawValue || "").trim().toLowerCase();
+      const validRandom1Values = ["5", "6", "7", "8", "9", "10"];
+      const defaultForced = normalizedRandom1 === "default";
+      const random1Value = validRandom1Values.includes(normalizedRandom1)
+        ? normalizedRandom1
+        : null;
+      const invalidRandom1Value = normalizedRandom1 && !random1Value && !defaultForced
+        ? normalizedRandom1
+        : null;
+      const forceExclusionsRawValue = cookies.gexp_intext_force_exclusions ?? null;
+      const forceExclusionsValue = String(forceExclusionsRawValue || "").trim().toLowerCase();
+      const forceExclusions = enabled && ["1", "true", "yes"].includes(forceExclusionsValue);
       const override = {
-        enabled: true,
-        random1: "none",
-        random1Value: null,
-        defaultForced: false,
-        invalidValue: null,
-        forceExclusions: false,
-        forceExclusionsRawValue: null,
+        enabled,
+        forceRawValue,
+        random1: random1Value || (defaultForced ? "default" : "none"),
+        random1Value,
+        random1RawValue,
+        defaultForced,
+        invalidRandom1Value,
+        forceExclusions,
+        forceExclusionsRawValue,
       };
 
-      const rawForceExclusions = cookies.gexp_intext_force_exclusions;
-      const normalizedForceExclusions = rawForceExclusions === undefined || rawForceExclusions === null
-        ? ""
-        : String(rawForceExclusions).trim().toLowerCase();
-      override.forceExclusionsRawValue = normalizedForceExclusions || null;
-      override.forceExclusions = ["1", "true", "yes"].includes(normalizedForceExclusions);
-
-      if (normalizedRandom1 === "5" || normalizedRandom1 === "6") {
-        override.random1 = normalizedRandom1;
-        override.random1Value = normalizedRandom1;
-      } else if (normalizedRandom1 === "default") {
-        override.random1 = "default";
-        override.defaultForced = true;
-      } else if (normalizedRandom1 !== "none" && normalizedRandom1 !== "") {
-        override.random1 = "invalid";
-        override.invalidValue = normalizedRandom1;
-        logIntext(`[IntextManager] intext_qa_cookie_override_invalid`, {
-          key: "gexp_intext_force_random1",
-          value: normalizedRandom1,
+      if (forceRawValue !== null || random1RawValue !== null || forceExclusionsRawValue !== null) {
+        logIntext(`[IntextManager] intext_qa_cookie_override_detected`, {
+          enabled,
+          random1: override.random1,
+          forceExclusions,
         });
       }
-
-      logIntext(`[IntextManager] intext_qa_cookie_override_detected`, {
-        enabled: true,
-        random1: override.random1,
-        forceExclusions: override.forceExclusions,
-      });
-      if (override.forceExclusions) {
+      if (invalidRandom1Value) {
+        logIntext(`[IntextManager] intext_qa_cookie_override_invalid`, {
+          cookie: "gexp_intext_force_random1",
+          value: invalidRandom1Value,
+        });
+      }
+      if (forceExclusions) {
         logIntext(`[IntextManager] intext_qa_cookie_exclusions_bypass_detected`, {
-          key: "gexp_intext_force_exclusions",
-          value: override.forceExclusionsRawValue,
+          disableSlotsBypass: true,
         });
       }
       return override;
     } catch (e) {
       return disabled;
     }
+  }
+
+  getFallbackBlankControlConfig() {
+    return this.siteConfig?.fallbackBlankControl || {};
+  }
+
+  getEndOfDayDate() {
+    const end = new Date();
+    end.setHours(23, 59, 59, 999);
+    return end;
+  }
+
+  getFallbackBlankExpiryMs() {
+    const cfg = this.getFallbackBlankControlConfig();
+    if (cfg.expireAtEndOfDay !== false) return this.getEndOfDayDate().getTime();
+    const ttlMs = Number(cfg.ttlMs);
+    if (Number.isFinite(ttlMs) && ttlMs > 0) return Date.now() + ttlMs;
+    const maxAgeSeconds = Number(cfg.cookieMaxAgeSeconds);
+    if (Number.isFinite(maxAgeSeconds) && maxAgeSeconds > 0) return Date.now() + (maxAgeSeconds * 1000);
+    return this.getEndOfDayDate().getTime();
+  }
+
+  readFallbackBlankCounter() {
+    const cfg = this.getFallbackBlankControlConfig();
+    const key = cfg.counterStorageKey || "gexp_intext_fallback_blank_count";
+    const empty = { count: 0, expiresAt: this.getFallbackBlankExpiryMs(), updatedAt: 0 };
+    try {
+      if (typeof window === "undefined" || !window.localStorage) return empty;
+      const raw = window.localStorage.getItem(key);
+      if (!raw) return empty;
+      const parsed = JSON.parse(raw);
+      const expiresAt = Number(parsed?.expiresAt) || 0;
+      if (!Number.isFinite(expiresAt) || expiresAt <= 0 || Date.now() > expiresAt) {
+        window.localStorage.removeItem(key);
+        return empty;
+      }
+      return {
+        count: Number(parsed?.count) || 0,
+        expiresAt: expiresAt || empty.expiresAt,
+        updatedAt: Number(parsed?.updatedAt) || 0,
+      };
+    } catch (e) {
+      try { window.localStorage.removeItem(key); } catch (removeErr) { }
+      this.registerIntextDiagnosticEvent?.({
+        diagnosticKey: "fallback-blank-counter-read-failed",
+        "gexp-intext-diagnostic-context": String(e?.message || e || "storage-read-failed"),
+      });
+      return empty;
+    }
+  }
+
+  writeFallbackBlankCounter(count) {
+    const cfg = this.getFallbackBlankControlConfig();
+    const key = cfg.counterStorageKey || "gexp_intext_fallback_blank_count";
+    const payload = {
+      count: Number(count) || 0,
+      expiresAt: this.getFallbackBlankExpiryMs(),
+      updatedAt: Date.now(),
+    };
+    try {
+      if (typeof window !== "undefined" && window.localStorage) {
+        window.localStorage.setItem(key, JSON.stringify(payload));
+      }
+    } catch (e) {
+      this.registerIntextDiagnosticEvent?.({
+        diagnosticKey: "fallback-blank-counter-write-failed",
+        "gexp-intext-diagnostic-context": String(e?.message || e || "storage-write-failed"),
+      });
+    }
+    return payload;
+  }
+
+  incrementFallbackBlankCounter() {
+    const counter = this.readFallbackBlankCounter();
+    const next = this.writeFallbackBlankCounter((Number(counter.count) || 0) + 1);
+    const threshold = Number(this.getFallbackBlankControlConfig().threshold ?? 1);
+    const thresholdReached = threshold > 0 && next.count >= threshold;
+    const cookieWrite = thresholdReached
+      ? this.setTeadsBlockCookie(next.expiresAt)
+      : { attempted: false, confirmed: false, error: null, expiresAt: next.expiresAt };
+    if (cookieWrite.attempted && !cookieWrite.confirmed) {
+      this.registerIntextDiagnosticEvent({
+        diagnosticKey: `fallback-blank-cookie-write-failed:${next.updatedAt}`,
+        "gexp-intext-fallback-blank-control-cookie-set-attempted": "true",
+        "gexp-intext-fallback-blank-control-cookie-set-confirmed": "false",
+        "gexp-intext-fallback-blank-control-cookie-set-error": String(cookieWrite.error || "cookie-not-confirmed"),
+      });
+    }
+    return {
+      count: next.count,
+      expiresAt: next.expiresAt,
+      updatedAt: next.updatedAt,
+      counterBefore: Number(counter.count) || 0,
+      counterAfter: Number(next.count) || 0,
+      thresholdReached,
+      cookieWrite,
+    };
+  }
+
+  setTeadsBlockCookie(requestedExpiresAt = null) {
+    const cfg = this.getFallbackBlankControlConfig();
+    const name = cfg.blockCookieName || "gexp_intext_teads_block";
+    const expiresAt = Number(requestedExpiresAt) > Date.now()
+      ? Number(requestedExpiresAt)
+      : this.getFallbackBlankExpiryMs();
+    const result = { attempted: true, confirmed: false, error: null, expiresAt };
+    try {
+      if (typeof document === "undefined") {
+        result.error = "document-unavailable";
+        return result;
+      }
+      const expires = new Date(expiresAt).toUTCString();
+      document.cookie = `${encodeURIComponent(name)}=1; expires=${expires}; path=/; SameSite=Lax`;
+      result.confirmed = this.hasTeadsBlockCookie();
+      if (!result.confirmed) result.error = "cookie-not-confirmed";
+    } catch (e) {
+      result.error = e?.message || String(e);
+    }
+    return result;
+  }
+
+  hasTeadsBlockCookie() {
+    const cfg = this.getFallbackBlankControlConfig();
+    const name = cfg.blockCookieName || "gexp_intext_teads_block";
+    try {
+      if (typeof document === "undefined" || typeof document.cookie !== "string") return false;
+      return document.cookie
+        .split(";")
+        .some((part) => {
+          const eqIndex = part.indexOf("=");
+          const cookieName = (eqIndex >= 0 ? part.slice(0, eqIndex) : part).trim();
+          const cookieValue = eqIndex >= 0 ? part.slice(eqIndex + 1).trim() : "";
+          return decodeURIComponent(cookieName) === name && decodeURIComponent(cookieValue) === "1";
+        });
+    } catch (e) {
+      return false;
+    }
+  }
+
+  shouldBlockIntextByFallbackBlankControl() {
+    const cfg = this.getFallbackBlankControlConfig();
+    if (cfg.enabled !== true) return false;
+    return this.hasTeadsBlockCookie();
+  }
+
+  getFallbackBlankControlTelemetry(extra = {}) {
+    const cfg = this.getFallbackBlankControlConfig();
+    const counter = this.readFallbackBlankCounter();
+    const hasCookie = this.hasTeadsBlockCookie();
+    return {
+      "gexp-intext-fallback-blank-control-enabled": cfg.enabled === true ? "true" : "false",
+      "gexp-intext-fallback-blank-control-threshold": String(cfg.threshold ?? 1),
+      "gexp-intext-fallback-blank-control-cookie": hasCookie ? "true" : "false",
+      "gexp-intext-fallback-blank-control-count": String(counter.count || 0),
+      "gexp-intext-fallback-blank-control-counted": "false",
+      "gexp-intext-fallback-blank-control-source": "baseline",
+      "gexp-intext-fallback-blank-control-reason": "baseline",
+      "gexp-intext-fallback-blank-control-cookie-set": "false",
+      "gexp-intext-fallback-blank-control-cookie-set-attempted": "false",
+      "gexp-intext-fallback-blank-control-cookie-set-confirmed": "false",
+      "gexp-intext-fallback-blank-control-cookie-set-error": "none",
+      "gexp-intext-fallback-blank-control-counter-before": String(counter.count || 0),
+      "gexp-intext-fallback-blank-control-counter-after": String(counter.count || 0),
+      "gexp-intext-fallback-blank-control-threshold-reached": "false",
+      ...extra,
+    };
   }
 
   markIntextQaCookieApplied() {
@@ -749,18 +2500,29 @@ class IntextManager {
     if (!this.isIntextQaExclusionsBypassEnabled()) return;
     this.markIntextQaCookieApplied();
     this._intextQaCookieExclusionsBypassed = true;
-    this._intextQaCookieExclusionsBypassSource = source;
+    this._intextQaCookieExclusionsBypassSource = String(source || "unknown");
+    logIntext(`[IntextManager] intext_qa_cookie_exclusions_bypass_applied`, {
+      source: this._intextQaCookieExclusionsBypassSource,
+      disableSlotsBypass: true,
+    });
   }
 
   getIntextQaCookieTelemetry(applied = this._intextQaCookieApplied) {
     const override = this.intextQaCookieOverride || {};
     return {
       "gexp-intext-qa-cookie-enabled": override.enabled ? "true" : "false",
-      "gexp-intext-qa-cookie-random1": String(override.random1 || "none"),
+      "gexp-intext-qa-cookie-random1": String(
+        override.random1Value || (override.defaultForced ? "default" : "none"),
+      ),
       "gexp-intext-qa-cookie-applied": applied ? "true" : "false",
+      "gexp-intext-qa-inclusion-forced": this._intextQaInclusionForced === true ? "true" : "false",
+      "gexp-intext-qa-original-random1": String(this.getIntextRandomValue("random1") || "unresolved"),
       "gexp-intext-qa-cookie-force-exclusions": override.forceExclusions ? "true" : "false",
-      "gexp-intext-qa-cookie-exclusions-bypassed": this._intextQaCookieExclusionsBypassed ? "true" : "false",
-      "gexp-intext-qa-cookie-exclusions-bypass-source": String(this._intextQaCookieExclusionsBypassSource || "none"),
+      "gexp-intext-qa-cookie-exclusions-bypassed":
+        this._intextQaCookieExclusionsBypassed === true ? "true" : "false",
+      "gexp-intext-qa-cookie-exclusions-bypass-source": String(
+        this._intextQaCookieExclusionsBypassSource || "none",
+      ),
     };
   }
 
@@ -816,6 +2578,12 @@ class IntextManager {
   }
 
   readIntextLoadingExperimentKeyResolution(key, context = null) {
+    const snapshotValue = this.getIntextRandomValue(key);
+    if (INTEXT_RANDOM_KEYS.includes(String(key))) {
+      return snapshotValue !== null
+        ? { value: snapshotValue, source: "gexp-slot-random-snapshot" }
+        : { value: null, source: "random-snapshot-unresolved" };
+    }
     const readFromMap = (map) => {
       if (!map || typeof map !== "object") return null;
       const value = map[key];
@@ -860,38 +2628,36 @@ class IntextManager {
 
   getEffectiveIntextTargetingResolution(key, context = null) {
     const original = this.readIntextLoadingExperimentKeyResolution(key, context);
-    const override = this.intextQaCookieOverride;
-    if (String(key || "") !== "random1" || !override?.enabled) {
-      return {
-        ...original,
-        originalValue: original.value,
-        qaCookieApplied: false,
-        qaCookieDefault: false,
-      };
+    const override = this.intextQaCookieOverride || {};
+    if (String(key) === "random1" && override.enabled === true) {
+      if (override.random1Value) {
+        this.markIntextQaCookieApplied();
+        logIntext(`[IntextManager] intext_qa_cookie_random1_applied`, {
+          value: override.random1Value,
+          originalValue: original.value,
+        });
+        return {
+          value: override.random1Value,
+          source: "qa-cookie",
+          originalValue: original.value,
+          qaCookieApplied: true,
+          qaCookieDefault: false,
+        };
+      }
+      if (override.defaultForced === true) {
+        this.markIntextQaCookieApplied();
+        logIntext(`[IntextManager] intext_qa_cookie_default_applied`, {
+          originalValue: original.value,
+        });
+        return {
+          ...original,
+          source: "qa-cookie-default",
+          originalValue: original.value,
+          qaCookieApplied: true,
+          qaCookieDefault: true,
+        };
+      }
     }
-
-    if (override.random1Value === "5" || override.random1Value === "6") {
-      return {
-        value: override.random1Value,
-        source: "qa-cookie",
-        originalValue: original.value,
-        originalSource: original.source,
-        qaCookieApplied: true,
-        qaCookieDefault: false,
-      };
-    }
-
-    if (override.defaultForced) {
-      return {
-        value: original.value,
-        source: "qa-cookie-default",
-        originalValue: original.value,
-        originalSource: original.source,
-        qaCookieApplied: true,
-        qaCookieDefault: true,
-      };
-    }
-
     return {
       ...original,
       originalValue: original.value,
@@ -946,33 +2712,10 @@ class IntextManager {
       hasExperiments: Boolean(experiments),
     });
 
-    if (!qaCookieLoadingDefault && qaCookieLoadingApplied && key === "random1" && keyValue === "5") {
-      variantName = "test-b";
-    } else if (!qaCookieLoadingDefault && qaCookieLoadingApplied && key === "random1" && keyValue === "6") {
-      variantName = "control";
-    }
-    if (qaCookieLoadingApplied && !qaCookieLoadingDefault) {
-      this.markIntextQaCookieApplied();
-      logIntext(`[IntextManager] intext_qa_cookie_loading_variant_forced`, {
-        slotCode: slotId,
-        key,
-        forcedValue: keyValue,
-        originalValue: keyResolution.originalValue,
-        variant: variantName,
-      });
-    }
-
     if (!experiments) {
       fallbackReason = "experiments-not-found";
     } else if (qaCookieLoadingDefault) {
       fallbackReason = "qa-cookie-default";
-      this.markIntextQaCookieApplied();
-      logIntext(`[IntextManager] intext_qa_cookie_loading_default_forced`, {
-        slotCode: slotId,
-        key,
-        originalValue: keyResolution.originalValue,
-        keySource,
-      });
     } else if (experiments?.enabled !== true) {
       fallbackReason = "experiments-disabled";
     } else if (!keyValue) {
@@ -1170,120 +2913,6 @@ class IntextManager {
     return resolved;
   }
 
-  getIntextRandomValue(key) {
-    if (!INTEXT_RANDOM_KEYS.includes(String(key))) return null;
-    if (!this.intextRandomSnapshot) {
-      this.intextRandomSnapshot = Object.freeze(Object.fromEntries(
-        INTEXT_RANDOM_KEYS.map((randomKey, index) => {
-          try { return [randomKey, String(this.gexp?.getRandom?.(index + 1) ?? "")]; }
-          catch (e) { return [randomKey, ""]; }
-        }),
-      ));
-    }
-    const value = this.intextRandomSnapshot?.[key];
-    return value === undefined ? null : String(value);
-  }
-
-  normalizeIntextRuleTargetingValues(value) {
-    const normalized = [];
-    const collect = (candidate) => {
-      if (candidate === undefined || candidate === null) return;
-      if (Array.isArray(candidate)) {
-        candidate.forEach(collect);
-        return;
-      }
-      if (typeof candidate === "string" && candidate.includes(",")) {
-        candidate.split(",").forEach((entry) => normalized.push(entry.trim()));
-        return;
-      }
-      normalized.push(String(candidate));
-    };
-    collect(value);
-    return Array.from(new Set(normalized));
-  }
-
-  getIntextNativeGptSlots(rootElement = null) {
-    try {
-      const pubads = this.resolveIntextGptApi().api?.pubads?.();
-      const slots = pubads?.getSlots?.();
-      if (!Array.isArray(slots)) return [];
-      return slots.filter((slot) => {
-        const slotElementId = String(slot?.getSlotElementId?.() || "");
-        if (/^gexp-intext(?:-|$)/.test(slotElementId)) return false;
-        if (!rootElement) return true;
-        const element = slotElementId ? document.getElementById(slotElementId) : null;
-        return Boolean(element && rootElement.contains(element));
-      });
-    } catch (e) {
-      return [];
-    }
-  }
-
-  resolveIntextRuleTargeting(key, context = null) {
-    const normalizedKey = String(key);
-    const gptResolution = this.resolveIntextGptApi();
-    const result = {
-      key: normalizedKey,
-      values: [],
-      sources: [],
-      pspDetected: gptResolution.pspDetected === true,
-      slotsChecked: 0,
-      slotsMatched: 0,
-      scoped: Boolean(context?.rootElement),
-    };
-    const add = (source, rawValue) => {
-      const values = this.normalizeIntextRuleTargetingValues(rawValue);
-      if (!values.length) return;
-      let sourceEntry = result.sources.find((entry) => entry.source === source);
-      if (!sourceEntry) {
-        sourceEntry = { source, values: [] };
-        result.sources.push(sourceEntry);
-      }
-      values.forEach((value) => {
-        if (!sourceEntry.values.includes(value)) sourceEntry.values.push(value);
-        if (!result.values.includes(value)) result.values.push(value);
-      });
-    };
-
-    if (INTEXT_RANDOM_KEYS.includes(normalizedKey)) {
-      add("gexp-slot-random-snapshot", this.getIntextRandomValue(normalizedKey));
-    } else {
-      add("context.targeting", context?.targeting?.[normalizedKey]);
-      add("data.customTargeting", typeof data !== "undefined" ? data?.customTargeting?.[normalizedKey] : undefined);
-      add("ueDFPData.customTargeting", typeof ueDFPData !== "undefined" ? ueDFPData?.customTargeting?.[normalizedKey] : undefined);
-      try {
-        add("gpt-page-targeting", gptResolution.api?.pubads?.()?.getTargeting?.(normalizedKey));
-      } catch (e) { }
-      const slots = this.getIntextNativeGptSlots(context?.rootElement || null);
-      result.slotsChecked = slots.length;
-      slots.forEach((slot) => {
-        let values = [];
-        try { values = this.normalizeIntextRuleTargetingValues(slot?.getTargeting?.(normalizedKey)); }
-        catch (e) { }
-        if (!values.length) {
-          try { values = this.normalizeIntextRuleTargetingValues(slot?.getTargetingMap?.()?.[normalizedKey]); }
-          catch (e) { }
-        }
-        if (!values.length) return;
-        result.slotsMatched += 1;
-        add("gpt-slot-targeting", values);
-      });
-      add("ueDataLayer", typeof window !== "undefined" ? window.ueDataLayer?.[normalizedKey] : undefined);
-      add("utag_data", typeof window !== "undefined" ? window.utag_data?.[normalizedKey] : undefined);
-    }
-
-    logIntext(`[IntextManager] intext_rule_targeting_resolved`, {
-      key: result.key,
-      values: result.values,
-      sources: Array.from(new Set(result.sources.map((entry) => entry.source))),
-      pspDetected: result.pspDetected,
-      slotsChecked: result.slotsChecked,
-      slotsMatched: result.slotsMatched,
-      scoped: result.scoped,
-    });
-    return result;
-  }
-
   getScopedSlotsForRoot(rootElement) {
     if (!rootElement) return [];
     return this.getIntextNativeGptSlots(rootElement);
@@ -1311,14 +2940,14 @@ class IntextManager {
       scopedSlots[0] ||
       null;
 
-    let networkId = this.networkId;
-    let adUnitPath = this.adUnitPath;
+    let detectedNetworkId = null;
+    let detectedAdUnitPath = null;
     if (referenceSlot?.getAdUnitPath) {
       const fullPath = referenceSlot.getAdUnitPath();
       const parts = String(fullPath || "").replace(/^\//, "").split("/");
       if (parts.length >= 2) {
-        networkId = parts[0] || networkId;
-        adUnitPath = parts.slice(1).join("/").replace(/\bp_/g, "") || adUnitPath;
+        detectedNetworkId = this.normalizeIntextNetworkId(parts[0]);
+        detectedAdUnitPath = parts.slice(1).join("/").replace(/\bp_/g, "") || null;
       }
     }
 
@@ -1340,24 +2969,22 @@ class IntextManager {
     );
 
     const scopedContext = {
-      networkId,
-      adUnitPath,
+      detectedNetworkId,
+      detectedAdUnitPath,
       targeting: { ...(pageTargeting || {}), ...(slotTargeting || {}) },
       contentType,
       pageUrl,
       hostname,
     };
-    Object.defineProperty(scopedContext, "rootElement", {
-      value: rootElement,
-      enumerable: false,
-    });
+    scopedContext.networkId = this.resolveIntextRequestNetworkId(scopedContext);
+    scopedContext.adUnitPath = this.resolveIntextDisplayAdUnitPath(scopedContext);
 
     logIntext(
       `[IntextManager:NavContinua] navcontinua_scoped_context_resolved - slots=${scopedSlots.length}, hostname=${hostname}, contentType=${contentType}, pageUrl=${pageUrl}`,
       scopedContext,
     );
     logIntext(
-      `[IntextManager:NavContinua] navcontinua_scoped_adunit_resolved - networkId=${networkId}, adUnitPath=${adUnitPath || "missing"}, source_slot=${referenceSlot?.getSlotElementId?.() || "fallback"}`,
+      `[IntextManager:NavContinua] navcontinua_scoped_adunit_resolved - networkId=${scopedContext.networkId || "missing"}, adUnitPath=${scopedContext.adUnitPath || "missing"}, source_slot=${referenceSlot?.getSlotElementId?.() || "fallback"}`,
     );
 
     return scopedContext;
@@ -1375,17 +3002,13 @@ class IntextManager {
   }
 
   isBlockedByExclusions(context = null) {
-    const hostname = this.getHostnameNormalized(context?.hostname || this.siteContext?.site);
     if (this.isIntextQaExclusionsBypassEnabled()) {
-      this.markIntextQaExclusionsBypassApplied(context?.navIndex !== undefined && context?.navIndex !== null ? "navcontinua" : "isBlockedByExclusions");
-      logIntext(`[IntextManager] intext_qa_cookie_exclusions_bypass_applied`, {
-        hostname,
-        contentType: context?.contentType || this.siteContext?.contentType,
-        navIndex: context?.navIndex,
-        source: "isBlockedByExclusions",
-      });
+      this.markIntextQaExclusionsBypassApplied(
+        context?.navIndex > 0 ? "navcontinua-exclusions" : "exclusions",
+      );
       return false;
     }
+    const hostname = this.getHostnameNormalized(context?.hostname || this.siteContext?.site);
     const excl = this.resolveScopedRuleBlock(
       context?.siteConfig?.exclusions || this.siteConfig?.exclusions,
       hostname,
@@ -1432,11 +3055,7 @@ class IntextManager {
           const normalizedBlockedValues = this.normalizeIntextRuleTargetingValues(blockedValues);
           const matchedValue = pageValues.find((value) => normalizedBlockedValues.includes(value));
           if (matchedValue !== undefined) {
-            logIntext(`[IntextManager] BLOCKED by exclusions.keyValues`, {
-              key,
-              matchedValue,
-              sourceCandidates: Array.from(new Set(targetingResolution.sources.map((entry) => entry.source))),
-            });
+            logIntext(`[IntextManager] BLOCKED by exclusions.keyValues`, { key, matchedValue, sourceCandidates: Array.from(new Set(targetingResolution.sources.map((entry) => entry.source))) });
             logIntext(`[IntextManager] ❌ BLOCKED by exclusions.keyValues — key "${key}" has blocked value "${matchedValue}" (page values: [${pageValues.join(', ')}])`);
             return true;
           }
@@ -1454,51 +3073,80 @@ class IntextManager {
       hostname,
     );
     if (!inc) return true;
+    if (this.intextQaCookieOverride?.enabled === true) {
+      this.markIntextQaCookieApplied();
+      this._intextQaInclusionForced = true;
+      logIntext(`[IntextManager] intext_qa_cookie_force_allow_applied`, {
+        key: "inclusions",
+        forcedValue: "inclusion-only",
+        originalValue: this.getIntextRandomValue("random1"),
+      });
+      return true;
+    }
 
     if (inc.keyValues && typeof inc.keyValues === 'object' && Object.keys(inc.keyValues).length > 0) {
-      const pageTargeting = this.getPageCustomTargeting(context) || {};
-      if (pageTargeting) {
-        for (const [key, allowedValues] of Object.entries(inc.keyValues)) {
-          if (!Array.isArray(allowedValues) || allowedValues.length === 0) continue;
-          const effectiveResolution = this.getEffectiveIntextTargetingResolution(key, context);
-          if (effectiveResolution.qaCookieDefault === true) {
+      let pageTargeting = null;
+      for (const [key, allowedValues] of Object.entries(inc.keyValues)) {
+        if (!Array.isArray(allowedValues) || allowedValues.length === 0) continue;
+        if (INTEXT_RANDOM_KEYS.includes(String(key))) {
+          const snapshotValue = this.getIntextRandomValue(key);
+          if (key === "random1" && this.intextQaCookieOverride?.enabled === true) {
             this.markIntextQaCookieApplied();
+            this._intextQaInclusionForced = true;
             logIntext(`[IntextManager] intext_qa_cookie_force_allow_applied`, {
               key,
-              forcedValue: "default",
-              originalValue: effectiveResolution.originalValue,
+              forcedValue: "inclusion-only",
+              originalValue: snapshotValue,
             });
             return true;
           }
-          const rawPageValue = this.resolveIntextRuleTargeting(key, context).values;
-          const effectiveValue = effectiveResolution.qaCookieApplied === true
-            ? effectiveResolution.value
-            : rawPageValue;
-          if (effectiveValue === undefined || effectiveValue === null) continue;
-
-          let pageValues;
-          if (Array.isArray(effectiveValue)) {
-            pageValues = effectiveValue.map(String);
-          } else if (typeof effectiveValue === 'string' && effectiveValue.includes(',')) {
-            pageValues = effectiveValue.split(',').map(v => v.trim());
-          } else {
-            pageValues = [String(effectiveValue)];
-          }
-
-          const normalizedAllowedValues = this.normalizeIntextRuleTargetingValues(allowedValues);
-          const matchedValue = pageValues.find((value) => normalizedAllowedValues.includes(value));
-          if (matchedValue !== undefined) {
-            if (effectiveResolution.qaCookieApplied === true) {
-              this.markIntextQaCookieApplied();
-              logIntext(`[IntextManager] intext_qa_cookie_force_allow_applied`, {
-                key,
-                forcedValue: effectiveResolution.value,
-                originalValue: effectiveResolution.originalValue,
-              });
-            }
-            logIntext(`[IntextManager] ✅ ALLOWED by inclusions.keyValues — key "${key}" has allowed value "${matchedValue}"`);
+          if (snapshotValue !== null && allowedValues.map(String).includes(String(snapshotValue))) {
+            logIntext(`[IntextManager] ✅ ALLOWED by inclusions.keyValues — key "${key}" has allowed snapshot value "${snapshotValue}"`);
             return true;
           }
+          continue;
+        }
+        if (pageTargeting === null) pageTargeting = this.getPageCustomTargeting(context) || {};
+        const effectiveResolution = this.getEffectiveIntextTargetingResolution(key, context);
+        if (effectiveResolution.qaCookieDefault === true) {
+          this.markIntextQaCookieApplied();
+          logIntext(`[IntextManager] intext_qa_cookie_force_allow_applied`, {
+            key,
+            forcedValue: "default",
+            originalValue: effectiveResolution.originalValue,
+          });
+          return true;
+        }
+        const rawPageValue = this.resolveIntextRuleTargeting(key, context).values;
+        const effectiveValue = INTEXT_RANDOM_KEYS.includes(String(key))
+          ? rawPageValue
+          : effectiveResolution.qaCookieApplied === true
+            ? effectiveResolution.value
+            : rawPageValue;
+        if (effectiveValue === undefined || effectiveValue === null) continue;
+
+        let pageValues;
+        if (Array.isArray(effectiveValue)) {
+          pageValues = effectiveValue.map(String);
+        } else if (typeof effectiveValue === 'string' && effectiveValue.includes(',')) {
+          pageValues = effectiveValue.split(',').map(v => v.trim());
+        } else {
+          pageValues = [String(effectiveValue)];
+        }
+
+        const normalizedAllowedValues = this.normalizeIntextRuleTargetingValues(allowedValues);
+        const matchedValue = pageValues.find((value) => normalizedAllowedValues.includes(value));
+        if (matchedValue !== undefined) {
+          if (effectiveResolution.qaCookieApplied === true) {
+            this.markIntextQaCookieApplied();
+            logIntext(`[IntextManager] intext_qa_cookie_force_allow_applied`, {
+              key,
+              forcedValue: effectiveResolution.value,
+              originalValue: effectiveResolution.originalValue,
+            });
+          }
+          logIntext(`[IntextManager] ✅ ALLOWED by inclusions.keyValues — key "${key}" has allowed value "${matchedValue}"`);
+          return true;
         }
       }
       logIntext(`[IntextManager] ❌ BLOCKED by inclusions.keyValues — page does not have any of the required allowed key-values`);
@@ -1522,20 +3170,30 @@ class IntextManager {
   }
 
   getPageCustomTargeting(context = null) {
+    const withoutIntextRandoms = (targeting) => {
+      if (!targeting || typeof targeting !== "object") return targeting;
+      const filtered = {};
+      Object.keys(targeting).forEach((key) => {
+        if (INTEXT_RANDOM_KEYS.includes(String(key))) return;
+        filtered[key] = targeting[key];
+      });
+      return filtered;
+    };
     if (typeof context === "string") {
       const key = context;
+      if (INTEXT_RANDOM_KEYS.includes(key)) return null;
       const targeting = this.getPageCustomTargeting(null);
       if (!targeting || typeof targeting !== "object") return null;
       return targeting[key];
     }
     if (context?.targeting && typeof context.targeting === "object") {
-      return context.targeting;
+      return withoutIntextRandoms(context.targeting);
     }
     if (typeof data !== 'undefined' && data?.customTargeting) {
-      return data.customTargeting;
+      return withoutIntextRandoms(data.customTargeting);
     }
     if (typeof ueDFPData !== 'undefined' && ueDFPData?.customTargeting) {
-      return ueDFPData.customTargeting;
+      return withoutIntextRandoms(ueDFPData.customTargeting);
     }
     try {
       const gptResolution = this.resolveIntextGptApi();
@@ -1546,6 +3204,7 @@ class IntextManager {
           if (keys && keys.length > 0) {
             const targeting = {};
             keys.forEach(key => {
+              if (INTEXT_RANDOM_KEYS.includes(String(key))) return;
               const values = pubads.getTargeting(key);
               targeting[key] = values && values.length === 1 ? values[0] : values;
             });
@@ -1555,22 +3214,19 @@ class IntextManager {
         }
       }
     } catch (e) {
-      console.warn('[IntextManager] Could not read GPT targeting:', e);
+      warnIntextAlways('[IntextManager] Could not read GPT targeting:', e);
     }
     if (typeof window !== 'undefined' && (window.ueDataLayer || window.utag_data)) {
-      return window.ueDataLayer || window.utag_data;
+      return withoutIntextRandoms(window.ueDataLayer || window.utag_data);
     }
     return null;
   }
 
   isSlotDisabledByExclusion(index, context = null) {
     if (this.isIntextQaExclusionsBypassEnabled()) {
-      this.markIntextQaExclusionsBypassApplied(context?.navIndex !== undefined && context?.navIndex !== null ? "navcontinua" : "isSlotDisabledByExclusion");
-      logIntext(`[IntextManager] intext_qa_cookie_slot_exclusion_bypass_applied`, {
-        slotIndex: index,
-        navIndex: context?.navIndex,
-        source: "isSlotDisabledByExclusion",
-      });
+      this.markIntextQaExclusionsBypassApplied(
+        context?.navIndex > 0 ? "navcontinua-disableSlots" : "disableSlots",
+      );
       return false;
     }
     const siteConfig = context?.siteConfig || this.siteConfig;
@@ -1633,6 +3289,10 @@ class IntextManager {
       const slotsConfig = this.siteConfig.slots;
       const maxSlots = slotsConfig?.maxSlots ?? Infinity;
       let slotsCreated = 0;
+
+      if (!placements.length) return { result: "no-valid-placement", found: 0, created: 0 };
+      if (Number(maxSlots) === 0) return { result: "max-slots-zero", found: placements.length, created: 0 };
+      if (slotsConfig?.enabled === false) return { result: "all-slots-disabled", found: placements.length, created: 0 };
 
       placements.forEach((placement, index) => {
         if (slotsCreated >= maxSlots) {
@@ -1738,10 +3398,18 @@ class IntextManager {
         slotsCreated++;
       });
       this.nodes.forEach((n) => n.initialize());
+      return {
+        result: slotsCreated > 0 ? "created" : "all-slots-disabled",
+        found: placements.length,
+        created: slotsCreated,
+      };
     } catch (err) {
-      if (this.gexp.statsG)
-        this.gexp.statsG.addRequiredVariable("intext_err", err.message);
-      console.error("[IntextManager] Failed to create positions", err);
+      this.registerIntextDiagnosticEvent({
+        diagnosticKey: "create-intext-positions-failed",
+        "gexp-intext-diagnostic-context": String(err?.message || err),
+      });
+      errorIntext("[IntextManager] Failed to create positions", err);
+      return { result: "creation-error", found: 0, created: 0 };
     }
   }
 
@@ -1821,6 +3489,7 @@ class IntextManager {
     if (!isConfig?.enabled) return;
 
     this._processedNavIndexes = new Set([0]);
+    this._pendingNavIndexes = new Set();
     this._navContinuaNodes = [];
 
     const observer = new MutationObserver((mutations) => {
@@ -1835,30 +3504,14 @@ class IntextManager {
           for (const mainEl of mains) {
             const navIndex = parseInt(mainEl.dataset.ueNavindex, 10);
             if (isNaN(navIndex) || navIndex === 0) continue;
-            if (this._processedNavIndexes.has(navIndex)) continue;
-            if (this._processedNavIndexes.size > (isConfig.maxArticles || 5)) {
+            if (this._processedNavIndexes.has(navIndex) || this._pendingNavIndexes.has(navIndex)) continue;
+            if ((this._processedNavIndexes.size + this._pendingNavIndexes.size) > (isConfig.maxArticles || 5)) {
               logIntext(`[IntextManager:NavContinua] Max articles reached (${isConfig.maxArticles || 5}), ignoring navIndex=${navIndex}`);
               continue;
             }
 
-            this._processedNavIndexes.add(navIndex);
+            this.processIntextNavCandidate(mainEl, navIndex);
             logIntext(`[IntextManager:NavContinua] 🆕 New article detected: navIndex=${navIndex}`);
-
-            requestAnimationFrame(() => {
-              googletag.cmd.push(() => {
-                const mainSlots = this.getIntextNativeGptSlots(mainEl);
-                const ncTargeting = mainSlots.some(s => {
-                  const val = s.getTargeting('nc');
-                  if (Array.isArray(val)) return val.includes('1');
-                  return val === '1';
-                });
-                if (!ncTargeting) {
-                  logIntext(`[IntextManager:NavContinua] ❌ navIndex=${navIndex} skipped — no GPT slot with nc='1' targeting found in new main`);
-                  return;
-                }
-                this.onNewArticleDetected(mainEl, navIndex);
-              });
-            });
           }
         }
       }
@@ -1868,30 +3521,108 @@ class IntextManager {
     logIntext('[IntextManager:NavContinua] 👁️ MutationObserver started');
   }
 
-  onNewArticleDetected(mainElement, navIndex) {
-    const isConfig = this.siteConfig?.infiniteScroll;
-    if (!isConfig) return;
+  getScopedIntextNcSlots(mainElement) {
+    return this.getScopedSlotsForRoot(mainElement).filter((slot) => {
+      const value = slot?.getTargeting?.("nc");
+      return Array.isArray(value) ? value.map(String).includes("1") : String(value || "") === "1";
+    });
+  }
+
+  async waitForIntextNavContext(mainElement) {
+    const isConfig = this.siteConfig?.infiniteScroll || {};
+    const timeoutMs = Math.max(0, Number(isConfig.contextWaitMs ?? 1000));
+    const pollMs = Math.max(10, Number(isConfig.contextPollMs ?? 50));
+    const startedAt = Date.now();
+    while (true) {
+      const slots = this.getScopedIntextNcSlots(mainElement);
+      if (slots.length) return slots;
+      if (Date.now() - startedAt >= timeoutMs) return [];
+      await new Promise((resolve) => setTimeout(resolve, Math.min(pollMs, timeoutMs - (Date.now() - startedAt))));
+    }
+  }
+
+  async processIntextNavCandidate(mainElement, navIndex) {
+    const normalizedNavIndex = Number(navIndex) || 0;
+    if (!normalizedNavIndex || this._processedNavIndexes?.has(normalizedNavIndex) || this._pendingNavIndexes?.has(normalizedNavIndex)) return false;
+    if (!this._pendingNavIndexes) this._pendingNavIndexes = new Set();
+    if (!this._processedNavIndexes) this._processedNavIndexes = new Set([0]);
+    this._pendingNavIndexes.add(normalizedNavIndex);
+    try {
+      const scopedSlots = await this.waitForIntextNavContext(mainElement);
+      if (!scopedSlots.length) {
+        this.registerIntextDiagnosticEvent({
+          diagnosticKey: `navcontinua-context-timeout:${normalizedNavIndex}`,
+          navIndex: String(normalizedNavIndex),
+          "gexp-intext-diagnostic-context": `navIndex:${normalizedNavIndex}`,
+        });
+        this._processedNavIndexes.add(normalizedNavIndex);
+        return false;
+      }
+      const result = await this.onNewArticleDetected(mainElement, normalizedNavIndex);
+      if (result?.handled === true) this._processedNavIndexes.add(normalizedNavIndex);
+      return result;
+    } finally {
+      this._pendingNavIndexes.delete(normalizedNavIndex);
+    }
+  }
+
+  async onNewArticleDetected(mainElement, navIndex) {
+    const scopedBaseConfig =
+      this.baseSiteConfig ||
+      this.siteConfig;
+    const baseInfiniteScrollConfig =
+      scopedBaseConfig?.infiniteScroll;
+    if (!baseInfiniteScrollConfig) {
+      return { handled: true, decision: "content-type-blocked", telemetryRegistered: false };
+    }
 
     const scopedContext = this.resolveScopedAdContext(mainElement);
+    const requestNetworkId = this.resolveIntextRequestNetworkId(scopedContext);
+    if (!requestNetworkId) {
+      return { handled: true, decision: "network-force-invalid", telemetryRegistered: false };
+    }
+    scopedContext.networkId = requestNetworkId;
+    scopedContext.adUnitPath =
+      this.resolveIntextDisplayAdUnitPath(scopedContext);
+    const resolvedIdentity = await this.resolveScopedIntextNewsIdentity(mainElement, navIndex, scopedContext);
+    const contentIdentity = this.captureIntextContentIdentity(navIndex, mainElement, scopedContext, resolvedIdentity);
     const contentType = scopedContext.contentType || this.detectContentType(mainElement);
     logIntext(`[IntextManager:NavContinua] navIndex=${navIndex}: content type = "${contentType}"`);
 
-    let scrollConfig = IntextManager.deepMerge({ ...this.siteConfig }, {});
-    const ctProfile = this.siteConfig?.contentTypes?.[contentType];
+    let scrollConfig = IntextManager.deepMerge(
+      { ...scopedBaseConfig },
+      {},
+    );
+    const scopedNetworkOverride =
+      this.getIntextNetworkOverride(requestNetworkId);
+    if (scopedNetworkOverride) {
+      scrollConfig = IntextManager.deepMerge(
+        scrollConfig,
+        scopedNetworkOverride,
+      );
+    }
+    const ctProfile = scrollConfig?.contentTypes?.[contentType];
     if (ctProfile) {
       scrollConfig = IntextManager.deepMerge(scrollConfig, ctProfile);
     }
-    if (isConfig.overrides) {
-      scrollConfig = IntextManager.deepMerge(scrollConfig, isConfig.overrides);
+    const infiniteScrollOverrides =
+      scrollConfig?.infiniteScroll?.overrides;
+    if (infiniteScrollOverrides) {
+      scrollConfig = IntextManager.deepMerge(
+        scrollConfig,
+        infiniteScrollOverrides,
+      );
     }
     if (!this.isContentTypeAllowed(scrollConfig, contentType, "[IntextManager:NavContinua]")) {
-      return;
+      return { handled: true, decision: "content-type-blocked", telemetryRegistered: false };
     }
 
     const scopedRuleContext = {
       ...scopedContext,
       contentType,
       navIndex,
+      be_page_newsID: contentIdentity.newsId,
+      intextContentIdentity: contentIdentity,
       siteConfig: scrollConfig,
     };
 
@@ -1899,19 +3630,44 @@ class IntextManager {
       logIntext(
         `[IntextManager:NavContinua] navcontinua_exclusions_blocked - navIndex=${navIndex}, adUnitPath=${scopedRuleContext.adUnitPath || "missing"}`,
       );
-      return;
+      return { handled: true, decision: "excluded", telemetryRegistered: false };
     }
 
     if (!this.isAllowedByInclusions(scopedRuleContext)) {
       logIntext(`[IntextManager:NavContinua] navcontinua_inclusions_allowed - navIndex=${navIndex}, allowed=false`);
-      return;
+      return { handled: true, decision: "not-in-cohort", telemetryRegistered: false };
     }
 
     logIntext(`[IntextManager:NavContinua] navcontinua_inclusions_allowed - navIndex=${navIndex}, allowed=true`);
 
-    const pncSuffix = navIndex >= 1 ? `-pnc-${navIndex}` : '';
+    if (this.shouldBlockIntextByFallbackBlankControl()) {
+      const registered = this.registerIntextManagerDecision({
+        navIndex,
+        scope: "navcontinua",
+        decision: "blocked",
+        reason: "fallback-blank-cookie",
+        contentType,
+        rootElement: mainElement,
+        scopedContext: scopedRuleContext,
+      });
+      logIntext(`[IntextManager:NavContinua] navcontinua_blocked_by_fallback_blank_cookie`, { navIndex });
+      return { handled: true, decision: "blocked", telemetryRegistered: registered === true };
+    }
 
-    this.createIntextPositionsScoped(mainElement, scrollConfig, pncSuffix, navIndex, scopedRuleContext);
+    const pncSuffix = navIndex >= 1 ? `-pnc-${navIndex}` : '';
+    const placement = this.createIntextPositionsScoped(mainElement, scrollConfig, pncSuffix, navIndex, scopedRuleContext);
+
+    const telemetryRegistered = this.registerIntextManagerDecision({
+      navIndex,
+      scope: "navcontinua",
+      decision: "allowed",
+      reason: "passed",
+      contentType,
+      rootElement: mainElement,
+      scopedContext: scopedRuleContext,
+      placement,
+    });
+    return { handled: true, decision: "allowed", telemetryRegistered: telemetryRegistered === true };
   }
 
   createIntextPositionsScoped(rootElement, scopedConfig, pncSuffix, navIndex, scopedContext = null) {
@@ -1924,13 +3680,15 @@ class IntextManager {
       const placements = engine.findPlacements();
       if (!placements.length) {
         logIntext(`[IntextManager:NavContinua] navIndex=${navIndex}: no valid placements found`);
-        return;
+        return { result: "no-valid-placement", found: 0, created: 0 };
       }
 
       const newNodes = [];
       const slotsConfigScoped = scopedConfig.slots;
       const maxSlotsScoped = slotsConfigScoped?.maxSlots ?? Infinity;
       let slotsCreatedScoped = 0;
+      if (Number(maxSlotsScoped) === 0) return { result: "max-slots-zero", found: placements.length, created: 0 };
+      if (slotsConfigScoped?.enabled === false) return { result: "all-slots-disabled", found: placements.length, created: 0 };
 
       placements.forEach((placement, index) => {
         if (slotsCreatedScoped >= maxSlotsScoped) {
@@ -2021,8 +3779,14 @@ class IntextManager {
       newNodes.forEach(n => n.initialize());
       this._navContinuaNodes.push({ navIndex, nodes: newNodes });
       logIntext(`[IntextManager:NavContinua] navIndex=${navIndex}: created ${newNodes.length} slot(s)`);
+      return {
+        result: slotsCreatedScoped > 0 ? "created" : "all-slots-disabled",
+        found: placements.length,
+        created: slotsCreatedScoped,
+      };
     } catch (err) {
-      console.error(`[IntextManager:NavContinua] navIndex=${navIndex}: Failed to create positions`, err);
+      errorIntext(`[IntextManager:NavContinua] navIndex=${navIndex}: Failed to create positions`, err);
+      return { result: "creation-error", found: 0, created: 0 };
     }
   }
 
@@ -2432,6 +4196,29 @@ class IntextNode {
     this._renderTimers = [];
     this._intextTransitionBridge = null;
     this._intextRealRenderTelemetryCommittedForToken = null;
+    this._fallbackBlankControlCountedTokens = new Set();
+    this._fallbackBlankControlCountedEvents = new Set();
+    this._nodeActive = true;
+    this._intextPipState = "inline";
+    this._intextPipDismissedRenderToken = null;
+    this._intextPipEnteredAt = null;
+    this._intextPipVisibleMs = 0;
+    this._intextPipEntryCount = 0;
+    this._intextPipAnchorEverVisible = false;
+    this._intextPipFirstFrameConfirmed = false;
+    this._intextPipPlayerRevealed = false;
+    this._intextPipCloseButton = null;
+    this._intextPipCloseHandler = null;
+    this._intextPipPlayerElement = null;
+    this._intextPipOriginalInlineStyles = null;
+    this._intextPipLastIntersectionRatio = null;
+    this._intextPipLastExitPlayedPct = null;
+    this._intextPipPlaybackActive = false;
+    this._intextPipPlaybackSource = "unresolved";
+    if (window.gexpIntextDebug) {
+      intextDebugCollector.attachManager(this.manager);
+      intextDebugCollector.recordTimeline("created", { node: this, slotId: this.id });
+    }
   }
 
   getIntextNodeId() {
@@ -2444,7 +4231,819 @@ class IntextNode {
       : this.slotIndex;
   }
 
+  getIntextPipConfig() {
+    const source = this.config?.video?.pip || {};
+    const sourceSlots = source.slots && typeof source.slots === "object" && !Array.isArray(source.slots)
+      ? source.slots
+      : {};
+    const slots = Object.freeze ? Object.freeze({
+      default: sourceSlots.default === true,
+      "gexp-intext": sourceSlots["gexp-intext"] !== false,
+      "gexp-intext-2": sourceSlots["gexp-intext-2"] === true,
+      "gexp-intext-3": sourceSlots["gexp-intext-3"] === true,
+      pnc: sourceSlots.pnc === true,
+      ...sourceSlots,
+    }) : { ...sourceSlots };
+    const number = (value, fallback, min, max) => {
+      const parsed = Number(value);
+      return Number.isFinite(parsed) ? Math.min(max, Math.max(min, parsed)) : fallback;
+    };
+    const enterIntersectionRatio = number(source.enterIntersectionRatio, 0.05, 0, 0.95);
+    let returnIntersectionRatio = number(source.returnIntersectionRatio, 0.35, 0, 1);
+    if (returnIntersectionRatio <= enterIntersectionRatio) {
+      returnIntersectionRatio = Math.min(1, enterIntersectionRatio + 0.05);
+    }
+    const config = {
+      enabled: source.enabled === true,
+      slots,
+      inclusions: source.inclusions && typeof source.inclusions === "object"
+        ? source.inclusions
+        : { enabled: false, sites: [], keyValues: {} },
+      exclusions: source.exclusions && typeof source.exclusions === "object"
+        ? source.exclusions
+        : { enabled: false, disableAll: false, sites: [], keyValues: {} },
+      mode: source.mode === "floating" ? source.mode : "floating",
+      enabledDesktop: source.enabledDesktop !== false,
+      enabledMobile: source.enabledMobile === true,
+      position: source.position === "bottom-right" ? source.position : "bottom-right",
+      widthDesktop: number(source.widthDesktop, 360, 160, 960),
+      widthMobile: number(source.widthMobile, 280, 160, 640),
+      maxWidthViewportRatio: number(source.maxWidthViewportRatio, 0.9, 0.25, 1),
+      right: number(source.right, 16, 0, 200),
+      bottom: number(source.bottom, 16, 0, 200),
+      zIndex: number(source.zIndex, 100000, 1, 1000000),
+      enterIntersectionRatio,
+      returnIntersectionRatio,
+      onlyAfterFirstFrame: source.onlyAfterFirstFrame !== false,
+      requireInitialViewport: source.requireInitialViewport !== false,
+      showCloseButton: source.showCloseButton !== false,
+      singleActive: source.singleActive !== false,
+      closeBehavior: source.closeBehavior === "return-inline-and-dismiss-cycle"
+        ? source.closeBehavior
+        : "return-inline-and-dismiss-cycle",
+    };
+    return Object.freeze ? Object.freeze(config) : { ...config };
+  }
+
+  getIntextPipBaseSlotId() {
+    const id = String(this.id || "").replace(/-video$/, "");
+    return this.manager?.normalizeIntextBaseSlotId?.(id) || id;
+  }
+
+  isIntextPipSlotEnabled() {
+    const pip = this.getIntextPipConfig();
+    const slotId = this.getIntextPipBaseSlotId();
+    if (Object.prototype.hasOwnProperty.call(pip.slots || {}, slotId)) {
+      return pip.slots[slotId] === true;
+    }
+    return pip.slots?.default === true;
+  }
+
+  isIntextPipMobileDevice() {
+    try {
+      const dl = (typeof window !== "undefined" && (window.ueDataLayer || window.utag_data)) || {};
+      if (dl.device_category === "mobile" || dl.be_page_site_version === "mobile") return true;
+      if (dl.device_category === "desktop" || dl.be_page_site_version === "desktop") return false;
+      return this.manager?.gexp?.isMobileDevice?.() === true;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  isIntextPipEnabled() {
+    const pip = this.getIntextPipConfig();
+    const isMobile = this.isIntextPipMobileDevice();
+    const renderTokenValid =
+      Number(this._activeRenderToken) > 0 &&
+      this._activeRenderToken === this._renderTokenSeq;
+    return (
+      pip.enabled === true &&
+      this.isIntextPipSlotEnabled() &&
+      pip.mode === "floating" &&
+      (isMobile ? pip.enabledMobile : pip.enabledDesktop) &&
+      this._nodeActive === true &&
+      this.state === "video" &&
+      Boolean(this.videoContainer?.getElement?.()) &&
+      this._intextPipState !== "destroyed" &&
+      renderTokenValid
+    );
+  }
+
+  isIntextPipEffectiveEnabled() {
+    return this.isIntextPipEnabled();
+  }
+
+  getIntextPipPlayerElement() {
+    try {
+      const player = this.activeCreative?.player;
+      const playerEl = typeof player?.el === "function" ? player.el() : null;
+      if (playerEl) return playerEl;
+      if (player?.element) return player.element;
+      const videoContainer = this.videoContainer?.getElement?.();
+      const videoJs = videoContainer?.querySelector?.(".video-js");
+      if (videoJs) return videoJs;
+      const video = videoContainer?.querySelector?.("video");
+      return video?.closest?.(".video-js") || null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  getIntextPipPlaybackData() {
+    const player = this.activeCreative?.player;
+    const media = this.activeCreative?._adMediaEl;
+    const read = (candidate, fallback = null) => {
+      try {
+        const value = typeof candidate === "function" ? candidate() : candidate;
+        const parsed = Number(value);
+        return Number.isFinite(parsed) ? parsed : fallback;
+      } catch (e) {
+        return fallback;
+      }
+    };
+    const currentTime = read(media?.currentTime, read(() => player?.currentTime?.(), 0));
+    const duration = read(
+      media?.duration,
+      read(() => player?.duration?.(), read(this.activeCreative?._lastAdDuration, 0)),
+    );
+    const playedPct = duration > 0
+      ? Math.max(0, Math.min(100, Math.round((currentTime / duration) * 10000) / 100))
+      : null;
+    return { currentTime, duration, playedPct };
+  }
+
+  getIntextPipPlaybackState() {
+    const creative = this.activeCreative;
+    const player = creative?.player || null;
+    const media = creative?._adMediaEl || null;
+    const readNumber = (candidate, fallback = 0) => {
+      try {
+        const raw = typeof candidate === "function" ? candidate() : candidate;
+        const parsed = Number(raw);
+        return Number.isFinite(parsed) ? parsed : fallback;
+      } catch (e) {
+        return fallback;
+      }
+    };
+    const readBoolean = (candidate) => {
+      try {
+        const raw = typeof candidate === "function" ? candidate() : candidate;
+        return typeof raw === "boolean" ? raw : null;
+      } catch (e) {
+        return null;
+      }
+    };
+    const currentTime = readNumber(media?.currentTime, readNumber(() => player?.currentTime?.(), 0));
+    const duration = readNumber(
+      media?.duration,
+      readNumber(() => player?.duration?.(), readNumber(creative?._lastAdDuration, 0)),
+    );
+    const mediaEnded = readBoolean(media?.ended);
+    const mediaPaused = readBoolean(media?.paused);
+    const playerEnded = readBoolean(() => player?.ended?.());
+    const playerPaused = readBoolean(() => player?.paused?.());
+    let ended = mediaEnded ?? playerEnded ?? creative?._videoEndHandled === true;
+    let paused = mediaPaused ?? playerPaused;
+    let source = media ? "ima-media-element" : player ? "videojs-player" : "canonical";
+    if (paused === null) {
+      paused = this._intextPipPlaybackActive !== true;
+      source = "canonical";
+    }
+    if (ended === null) ended = creative?._videoEndHandled === true;
+    const playing =
+      Boolean(creative) &&
+      Boolean(player || media) &&
+      ended !== true &&
+      paused === false &&
+      (currentTime > 0 || this._intextPipPlaybackActive === true);
+    const readyState = readNumber(media?.readyState, readNumber(() => player?.readyState?.(), 0));
+    return {
+      hasCreative: Boolean(creative),
+      hasPlayer: Boolean(player),
+      hasMediaElement: Boolean(media),
+      currentTime,
+      duration,
+      ended: ended === true,
+      paused: paused === true,
+      playing,
+      readyState,
+      source,
+    };
+  }
+
+  setIntextPipPlaybackActive(active, source = "canonical") {
+    this._intextPipPlaybackActive = active === true;
+    this._intextPipPlaybackSource = String(source || "canonical");
+    this.mergeIntextTelemetry({
+      "gexp-intext-pip-playback-source": this._intextPipPlaybackSource,
+      "gexp-intext-pip-video-playing": this._intextPipPlaybackActive ? "true" : "false",
+    });
+    if (this._intextPipPlaybackActive) this.maybeEnterIntextPipFromLastIntersection();
+  }
+
+  getIntextPipTargetingContext() {
+    const scopedContext = this.scopedContext || null;
+    const site = this.manager?.getHostnameNormalized?.(
+      scopedContext?.hostname ||
+      window?.location?.hostname ||
+      this.manager?.siteContext?.site ||
+      "",
+    ) || "";
+    const targeting = {
+      ...(this.manager?.getPageCustomTargeting?.(scopedContext) || {}),
+      ...(scopedContext?.targeting || {}),
+    };
+    INTEXT_RANDOM_KEYS.forEach((key) => {
+      const value = this.manager?.getIntextRandomValue?.(key);
+      if (value !== null && value !== undefined && value !== "") targeting[key] = String(value);
+    });
+    return { site, targeting, scopedContext };
+  }
+
+  normalizeIntextPipRuleValues(value) {
+    const values = Array.isArray(value) ? value : [value];
+    return values
+      .flatMap((entry) => String(entry ?? "").split(","))
+      .map((entry) => entry.trim())
+      .filter(Boolean);
+  }
+
+  isIntextPipSiteMatched(site, configuredSites) {
+    const normalizedSite = this.manager?.getHostnameNormalized?.(site) || String(site || "").toLowerCase();
+    return this.normalizeIntextPipRuleValues(configuredSites).some((candidate) => {
+      const normalizedCandidate =
+        this.manager?.getHostnameNormalized?.(candidate) || String(candidate || "").toLowerCase();
+      return normalizedSite === normalizedCandidate || normalizedSite.endsWith(`.${normalizedCandidate}`);
+    });
+  }
+
+  findIntextPipKeyValueMatch(rules, context) {
+    if (!rules || typeof rules !== "object" || Array.isArray(rules)) return null;
+    for (const [key, configuredValues] of Object.entries(rules)) {
+      const allowedValues = this.normalizeIntextPipRuleValues(configuredValues);
+      if (!allowedValues.length) continue;
+      const resolvedValues = this.manager?.resolveIntextRuleTargeting
+        ? this.manager.resolveIntextRuleTargeting(key, context?.scopedContext)
+        : null;
+      const pageValues = resolvedValues
+        ? resolvedValues.values
+        : this.normalizeIntextPipRuleValues(context?.targeting?.[key]);
+      const matchedValue = allowedValues.find((value) => pageValues.includes(String(value)));
+      if (matchedValue !== undefined) return { key: String(key), value: String(matchedValue) };
+    }
+    return null;
+  }
+
+  isIntextPipAllowedByInclusions(context = this.getIntextPipTargetingContext()) {
+    const rules = this.getIntextPipConfig().inclusions || {};
+    if (rules.enabled !== true) {
+      return { allowed: true, reason: "allowed", siteMatched: false, keyValueMatched: false, match: null };
+    }
+    const sites = this.normalizeIntextPipRuleValues(rules.sites);
+    const hasSites = sites.length > 0;
+    const siteMatched = !hasSites || this.isIntextPipSiteMatched(context.site, sites);
+    if (!siteMatched) {
+      return {
+        allowed: false,
+        reason: "pip-inclusion-site-not-matched",
+        siteMatched: false,
+        keyValueMatched: false,
+        match: null,
+      };
+    }
+    const hasKeyValues =
+      rules.keyValues && typeof rules.keyValues === "object" && Object.keys(rules.keyValues).length > 0;
+    const match = hasKeyValues ? this.findIntextPipKeyValueMatch(rules.keyValues, context) : null;
+    if (hasKeyValues && !match) {
+      return {
+        allowed: false,
+        reason: "pip-inclusion-keyvalue-not-matched",
+        siteMatched,
+        keyValueMatched: false,
+        match: null,
+      };
+    }
+    return {
+      allowed: true,
+      reason: "allowed",
+      siteMatched,
+      keyValueMatched: Boolean(match),
+      match,
+    };
+  }
+
+  isIntextPipBlockedByExclusions(context = this.getIntextPipTargetingContext()) {
+    const rules = this.getIntextPipConfig().exclusions || {};
+    if (rules.enabled !== true) {
+      return { blocked: false, reason: "allowed", siteMatched: false, keyValueMatched: false, match: null };
+    }
+    if (rules.disableAll === true) {
+      return {
+        blocked: true,
+        reason: "pip-exclusions-disable-all",
+        siteMatched: false,
+        keyValueMatched: false,
+        match: null,
+      };
+    }
+    const sites = this.normalizeIntextPipRuleValues(rules.sites);
+    const siteMatched = sites.length > 0 && this.isIntextPipSiteMatched(context.site, sites);
+    if (siteMatched) {
+      return {
+        blocked: true,
+        reason: "pip-excluded-site",
+        siteMatched: true,
+        keyValueMatched: false,
+        match: null,
+      };
+    }
+    const match = this.findIntextPipKeyValueMatch(rules.keyValues, context);
+    if (match) {
+      return {
+        blocked: true,
+        reason: "pip-excluded-keyvalue",
+        siteMatched: false,
+        keyValueMatched: true,
+        match,
+      };
+    }
+    return { blocked: false, reason: "allowed", siteMatched: false, keyValueMatched: false, match: null };
+  }
+
+  resolveIntextPipTargetingEligibility() {
+    const context = this.getIntextPipTargetingContext();
+    const inclusion = this.isIntextPipAllowedByInclusions(context);
+    const exclusion = this.isIntextPipBlockedByExclusions(context);
+    const allowed = inclusion.allowed === true && exclusion.blocked !== true;
+    const reason = exclusion.blocked ? exclusion.reason : inclusion.reason;
+    const match = exclusion.match || inclusion.match;
+    const result = {
+      allowed,
+      reason,
+      site: context.site,
+      inclusionSiteMatched: inclusion.siteMatched,
+      inclusionKeyValueMatched: inclusion.keyValueMatched,
+      exclusionSiteMatched: exclusion.siteMatched,
+      exclusionKeyValueMatched: exclusion.keyValueMatched,
+      matchedKey: match?.key || "none",
+      matchedValue: match?.value || "none",
+    };
+    this.mergeIntextTelemetry({
+      "gexp-intext-pip-slot-enabled": this.isIntextPipSlotEnabled() ? "true" : "false",
+      "gexp-intext-pip-targeting-allowed": allowed ? "true" : "false",
+      "gexp-intext-pip-targeting-reason": String(reason),
+      "gexp-intext-pip-inclusion-site-matched": inclusion.siteMatched ? "true" : "false",
+      "gexp-intext-pip-inclusion-keyvalue-matched": inclusion.keyValueMatched ? "true" : "false",
+      "gexp-intext-pip-exclusion-site-matched": exclusion.siteMatched ? "true" : "false",
+      "gexp-intext-pip-exclusion-keyvalue-matched": exclusion.keyValueMatched ? "true" : "false",
+      "gexp-intext-pip-targeting-matched-key": result.matchedKey,
+      "gexp-intext-pip-targeting-matched-value": result.matchedValue,
+    });
+    this.recordIntextPipEvent("video_pip_targeting_evaluated", reason, result);
+    if (!allowed) this.recordIntextPipEvent("video_pip_targeting_blocked", reason, result);
+    return result;
+  }
+
+  recordIntextPipEvent(metric, reason = "unknown", extra = {}) {
+    const playback = this.getIntextPipPlaybackData();
+    const payload = {
+      node: this,
+      source: reason,
+      slotId: this.id,
+      slotIndex: this.slotIndex,
+      navIndex: this.navIndex,
+      cycleId: this._intextTelemetryCycleId,
+      renderToken: this._activeRenderToken,
+      reason,
+      pipState: this._intextPipState,
+      currentTime: playback.currentTime,
+      duration: playback.duration,
+      playedPct: playback.playedPct,
+      anchorIntersectionRatio: this._intextPipLastIntersectionRatio,
+      documentVisibility: String(document?.visibilityState || "unknown"),
+      entryCount: this._intextPipEntryCount,
+      accumulatedPipVisibleMs: this._intextPipVisibleMs,
+      ...extra,
+    };
+    if (typeof window !== "undefined" && window.gexpIntextDebug === true) {
+      intextDebugCollector.recordMetric(metric, payload);
+    }
+    return payload;
+  }
+
+  getIntextPipEntryBlockReason() {
+    const pip = this.getIntextPipConfig();
+    if (pip.enabled === true && !this.isIntextPipSlotEnabled()) return "pip-slot-disabled";
+    if (!this.isIntextPipEnabled()) return "disabled-or-inactive";
+    if (this._intextPipState !== "inline") return `state-${this._intextPipState}`;
+    if (this._intextPipDismissedRenderToken === this._activeRenderToken) return "dismissed-render-token";
+    const targetingEligibility = this.resolveIntextPipTargetingEligibility();
+    if (!targetingEligibility.allowed) return targetingEligibility.reason;
+    if (!this.activeCreative || this.activeCreative?._aborted) return "creative-unavailable";
+    if (!this.getIntextPipPlayerElement()) return "player-unavailable";
+    const playback = this.getIntextPipPlaybackState();
+    this.mergeIntextTelemetry({
+      "gexp-intext-pip-playback-source": playback.source,
+      "gexp-intext-pip-video-playing": playback.playing ? "true" : "false",
+    });
+    if (playback.ended || this.activeCreative?._videoEndHandled === true) return "video-ended";
+    if (
+      this.state === "error" ||
+      this._displayRequestInFlight === true ||
+      this._visualState === "fallback_started" ||
+      this._intextTelemetryCycle?.["gexp-intext-video-failed"] === "true"
+    ) return "error-or-fallback";
+    if (pip.onlyAfterFirstFrame && !this._intextPipFirstFrameConfirmed) return "first-frame-pending";
+    if (!this._intextPipPlayerRevealed) return "player-not-revealed";
+    if (!playback.playing || playback.paused) return "video-not-playing";
+    if (pip.requireInitialViewport && !this._intextPipAnchorEverVisible) return "anchor-never-visible";
+    if (typeof document !== "undefined" && document.visibilityState !== "visible") return "document-hidden";
+    if (
+      this._intextPipLastIntersectionRatio === null ||
+      this._intextPipLastIntersectionRatio > pip.enterIntersectionRatio
+    ) return "anchor-still-visible";
+    const loader = this.videoContainer?.getElement?.()?.querySelector?.(".gexp-intext-loader");
+    if (loader) {
+      let loaderVisible = loader.style?.display === "flex" || loader.style?.display === "block";
+      try {
+        if (typeof window.getComputedStyle === "function") {
+          loaderVisible = loaderVisible || window.getComputedStyle(loader)?.display !== "none";
+        }
+      } catch (e) { }
+      if (loaderVisible) return "loader-visible";
+    }
+    if (playback.duration > 0 && playback.currentTime >= playback.duration) return "video-ended";
+    return null;
+  }
+
+  canEnterIntextPip() {
+    const reason = this.getIntextPipEntryBlockReason();
+    if (!reason) return true;
+    const pip = this.getIntextPipConfig();
+    if (
+      pip.enabled &&
+      this._intextPipLastIntersectionRatio !== null &&
+      this._intextPipLastIntersectionRatio <= pip.enterIntersectionRatio
+    ) {
+      this.recordIntextPipEvent("video_pip_entry_blocked", reason);
+      if (reason === "video-not-playing") {
+        this.recordIntextPipEvent("video_pip_entry_blocked_video_not_playing", reason);
+      }
+    }
+    return false;
+  }
+
+  enterIntextPip(reason = "anchor-left-viewport", intersectionEntry = null) {
+    if (
+      intersectionEntry &&
+      Number.isFinite(Number(intersectionEntry.intersectionRatio))
+    ) {
+      this._intextPipLastIntersectionRatio = Number(intersectionEntry.intersectionRatio);
+    }
+    if (!this.canEnterIntextPip()) return false;
+    const renderToken = this._activeRenderToken;
+    const pip = this.getIntextPipConfig();
+    const playerElement = this.getIntextPipPlayerElement();
+    const videoWrapper = this.videoContainer?.getElement?.();
+    if (!playerElement || !videoWrapper || !this.isActiveRenderToken(renderToken, "enterIntextPip", reason)) {
+      return false;
+    }
+    if (pip.singleActive && this.manager?.requestActiveIntextPip?.(this) === false) return false;
+    if (!this.isActiveRenderToken(renderToken, "enterIntextPip:after-manager", reason)) {
+      this.manager?.releaseActiveIntextPip?.(this);
+      return false;
+    }
+
+    const cssVariables = [
+      "--gexp-intext-pip-width",
+      "--gexp-intext-pip-max-width",
+      "--gexp-intext-pip-right",
+      "--gexp-intext-pip-bottom",
+      "--gexp-intext-pip-z-index",
+    ];
+    const originalVariables = {};
+    cssVariables.forEach((name) => {
+      originalVariables[name] = {
+        value: playerElement.style?.getPropertyValue?.(name) || "",
+        priority: playerElement.style?.getPropertyPriority?.(name) || "",
+      };
+    });
+    const wrapperRect = videoWrapper.getBoundingClientRect?.();
+    const wrapperHeight = Number(wrapperRect?.height) || Number(this.lockedHeight) || 0;
+    const originalMinHeight = videoWrapper.style?.minHeight || "";
+    const explicitHeight = Number.parseFloat(videoWrapper.style?.height || "");
+    const minHeightApplied = wrapperHeight > 0 && !(Number.isFinite(explicitHeight) && explicitHeight > 0);
+    this._intextPipOriginalInlineStyles = {
+      renderToken,
+      playerElement,
+      videoWrapper,
+      originalVariables,
+      originalMinHeight,
+      minHeightApplied,
+    };
+    if (minHeightApplied) videoWrapper.style.minHeight = `${wrapperHeight}px`;
+
+    const configuredWidth = this.isIntextPipMobileDevice() ? pip.widthMobile : pip.widthDesktop;
+    const viewportWidth = Number(window?.innerWidth);
+    const finalWidth = Math.min(
+      configuredWidth,
+      Number.isFinite(viewportWidth) && viewportWidth > 0
+        ? viewportWidth * pip.maxWidthViewportRatio
+        : configuredWidth,
+    );
+    playerElement.style?.setProperty?.("--gexp-intext-pip-width", `${Math.round(finalWidth)}px`);
+    playerElement.style?.setProperty?.("--gexp-intext-pip-max-width", `${pip.maxWidthViewportRatio * 100}vw`);
+    playerElement.style?.setProperty?.("--gexp-intext-pip-right", `${pip.right}px`);
+    playerElement.style?.setProperty?.("--gexp-intext-pip-bottom", `${pip.bottom}px`);
+    playerElement.style?.setProperty?.("--gexp-intext-pip-z-index", String(pip.zIndex));
+    playerElement.classList?.add?.("gexp-intext-pip-player");
+    videoWrapper.classList?.add?.("gexp-intext-pip-active");
+    this._intextPipPlayerElement = playerElement;
+
+    if (pip.showCloseButton && !this._intextPipCloseButton) {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "gexp-intext-pip-close";
+      button.setAttribute("aria-label", "Cerrar reproductor flotante");
+      button.textContent = "×";
+      this._intextPipCloseHandler = (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        this.dismissIntextPip();
+      };
+      button.addEventListener("click", this._intextPipCloseHandler, { once: true });
+      playerElement.appendChild(button);
+      this._intextPipCloseButton = button;
+    }
+
+    this._intextPipState = "floating";
+    this._intextPipEnteredAt = Date.now();
+    this._intextPipEntryCount += 1;
+    const playback = this.getIntextPipPlaybackData();
+    this.mergeIntextTelemetry({
+      "gexp-intext-pip-enabled": "true",
+      "gexp-intext-pip-effective-enabled": "true",
+      "gexp-intext-pip-entered": "true",
+      "gexp-intext-pip-entry-count": String(this._intextPipEntryCount),
+      "gexp-intext-pip-entry-played-pct": playback.playedPct === null ? "unknown" : String(playback.playedPct),
+    });
+    let multiplePipPlayersDetected = false;
+    try {
+      multiplePipPlayersDetected =
+        document.querySelectorAll?.(".gexp-intext-pip-player")?.length > 1;
+    } catch (e) { }
+    this.recordIntextPipEvent("video_pip_entered", reason, {
+      multiplePipPlayersDetected,
+    });
+    return true;
+  }
+
+  exitIntextPip(reason = "return-inline") {
+    const wasFloating = this._intextPipState === "floating";
+    const styles = this._intextPipOriginalInlineStyles;
+    if (wasFloating && this._intextPipEnteredAt !== null) {
+      this._intextPipVisibleMs += Math.max(0, Date.now() - this._intextPipEnteredAt);
+    }
+    this._intextPipEnteredAt = null;
+
+    const button = this._intextPipCloseButton;
+    if (button) {
+      try {
+        if (this._intextPipCloseHandler) button.removeEventListener("click", this._intextPipCloseHandler);
+        button.remove?.();
+      } catch (e) { }
+    }
+    this._intextPipCloseButton = null;
+    this._intextPipCloseHandler = null;
+
+    const playerElement = styles?.playerElement || this._intextPipPlayerElement;
+    const videoWrapper = styles?.videoWrapper || this.videoContainer?.getElement?.();
+    playerElement?.classList?.remove?.("gexp-intext-pip-player");
+    videoWrapper?.classList?.remove?.("gexp-intext-pip-active");
+    if (styles?.originalVariables && playerElement?.style) {
+      Object.entries(styles.originalVariables).forEach(([name, original]) => {
+        if (original.value) {
+          playerElement.style.setProperty(name, original.value, original.priority);
+        } else {
+          playerElement.style.removeProperty(name);
+        }
+      });
+    }
+    if (styles?.minHeightApplied && videoWrapper?.style) {
+      videoWrapper.style.minHeight = styles.originalMinHeight;
+    }
+    this._intextPipOriginalInlineStyles = null;
+    this._intextPipPlayerElement = null;
+    this.manager?.releaseActiveIntextPip?.(this);
+
+    if (wasFloating) {
+      const playback = this.getIntextPipPlaybackData();
+      this._intextPipLastExitPlayedPct = playback.playedPct;
+      this.mergeIntextTelemetry({
+        "gexp-intext-pip-visible-ms": String(Math.round(this._intextPipVisibleMs)),
+        "gexp-intext-pip-last-exit-reason": String(reason),
+        "gexp-intext-pip-exit-played-pct": playback.playedPct === null ? "unknown" : String(playback.playedPct),
+      });
+      this._intextPipState = "inline";
+      this.recordIntextPipEvent("video_pip_returned_inline", reason);
+      if (reason === "replaced-by-another-slot") {
+        this.recordIntextPipEvent("video_pip_replaced", reason);
+      }
+    }
+    return wasFloating;
+  }
+
+  dismissIntextPip() {
+    const renderToken = this._activeRenderToken;
+    if (!this.isActiveRenderToken(renderToken, "dismissIntextPip", "user-dismissed")) return false;
+    const wasFloating = this.exitIntextPip("user-dismissed");
+    this._intextPipDismissedRenderToken = renderToken;
+    this._intextPipState = "dismissed";
+    this.mergeIntextTelemetry({ "gexp-intext-pip-dismissed": "true" });
+    this.recordIntextPipEvent("video_pip_dismissed", "user-dismissed");
+    return wasFloating;
+  }
+
+  cleanupIntextPip(reason = "cleanup") {
+    const wasFloating = this._intextPipState === "floating";
+    this.exitIntextPip(reason);
+    if (wasFloating || this._intextPipCloseButton || this._intextPipPlayerElement) {
+      this.recordIntextPipEvent("video_pip_cleanup", reason);
+    }
+    return wasFloating;
+  }
+
+  resetIntextPipState(renderToken) {
+    this._intextPipState = "inline";
+    this._intextPipDismissedRenderToken = null;
+    this._intextPipEnteredAt = null;
+    this._intextPipVisibleMs = 0;
+    this._intextPipEntryCount = 0;
+    this._intextPipAnchorEverVisible = false;
+    this._intextPipFirstFrameConfirmed = false;
+    this._intextPipPlayerRevealed = false;
+    this._intextPipCloseButton = null;
+    this._intextPipCloseHandler = null;
+    this._intextPipPlayerElement = null;
+    this._intextPipOriginalInlineStyles = null;
+    this._intextPipLastIntersectionRatio = null;
+    this._intextPipLastExitPlayedPct = null;
+    this._intextPipPlaybackActive = false;
+    this._intextPipPlaybackSource = "render-reset";
+    return renderToken;
+  }
+
+  resetIntextPipForRenderToken(renderToken) {
+    this.cleanupIntextPip("stale-render-token");
+    return this.resetIntextPipState(renderToken);
+  }
+
+  maybeEnterIntextPipFromLastIntersection() {
+    const pip = this.getIntextPipConfig();
+    if (
+      this._intextPipLastIntersectionRatio !== null &&
+      this._intextPipLastIntersectionRatio <= pip.enterIntersectionRatio
+    ) {
+      return this.enterIntextPip("eligibility-confirmed-after-viewport-exit");
+    }
+    return false;
+  }
+
+  handleIntextPipIntersection(entry) {
+    if (!entry) return false;
+    if (!this.isIntextPipEnabled()) return false;
+    const ratio = Number(entry.intersectionRatio);
+    this._intextPipLastIntersectionRatio = Number.isFinite(ratio) ? Math.min(1, Math.max(0, ratio)) : 0;
+    const pip = this.getIntextPipConfig();
+    if (entry.isIntersecting === true && this._intextPipLastIntersectionRatio > pip.enterIntersectionRatio) {
+      this._intextPipAnchorEverVisible = true;
+    }
+    if (this._intextPipState === "floating") {
+      if (this._intextPipLastIntersectionRatio >= pip.returnIntersectionRatio) {
+        return this.exitIntextPip("anchor-returned");
+      }
+      return false;
+    }
+    if (this._intextPipLastIntersectionRatio <= pip.enterIntersectionRatio) {
+      return this.enterIntextPip("anchor-left-viewport", entry);
+    }
+    return false;
+  }
+
+  maybeIncrementFallbackBlankControl(event, context = {}) {
+    const cfg = this.manager?.getFallbackBlankControlConfig?.() || {};
+    const source = String(context.source || "unknown");
+    if (cfg.enabled !== true) return false;
+    if (Number(this.slotIndex) + 1 !== Number(cfg.slotIndex ?? 1)) return false;
+    if (this._nodeActive !== true || !this.manager?.nodes?.includes?.(this)) return false;
+
+    const trigger = context.trigger || "unknown";
+    if (trigger !== "fallback") return false;
+    if (cfg.ignoreRefresh !== false) {
+      const isRefresh =
+        this._intextTelemetryCycle?.["gexp-intext-refresh"] === "true" ||
+        this.waterfall?.lastTrigger === "refresh" ||
+        trigger === "refresh";
+      if (isRefresh) return false;
+    }
+    if (trigger === "house-1x1-refresh") return false;
+    if (cfg.onlyFirstLoad !== false && (this._cycleCount || 0) > 0) return false;
+
+    const renderToken = context.renderToken || this._activeRenderToken || 0;
+    const cycleId = Number(context.cycleId ?? this._intextTelemetryCycleId ?? 0);
+    if (!this.isActiveRenderToken(renderToken, "fallback_blank_control", trigger)) return false;
+    if (cycleId !== Number(this._intextTelemetryCycleId || 0)) {
+      this.manager?.registerIntextDiagnosticEvent?.({
+        diagnosticKey: `stale-fallback-blank-cycle:${this.id}:${cycleId}:${renderToken}`,
+        "gexp-intext-diagnostic-context": `expected-cycle:${this._intextTelemetryCycleId}`,
+        "slot-id": String(this.id),
+        "cycle-id": String(cycleId),
+        "render-token": String(renderToken),
+      });
+      return false;
+    }
+    const countedKey = `${this.id}:${cycleId}:${renderToken}`;
+    if (this._fallbackBlankControlCountedEvents.has(countedKey)) return false;
+
+    const videoFailed =
+      this._intextTelemetryCycle?.["gexp-intext-video-failed"] === "true" ||
+      this.wa?.cI?.["gexp-intext-video-failed"] === "true";
+    const videoToDisplayFallback =
+      this._intextTelemetryCycle?.["gexp-intext-is-fallback"] === "true" ||
+      this._intextTelemetryCycle?.["gexp-intext-fallback"] === "true" ||
+      this.wa?.cI?.["gexp-intext-is-fallback"] === "true" ||
+      this.wa?.cI?.["gexp-intext-fallback"] === "true";
+    if (cfg.onlyVideoFallbackDisplay !== false && !(videoFailed && videoToDisplayFallback)) return false;
+
+    const house1x1Cfg = this.getHouse1x1AutoRefreshConfig?.();
+    const isEmptyDisplay = event?.isEmpty === true;
+    const isSentinelHouse =
+      this.isHouseLineItemSentinel?.(event) === true ||
+      this.isHouse1x1EventMatch?.(event, house1x1Cfg) === true;
+    const isHouseDisplay = (() => {
+      if (!event || event.isEmpty === true) return false;
+      const lineItemType = String(event.lineItemType || "").toLowerCase();
+      if (lineItemType === "house") return true;
+      try {
+        return this.manager?.gexp?.isHouse?.(event.campaignId, event.lineItemId, event.advertiserId) === true;
+      } catch (e) {
+        return false;
+      }
+    })();
+
+    const shouldCount =
+      (cfg.countEmptyDisplay === true && isEmptyDisplay) ||
+      (cfg.countHouseDisplay === true && isHouseDisplay) ||
+      (cfg.countSentinelHouse === true && isSentinelHouse);
+    if (!shouldCount) return false;
+
+    this._fallbackBlankControlCountedEvents.add(countedKey);
+    if (renderToken) this._fallbackBlankControlCountedTokens.add(renderToken);
+    const counter = this.manager.incrementFallbackBlankCounter();
+    const threshold = Number(cfg.threshold ?? 1);
+    const reason = isEmptyDisplay ? "empty-display" : (isSentinelHouse ? "sentinel-house" : "house-display");
+    const cookieWrite = counter.cookieWrite || {};
+    const eventId = `${this.manager._intextPageInstanceId}:${countedKey}`;
+    this.manager.registerIntextFallbackBlankEvent({
+      "gexp-intext-fallback-blank-event-id": eventId,
+      "gexp-intext-fallback-blank-control-counted": "true",
+      "gexp-intext-fallback-blank-control-reason": reason,
+      "gexp-intext-fallback-blank-control-source": source,
+      "gexp-intext-fallback-blank-control-counter-before": String(counter.counterBefore),
+      "gexp-intext-fallback-blank-control-counter-after": String(counter.counterAfter),
+      "gexp-intext-fallback-blank-control-count": String(counter.counterAfter),
+      "gexp-intext-fallback-blank-control-threshold": String(threshold),
+      "gexp-intext-fallback-blank-control-threshold-reached": counter.thresholdReached ? "true" : "false",
+      "gexp-intext-fallback-blank-control-cookie-set-attempted": cookieWrite.attempted ? "true" : "false",
+      "gexp-intext-fallback-blank-control-cookie-set-confirmed": cookieWrite.confirmed ? "true" : "false",
+      "gexp-intext-fallback-blank-control-cookie-set-error": String(cookieWrite.error || "none"),
+      "gexp-intext-fallback-blank-control-cookie-set": cookieWrite.confirmed ? "true" : "false",
+      "slot-id": String(this.id),
+      "slot-index": String(this.slotIndex),
+      "cycle-id": String(cycleId),
+      "render-token": String(renderToken),
+      navIndex: String(this.navIndex || 0),
+    }, `fallback-blank:${countedKey}`);
+    logIntext(`[Intext:Display:${this.id}] fallback_blank_control_incremented`, {
+      counterBefore: counter.counterBefore,
+      counterAfter: counter.counterAfter,
+      threshold: cfg.threshold,
+      source,
+      reason,
+      cookieSet: cookieWrite.confirmed === true,
+      renderToken,
+      cycleId,
+      isEmptyDisplay,
+      isHouseDisplay,
+      isSentinelHouse,
+    });
+    return true;
+  }
+
   beginVisualRender(source = "unknown", trigger = "unknown") {
+    if (Number(this._activeRenderToken) > 0) {
+      this.cleanupIntextPip("stale-render-token");
+    }
     this._renderTokenSeq += 1;
     this._activeRenderToken = this._renderTokenSeq;
     this._renderInProgress = true;
@@ -2452,11 +5051,31 @@ class IntextNode {
     this._displayRequestInFlight = false;
     this._lastVisualCycleId = this._intextTelemetryCycleId;
     this._visualState = source;
+    this.resetIntextPipState(this._activeRenderToken);
+    const pipEnabled =
+      this.getIntextPipConfig?.().enabled === true;
+    const pipSlotEnabled =
+      this.isIntextPipSlotEnabled?.() === true;
+    const pipEffectiveEnabled =
+      this.isIntextPipEffectiveEnabled?.() === true;
     this.mergeIntextTelemetry({
       "gexp-intext-render-token": String(this._activeRenderToken),
       "gexp-intext-render-attempt": String(this._renderTokenSeq),
       "gexp-intext-visual-state": this._visualState,
+      "gexp-intext-pip-enabled": pipEnabled ? "true" : "false",
+      "gexp-intext-pip-effective-enabled": pipEffectiveEnabled ? "true" : "false",
+      "gexp-intext-pip-slot-enabled": pipSlotEnabled ? "true" : "false",
     });
+    if (typeof window !== "undefined" && window.gexpIntextDebug === true) {
+      intextDebugCollector.recordMetric("video_pip_config_effective", {
+        node: this,
+        source,
+        trigger,
+        pipEnabled,
+        pipEffectiveEnabled,
+        pipSlotEnabled,
+      });
+    }
     this.applyIntextWrapperDebugAttributes(this.container?.getElement?.(), {
       renderToken: this._activeRenderToken,
       visualState: this._visualState,
@@ -2483,6 +5102,7 @@ class IntextNode {
   }
 
   invalidateVisualCallbacks(source = "unknown") {
+    this.cleanupIntextPip(source === "reset" ? "reset" : "stale-render-token");
     this._destroyedOrResetToken += 1;
     this._renderTokenSeq += 1;
     this._activeRenderToken = this._renderTokenSeq;
@@ -2520,10 +5140,17 @@ class IntextNode {
       "gexp-intext-stale-render-source": source,
       "gexp-intext-visual-state": this._visualState,
     });
+    this.manager?.registerIntextDiagnosticEvent?.({
+      diagnosticKey: `stale-callback:${this.id}:${this._intextTelemetryCycleId}:${oldToken}:${source}`,
+      "gexp-intext-diagnostic-context": String(source),
+      "slot-id": String(this.id),
+      "cycle-id": String(this._intextTelemetryCycleId || 0),
+      "render-token": String(oldToken || "missing"),
+    });
   }
 
   isActiveRenderToken(renderToken, source = "unknown", trigger = "unknown") {
-    if (!renderToken || renderToken !== this._activeRenderToken) {
+    if (this._nodeActive !== true || !renderToken || renderToken !== this._activeRenderToken) {
       this.logStaleRenderCallback(source, renderToken || "missing", trigger);
       return false;
     }
@@ -3201,6 +5828,18 @@ class IntextNode {
       this.flushIntextTelemetryToCI?.();
 
       if (typeof window !== "undefined" && window.gexpIntextDebug === true) {
+        intextDebugCollector.recordTimeline("render-logical", {
+          node: this,
+          format: this.state === "video" ? "video" : (this.state === "display" ? "display" : "unknown"),
+          phase,
+          state: this.state,
+          eventPhase: phase,
+          trigger,
+          element: this.getActiveVisibleIntextWrapper?.(),
+        });
+      }
+
+      if (typeof window !== "undefined" && window.gexpIntextDebug === true) {
         logIntext(`[Intext:Telemetry:${this.id || this.node?.id}] real_render_telemetry`, {
           phase,
           usOffY: realRenderOffYTelemetry["gexp-intext-real-render-us-off-y"],
@@ -3665,6 +6304,14 @@ class IntextNode {
         "gexp-intext-loading-key-source",
         "gexp-intext-loading-lookup-slot",
         "gexp-intext-loading-fallback-reason",
+        "gexp-intext-fallback-blank-control-enabled",
+        "gexp-intext-fallback-blank-control-threshold",
+        "gexp-intext-fallback-blank-control-cookie",
+        "gexp-intext-fallback-blank-control-count",
+        "gexp-intext-fallback-blank-control-counted",
+        "gexp-intext-fallback-blank-control-source",
+        "gexp-intext-fallback-blank-control-reason",
+        "gexp-intext-fallback-blank-control-cookie-set",
         "gexp-intext-paragraph-index",
         "gexp-intext-paragraph-number",
         "gexp-intext-placement-rule",
@@ -3697,6 +6344,27 @@ class IntextNode {
         "gexp-intext-video-fast-fallback-reason",
         "gexp-intext-video-before-playback",
         "gexp-intext-video-viewport-exit-played-pct",
+        "gexp-intext-pip-enabled",
+        "gexp-intext-pip-effective-enabled",
+        "gexp-intext-pip-slot-enabled",
+        "gexp-intext-pip-targeting-allowed",
+        "gexp-intext-pip-targeting-reason",
+        "gexp-intext-pip-inclusion-site-matched",
+        "gexp-intext-pip-inclusion-keyvalue-matched",
+        "gexp-intext-pip-exclusion-site-matched",
+        "gexp-intext-pip-exclusion-keyvalue-matched",
+        "gexp-intext-pip-targeting-matched-key",
+        "gexp-intext-pip-targeting-matched-value",
+        "gexp-intext-pip-playback-source",
+        "gexp-intext-pip-video-playing",
+        "gexp-intext-pip-entered",
+        "gexp-intext-pip-entry-count",
+        "gexp-intext-pip-visible-ms",
+        "gexp-intext-pip-dismissed",
+        "gexp-intext-pip-ended-while-active",
+        "gexp-intext-pip-last-exit-reason",
+        "gexp-intext-pip-entry-played-pct",
+        "gexp-intext-pip-exit-played-pct",
         "gexp-intext-sentinel",
         "gexp-intext-sentinel-lineitem",
         "gexp-intext-sentinel-retry-attempt-slot",
@@ -3713,6 +6381,7 @@ class IntextNode {
         "gexp-intext-telemetry-mode",
         "gexp-intext-telemetry-filtered",
         "gexp-intext-telemetry-commit-reason",
+        ...INTEXT_TELEMETRY_STANDARD_FIELDS,
       ]);
     }
     return this._standardIntextTelemetryAllowlist;
@@ -3771,6 +6440,37 @@ class IntextNode {
       "gexp-intext-type",
       "gexp-intext-creative-size",
       "gexp-intext-video-viewport-exit-played-pct",
+      "gexp-intext-pip-enabled",
+      "gexp-intext-pip-effective-enabled",
+      "gexp-intext-pip-slot-enabled",
+      "gexp-intext-pip-targeting-allowed",
+      "gexp-intext-pip-targeting-reason",
+      "gexp-intext-pip-inclusion-site-matched",
+      "gexp-intext-pip-inclusion-keyvalue-matched",
+      "gexp-intext-pip-exclusion-site-matched",
+      "gexp-intext-pip-exclusion-keyvalue-matched",
+      "gexp-intext-pip-targeting-matched-key",
+      "gexp-intext-pip-targeting-matched-value",
+      "gexp-intext-pip-playback-source",
+      "gexp-intext-pip-video-playing",
+      "gexp-intext-pip-entered",
+      "gexp-intext-pip-entry-count",
+      "gexp-intext-pip-visible-ms",
+      "gexp-intext-pip-dismissed",
+      "gexp-intext-pip-ended-while-active",
+      "gexp-intext-pip-last-exit-reason",
+      "gexp-intext-pip-entry-played-pct",
+      "gexp-intext-pip-exit-played-pct",
+      "gexp-intext-network-id-mode",
+      "gexp-intext-network-id-configured",
+      "gexp-intext-network-id-detected",
+      "gexp-intext-network-id-request",
+      "gexp-intext-network-id-source",
+      "gexp-intext-network-id-forced",
+      "gexp-intext-display-adunit-request",
+      "gexp-intext-video-adunit-request",
+      "gexp-intext-refresh-blocked",
+      "gexp-intext-refresh-blocked-reason",
       "gexp-intext-video-failed",
       "gexp-intext-video-error-code",
       "gexp-intext-video-error-msg",
@@ -3802,9 +6502,19 @@ class IntextNode {
       "gexp-intext-qa-cookie-enabled",
       "gexp-intext-qa-cookie-random1",
       "gexp-intext-qa-cookie-applied",
+      "gexp-intext-qa-inclusion-forced",
+      "gexp-intext-qa-original-random1",
       "gexp-intext-qa-cookie-force-exclusions",
       "gexp-intext-qa-cookie-exclusions-bypassed",
       "gexp-intext-qa-cookie-exclusions-bypass-source",
+      "gexp-intext-fallback-blank-control-enabled",
+      "gexp-intext-fallback-blank-control-threshold",
+      "gexp-intext-fallback-blank-control-cookie",
+      "gexp-intext-fallback-blank-control-count",
+      "gexp-intext-fallback-blank-control-counted",
+      "gexp-intext-fallback-blank-control-source",
+      "gexp-intext-fallback-blank-control-reason",
+      "gexp-intext-fallback-blank-control-cookie-set",
       "gexp-intext-fetch-root-margin",
       "gexp-intext-render-root-margin",
       "gexp-intext-max-delay-ms",
@@ -3955,18 +6665,43 @@ class IntextNode {
   startIntextTelemetryCycle(trigger, extra = {}) {
     this.teardownIntextViewportTelemetryObserver();
     this._intextTelemetryCycleId += 1;
+    if (typeof window !== "undefined" && window.gexpIntextDebug === true) {
+      this._intextDebugTimings = { cycleStartedAt: null, requestStartedAt: null, imaLoadedAt: null, startedAt: null, firstFrameAt: null, completedAt: null };
+      intextDebugCollector.recordMetric("cycle_started", {
+        node: this,
+        trigger,
+        pipEnabled: this.getIntextPipConfig().enabled === true,
+      });
+    }
     this._pendingIntextTelemetry = {};
     this._intextViewportEnterAt = null;
     this._intextViewportVisibleMs = 0;
     this._intextTelemetryCommittedForCycle = false;
     this._intextTelemetryCommittedReasons = {};
     this._intextTelemetryFinalCommitted = false;
+    this._intextTelemetryFinalDeltaCommitted = false;
     this._house1x1AutoRefreshAttemptsForCycle = 0;
     this.clearIntextTelemetryCycleCI();
 
     const isRefresh = trigger === "refresh";
     const isFallback = trigger === "fallback";
+    const contentIdentity = this.manager?.captureIntextContentIdentity?.(
+      this.navIndex || 0,
+      null,
+      this.scopedContext || null,
+    ) || {};
     const cycle = {
+      "gexp-intext-telemetry-event-type": "slot-cycle",
+      "gexp-intext-telemetry-sampled": this.manager?._intextTelemetrySampled === true ? "true" : "false",
+      "gexp-intext-page-instance-id": String(this.manager?._intextPageInstanceId || "unresolved"),
+      // Canonical correlation key for every Intext cycle, including the
+      // explicit unknown-news fallback when no real news ID is available.
+      "gexp-intext-content-id": String(contentIdentity.id || `unknown-news:${this.navIndex || 0}`),
+      "gexp-intext-content-id-source": String(contentIdentity.source || "unresolved"),
+      domain: String(this.manager?.getHostnameNormalized?.(this.manager?.siteContext?.site) || "unknown"),
+      country: String(this.manager?.resolveIntextCountry?.() || "unknown"),
+      contentType: String(this.scopedContext?.contentType || this.manager?.siteContext?.contentType || "unknown"),
+      timestamp: String(Date.now()),
       "gexp-intext-cycle-id": String(this._intextTelemetryCycleId),
       "gexp-intext-position": String(this.id || "unknown"),
       "gexp-intext-load-trigger": String(trigger || "unknown"),
@@ -3974,8 +6709,32 @@ class IntextNode {
       "gexp-intext-refresh": isRefresh ? "true" : "false",
       "gexp-intext-is-fallback": isFallback ? "true" : "false",
       "gexp-intext-fallback": isFallback ? "true" : "false",
+      "gexp-intext-refresh-blocked": "false",
+      "gexp-intext-refresh-blocked-reason": "none",
       "gexp-intext-ever-in-viewport": "false",
       "gexp-intext-viewport-visible-ms": "0",
+      ...this.manager?.getIntextNetworkTelemetry?.(this.scopedContext),
+      "gexp-intext-pip-enabled": this.getIntextPipConfig().enabled === true ? "true" : "false",
+      "gexp-intext-pip-effective-enabled": this.isIntextPipEffectiveEnabled() ? "true" : "false",
+      "gexp-intext-pip-slot-enabled": this.isIntextPipSlotEnabled() ? "true" : "false",
+      "gexp-intext-pip-targeting-allowed": "true",
+      "gexp-intext-pip-targeting-reason": "allowed",
+      "gexp-intext-pip-inclusion-site-matched": "false",
+      "gexp-intext-pip-inclusion-keyvalue-matched": "false",
+      "gexp-intext-pip-exclusion-site-matched": "false",
+      "gexp-intext-pip-exclusion-keyvalue-matched": "false",
+      "gexp-intext-pip-targeting-matched-key": "none",
+      "gexp-intext-pip-targeting-matched-value": "none",
+      "gexp-intext-pip-playback-source": String(this._intextPipPlaybackSource || "unresolved"),
+      "gexp-intext-pip-video-playing": this._intextPipPlaybackActive ? "true" : "false",
+      "gexp-intext-pip-entered": "false",
+      "gexp-intext-pip-entry-count": "0",
+      "gexp-intext-pip-visible-ms": "0",
+      "gexp-intext-pip-dismissed": "false",
+      "gexp-intext-pip-ended-while-active": "false",
+      "gexp-intext-pip-last-exit-reason": "none",
+      "gexp-intext-pip-entry-played-pct": "unknown",
+      "gexp-intext-pip-exit-played-pct": "unknown",
       "gexp-intext-render-waited-for-fetch": "false",
       "gexp-intext-render-wait-for-fetch-ms": "0",
       "gexp-intext-pending-auction-used": "false",
@@ -3985,17 +6744,19 @@ class IntextNode {
       "gexp-intext-render-token": String(this._activeRenderToken || 0),
       "gexp-intext-render-attempt": String(this._renderTokenSeq || 0),
       "gexp-intext-visual-state": String(this._visualState || "idle"),
+      ...this.manager?.getIntextRandomTelemetry?.(),
     };
+    if (contentIdentity.resolved === true && contentIdentity.newsId) {
+      cycle.be_page_newsID = String(contentIdentity.newsId);
+    }
     const initPageMs = this.getIntextInitPageMs();
     const startDistance = this.getIntextDistancePx();
     const maxDelayMs = this.config?.loading?.maxDelayMs;
     const hasTimer = typeof maxDelayMs === "number" && Number.isFinite(maxDelayMs) && maxDelayMs >= 0;
     const loadingExperiment = this.config?.loading?._experiment || {};
     const adjacencyMeta = this.placement?.adjacencyMeta || {};
-    const qaCookieApplied = this.manager?._intextQaCookieApplied === true || loadingExperiment.qaCookieApplied === true;
-    const loadingExperimentValue = loadingExperiment.qaCookieEnabled
-      ? String(loadingExperiment.experimentName || (loadingExperiment.qaCookieRandom1 === "default" ? "default" : "none"))
-      : (loadingExperiment.enabled ? "true" : "false");
+    const qaCookieApplied = this.manager?._intextQaCookieApplied === true;
+    const loadingExperimentValue = loadingExperiment.enabled ? "true" : "false";
     Object.assign(cycle, {
       "gexp-intext-root-margin": String(this.config?.loading?.renderRootMargin || this.config?.loading?.rootMargin || "200px 0px"),
       "gexp-intext-timer-delay-ms": hasTimer ? String(maxDelayMs) : "disabled",
@@ -4011,6 +6772,7 @@ class IntextNode {
       "gexp-intext-loading-lookup-slot": String(loadingExperiment.lookupSlot || this.id || "unknown"),
       "gexp-intext-loading-fallback-reason": String(loadingExperiment.fallbackReason || "none"),
       ...this.manager?.getIntextQaCookieTelemetry?.(qaCookieApplied),
+      ...this.manager?.getFallbackBlankControlTelemetry?.(),
       "gexp-intext-fetch-root-margin": String(this.config?.loading?.fetchRootMargin || this.config?.loading?.renderRootMargin || this.config?.loading?.rootMargin || "200px 0px"),
       "gexp-intext-render-root-margin": String(this.config?.loading?.renderRootMargin || this.config?.loading?.rootMargin || "200px 0px"),
       "gexp-intext-max-delay-ms": hasTimer ? String(maxDelayMs) : "disabled",
@@ -4046,6 +6808,12 @@ class IntextNode {
     }
 
     this._intextTelemetryCycle = cycle;
+    const playbackState = this.getIntextPipPlaybackState();
+    this.mergeIntextTelemetry({
+      "gexp-intext-pip-playback-source": playbackState.source,
+      "gexp-intext-pip-video-playing": playbackState.playing ? "true" : "false",
+    });
+    this.resolveIntextPipTargetingEligibility();
     this.mergeIntextTelemetry(extra);
     this.setupIntextViewportTelemetryObserver();
     this.flushIntextTelemetryToCI();
@@ -4101,6 +6869,7 @@ class IntextNode {
       const finalReasons = new Set([
         "display-render-ended",
         "video-rendered",
+        "video-ended",
         "video-error",
         "no-fill",
         "house-1x1-max-attempts",
@@ -4109,17 +6878,83 @@ class IntextNode {
       ]);
       const closeReasons = new Set(["close-all", "destroy"]);
       const isFinalReason = finalReasons.has(reason);
-      if (isFinalReason && this._intextTelemetryFinalCommitted) return;
-      if (closeReasons.has(reason) && this._intextTelemetryFinalCommitted) return;
-      if (this._intextTelemetryCommittedForCycle && !isFinalReason && !closeReasons.has(reason)) return;
-      if (!this.wa?.cI || !this.manager?.gexp?.registerImpression) return;
+      const isCloseReason = closeReasons.has(reason);
+      if (!this.wa?.cI) return;
+      this.ensureIntextCycleTelemetryIdentity();
+      const parentTelemetryId = String(this.wa.cI.tlm_rid || "");
+      const statsRows = this.manager?.gexp?.statsG?.rows;
+      const rowIsPending = !Array.isArray(statsRows) || statsRows.includes(this.wa.cI);
+      const requiresFinalDelta = (isFinalReason || isCloseReason) && !rowIsPending;
+      if (
+        (isFinalReason || isCloseReason) &&
+        this._intextTelemetryFinalCommitted &&
+        (!requiresFinalDelta || this._intextTelemetryFinalDeltaCommitted)
+      ) return;
+      if (this._intextTelemetryCommittedForCycle && !isFinalReason && !isCloseReason) return;
+      if (requiresFinalDelta) {
+        const finalDedupeKey = `slot-cycle-final:${parentTelemetryId}`;
+        const finalSource = {
+          ...(this.wa.cI || {}),
+          ...(this._intextTelemetryCycle || {}),
+          ...(this._pendingIntextTelemetry || {}),
+        };
+        const finalDeltaFields = [
+          "gexp-intext-request-type", "gexp-intext-video", "gexp-intext-display",
+          "gexp-intext-is-refresh", "gexp-intext-refresh", "gexp-intext-is-fallback",
+          "gexp-intext-fallback", "gexp-intext-video-failed", "gexp-intext-video-error-code",
+          "gexp-intext-video-error-message", "gexp-intext-ad-rendered-logical",
+          "gexp-intext-ad-filled-logical", "gexp-intext-gam-line-item-type",
+          "gexp-intext-gam-event-size", "gexp-intext-render-layout", "adFilled",
+          "gexp-intext-network-id-mode", "gexp-intext-network-id-configured",
+          "gexp-intext-network-id-detected", "gexp-intext-network-id-request",
+          "gexp-intext-network-id-source", "gexp-intext-network-id-forced",
+          "gexp-intext-display-adunit-request", "gexp-intext-video-adunit-request",
+          "gexp-intext-refresh-blocked", "gexp-intext-refresh-blocked-reason",
+          "gexp-intext-pip-enabled", "gexp-intext-pip-effective-enabled",
+          "gexp-intext-pip-slot-enabled", "gexp-intext-pip-targeting-allowed",
+          "gexp-intext-pip-targeting-reason", "gexp-intext-pip-inclusion-site-matched",
+          "gexp-intext-pip-inclusion-keyvalue-matched", "gexp-intext-pip-exclusion-site-matched",
+          "gexp-intext-pip-exclusion-keyvalue-matched", "gexp-intext-pip-targeting-matched-key",
+          "gexp-intext-pip-targeting-matched-value", "gexp-intext-pip-playback-source",
+          "gexp-intext-pip-video-playing",
+          "gexp-intext-pip-entered", "gexp-intext-pip-entry-count",
+          "gexp-intext-pip-visible-ms", "gexp-intext-pip-dismissed",
+          "gexp-intext-pip-ended-while-active", "gexp-intext-pip-last-exit-reason",
+          "gexp-intext-pip-entry-played-pct", "gexp-intext-pip-exit-played-pct",
+          "adRendered", "isEmpty", "lineItemId", "creativeId", "campaignId", "advertiserId",
+        ];
+        const finalDelta = {};
+        finalDeltaFields.forEach((key) => {
+          if (finalSource[key] !== undefined && finalSource[key] !== null && finalSource[key] !== "") {
+            finalDelta[key] = String(finalSource[key]);
+          }
+        });
+        this.manager?.registerIntextSyntheticEvent?.("slot-cycle-final", {
+          ...finalDelta,
+          "gexp-intext-parent-tlm-rid": parentTelemetryId,
+          "gexp-intext-cycle-finalized-after-early-flush": "true",
+          "gexp-intext-telemetry-commit-reason": String(reason),
+          "slot-id": String(this.id || "unknown"),
+          "slot-index": String(this.slotIndex ?? 0),
+          "cycle-id": String(this._intextTelemetryCycleId || 0),
+          "render-token": String(this._activeRenderToken || 0),
+          navIndex: String(this.navIndex || 0),
+          contentType: String(this.scopedContext?.contentType || this.manager?.siteContext?.contentType || "unknown"),
+          scopedContext: this.scopedContext || null,
+        }, finalDedupeKey);
+        this._intextTelemetryCommittedForCycle = true;
+        this._intextTelemetryCommittedReasons[reason] = true;
+        this._intextTelemetryFinalCommitted = true;
+        this._intextTelemetryFinalDeltaCommitted = true;
+        return;
+      }
       this.flushIntextTelemetryToCI();
       this.applyIntextTelemetryToCI({ "gexp-intext-telemetry-commit-reason": reason });
-      this.manager.gexp.registerImpression(this.wa.cI);
+      this._intextTelemetryRegisteredByWindowArray = true;
       this._intextTelemetryCommittedForCycle = true;
       this._intextTelemetryCommittedReasons[reason] = true;
-      if (isFinalReason) this._intextTelemetryFinalCommitted = true;
-      logIntext(`[Intext:Telemetry:${this.id}] telemetry_committed`, {
+      if (isFinalReason || isCloseReason) this._intextTelemetryFinalCommitted = true;
+      logIntext(`[Intext:Telemetry:${this.id}] telemetry_updated_without_duplicate_registration`, {
         cycleId: this._intextTelemetryCycleId,
         reason,
       });
@@ -4139,15 +6974,33 @@ class IntextNode {
 
   setupIntextViewportTelemetryObserver() {
     try {
-      const el = this.getIntextTelemetryElement();
+      const pipEnabled = this.isIntextPipEnabled();
+      const el = pipEnabled
+        ? this.videoContainer?.getElement?.()
+        : this.getIntextTelemetryElement();
       if (!el || typeof IntersectionObserver === "undefined") return;
       if (this._intextViewportObserver && this._intextViewportObservedEl === el) return;
       this.teardownIntextViewportTelemetryObserver();
       this._intextViewportObservedEl = el;
       this.mergeIntextTelemetry(this.getIntextTelemetryElementMeta(el));
+      const observerRenderToken = this._activeRenderToken;
       this._intextViewportObserver = new IntersectionObserver((entries) => {
+        if (observerRenderToken !== this._activeRenderToken || this._nodeActive !== true) return;
         const entry = entries && entries[0];
         if (!entry) return;
+        if (window.gexpIntextDebug) {
+          intextDebugCollector.recordTimeline("intersection-change", {
+            node: this,
+            format: this.state === "video" ? "video" : (this.state === "display" ? "display" : "unknown"),
+            phase: "viewport-observer",
+            state: this.state,
+            slotId: this.id,
+            element: el,
+            intersectionRatio: Number(entry.intersectionRatio || 0),
+            isIntersecting: entry.isIntersecting === true,
+          });
+        }
+        this.handleIntextPipIntersection(entry);
         if (entry.isIntersecting) {
           this.mergeIntextTelemetry({ "gexp-intext-ever-in-viewport": "true" });
           if (!this._intextViewportEnterAt && document.visibilityState === "visible") {
@@ -4162,7 +7015,16 @@ class IntextNode {
             }
           }
         }
-      }, { threshold: 0.1 });
+      }, {
+        threshold: pipEnabled
+          ? Array.from(new Set([
+            0,
+            this.getIntextPipConfig().enterIntersectionRatio,
+            this.getIntextPipConfig().returnIntersectionRatio,
+            1,
+          ])).sort((a, b) => a - b)
+          : 0.1,
+      });
       this._intextViewportObserver.observe(el);
     } catch (e) { }
   }
@@ -4195,6 +7057,9 @@ class IntextNode {
   }
 
   readIntextPageKv(key) {
+    if (INTEXT_RANDOM_KEYS.includes(String(key))) {
+      return { value: this.manager?.getIntextRandomValue?.(key), source: "gexp-slot-random-snapshot" };
+    }
     const readFromMap = (map) => {
       if (!map || typeof map !== "object") return null;
       return this.normalizeHbValue(map[key]);
@@ -4243,33 +7108,65 @@ class IntextNode {
     return [];
   }
 
-  restoreIntextRandomTargetingAfterGexpRequest(slot = null) {
+  readIntextSlotRandoms(slot = null) {
     const targetSlot = slot || this.slot;
-    if (!targetSlot || typeof targetSlot.setTargeting !== "function") return;
-
-    const targetWindowArray = this.manager?.gexp?.windows?.[this.id];
-    const restored = {};
-    const sources = {};
-    ["random1", "random2", "random3", "random4"].forEach((key) => {
-      const pageKv = this.readIntextPageKv(key);
-      if (pageKv.value === null || pageKv.value === undefined || pageKv.value === "") return;
-      restored[key] = String(pageKv.value);
-      sources[key] = pageKv.source;
-      targetSlot.setTargeting(key, restored[key]);
-
-      if (targetWindowArray && targetWindowArray.cI) {
-        targetWindowArray.cI[key] = restored[key];
-      }
+    const observed = {};
+    INTEXT_RANDOM_KEYS.forEach((key) => {
+      observed[key] = this.normalizeHbValue(this.getSlotTargetingValueSafe(targetSlot, key));
     });
+    return observed;
+  }
 
-    logIntext(`[Intext:Display:${this.id}] display_random_restored_after_gexp_request`, {
-      random1: restored.random1 || null,
-      random2: restored.random2 || null,
-      random3: restored.random3 || null,
-      random4: restored.random4 || null,
-      source: Object.entries(sources).map(([key, source]) => `${key}:${source}`).join(","),
-      slotCode: this.id || null,
+  applyIntextRandomSnapshotToSlot(slot = null) {
+    const targetSlot = slot || this.slot;
+    const snapshot = this.manager?.intextRandomSnapshot;
+    if (!targetSlot || !snapshot || typeof targetSlot.setTargeting !== "function") return false;
+    INTEXT_RANDOM_KEYS.forEach((key) => targetSlot.setTargeting(key, String(snapshot[key])));
+    const targetWindowArray = this.wa || this.manager?.gexp?.windows?.[this.id];
+    if (targetWindowArray?.cI) {
+      INTEXT_RANDOM_KEYS.forEach((key) => {
+        targetWindowArray.cI[key] = String(snapshot[key]);
+      });
+    }
+    return true;
+  }
+
+  assertIntextRandomSnapshotOnSlot(slot = null, context = "before-request") {
+    const targetSlot = slot || this.slot;
+    const snapshot = this.manager?.intextRandomSnapshot;
+    if (!targetSlot || !this.manager?.validateIntextRandomSnapshot?.(snapshot)) return false;
+    this.manager?.validateIntextRandomSnapshotStability?.(context);
+    const observed = this.readIntextSlotRandoms(targetSlot);
+    const mismatched = INTEXT_RANDOM_KEYS.some((key) => observed[key] !== String(snapshot[key]));
+    if (!mismatched) return true;
+    this.applyIntextRandomSnapshotToSlot(targetSlot);
+    this.mergeIntextTelemetry({
+      "gexp-intext-random-mismatch-corrected": "true",
+      "gexp-intext-random-source": snapshot.source,
+      "gexp-intext-random-expected": JSON.stringify(INTEXT_RANDOM_KEYS.reduce((acc, key) => ({ ...acc, [key]: snapshot[key] }), {})),
+      "gexp-intext-random-observed": JSON.stringify(observed),
     });
+    this.manager?.registerIntextDiagnosticEvent?.({
+      diagnosticKey: `intext-slot-random-mismatch:${this.id}:${this._intextTelemetryCycleId}:${context}`,
+      "gexp-intext-diagnostic-context": String(context),
+      "gexp-intext-random-mismatch-corrected": "true",
+      "gexp-intext-random-expected": JSON.stringify(snapshot),
+      "gexp-intext-random-observed": JSON.stringify(observed),
+      "slot-id": String(this.id),
+      "cycle-id": String(this._intextTelemetryCycleId || 0),
+      "render-token": String(this._activeRenderToken || 0),
+    });
+    return INTEXT_RANDOM_KEYS.every((key) =>
+      this.normalizeHbValue(this.getSlotTargetingValueSafe(targetSlot, key)) === String(snapshot[key])
+    );
+  }
+
+  ensureIntextCycleTelemetryIdentity() {
+    if (!this.wa?.cI) return false;
+    if (!this.wa.cI.tlm_rid) this.wa.cI.tlm_rid = this.manager.createIntextTelemetryId("slot-cycle");
+    this.wa.cI["gexp-intext-telemetry-event-type"] = "slot-cycle";
+    Object.assign(this.wa.cI, this.manager.getIntextRandomTelemetry());
+    return true;
   }
 
   normalizeIntextBidderCodeForGam(bidderCode) {
@@ -4438,10 +7335,12 @@ class IntextNode {
     const collect = (map, sourceLabel) => {
       if (!map || typeof map !== "object") return;
       let used = false;
-      Object.entries(map).forEach(([rawKey, rawValue]) => {
-        if (rawValue === undefined || rawValue === null) return;
+      Object.keys(map).forEach((rawKey) => {
         const key = String(rawKey || "").trim();
         if (!key) return;
+        if (INTEXT_RANDOM_KEYS.includes(key)) return;
+        const rawValue = map[rawKey];
+        if (rawValue === undefined || rawValue === null) return;
         if (key.indexOf("hb_") === 0) return;
         let value = rawValue;
         if (Array.isArray(value)) value = value.length === 1 ? value[0] : value.join(",");
@@ -4458,8 +7357,7 @@ class IntextNode {
 
     const fallbackTargeting = {};
     try {
-      fallbackTargeting.random1 = gexp?.getRandom?.(1);
-      fallbackTargeting.random2 = gexp?.getRandom?.(2);
+      Object.assign(fallbackTargeting, this.manager?.intextRandomSnapshot || {});
       fallbackTargeting.tlm = gexp?.statsG?.telp ? "1" : "0";
       fallbackTargeting.tlm_id = gexp?.statsG?.telId || "";
       fallbackTargeting.nvis =
@@ -4474,13 +7372,13 @@ class IntextNode {
       finalTargeting["gexp-intext-navcont"] = String(this.navIndex);
     }
 
-    ["random1", "random2", "tag", "t", "tlm", "tlm_id", "nvis"].forEach((key) => {
-      const pageKv = key.indexOf("random") === 0 ? this.readIntextPageKv(key) : { value: null, source: null };
-      const preferredValue = pageKv.value !== null ? pageKv.value : mergedTargeting[key];
+    ["random1", "random2", "random3", "random4", "tag", "t", "tlm", "tlm_id", "nvis"].forEach((key) => {
+      const snapshotValue = this.manager?.getIntextRandomValue?.(key);
+      const preferredValue = INTEXT_RANDOM_KEYS.includes(key) ? snapshotValue : mergedTargeting[key];
       const fallbackValue = fallbackTargeting[key];
       if (preferredValue !== undefined && preferredValue !== null && preferredValue !== "") {
         finalTargeting[key] = String(preferredValue);
-        if (pageKv.value !== null) sourceLabels.push(`${key}:${pageKv.source}`);
+        if (snapshotValue !== null) sourceLabels.push(`${key}:gexp-slot-random-snapshot`);
       } else if (fallbackValue !== undefined && fallbackValue !== null && fallbackValue !== "") {
         finalTargeting[key] = String(fallbackValue);
       }
@@ -4508,10 +7406,6 @@ class IntextNode {
     const keys = new Set([
       "p",
       "intext",
-      "random1",
-      "random2",
-      "random3",
-      "random4",
       "tlm",
       "tlm_id",
       "nvis",
@@ -4569,10 +7463,12 @@ class IntextNode {
     const collect = (map, sourceLabel) => {
       if (!map || typeof map !== "object") return;
       let used = false;
-      Object.entries(map).forEach(([rawKey, rawValue]) => {
-        if (rawValue === undefined || rawValue === null) return;
+      Object.keys(map).forEach((rawKey) => {
         const key = String(rawKey || "").trim();
         if (!key) return;
+        if (INTEXT_RANDOM_KEYS.includes(key)) return;
+        const rawValue = map[rawKey];
+        if (rawValue === undefined || rawValue === null) return;
         if (Object.prototype.hasOwnProperty.call(mergedTargeting, key)) return;
         let value = rawValue;
         if (Array.isArray(value)) value = value.length === 1 ? value[0] : value.join(",");
@@ -4589,10 +7485,7 @@ class IntextNode {
 
     const fallbackTargeting = {};
     try {
-      fallbackTargeting.random1 = gexp?.getRandom?.(1);
-      fallbackTargeting.random2 = gexp?.getRandom?.(2);
-      fallbackTargeting.random3 = gexp?.getRandom?.(3);
-      fallbackTargeting.random4 = gexp?.getRandom?.(4);
+      Object.assign(fallbackTargeting, this.manager?.intextRandomSnapshot || {});
       fallbackTargeting.tlm = gexp?.statsG?.telp ? "1" : "0";
       fallbackTargeting.tlm_id = gexp?.statsG?.telId || "";
       fallbackTargeting.nvis =
@@ -4624,12 +7517,12 @@ class IntextNode {
       "rndp",
       "sj",
     ].forEach((key) => {
-      const pageKv = key.indexOf("random") === 0 ? this.readIntextPageKv(key) : { value: null, source: null };
-      const preferredValue = pageKv.value !== null ? pageKv.value : mergedTargeting[key];
+      const snapshotValue = this.manager?.getIntextRandomValue?.(key);
+      const preferredValue = INTEXT_RANDOM_KEYS.includes(key) ? snapshotValue : mergedTargeting[key];
       const fallbackValue = fallbackTargeting[key];
       if (preferredValue !== undefined && preferredValue !== null && preferredValue !== "") {
         finalTargeting[key] = String(preferredValue);
-        if (pageKv.value !== null) sourceLabels.push(`${key}:${pageKv.source}`);
+        if (snapshotValue !== null) sourceLabels.push(`${key}:gexp-slot-random-snapshot`);
       } else if (fallbackValue !== undefined && fallbackValue !== null && fallbackValue !== "") {
         finalTargeting[key] = String(fallbackValue);
       }
@@ -5262,6 +8155,45 @@ class IntextNode {
       this.manager.gexp,
     );
 
+    if (typeof window !== "undefined" && window.gexpIntextDebug === true) {
+      const wrapExistingCallback = (methodName, metric, details = () => ({})) => {
+        const original = this.wa?.[methodName];
+        if (typeof original !== "function") return;
+        this.wa[methodName] = (...args) => {
+          const result = original.apply(this.wa, args);
+          intextDebugCollector.recordMetric(metric, {
+            node: this,
+            element: this.container?.getElement?.(),
+            ...details(...args),
+          });
+          return result;
+        };
+      };
+      wrapExistingCallback("onRequested", "display_slot_requested", () => ({ source: "window-array" }));
+      wrapExistingCallback("response", "display_slot_response_received", (event = {}) => {
+        const responseInfo = event?.slot?.getResponseInformation?.() || {};
+        return {
+          source: "window-array",
+          lineItemId: responseInfo.lineItemId,
+          creativeId: responseInfo.creativeId,
+          campaignId: responseInfo.campaignId,
+          advertiserId: responseInfo.advertiserId,
+        };
+      });
+      wrapExistingCallback("onLoaded", "display_onload", () => ({ source: "window-array" }));
+      wrapExistingCallback("onViewable", "display_impression_viewable", () => ({
+        source: "window-array",
+        impressionViewable: true,
+        inViewPercentage: this.wa?.cI?.adMaxViewability ?? null,
+        maxInViewPercentage: this.wa?.cI?.adMaxViewability ?? null,
+      }));
+      wrapExistingCallback("onSlotVisibilityChanged", "display_visibility_changed", (inViewPercentage) => ({
+        source: "window-array",
+        inViewPercentage,
+        maxInViewPercentage: this.wa?.cI?.adMaxViewability ?? inViewPercentage,
+      }));
+    }
+
     // Block native GEXP core from auto-refreshing Intext slots. 
     // Native refresh bypasses our waterfall, corrupts randoms, ignores video state, and injects empty HBs.
     this.wa.refreshSlot = () => {
@@ -5286,14 +8218,23 @@ class IntextNode {
   }
 
   isUsableIntextPubadsService(pubads) {
-    return Boolean(pubads && typeof pubads.refresh === "function" && typeof pubads.addEventListener === "function" && typeof pubads.removeEventListener === "function");
+    return Boolean(
+      pubads &&
+      typeof pubads.refresh === "function" &&
+      typeof pubads.addEventListener === "function" &&
+      typeof pubads.removeEventListener === "function"
+    );
   }
 
   removeIntextDisplayListeners() {
     const pubads = this._slotPubadsService;
     if (pubads && typeof pubads.removeEventListener === "function") {
-      if (this._initialDisplayRenderHandler) try { pubads.removeEventListener("slotRenderEnded", this._initialDisplayRenderHandler); } catch (e) { }
-      if (this._persistentDisplayRenderHandler) try { pubads.removeEventListener("slotRenderEnded", this._persistentDisplayRenderHandler); } catch (e) { }
+      if (this._initialDisplayRenderHandler) {
+        try { pubads.removeEventListener("slotRenderEnded", this._initialDisplayRenderHandler); } catch (e) { }
+      }
+      if (this._persistentDisplayRenderHandler) {
+        try { pubads.removeEventListener("slotRenderEnded", this._persistentDisplayRenderHandler); } catch (e) { }
+      }
     }
     this._initialDisplayRenderHandler = null;
     this._persistentDisplayRenderHandler = null;
@@ -5311,13 +8252,17 @@ class IntextNode {
     const slot = this.slot;
     const storedGpt = this._slotGptApi;
     const storedSource = this._slotGptSource;
-    const gpt = storedGpt || this.manager.resolveIntextGptApi().api;
+    const fallbackGpt = storedGpt || this.manager.resolveIntextGptApi().api;
     this.removeIntextDisplayListeners();
     this.clearIntextGptSlotIdentity();
-    if (!slot || typeof gpt?.destroySlots !== "function") return Promise.resolve(false);
+    if (!slot || typeof fallbackGpt?.destroySlots !== "function") return Promise.resolve(false);
+
     return this.manager.runIntextGptCommand(() => {
-      gpt.destroySlots([slot]);
-      logIntext(`[Intext:GPT:${this.id}] intext_gpt_slot_destroyed`, { reason, source: storedGpt ? storedSource || "stored-api" : "resolved-fallback" });
+      fallbackGpt.destroySlots([slot]);
+      logIntext(`[Intext:GPT:${this.id}] intext_gpt_slot_destroyed`, {
+        reason,
+        source: storedGpt ? storedSource || "stored-api" : "resolved-fallback",
+      });
     }).then((result) => result.executed === true);
   }
 
@@ -5328,14 +8273,24 @@ class IntextNode {
       const settleOnce = (result) => {
         if (settled) return;
         settled = true;
-        if (requestTimer) clearTimeout(requestTimer);
-        requestTimer = null;
+        if (requestTimer) {
+          clearTimeout(requestTimer);
+          requestTimer = null;
+        }
         if (this._initialDisplayRenderHandler && this._slotPubadsService) {
-          try { this._slotPubadsService.removeEventListener("slotRenderEnded", this._initialDisplayRenderHandler); } catch (e) { }
+          try {
+            this._slotPubadsService.removeEventListener(
+              "slotRenderEnded",
+              this._initialDisplayRenderHandler,
+            );
+          } catch (e) { }
           this._initialDisplayRenderHandler = null;
         }
         this._displayRequestInFlight = false;
-        if (result?.filled !== true && this._visualState === "asking_display") this._visualState = "idle";
+        if (result?.filled !== true && this._visualState === "asking_display") {
+          this._visualState = "idle";
+          this.mergeIntextTelemetry({ "gexp-intext-visual-state": this._visualState });
+        }
         resolve(result);
       };
       if (!this.isActiveRenderToken(renderToken, "askDisplay:start", trigger)) {
@@ -5346,11 +8301,19 @@ class IntextNode {
       this._displayRequestInFlight = true;
       this._visualState = "asking_display";
       this.mergeIntextTelemetry({ "gexp-intext-visual-state": this._visualState });
-      const adUnitPath =
-        this.scopedContext?.adUnitPath || this.manager.adUnitPath || this.manager.gexp.cfg.adUnit || "";
+      const networkId = this.manager.resolveIntextRequestNetworkId(this.scopedContext);
+      const adUnitPath = this.manager.resolveIntextDisplayAdUnitPath(this.scopedContext);
       let sizes = this.config.display?.sizes || [[300, 250], [336, 280], [320, 100], [320, 50]];
 
-      const networkId = this.scopedContext?.networkId || this.manager.networkId;
+      this.mergeIntextTelemetry({
+        ...this.manager.getIntextNetworkTelemetry(this.scopedContext),
+        "gexp-intext-display-adunit-request": String(adUnitPath || "none"),
+      });
+      if (!networkId || !adUnitPath) {
+        logIntext(`[Intext:Display:${this.id}] intext_network_force_invalid - display request blocked`);
+        settleOnce({ filled: false, event: null, networkBlocked: true });
+        return;
+      }
       const fullAdUnit = `/${networkId}/${adUnitPath}`;
 
       logIntext(
@@ -5363,7 +8326,15 @@ class IntextNode {
         );
       }
 
-      requestTimer = setTimeout(() => settleOnce({ filled: false, event: null, timeout: true }), 5000);
+      requestTimer = setTimeout(() => {
+        warnIntext(`[Intext:GPT:${this.id}] intext_gpt_command_failed`, {
+          reason: "display-request-timeout",
+          source: this._slotGptSource || this.manager.resolveIntextGptApi().source,
+          trigger,
+        });
+        settleOnce({ filled: false, event: null, timeout: true });
+      }, 5000);
+
       this.manager.runIntextGptCommand((gpt, resolution) => {
         try {
         if (!this.isActiveRenderToken(renderToken, "askDisplay:googletag_cmd", trigger)) {
@@ -5372,6 +8343,10 @@ class IntextNode {
         }
         const pubads = gpt.pubads();
         if (!this.isUsableIntextPubadsService(pubads)) {
+          warnIntext(`[Intext:GPT:${this.id}] intext_gpt_command_failed`, {
+            reason: "pubads-service-invalid",
+            source: resolution.source,
+          });
           settleOnce({ filled: false, event: null, gptError: "pubads-service-invalid" });
           return;
         }
@@ -5392,6 +8367,11 @@ class IntextNode {
           this._slotPubadsService = pubads;
           this._slotGptSource = resolution.source;
         } else if (this._slotGptApi !== gpt || this._slotPubadsService !== pubads) {
+          warnIntext(`[Intext:GPT:${this.id}] intext_gpt_command_failed`, {
+            reason: "slot-api-identity-mismatch",
+            source: resolution.source,
+            slotSource: this._slotGptSource,
+          });
           settleOnce({ filled: false, event: null, gptError: "slot-api-identity-mismatch" });
           return;
         }
@@ -5399,9 +8379,10 @@ class IntextNode {
         const preRequestDisplayTargeting = this.resolveDisplayRequestTargeting();
         this.clearDisplayRequestTargeting(this.slot);
         this.applyDisplayRequestTargeting(this.slot, preRequestDisplayTargeting.targeting);
-        const apsBeforeCore = this.manager.resolveIntextApstagApi().api;
-        if (apsBeforeCore && typeof apsBeforeCore.targetingKeys === "function") {
-          const tamKeys = apsBeforeCore.targetingKeys();
+        this.applyIntextRandomSnapshotToSlot(this.slot);
+        const apsAfterCore = this.manager.resolveIntextApstagApi().api;
+        if (apsAfterCore && typeof apsAfterCore.targetingKeys === "function") {
+          const tamKeys = apsAfterCore.targetingKeys();
           if (tamKeys && tamKeys[this.id]) {
             Object.entries(tamKeys[this.id]).forEach(([k, v]) => {
               this.slot.setTargeting(k, v);
@@ -5442,7 +8423,9 @@ class IntextNode {
           "gexp-intext-fallback": isFallback ? "true" : "false",
         });
         this.manager.gexp.request(this.slot);
-        this.restoreIntextRandomTargetingAfterGexpRequest(this.slot);
+        this.ensureIntextCycleTelemetryIdentity();
+        this.applyIntextRandomSnapshotToSlot(this.slot);
+        this.assertIntextRandomSnapshotOnSlot(this.slot, "after-gexp-request");
         const postCoreSlotTargeting = this.getSlotTargetingMapSafe(this.slot);
         const finalDisplayTargeting = this.resolveDisplayRequestTargeting(postCoreSlotTargeting);
 
@@ -5468,20 +8451,24 @@ class IntextNode {
         this.clearDisplayRequestTargeting(this.slot, "display_request_targeting_cleared_keys_post_core");
         this.applyDisplayRequestTargeting(this.slot, finalDisplayTargeting.targeting);
         this.applyDisplayBidTargeting(this.slot, bidResponse, this.waterfall?._lastCurrentBannerBids);
-        const apsAfterCore = this.manager.resolveIntextApstagApi().api;
-        if (apsAfterCore && typeof apsAfterCore.targetingKeys === "function") {
-          const tamKeys = apsAfterCore.targetingKeys();
+        const aps = this.manager.resolveIntextApstagApi().api;
+        if (aps && typeof aps.targetingKeys === "function") {
+          const tamKeys = aps.targetingKeys();
           if (tamKeys && tamKeys[this.id]) {
             Object.entries(tamKeys[this.id]).forEach(([k, v]) => {
               this.slot.setTargeting(k, v);
             });
           }
         }
+        this.applyIntextRandomSnapshotToSlot(this.slot);
+        this.assertIntextRandomSnapshotOnSlot(this.slot, "after-final-display-targeting");
 
         const initialRenderHandler = (event) => {
           if (event.slot !== this.slot) return;
           pubads.removeEventListener("slotRenderEnded", initialRenderHandler);
-          if (this._initialDisplayRenderHandler === initialRenderHandler) this._initialDisplayRenderHandler = null;
+          if (this._initialDisplayRenderHandler === initialRenderHandler) {
+            this._initialDisplayRenderHandler = null;
+          }
           if (!this.isActiveRenderToken(renderToken, "display_initial_slotRenderEnded", trigger)) {
             if (this.isHouseLineItemSentinel(event)) {
               logIntext(`[Intext:Display:${this.id}] house_lineitem_sentinel_stale_callback_ignored`, {
@@ -5500,6 +8487,35 @@ class IntextNode {
           const is1x1 =
             event.size && event.size[0] === 1 && event.size[1] === 1;
           const renderSize = this.resolveDisplayRenderSizeFromEvent(event, "display_initial_slotRenderEnded");
+          if (typeof window !== "undefined" && window.gexpIntextDebug === true) {
+            const isSentinel = this.isHouseLineItemSentinel(event);
+            const gamFilled = event.isEmpty !== true;
+            const realDisplayFilled = gamFilled && !isSentinel;
+            let isHouse = String(event.lineItemType || "").toLowerCase() === "house";
+            try { isHouse ||= this.manager?.gexp?.isHouse?.(event.campaignId, event.lineItemId, event.advertiserId) === true; } catch (e) { }
+            const metricData = {
+              node: this,
+              element: this.container?.getElement?.(),
+              source: "initial-render-handler",
+              trigger,
+              renderToken,
+              isEmpty: event.isEmpty === true,
+              gamFilled,
+              realDisplayFilled,
+              size: event.size,
+              lineItemId: event.lineItemId,
+              creativeId: event.creativeId,
+              campaignId: event.campaignId,
+              advertiserId: event.advertiserId,
+              lineItemType: event.lineItemType,
+            };
+            intextDebugCollector.recordMetric("display_slot_render_ended", metricData);
+            if (gamFilled) intextDebugCollector.recordMetric("display_gam_filled", metricData);
+            if (realDisplayFilled) intextDebugCollector.recordMetric("display_real_filled", metricData);
+            if (!gamFilled) intextDebugCollector.recordMetric("display_empty", metricData);
+            if (isHouse) intextDebugCollector.recordMetric("display_house", metricData);
+            if (isSentinel) intextDebugCollector.recordMetric("display_sentinel", metricData);
+          }
           this.mergeIntextTelemetry({
             "gexp-intext-load-end-distance-px": this.getIntextDistancePx(),
             "gexp-intext-creative-size": this.getDisplayCreativeSizeFromEvent(event),
@@ -5515,6 +8531,12 @@ class IntextNode {
           logIntext(
             `[Intext:Display:${this.id}] initial slotRenderEnded — isEmpty: ${event.isEmpty}, size: ${JSON.stringify(event.size)}, is1x1: ${is1x1}, hasContent: ${hasContent}`,
           );
+
+          this.maybeIncrementFallbackBlankControl(event, {
+            trigger,
+            renderToken,
+            source: "display_initial_slotRenderEnded",
+          });
 
           if (this.isHouse1x1AutoRefreshCandidate(event)) {
             this.handleHouse1x1AutoRefresh(event, renderToken);
@@ -5784,19 +8806,34 @@ class IntextNode {
           `[Intext:Display:${this.id}] display_gam_request_targeting_final`,
           this.getDisplayGamRequestTargetingFinal(this.slot),
         );
+        if (!this.isActiveRenderToken(renderToken, "askDisplay:before_refresh", trigger)) {
+          settleOnce({ filled: false, event: null, stale: true });
+          return;
+        }
+        this.assertIntextRandomSnapshotOnSlot(this.slot, "immediately-before-gpt-refresh");
         pubads.refresh([this.slot]);
         } catch (error) {
           warnIntext(`[Intext:GPT:${this.id}] intext_gpt_command_failed`, {
             reason: "display-callback-exception",
+            pspDetected: resolution?.pspDetected === true,
             source: resolution?.source || "unknown",
             error: error?.message || String(error),
           });
           settleOnce({ filled: false, event: null, gptError: "display-callback-exception" });
         }
       }).then((commandResult) => {
-        if (!commandResult.executed) settleOnce({ filled: false, event: null, gptError: commandResult.reason || commandResult.resolution?.source || "command-failed" });
+        if (!commandResult.executed) {
+          settleOnce({
+            filled: false,
+            event: null,
+            gptError: commandResult.reason || commandResult.resolution?.source || "command-failed",
+          });
+        }
       }).catch((error) => {
-        warnIntext(`[Intext:GPT:${this.id}] intext_gpt_command_failed`, { reason: "command-promise-rejected", error: error?.message || String(error) });
+        warnIntext(`[Intext:GPT:${this.id}] intext_gpt_command_failed`, {
+          reason: "command-promise-rejected",
+          error: error?.message || String(error),
+        });
         settleOnce({ filled: false, event: null, gptError: "command-promise-rejected" });
       });
     });
@@ -5825,6 +8862,9 @@ class IntextNode {
 
   async showDisplay(displayResult, renderToken = this._activeRenderToken, trigger = "unknown") {
     if (!this.isActiveRenderToken(renderToken, "showDisplay:start", trigger)) return false;
+    if (trigger === "fallback" || this._intextPipState === "floating") {
+      this.cleanupIntextPip(trigger === "fallback" ? "video-fallback" : "container-close");
+    }
     const viewportState = await this.waitForViewport(renderToken, "showDisplay:waitForViewport");
     if (viewportState === "stale" || !this.isActiveRenderToken(renderToken, "showDisplay:afterViewport", trigger)) return false;
 
@@ -5940,6 +8980,24 @@ class IntextNode {
 
     try {
       this.container.open(this.lockedHeight);
+      if (typeof window !== "undefined" && window.gexpIntextDebug === true) {
+        const metricData = {
+          node: this,
+          element: slotDoc || this.container?.getElement?.(),
+          trigger,
+          renderToken,
+          size: event.size,
+          lineItemId: event.lineItemId,
+          creativeId: event.creativeId,
+          campaignId: event.campaignId,
+          advertiserId: event.advertiserId,
+          lineItemType: event.lineItemType,
+        };
+        intextDebugCollector.recordMetric("display_wrapper_opened", metricData);
+        if (trigger === "refresh") {
+          intextDebugCollector.recordMetric("display_refresh_completed", { ...metricData, isRefresh: true });
+        }
+      }
       this.markIntextRealRenderTelemetry("display-open", trigger);
       this.recordTelemetry("fill", { slotId: this.id, size: event.size });
 
@@ -6212,6 +9270,9 @@ class IntextNode {
 
     this.state = "video";
     this._visualState = "video";
+    this.mergeIntextTelemetry({
+      "gexp-intext-pip-effective-enabled": this.isIntextPipEffectiveEnabled() ? "true" : "false",
+    });
     this.setupIntextViewportTelemetryObserver();
     if (this._videoTiming?.auctionStartAt && this._videoTiming?.requestWinnerVideoAt) {
       logIntext(
@@ -6275,7 +9336,6 @@ class IntextNode {
       const loader = containerEl.querySelector(".gexp-intext-loader");
       if (loader) loader.style.display = "none";
 
-      this.activeCreative?.destroy?.();
       const videoErrorRawMessage = String(err?.message || err || "unknown");
       const videoErrorCode =
         videoErrorRawMessage === "video_ad_timeout" || videoErrorRawMessage === "contrib_ads_timeout"
@@ -6286,6 +9346,8 @@ class IntextNode {
             "unknown",
           );
       const videoErrorMessage = videoErrorCode === "timeout" ? "video_ad_timeout" : videoErrorRawMessage;
+      this.cleanupIntextPip(videoErrorCode === "timeout" ? "video-timeout" : "video-error");
+      this.activeCreative?.destroy?.();
       this.mergeIntextTelemetry({
         "gexp-intext-load-end-distance-px": this.getIntextDistancePx(),
         "gexp-intext-video-failed": "true",
@@ -6303,12 +9365,71 @@ class IntextNode {
     return true;
   }
 
+  resolveIntextVideoRefreshPlan() {
+    const refreshCfg = this.config?.refreshCycle || null;
+    const enabled = refreshCfg?.enabled === true;
+    const nextCycleCount = (this._cycleCount || 0) + (enabled ? 1 : 0);
+    const configuredMaxCycles = Number(refreshCfg?.maxCycles);
+    const maxCycles = Number.isFinite(configuredMaxCycles)
+      ? configuredMaxCycles
+      : Infinity;
+    const maxCyclesReached =
+      enabled && nextCycleCount >= maxCycles;
+    const visibilityObserverAvailable =
+      typeof IntersectionObserver !== "undefined";
+    const anchor =
+      enabled && !maxCyclesReached
+        ? this.videoContainer?.getElement?.() || null
+        : null;
+    const blocked =
+      enabled &&
+      !maxCyclesReached &&
+      (!anchor || !visibilityObserverAvailable);
+    const blockedReason = !blocked
+      ? "none"
+      : !anchor
+        ? "refresh-anchor-missing"
+        : "refresh-visibility-unavailable";
+    return {
+      enabled,
+      refreshCfg,
+      nextCycleCount,
+      maxCycles,
+      maxCyclesReached,
+      anchor,
+      visibilityObserverAvailable,
+      blocked,
+      blockedReason,
+    };
+  }
+
   onVideoEnded(renderToken = this._activeRenderToken) {
     if (!this.isActiveRenderToken(renderToken, "onVideoEnded", this.waterfall?.lastTrigger || "unknown")) return;
+    const endedWhilePip = this._intextPipState === "floating";
+    this.exitIntextPip("video-ended");
+    this._intextPipState = "ended";
+    if (endedWhilePip) {
+      this.mergeIntextTelemetry({
+        "gexp-intext-pip-ended-while-active": "true",
+        "gexp-intext-pip-last-exit-reason": "video-ended",
+      });
+      this.recordIntextPipEvent("video_pip_video_ended", "video-ended");
+    }
+    const refreshPlan = this.resolveIntextVideoRefreshPlan();
+    this.mergeIntextTelemetry({
+      "gexp-intext-refresh-blocked":
+        refreshPlan.blocked ? "true" : "false",
+      "gexp-intext-refresh-blocked-reason":
+        refreshPlan.blockedReason,
+    });
+    this.flushIntextTelemetryToCI({
+      register: true,
+      reason: "video-ended",
+    });
     logIntext(`[Intext:Video:${this.videoId}] 🔄 Video playback ended`);
 
-    const refreshCfg = this.config.refreshCycle;
-    if (!refreshCfg || !refreshCfg.enabled) {
+    const refreshCfg = refreshPlan.refreshCfg;
+    if (!refreshPlan.enabled) {
       logIntext(
         `[Intext:Video:${this.videoId}] Refresh cycle disabled — keeping container open for UX stability or closing`,
       );
@@ -6319,8 +9440,8 @@ class IntextNode {
       return;
     }
 
-    this._cycleCount = (this._cycleCount || 0) + 1;
-    if (this._cycleCount >= refreshCfg.maxCycles) {
+    this._cycleCount = refreshPlan.nextCycleCount;
+    if (refreshPlan.maxCyclesReached) {
       logIntext(
         `[Intext:Video:${this.videoId}] Max refresh cycles reached (${this._cycleCount}/${refreshCfg.maxCycles}) — closing`,
       );
@@ -6332,18 +9453,20 @@ class IntextNode {
     const targetIntervalMs = refreshCfg.videoIntervalMs || 0;
     logIntext(`[Intext:Video:${this.videoId}] ⏱️ Scheduling Video Refresh ${this._cycleCount}/${refreshCfg.maxCycles} (Requires ${targetIntervalMs}ms of VISIBLE time)`);
 
-    const el = this.videoContainer.getElement();
-    if (!el) {
-      this.trackRenderTimer(setTimeout(() => {
-        if (!this.isActiveRenderToken(renderToken, "video_refresh_missing_el_timer", "refresh")) return;
-        this.activeCreative?.destroy?.();
-        this.activeCreative = null;
-        this.waterfall.prebidStarted = false;
-        this.waterfall.startAuction("refresh");
-      }, targetIntervalMs));
+    if (refreshPlan.blocked) {
+      logIntext(
+        `[Intext:Video:${this.videoId}] ${refreshPlan.blockedReason}`,
+      );
+      this.teardownIntextViewportTelemetryObserver();
+      this.cleanupIntextPip(refreshPlan.blockedReason);
+      this.activeCreative?.destroy?.();
+      this.activeCreative = null;
+      this.videoContainer.close({ destroy: true });
+      this.manager.onSlotComplete(this.id);
       return;
     }
 
+    const el = refreshPlan.anchor;
     if (this._videoVisibilityTimer) {
       this._videoVisibilityTimer.stop();
     }
@@ -6361,6 +9484,7 @@ class IntextNode {
       logIntext(
         `[Intext:Video:${this.videoId}] 🔄 Visible time reached (${targetIntervalMs}ms) -> Starting refresh cycle ${this._cycleCount}/${refreshCfg.maxCycles} (mode: ${refreshCfg.mode || "display_only"})`,
       );
+      this.cleanupIntextPip("refresh");
       this.activeCreative?.destroy?.();
       this.activeCreative = null;
       this.waterfall.prebidStarted = false;
@@ -6388,24 +9512,20 @@ class IntextNode {
       }
     };
 
-    if (typeof IntersectionObserver !== "undefined") {
-      observer = new IntersectionObserver((entries) => {
-        const entry = entries[0];
-        const wasVisible = isCurrentlyVisible;
-        isCurrentlyVisible = entry.isIntersecting;
+    observer = new IntersectionObserver((entries) => {
+      const entry = entries[0];
+      const wasVisible = isCurrentlyVisible;
+      isCurrentlyVisible = entry?.isIntersecting === true;
 
-        if (isCurrentlyVisible && !wasVisible && document.visibilityState === 'visible') {
-          lastVisibleTimestamp = Date.now();
-          if (targetIntervalMs === 0) updateAccumulator(); // Fast-path for 0ms
-        } else if (!isCurrentlyVisible && wasVisible) {
-          updateAccumulator();
-          logIntext(`[Intext:Video:${this.videoId}] Slot not visible — pausing video refresh timer until viewport entry`);
-        }
-      }, { threshold: 0.1 });
-      observer.observe(el);
-    } else {
-      isCurrentlyVisible = true;
-    }
+      if (isCurrentlyVisible && !wasVisible && document.visibilityState === 'visible') {
+        lastVisibleTimestamp = Date.now();
+        if (targetIntervalMs === 0) updateAccumulator(); // Fast-path for 0ms
+      } else if (!isCurrentlyVisible && wasVisible) {
+        updateAccumulator();
+        logIntext(`[Intext:Video:${this.videoId}] Slot not visible — pausing video refresh timer until viewport entry`);
+      }
+    }, { threshold: 0.1 });
+    observer.observe(el);
 
     checkInterval = setInterval(updateAccumulator, 500);
 
@@ -6418,6 +9538,7 @@ class IntextNode {
   }
 
   closeAll() {
+    this.cleanupIntextPip("container-close");
     logIntext(
       `[Intext:Slot:${this.id}] ⬜ No fill — keeping space open (blank) to avoid CLS`,
     );
@@ -6469,6 +9590,7 @@ class IntextNode {
   }
 
   handleCreativeError(reason) {
+    this.cleanupIntextPip("video-error");
     this.state = "error";
     this.recordTelemetry("error", { reason });
     this.container.close({ destroy: false });
@@ -6476,11 +9598,19 @@ class IntextNode {
   }
 
   recordTelemetry(eventName, payload = {}) {
-    if (this.manager.gexp.statsG) {
-      this.manager.gexp.statsG.addVariable(
-        `intext_${eventName}`,
-        JSON.stringify(payload),
-      );
+    this.mergeIntextTelemetry({
+      "gexp-intext-lifecycle-event": String(eventName || "unknown"),
+      "gexp-intext-lifecycle-payload": JSON.stringify(payload || {}),
+    });
+    this.flushIntextTelemetryToCI();
+    if (eventName === "error") {
+      this.manager?.registerIntextDiagnosticEvent?.({
+        diagnosticKey: `creative-error:${this.id}:${this._intextTelemetryCycleId}`,
+        "gexp-intext-diagnostic-context": String(payload?.reason || "unknown"),
+        "slot-id": String(this.id),
+        "cycle-id": String(this._intextTelemetryCycleId || 0),
+        "render-token": String(this._activeRenderToken || 0),
+      });
     }
   }
 
@@ -6491,6 +9621,9 @@ class IntextNode {
       cycleId: this._intextTelemetryCycleId,
       visualState: this._visualState,
     });
+    this.cleanupIntextPip("node-destroy");
+    this._intextPipState = "destroyed";
+    this._nodeActive = false;
     this.invalidateVisualCallbacks("reset");
     this.state = "idle";
     this.clearDisplayLayoutGuard();
@@ -6607,6 +9740,12 @@ class IntextContainer {
         }
         elToOpen.classList.add("is-open");
         elToOpen.style.height = finalHeight;
+        if (typeof window !== "undefined" && window.gexpIntextDebug === true && this.ownerNode?.container === this) {
+          intextDebugCollector.recordTimeline("wrapper-open", {
+            node: this.ownerNode,
+            element: elToOpen,
+          });
+        }
       });
     });
   }
@@ -6694,6 +9833,13 @@ class IntextContainer {
     this.isOpen = false;
     elToDestroy.classList.remove("is-open");
     elToDestroy.style.height = "0px";
+    if (typeof window !== "undefined" && window.gexpIntextDebug === true && this.ownerNode?.container === this) {
+      intextDebugCollector.recordTimeline("wrapper-close", {
+        node: this.ownerNode,
+        element: elToDestroy,
+        destroy,
+      });
+    }
     if (destroy) {
       setTimeout(() => {
         const protectedReason = getProtectedDestroyReason(elToDestroy);
@@ -6739,8 +9885,6 @@ class IntextContainer {
     this.applyStyles();
   }
 }
-
-const intextPrebidAliasRegistry = new WeakMap();
 
 class IntextWaterfall {
   constructor({ node, container, config, gexp, wa }) {
@@ -6875,12 +10019,13 @@ class IntextWaterfall {
       let adUnit = this.wa?.cI?.adUnit || null;
       if (!adUnit) {
         const adUnitPath =
-          this.node?.scopedContext?.adUnitPath ||
-          this.node?.manager?.adUnitPath ||
+          this.node?.manager?.resolveIntextDisplayAdUnitPath?.(this.node?.scopedContext) ||
           this.gexp?.cfg?.adUnit ||
           "";
         const parts = String(adUnitPath).replace(/^\/+/, "").split("/").filter(Boolean);
-        if (parts[0] === String(this.node?.scopedContext?.networkId || this.node?.manager?.networkId || "")) {
+        const requestNetworkId =
+          this.node?.manager?.resolveIntextRequestNetworkId?.(this.node?.scopedContext);
+        if (parts[0] === String(requestNetworkId || "")) {
           parts.shift();
         }
         adUnit = parts[0] || null;
@@ -7013,6 +10158,7 @@ class IntextWaterfall {
     this.fetchStartAt = Date.now();
     this._auctionStartAt = this.fetchStartAt;
     this.disconnectFetchObserver();
+    if (window.gexpIntextDebug) intextDebugCollector.recordTimeline("fetch-margin-entered", { node: this.node, slotId: this.node.id, trigger });
 
     const distancePx = this.getLoadingDistancePx();
     const fetchOffYTelemetry = this.getIntextOffYTelemetry("gexp-intext-fetch");
@@ -7120,6 +10266,7 @@ class IntextWaterfall {
     this.lastTrigger = trigger;
     this.renderStartAt = Date.now();
     const renderToken = this.node.beginVisualRender("render_started", trigger);
+    if (window.gexpIntextDebug) intextDebugCollector.recordTimeline("render-margin-entered", { node: this.node, slotId: this.node.id, trigger, renderToken });
     const renderWaitForFetchMs = this._renderWaitForFetchStartedAt
       ? Math.max(0, this.renderStartAt - this._renderWaitForFetchStartedAt)
       : 0;
@@ -7306,6 +10453,14 @@ class IntextWaterfall {
     this.node.recordTelemetry("auction_start", { trigger });
 
     if (trigger === "refresh") {
+      if (typeof window !== "undefined" && window.gexpIntextDebug === true) {
+        intextDebugCollector.recordMetric("display_refresh_started", {
+          node: this.node,
+          element: this.container?.getElement?.(),
+          trigger,
+          isRefresh: true,
+        });
+      }
       const currentState = this.node.state;
 
       const refreshPb = this.node.manager.resolveIntextPrebidApi().api;
@@ -7553,8 +10708,15 @@ class IntextWaterfall {
       const resolution = this.node.manager.resolveIntextPrebidApi();
       lastSource = resolution.source;
       const pb = resolution.api;
-      return Boolean(pb && typeof pb.requestBids === "function" && pb.que && typeof pb.que.push === "function" && (!aliasesRequired || typeof pb.aliasBidder === "function"));
+      return Boolean(
+        pb &&
+        typeof pb.requestBids === "function" &&
+        pb.que &&
+        typeof pb.que.push === "function" &&
+        (!aliasesRequired || typeof pb.aliasBidder === "function")
+      );
     };
+    Object.defineProperty(scopedContext, "rootElement", { value: rootElement, enumerable: false });
 
     if (isReady()) return Promise.resolve(true);
 
@@ -7744,7 +10906,12 @@ class IntextWaterfall {
             if (allResponses.length > 0 && typeof window !== "undefined" && window.gexpIntextDebug === true) {
               const targeting = this.node.slot?.getTargetingMap?.() || {};
               const expectedKeys = ["hb_pb", "hb_bidder", "hb_adid"];
-              if (!expectedKeys.some((key) => Object.prototype.hasOwnProperty.call(targeting, key))) warnIntext(`[Intext:Prebid:${this.node.id}] intext_prebid_targeting_missing_after_bid`, { code: configuration.code, expectedKeys });
+              if (!expectedKeys.some((key) => Object.prototype.hasOwnProperty.call(targeting, key))) {
+                warnIntext(`[Intext:Prebid:${this.node.id}] intext_prebid_targeting_missing_after_bid`, {
+                  code: configuration.code,
+                  expectedKeys,
+                });
+              }
             }
             resolve("prebid_done");
           };
@@ -7825,10 +10992,19 @@ class IntextWaterfall {
         }
         const resolution = this.node.manager.resolveIntextPrebidApi();
         const pb = resolution.api;
-        if (!pb) { resolve(null); return; }
+        if (!pb) {
+          logIntext(`[Intext:Prebid:${this.node.id}] prebid_pbjs_resolution_lost`, {
+            code: configuration.code,
+            source: resolution.source,
+          });
+          resolve(null);
+          return;
+        }
         const aliasesReady = await this.ensurePrebidAliasesRegistered(pb);
         if (!aliasesReady) {
-          warnIntext(`[Intext:Prebid:${this.node.id}] prebid_alias_registration_incomplete`, { code: configuration.code });
+          warnIntext(`[Intext:Prebid:${this.node.id}] prebid_alias_registration_incomplete`, {
+            code: configuration.code,
+          });
           resolve(null);
           return;
         }
@@ -7848,7 +11024,13 @@ class IntextWaterfall {
     return new Promise((resolve) => {
       let settled = false;
       let availabilityTimer = null;
-      const settleOnce = (value) => { if (settled) return; settled = true; clearTimeout(_tamSafetyTimer); if (availabilityTimer) clearTimeout(availabilityTimer); resolve(value); };
+      const settleOnce = (value) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(_tamSafetyTimer);
+        if (availabilityTimer) clearTimeout(availabilityTimer);
+        resolve(value);
+      };
       const _tamSafetyTimer = setTimeout(() => {
         logIntext(`[Intext:Slot:${this.node.id}]   TAM: ⚠️ safety timeout — resolving to avoid blocking`);
         settleOnce("tam_timeout");
@@ -7858,7 +11040,11 @@ class IntextWaterfall {
         const resolution = this.node.manager.resolveIntextApstagApi();
         const aps = resolution.api;
         if (!aps) {
-          if (!resolution.pspDetected) { logIntext(`[Intext:Slot:${this.node.id}]   TAM: apstag not available`); settleOnce(null); return; }
+          if (!resolution.pspDetected) {
+            logIntext(`[Intext:Slot:${this.node.id}]   TAM: apstag not available`);
+            settleOnce(null);
+            return;
+          }
           availabilityTimer = setTimeout(tryStart, 50);
           return;
         }
@@ -7871,12 +11057,22 @@ class IntextWaterfall {
               aps.setDisplayBids();
               if (hasBids && typeof window !== "undefined" && window.gexpIntextDebug === true) {
                 const targeting = this.node.slot?.getTargetingMap?.() || {};
-                if (!Object.keys(targeting).some((key) => key.startsWith("amzn"))) warnIntext(`[Intext:APS:${this.node.id}] intext_apstag_targeting_missing_after_bid`, { code: this.node.id });
+                if (!Object.keys(targeting).some((key) => key.startsWith("amzn"))) {
+                  warnIntext(`[Intext:APS:${this.node.id}] intext_apstag_targeting_missing_after_bid`, {
+                    code: this.node.id,
+                  });
+                }
               }
               settleOnce("tam_done");
-            } catch (err) { warnIntext(`[Intext:Slot:${this.node.id}]   TAM: setDisplayBids failed`, err); settleOnce("tam_error"); }
+            } catch (err) {
+              warnIntext(`[Intext:Slot:${this.node.id}]   TAM: setDisplayBids failed`, err);
+              settleOnce("tam_error");
+            }
           });
-        } catch (err) { logIntext(`[Intext:Slot:${this.node.id}]   TAM: ❌ fetchBids threw — skipping`, err); settleOnce("tam_error"); }
+        } catch (err) {
+          logIntext(`[Intext:Slot:${this.node.id}]   TAM: ❌ fetchBids threw — skipping`, err);
+          settleOnce("tam_error");
+        }
       };
       tryStart();
     });
@@ -7908,8 +11104,8 @@ class IntextWaterfall {
         `[Intext:Slot:${this.node.id}] ├─ Using CACHED bids only (${bannerBids.length} banner, ${videoBids.length} video, age: ${cached.ageMs}ms)`,
       );
     } else if (this.node.manager.resolveIntextPrebidApi().api) {
-      const pb = this.node.manager.resolveIntextPrebidApi().api;
       const currentAuctionId = this._currentAuctionId;
+      const pb = this.node.manager.resolveIntextPrebidApi().api;
       const allBids = this.getPbjsBidsSafe(code, pb)
         .filter(b => currentAuctionId ? b.auctionId === currentAuctionId : true);
 
@@ -8147,6 +11343,9 @@ class IntextWaterfall {
       this.node.wa.cI["gexp-intext-video-failed"] = "true";
       logIntext(`[Intext:Slot:${this.node.id}] gexp-intext-video-failed=true injected into telemetry`);
     }
+    if (winner === "video") {
+      this.node.cleanupIntextPip?.("video-fallback");
+    }
     const videoErrorTelemetry = winner === "video"
       ? {
         "gexp-intext-video-failed": "true",
@@ -8186,11 +11385,35 @@ class IntextWaterfall {
       this.node.ensureSingleVisibleIntextSurface("display", fallbackRenderToken, "fallback_video_to_display_before_request");
     }
 
+    if (typeof window !== "undefined" && window.gexpIntextDebug === true) {
+      if (loser === "display") {
+        intextDebugCollector.recordMetric("display_fallback_started", {
+          node: this.node,
+          element: this.container?.getElement?.(),
+          source: "waterfall",
+          trigger: this.lastTrigger || "fallback",
+          winner,
+          loser,
+          isFallback: true,
+        });
+      }
+      intextDebugCollector.recordVideoEvent("fallback-started", this.node, {
+        trigger: this.lastTrigger || "fallback",
+        winner,
+        loser,
+      });
+      if (loser === "display") {
+        intextDebugCollector.recordVideoEvent("fallback-display-requested", this.node, {
+          trigger: this.lastTrigger || "fallback",
+        });
+      }
+    }
+
     logIntext(
       `%c[Intext:Slot:${this.node.id}:${this.node.id}] ═══ FALLBACK → ${loser.toUpperCase()} ═══`,
       "color:#FF5722;font-weight:bold",
     );
-    const fallbackSuccess = await this._requestFormat(loser, fallbackRenderToken);
+    const fallbackSuccess = await this._requestFormat(loser, fallbackRenderToken, "fallback");
     if (!this.node.isActiveRenderToken(fallbackRenderToken, "requestWinner:after_fallback_format", "fallback")) return;
 
     if (fallbackSuccess === "retrying" || fallbackSuccess === "closed") {
@@ -8209,16 +11432,25 @@ class IntextWaterfall {
     }
   }
 
-  async _requestFormat(format, renderToken = this.node._activeRenderToken) {
+  async _requestFormat(format, renderToken = this.node._activeRenderToken, triggerOverride = null) {
     if (format === "display") {
-      return await this._requestDisplay(renderToken);
+      return await this._requestDisplay(renderToken, triggerOverride);
     } else {
-      return await this._requestVideo(renderToken);
+      return await this._requestVideo(renderToken, triggerOverride);
     }
   }
 
-  async _requestDisplay(renderToken = this.node._activeRenderToken) {
-    if (!this.node.isActiveRenderToken(renderToken, "_requestDisplay:start", this.lastTrigger || "unknown")) return false;
+  async _requestDisplay(renderToken = this.node._activeRenderToken, triggerOverride = null) {
+    const requestTrigger = triggerOverride || this.lastTrigger || "unknown";
+    if (!this.node.isActiveRenderToken(renderToken, "_requestDisplay:start", requestTrigger)) return false;
+    if (typeof window !== "undefined" && window.gexpIntextDebug === true) {
+      intextDebugCollector.recordTimeline("request-start", {
+        node: this.node,
+        source: "waterfall",
+        requestType: "display",
+        trigger: requestTrigger,
+      });
+    }
     const tamConfig = this.getTAMConfiguration();
     if (tamConfig) {
       logIntext(
@@ -8237,13 +11469,13 @@ class IntextWaterfall {
     logIntext(
       `[Intext:Slot:${this.node.id}] ├─ GAM Display: requesting GPT slot...`,
     );
-    if (!this.node.isActiveRenderToken(renderToken, "_requestDisplay:after_tam", this.lastTrigger || "unknown")) return false;
+    if (!this.node.isActiveRenderToken(renderToken, "_requestDisplay:after_tam", requestTrigger)) return false;
     const displayResult = await this.node.askDisplay(
       this._lastDisplayBid,
       renderToken,
-      this.lastTrigger || "unknown",
+      requestTrigger,
     );
-    if (displayResult.stale === true || !this.node.isActiveRenderToken(renderToken, "_requestDisplay:after_askDisplay", this.lastTrigger || "unknown")) return "closed";
+    if (displayResult.stale === true || !this.node.isActiveRenderToken(renderToken, "_requestDisplay:after_askDisplay", requestTrigger)) return "closed";
 
     if (displayResult.retrying === true) {
       logIntext(
@@ -8261,12 +11493,30 @@ class IntextWaterfall {
     }
 
     if (displayResult.filled) {
+      if (typeof window !== "undefined" && window.gexpIntextDebug === true) {
+        intextDebugCollector.recordTimeline("request-end", {
+          node: this.node,
+          source: "waterfall",
+          requestType: "display",
+          trigger: requestTrigger,
+          filled: true,
+        });
+      }
       logIntext(
         `[Intext:Slot:${this.node.id}] ├─ GAM Display: FILL ✅ (size: ${JSON.stringify(displayResult.event?.size)})`,
       );
-      this.node.showDisplay(displayResult, renderToken, this.lastTrigger || "unknown");
+      this.node.showDisplay(displayResult, renderToken, requestTrigger);
       return true;
     } else {
+      if (typeof window !== "undefined" && window.gexpIntextDebug === true) {
+        intextDebugCollector.recordTimeline("request-end", {
+          node: this.node,
+          source: "waterfall",
+          requestType: "display",
+          trigger: requestTrigger,
+          filled: false,
+        });
+      }
       logIntext(
         `[Intext:Slot:${this.node.id}] ├─ GAM Display: NO-FILL ❌`,
       );
@@ -8275,8 +11525,14 @@ class IntextWaterfall {
     }
   }
 
-  async _requestVideo(renderToken = this.node._activeRenderToken) {
-    if (!this.node.isActiveRenderToken(renderToken, "_requestVideo:start", this.lastTrigger || "unknown")) return false;
+  async _requestVideo(renderToken = this.node._activeRenderToken, triggerOverride = null) {
+    const requestTrigger = triggerOverride || this.lastTrigger || "unknown";
+    if (!this.node.isActiveRenderToken(renderToken, "_requestVideo:start", requestTrigger)) return false;
+    if (typeof window !== "undefined" && window.gexpIntextDebug === true) {
+      intextDebugCollector.recordVideoEvent("video-request-start", this.node, {
+        trigger: requestTrigger,
+      });
+    }
     const tamVideoConfig = this.getTAMVideoConfiguration();
     if (tamVideoConfig) {
       logIntext(
@@ -8292,13 +11548,20 @@ class IntextWaterfall {
       );
     }
 
-    if (!this.node.isActiveRenderToken(renderToken, "_requestVideo:after_tam", this.lastTrigger || "unknown")) return false;
+    if (!this.node.isActiveRenderToken(renderToken, "_requestVideo:after_tam", requestTrigger)) return false;
     const gamVideoTagUrl = this.buildGAMVideoTagUrl();
+    if (!gamVideoTagUrl) return false;
     logIntext(
       `[Intext:Slot:${this.node.id}] ├─ GAM Video: building player...`,
     );
-    const videoPlayed = await this.node.buildAndPlayVideo(gamVideoTagUrl, renderToken, this.lastTrigger || "unknown");
-    if (!this.node.isActiveRenderToken(renderToken, "_requestVideo:after_buildAndPlayVideo", this.lastTrigger || "unknown")) return false;
+    const videoPlayed = await this.node.buildAndPlayVideo(gamVideoTagUrl, renderToken, requestTrigger);
+    if (!this.node.isActiveRenderToken(renderToken, "_requestVideo:after_buildAndPlayVideo", requestTrigger)) return false;
+    if (typeof window !== "undefined" && window.gexpIntextDebug === true) {
+      intextDebugCollector.recordVideoEvent("video-request-complete", this.node, {
+        trigger: requestTrigger,
+        filled: Boolean(videoPlayed),
+      });
+    }
     if (videoPlayed) {
       logIntext(
         `[Intext:Slot:${this.node.id}] ├─ GAM Video: FILL ✅ — playing`,
@@ -8346,7 +11609,7 @@ class IntextWaterfall {
           const restoreRenderToken = renderToken;
           const elToRestore = dEl;
           requestAnimationFrame(() => {
-            if (!this.node.isActiveRenderToken(restoreRenderToken, "video_failure_restore_display_raf", this.lastTrigger || "unknown")) return;
+            if (!this.node.isActiveRenderToken(restoreRenderToken, "video_failure_restore_display_raf", requestTrigger)) return;
             if (!elToRestore.isConnected || this.node.container?.getElement?.() !== elToRestore) return;
             elToRestore.style.transition = "";
           });
@@ -8369,9 +11632,9 @@ class IntextWaterfall {
     const slotId = this.node.videoId;
     const slotName = this.getVideoAdUnitPath();
     const playerSize = videoConfig.playerSize || [640, 360];
-    const networkId = this.node.scopedContext?.networkId || this.node.manager.networkId;
+    const networkId = this.node.manager.resolveIntextRequestNetworkId(this.node.scopedContext);
 
-    if (!slotId || !slotName) return null;
+    if (!slotId || !slotName || !networkId) return null;
 
     return {
       slots: [
@@ -8402,40 +11665,38 @@ class IntextWaterfall {
     const fallbackVariant = selection.fallback || "instream";
     const slotCode = this.node?.id || this.node?.videoId || "gexp-intext";
 
-    const candidateSources = [
-      {
-        label: "scopedContext.targeting",
-        map: this.node?.scopedContext?.targeting || null,
-      },
-      {
-        label: "manager.getPageCustomTargeting",
-        map: this.node?.manager?.getPageCustomTargeting?.(this.node?.scopedContext) || null,
-      },
-      {
-        label: "slot_targeting",
-        map: this.node?.getSlotTargetingMapSafe?.(this.node?.slot) || null,
-      },
-    ];
-
-    let resolvedValue = null;
-    let resolvedSource = null;
-    for (const source of candidateSources) {
-      const candidateValue = this.normalizeIntextTargetingValue(source.map?.[selectionKey]);
-      if (candidateValue == null) continue;
-      resolvedValue = candidateValue;
-      resolvedSource = source.label;
-      break;
-    }
-
-    if (resolvedValue == null) {
-      try {
-        if (selectionKey === "random1") {
-          resolvedValue = this.gexp?.getRandom?.(1) != null
-            ? String(this.gexp.getRandom(1))
-            : null;
-          resolvedSource = "gexp_runtime_fallback";
-        }
-      } catch (e) { }
+    const effectiveResolution = this.node?.manager?.getEffectiveIntextTargetingResolution?.(
+      selectionKey,
+      this.node?.scopedContext || null,
+    );
+    let resolvedValue = effectiveResolution?.qaCookieDefault === true
+      ? null
+      : (effectiveResolution?.value ?? this.node?.manager?.getIntextRandomValue?.(selectionKey));
+    let resolvedSource = effectiveResolution?.qaCookieDefault === true
+      ? "qa-cookie-default"
+      : (effectiveResolution?.source || (resolvedValue !== null ? "gexp-slot-random-snapshot" : null));
+    if (resolvedValue === null && !INTEXT_RANDOM_KEYS.includes(String(selectionKey))) {
+      const candidateSources = [
+        {
+          label: "scopedContext.targeting",
+          map: this.node?.scopedContext?.targeting || null,
+        },
+        {
+          label: "manager.getPageCustomTargeting",
+          map: this.node?.manager?.getPageCustomTargeting?.(this.node?.scopedContext) || null,
+        },
+        {
+          label: "slot_targeting",
+          map: this.node?.getSlotTargetingMapSafe?.(this.node?.slot) || null,
+        },
+      ];
+      for (const source of candidateSources) {
+        const candidateValue = this.normalizeIntextTargetingValue(source.map?.[selectionKey]);
+        if (candidateValue == null) continue;
+        resolvedValue = candidateValue;
+        resolvedSource = source.label;
+        break;
+      }
     }
 
     const variantName = selectionMap[String(resolvedValue)] || fallbackVariant;
@@ -8452,7 +11713,7 @@ class IntextWaterfall {
       nodeId: this.node?.id || null,
       slotCode,
       key: selectionKey,
-      random1: selectionKey === "random1" ? resolvedValue : this.normalizeIntextTargetingValue(this.node?.scopedContext?.targeting?.random1),
+      random1: String(this.node?.manager?.intextRandomSnapshot?.random1 || ""),
       detectedValue: resolvedValue,
       variant: variantName,
       fallback: fallbackVariant,
@@ -8687,15 +11948,10 @@ class IntextWaterfall {
   }
 
   getIntextPrebidAdSlotContext(adUnitCode, adUnitPathOverride = null) {
-    const networkId =
-      this.node.scopedContext?.networkId ||
-      this.node.manager.networkId ||
-      this.gexp.cfg.networkId ||
-      "99071977";
+    const networkId = this.node.manager.resolveIntextRequestNetworkId(this.node.scopedContext);
     const adUnitPath =
       adUnitPathOverride ||
-      this.node.scopedContext?.adUnitPath ||
-      this.node.manager.adUnitPath ||
+      this.node.manager.resolveIntextDisplayAdUnitPath(this.node.scopedContext) ||
       "";
     const fullAdUnitPath = networkId && adUnitPath ? `/${networkId}/${adUnitPath}` : "";
 
@@ -8843,7 +12099,8 @@ class IntextWaterfall {
     const mediaTypes = {};
     let allBids = [];
     let videoMediaType = null;
-    const networkId = this.node.scopedContext?.networkId || this.node.manager.networkId;
+    const networkId = this.node.manager.resolveIntextRequestNetworkId(this.node.scopedContext);
+    if (!networkId) return null;
     const prebidNetworks = this.config.prebid?.networks || {};
     const targetNetwork = prebidNetworks[networkId] || prebidNetworks.default || {};
     const slotProfile = this.resolvePrebidSlotProfile(targetNetwork, code);
@@ -8984,13 +12241,13 @@ class IntextWaterfall {
   getTAMConfiguration() {
     if (this.config.tam?.enabled === false) return null;
     const slotId = this.node.id;
-    const slotName = this.node.scopedContext?.adUnitPath || this.node.manager.adUnitPath || "";
+    const slotName = this.node.manager.resolveIntextDisplayAdUnitPath(this.node.scopedContext) || "";
     const sizes = this.getDisplaySizes().filter(
       (s) => s !== "fluid" && s[0] > 1,
     );
-    const networkId = this.node.scopedContext?.networkId || this.node.manager.networkId;
+    const networkId = this.node.manager.resolveIntextRequestNetworkId(this.node.scopedContext);
 
-    if (!slotId || !slotName || !sizes.length) return null;
+    if (!slotId || !slotName || !sizes.length || !networkId) return null;
 
     return {
       slots: [
@@ -9087,8 +12344,17 @@ class IntextWaterfall {
   }
 
   buildGAMVideoTagUrl() {
-    const networkId = this.node.scopedContext?.networkId || this.node.manager.networkId;
+    this.node?.manager?.validateIntextRandomSnapshotStability?.("immediately-before-video-request");
+    const networkId = this.node.manager.resolveIntextRequestNetworkId(this.node.scopedContext);
     const adUnitPath = this.getVideoAdUnitPath();
+    this.node.mergeIntextTelemetry({
+      ...this.node.manager.getIntextNetworkTelemetry(this.node.scopedContext),
+      "gexp-intext-video-adunit-request": String(adUnitPath || "none"),
+    });
+    if (!networkId || !adUnitPath) {
+      logIntext(`[Intext:Waterfall:${this.node.id}] intext_network_force_invalid - video request blocked`);
+      return null;
+    }
     const videoId = this.node.videoId;
     const pageUrl = this.node.scopedContext?.pageUrl || window.location.href;
     const resolvedVideoConfig = this.resolveIntextVideoConfig() || {};
@@ -9245,6 +12511,7 @@ class IntextWaterfall {
         "gexp-intext-fallback": "false",
       });
       this.node.wa.newImpression();
+      this.node.ensureIntextCycleTelemetryIdentity();
 
       if (this.node.wa.cI) {
         // Video only: gexp-intext-video (no refresh/fallback as per user request)
@@ -9256,6 +12523,10 @@ class IntextWaterfall {
         logIntext(`[Intext:Video:${this.node.id}] video_telemetry_registered`, { keys: Object.keys(custTargeting) });
       }
     }
+
+    INTEXT_RANDOM_KEYS.forEach((key) => {
+      addCustParam(key, this.node?.manager?.intextRandomSnapshot?.[key]);
+    });
 
     logIntext(
       `[Intext:Auction:${this.node.id}] intext_video_gam_request_targeting_final`,
@@ -9292,12 +12563,7 @@ class IntextWaterfall {
   }
 
   getVideoAdUnitPath() {
-    const basePath = this.node.scopedContext?.adUnitPath || this.node.manager.adUnitPath || "";
-    const parts = basePath.split("/");
-    if (parts.length > 0) {
-      parts[parts.length - 1] = "video-intext";
-    }
-    return parts.join("/");
+    return this.node.manager.resolveIntextVideoAdUnitPath(this.node.scopedContext) || "";
   }
 
   registerPrebidAdUnit(configuration, pb = null) {
@@ -9430,6 +12696,8 @@ class IntextWaterfall {
   }
 
   getIntextPageTargetingValue(key) {
+    const snapshotValue = this.node?.manager?.getIntextRandomValue?.(key);
+    if (INTEXT_RANDOM_KEYS.includes(String(key))) return snapshotValue ?? "";
     const readValue = (source) => {
       if (source === undefined || source === null || source === "") return null;
       if (typeof source === "object") {
@@ -9470,8 +12738,8 @@ class IntextWaterfall {
 
     const key1 = cfg.key1 || "random1";
     const key2 = cfg.key2 || "random2";
-    const random1 = String(this.getIntextPageTargetingValue(key1) ?? "");
-    const random2 = String(this.getIntextPageTargetingValue(key2) ?? "");
+    const random1 = String(this.node?.manager?.getIntextRandomValue?.(key1) ?? "");
+    const random2 = String(this.node?.manager?.getIntextRandomValue?.(key2) ?? "");
     const enabledRandom1 = (cfg.enabledRandom1 || ["5", "6"]).map(String);
 
     if (!enabledRandom1.includes(random1)) {
@@ -9993,6 +13261,7 @@ class IntextVideoCreative {
     this._videoTiming = videoTiming || null;
     this._renderToken = node?._activeRenderToken || 0;
     this._adMediaEl = null;
+    this._adMediaFirstFrameCleanup = null;
     this._adMediaCleanup = null;
     this._adMediaDiscoveryTimers = [];
     this._lastAdDuration = null;
@@ -10117,6 +13386,7 @@ class IntextVideoCreative {
     });
 
     this.player.on("error", () => {
+      this.node?.setIntextPipPlaybackActive?.(false, "videojs-error");
       const err = this.player.error();
       if (err && err.code === 4) {
         logIntext(
@@ -10132,6 +13402,7 @@ class IntextVideoCreative {
   attachPlayerEvents() {
     if (!this.player) return;
     this.player.on("adend", () => {
+      this.node?.setIntextPipPlaybackActive?.(false, "videojs-adend");
       logIntext(
         `[Intext:VideoPlayer:${this.playerId}] Ad playback ended`,
       );
@@ -10201,6 +13472,15 @@ class IntextVideoCreative {
       this._adMediaDiscoveryTimers = [];
     }
 
+    if (this._adMediaFirstFrameCleanup) {
+      try {
+        this._adMediaFirstFrameCleanup();
+      } catch (e) {
+        // ignore
+      }
+      this._adMediaFirstFrameCleanup = null;
+    }
+
     if (this._adMediaCleanup) {
       try {
         this._adMediaCleanup();
@@ -10223,6 +13503,14 @@ class IntextVideoCreative {
 
   requestAds() {
     return new Promise((resolve, reject) => {
+      const debugVideo = (event, data = {}) => {
+        if (typeof window === "undefined" || window.gexpIntextDebug !== true) return;
+        intextDebugCollector.recordVideoEvent(event, this.node, {
+          creative: this,
+          trigger: this._videoTiming?.trigger || "unknown",
+          ...data,
+        });
+      };
       if (!this.player) {
         errorIntext(`[Intext:Video:IMA] No player instance`);
         reject(new Error("no_player"));
@@ -10256,7 +13544,9 @@ class IntextVideoCreative {
 
       let settled = false;
       let adStarted = false;
-      let firstFramePlayed = false;
+      let playerRevealed = false;
+      let firstFrameConfirmed = false;
+      let mediaFrameCallbackRequested = false;
       let terminalEvent = null;
       let terminalHandled = false;
       let adTimeout = null;
@@ -10288,7 +13578,20 @@ class IntextVideoCreative {
         clearAdTimeout();
         clearNativeStartedFallbackTimer();
         clearMediaReadyConfirmTimer();
-        this.cleanupAdMediaObservation();
+        const keepMediaObservation =
+          type === "resolve" &&
+          playerRevealed &&
+          !terminalEvent &&
+          !terminalHandled &&
+          !this._aborted &&
+          this.isRenderTokenActive(
+            "IntextVideoCreative.settle:resolved-media-observation",
+          );
+        if (!keepMediaObservation) {
+          this.cleanupAdMediaObservation();
+        } else if (firstFrameConfirmed) {
+          this._adMediaFirstFrameCleanup?.();
+        }
         if (type === "resolve") resolve(value);
         else reject(value);
       };
@@ -10307,6 +13610,10 @@ class IntextVideoCreative {
       adTimeout = setTimeout(() => {
         terminalHandled = true;
         terminalEvent = "video_ad_timeout";
+        debugVideo("timeout", {
+          imaErrorCode: "timeout",
+          imaErrorMessage: "video_ad_timeout",
+        });
         logIntext(
           `[Intext:Video:IMA] timeout_without_terminal_event - rejecting as video_ad_timeout`,
         );
@@ -10321,8 +13628,8 @@ class IntextVideoCreative {
           );
           return;
         }
-        if (firstFramePlayed) return;
-        firstFramePlayed = true;
+        if (playerRevealed) return;
+        playerRevealed = true;
         this._playerRevealed = true;
         if (adstartAt) {
           logIntext(
@@ -10347,13 +13654,22 @@ class IntextVideoCreative {
           el.classList.add("video-started");
           el.style.opacity = "1";
         }
+        debugVideo("revealed", {
+          source,
+          mediaElement: this._adMediaEl,
+          element: el,
+        });
+        if (this.isRenderTokenActive(`IntextVideoCreative.revealed:${source}`)) {
+          this.node._intextPipPlayerRevealed = true;
+          this.node.maybeEnterIntextPipFromLastIntersection?.();
+        }
         settle("resolve");
       };
 
       const rejectBeforePlayback = (error, terminalSource) => {
         if (!this.isRenderTokenActive(`IntextVideoCreative.rejectBeforePlayback:${terminalSource || "unknown"}`)) return;
         if (terminalSource && !markTerminal(terminalSource)) return;
-        if (firstFramePlayed) return;
+        if (playerRevealed) return;
         settle("reject", error);
         setTimeout(() => {
           try { this.destroy(); } catch (e) { /* ignore */ }
@@ -10361,7 +13677,7 @@ class IntextVideoCreative {
       };
 
       const isRevealBlocked = () =>
-        firstFramePlayed || terminalEvent || terminalHandled || this._aborted || !this.player || !this.isRenderTokenActive("IntextVideoCreative.isRevealBlocked");
+        playerRevealed || terminalEvent || terminalHandled || this._aborted || !this.player || !this.isRenderTokenActive("IntextVideoCreative.isRevealBlocked");
 
       const getMediaCurrentTime = () => {
         const mediaEl = this._adMediaEl;
@@ -10369,18 +13685,51 @@ class IntextVideoCreative {
         const currentTime = Number(mediaEl.currentTime);
         return Number.isFinite(currentTime) ? currentTime : 0;
       };
+      const confirmIntextFirstFrame = (source, options = {}) => {
+        if (
+          firstFrameConfirmed ||
+          terminalEvent ||
+          terminalHandled ||
+          this._aborted ||
+          !this._adMediaEl
+        ) return false;
+        if (!this.isRenderTokenActive(`IntextVideoCreative.firstFrame:${source}`)) {
+          this.cleanupAdMediaObservation();
+          return false;
+        }
+        const mediaEl = this._adMediaEl;
+        const currentTime = Number(mediaEl?.currentTime);
+        const hasAdvancedTime =
+          Number.isFinite(currentTime) && currentTime > 0;
+        const frameCallbackConfirmed =
+          options.frameCallbackConfirmed === true;
+        if (!hasAdvancedTime && !frameCallbackConfirmed) return false;
+        firstFrameConfirmed = true;
+        debugVideo("first-frame", {
+          source,
+          currentTime: Number.isFinite(currentTime)
+            ? currentTime
+            : null,
+          mediaElement: mediaEl,
+        });
+        this.node._intextPipFirstFrameConfirmed = true;
+        this.node.maybeEnterIntextPipFromLastIntersection?.();
+        this._adMediaFirstFrameCleanup?.();
+        return true;
+      };
 
       const scheduleMediaReadyConfirmation = (source) => {
         clearMediaReadyConfirmTimer();
         const confirmPlayback = () => {
           if (isRevealBlocked()) return;
           if (getMediaCurrentTime() > 0) {
+            confirmIntextFirstFrame("media-loadeddata-confirmed");
             revealPlayer("media_loadeddata_confirmed");
           }
         };
 
         confirmPlayback();
-        if (firstFramePlayed || terminalEvent) return;
+        if (playerRevealed || terminalEvent) return;
 
         mediaReadyConfirmTimer = setTimeout(() => {
           mediaReadyConfirmTimer = null;
@@ -10411,25 +13760,32 @@ class IntextVideoCreative {
         };
         const onPlaying = () => {
           logIntext(`[Intext:Video:IMA] ad_media_playing`);
+          this.node?.setIntextPipPlaybackActive?.(true, "ima-media-playing");
+          confirmIntextFirstFrame("media-playing");
           revealPlayer("media_playing");
         };
         const onTimeUpdate = () => {
           if (getMediaCurrentTime() > 0) {
+            this.node?.setIntextPipPlaybackActive?.(true, "ima-media-timeupdate");
             if (!mediaTimeupdateLogged) {
               mediaTimeupdateLogged = true;
               logIntext(`[Intext:Video:IMA] ad_media_timeupdate_started`);
             }
+            confirmIntextFirstFrame("media-timeupdate");
             revealPlayer("media_timeupdate");
           }
         };
         const onError = () => {
+          this.node?.setIntextPipPlaybackActive?.(false, "ima-media-error");
           logIntext(`[Intext:Video:IMA] ad_media_error`);
+          this.cleanupAdMediaObservation();
         };
         const onStalled = () => {
           logIntext(`[Intext:Video:IMA] ad_media_stalled`);
         };
         const onAbort = () => {
           logIntext(`[Intext:Video:IMA] ad_media_abort`);
+          this.cleanupAdMediaObservation();
         };
 
         mediaEl.addEventListener("loadeddata", onLoadedData);
@@ -10440,21 +13796,60 @@ class IntextVideoCreative {
         mediaEl.addEventListener("stalled", onStalled);
         mediaEl.addEventListener("abort", onAbort);
 
-        this._adMediaCleanup = () => {
+        let firstFrameListenersCleaned = false;
+        let frameCallbackId = null;
+        const cleanupFirstFrameListeners = () => {
+          if (firstFrameListenersCleaned) return;
+          firstFrameListenersCleaned = true;
           mediaEl.removeEventListener("loadeddata", onLoadedData);
           mediaEl.removeEventListener("canplay", onCanPlay);
-          mediaEl.removeEventListener("playing", onPlaying);
           mediaEl.removeEventListener("timeupdate", onTimeUpdate);
+          if (
+            frameCallbackId !== null &&
+            typeof mediaEl.cancelVideoFrameCallback === "function"
+          ) {
+            try {
+              mediaEl.cancelVideoFrameCallback(frameCallbackId);
+            } catch (e) {
+              // ignore
+            }
+          }
+          frameCallbackId = null;
+          clearMediaReadyConfirmTimer();
+          if (this._adMediaFirstFrameCleanup === cleanupFirstFrameListeners) {
+            this._adMediaFirstFrameCleanup = null;
+          }
+        };
+        this._adMediaFirstFrameCleanup = cleanupFirstFrameListeners;
+
+        this._adMediaCleanup = () => {
+          cleanupFirstFrameListeners();
+          mediaEl.removeEventListener("playing", onPlaying);
           mediaEl.removeEventListener("error", onError);
           mediaEl.removeEventListener("stalled", onStalled);
           mediaEl.removeEventListener("abort", onAbort);
         };
+
+        if (
+          !mediaFrameCallbackRequested &&
+          typeof mediaEl.requestVideoFrameCallback === "function"
+        ) {
+          mediaFrameCallbackRequested = true;
+          frameCallbackId = mediaEl.requestVideoFrameCallback(() => {
+            frameCallbackId = null;
+            confirmIntextFirstFrame(
+              "request-video-frame-callback",
+              { frameCallbackConfirmed: true },
+            );
+          });
+        }
 
         if (getMediaCurrentTime() > 0) {
           if (!mediaTimeupdateLogged) {
             mediaTimeupdateLogged = true;
             logIntext(`[Intext:Video:IMA] ad_media_timeupdate_started`);
           }
+          confirmIntextFirstFrame("media-timeupdate");
           revealPlayer("media_timeupdate");
         }
       };
@@ -10479,7 +13874,7 @@ class IntextVideoCreative {
 
       const handleTerminalBeforeReveal = (source, error) => {
         if (terminalHandled) return;
-        if (firstFramePlayed) {
+        if (playerRevealed) {
           markTerminal(source);
           return;
         }
@@ -10530,7 +13925,7 @@ class IntextVideoCreative {
 
       const markFastFallbackVideoError = (errCode, errMsg, source) => {
         const normalizedCode = String(errCode || "");
-        const beforePlayback = !firstFramePlayed;
+        const beforePlayback = !playerRevealed;
         const fastFallbackConfig = resolveFastFallbackVideoErrorCodes();
         const enabled = isFastFallbackVideoError(normalizedCode);
         const reason = getFastFallbackVideoReason(normalizedCode);
@@ -10583,6 +13978,7 @@ class IntextVideoCreative {
       });
 
       this.player.on("adstart", () => {
+        debugVideo("player-adstart");
         logIntext(`[Intext:Video:IMA] ✅ adstart — Arrancando...`);
         adStarted = true;
         adstartAt = Date.now();
@@ -10597,7 +13993,7 @@ class IntextVideoCreative {
         setTimeout(() => {
           if (
             adStarted &&
-            !firstFramePlayed &&
+            !playerRevealed &&
             !terminalEvent &&
             !this._aborted &&
             this.player &&
@@ -10611,7 +14007,7 @@ class IntextVideoCreative {
       });
 
       this.player.on("timeupdate", () => {
-        if (adStarted && !firstFramePlayed && !terminalEvent && !this.spinnerHidden) {
+        if (adStarted && !playerRevealed && !terminalEvent && !this.spinnerHidden) {
           startAdMediaObservation();
         }
       });
@@ -10622,9 +14018,14 @@ class IntextVideoCreative {
         const errMsg = imaErr?.getMessage?.() || nativeAdError?.message || "unknown";
         const normalizedErrCode = String(errCode || "unknown");
 
+        debugVideo("error", {
+          imaErrorCode: normalizedErrCode,
+          imaErrorMessage: errMsg,
+        });
         logIntext(`[Intext:Video:IMA] player_adserror - code: ${normalizedErrCode}, msg: ${errMsg}`);
+        this.node?.cleanupIntextPip?.("video-error");
 
-        if (!firstFramePlayed) {
+        if (!playerRevealed) {
           markFastFallbackVideoError(normalizedErrCode, errMsg, "player_adserror");
           rejectBeforePlayback(new Error(`video_ad_error: [${normalizedErrCode}] ${errMsg}`), "adserror");
         } else {
@@ -10650,7 +14051,7 @@ class IntextVideoCreative {
               "gexp-intext-video-error-code": normalizedErrCode,
               "gexp-intext-video-error-msg": errMsg,
               "gexp-intext-video-error-message": errMsg,
-              "gexp-intext-video-before-playback": firstFramePlayed ? "false" : "true",
+              "gexp-intext-video-before-playback": playerRevealed ? "false" : "true",
               "gexp-intext-load-end-distance-px": this.node.getIntextDistancePx(),
             });
             this.node.flushIntextTelemetryToCI();
@@ -10659,12 +14060,19 @@ class IntextVideoCreative {
         }
       });
 
-      this.player.on("ads-request", () =>
+      this.player.on("ads-request", () => {
         logIntext(
           `[Intext:Video:IMA] 📤 ads-request — IMA processing ad request`,
-        ),
-      );
+        );
+      });
       this.player.on("ads-load", (evt) => {
+        debugVideo("player-ads-load", {
+          source: "player-ads-load",
+        });
+        debugVideo("vast-processed", {
+          inferred: true,
+          source: "player-ads-load",
+        });
         logIntext(
           `[Intext:Video:IMA] 📥 ads-load — VAST response parsed by IMA`,
         );
@@ -10714,6 +14122,10 @@ class IntextVideoCreative {
         );
       });
       this.player.on("adtimeout", () => {
+        debugVideo("timeout", {
+          imaErrorCode: "timeout",
+          imaErrorMessage: "contrib_ads_timeout",
+        });
         logIntext(
           `[Intext:Video:IMA] ⏱ adtimeout — contrib-ads internal timeout`,
         );
@@ -10726,12 +14138,14 @@ class IntextVideoCreative {
         rejectBeforePlayback(new Error("contrib_ads_timeout"), "adtimeout");
       });
       this.player.on("adend", () => {
+        debugVideo("complete");
         handleTerminalBeforeReveal(
           "adend",
           new Error("video_ad_ended_before_reveal"),
         );
       });
       this.player.on("alladscompleted", () => {
+        debugVideo("all-ads-completed");
         handleTerminalBeforeReveal(
           "alladscompleted",
           new Error("video_ad_ended_before_reveal"),
@@ -10789,10 +14203,15 @@ class IntextVideoCreative {
                     message: errMsg,
                     vastCode: err?.getVastErrorCode?.(),
                   };
+                  debugVideo("error", {
+                    imaErrorCode: errCode,
+                    imaErrorMessage: errMsg,
+                  });
                   logIntext(
                     `[Intext:Video:IMA:Native] native_ad_error - code=${errCode}, msg=${errMsg}, vast=${err?.getVastErrorCode?.()}`,
                   );
-                  if (!firstFramePlayed) {
+                  this.node?.cleanupIntextPip?.("video-error");
+                  if (!playerRevealed) {
                     markFastFallbackVideoError(errCode, errMsg, "native_ad_error");
                     rejectBeforePlayback(
                       new Error(`video_ad_error: [${errCode}] ${errMsg}`),
@@ -10807,6 +14226,9 @@ class IntextVideoCreative {
               this.player.ima.addEventListener(
                 ima.AdEvent.Type.LOADED,
                 () => {
+                  debugVideo("loaded", {
+                    source: "native-ima-loaded",
+                  });
                   logIntext(
                     `[Intext:Video:IMA:Native] 📥 LOADED event fired`,
                   );
@@ -10815,6 +14237,9 @@ class IntextVideoCreative {
               this.player.ima.addEventListener(
                 ima.AdEvent.Type.STARTED,
                 () => {
+                  debugVideo("started", {
+                    source: "native-ima-started",
+                  });
                   logIntext(
                     `[Intext:Video:IMA:Native] native started - STARTED event fired`,
                   );
@@ -10831,6 +14256,8 @@ class IntextVideoCreative {
               this.player.ima.addEventListener(
                 ima.AdEvent.Type.COMPLETE,
                 () => {
+                  this.node?.setIntextPipPlaybackActive?.(false, "ima-complete");
+                  debugVideo("complete");
                   handleTerminalBeforeReveal(
                     "native_complete",
                     new Error("video_ad_ended_before_reveal"),
@@ -10840,12 +14267,35 @@ class IntextVideoCreative {
               this.player.ima.addEventListener(
                 ima.AdEvent.Type.SKIPPED,
                 () => {
+                  this.node?.setIntextPipPlaybackActive?.(false, "ima-skipped");
+                  debugVideo("skipped");
                   handleTerminalBeforeReveal(
                     "native_skipped",
                     new Error("video_ad_ended_before_reveal"),
                   );
                 },
               );
+              [
+                [ima.AdEvent.Type.FIRST_QUARTILE, "first-quartile"],
+                [ima.AdEvent.Type.MIDPOINT, "midpoint"],
+                [ima.AdEvent.Type.THIRD_QUARTILE, "third-quartile"],
+                [ima.AdEvent.Type.PAUSED, "paused"],
+                [ima.AdEvent.Type.RESUMED, "resumed"],
+                [ima.AdEvent.Type.CLICK, "click"],
+                [ima.AdEvent.Type.ALL_ADS_COMPLETED, "all-ads-completed"],
+                [ima.AdEvent.Type.CONTENT_PAUSE_REQUESTED, "content-pause-requested"],
+                [ima.AdEvent.Type.CONTENT_RESUME_REQUESTED, "content-resume-requested"],
+              ].forEach(([eventType, debugEvent]) => {
+                if (!eventType) return;
+                this.player.ima.addEventListener(eventType, () => {
+                  if (debugEvent === "paused") {
+                    this.node?.setIntextPipPlaybackActive?.(false, "ima-paused");
+                  } else if (debugEvent === "resumed") {
+                    this.node?.setIntextPipPlaybackActive?.(true, "ima-resumed");
+                  }
+                  debugVideo(debugEvent);
+                });
+              });
             }
           } catch (e) {
             warnIntext(

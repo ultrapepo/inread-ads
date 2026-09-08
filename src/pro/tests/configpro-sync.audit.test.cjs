@@ -14,22 +14,21 @@ const pipTestSource = fs.readFileSync(
   'utf8',
 );
 
-function walkJson(dir) {
-  const found = [];
-  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
-    const full = path.join(dir, entry.name);
-    if (entry.isDirectory()) found.push(...walkJson(full));
-    else if (
-      entry.name.endsWith('.json')
-      && !/(schema|fixture|backup|snapshot|test)/i.test(entry.name)
-    ) {
-      found.push(full);
-    }
-  }
-  return found.sort();
-}
-
-const files = walkJson(path.join(root, 'configPro'));
+const canonicalConfigFiles = [
+  'configPro/default_ES_desktop.json',
+  'configPro/default_ES_mobile.json',
+  'configPro/default_ES_mundo_desktop.json',
+  'configPro/default_ES_mundo_mobile.json',
+  'configPro/default_expansion_ES.json',
+  'configPro/default_LATAM.json',
+  'configPro/pro/default_ES_desktop.json',
+  'configPro/pro/default_ES_mobile.json',
+  'configPro/pro/default_ES_mundo_desktop.json',
+  'configPro/pro/default_ES_mundo_mobile.json',
+  'configPro/pro/default_expansion_ES.json',
+  'configPro/pro/default_LATAM.json',
+];
+const files = canonicalConfigFiles.map((file) => path.join(root, file));
 const relative = (file) => path.relative(root, file).replaceAll('\\', '/');
 const configs = new Map(
   files.map((file) => [relative(file), JSON.parse(fs.readFileSync(file, 'utf8'))]),
@@ -72,6 +71,25 @@ const expectedPip = {
   showCloseButton: true,
   singleActive: true,
   closeBehavior: 'return-inline-and-dismiss-cycle',
+};
+const expectedVideoControls = {
+  enabled: true,
+  playPause: true,
+  muteToggle: true,
+  volumeControl: true,
+  progressControl: true,
+  timeDisplay: true,
+  fullscreen: false,
+  nativePictureInPicture: false,
+  autoHide: false,
+  showForJsAds: true,
+};
+const expectedInitialOpenAnimation = {
+  enabled: false,
+  durationMs: 280,
+  translateYPx: 10,
+  scaleFrom: 0.99,
+  respectReducedMotion: true,
 };
 
 function assertNoDuplicateJsonKeys(text, file) {
@@ -242,8 +260,25 @@ test('10. los dominios de mobile no se copiaron a desktop', () => {
 });
 
 test('11. los ad unit paths permanecen en sus rutas protegidas', () => {
-  for (const config of configs.values()) {
-    assert.equal(general(config).display.adUnitPath, 'telva/belleza/n');
+  const expectedDisplayAdUnits = {
+    'configPro/default_ES_desktop.json': 'telva/belleza/n',
+    'configPro/default_ES_mobile.json': 'telva/belleza/n',
+    'configPro/default_ES_mundo_desktop.json': 'telva/belleza/n',
+    'configPro/default_ES_mundo_mobile.json': 'telva/belleza/n',
+    'configPro/default_expansion_ES.json': 'telva/belleza/n',
+    'configPro/default_LATAM.json': 'telva/belleza/n',
+    'configPro/pro/default_ES_desktop.json': 'mc2/futbol/n',
+    'configPro/pro/default_ES_mobile.json': 'mc-mv2/futbol/n',
+    'configPro/pro/default_ES_mundo_desktop.json': 'mun/espana/n',
+    'configPro/pro/default_ES_mundo_mobile.json': 'mun-mv/espana/n',
+    'configPro/pro/default_expansion_ES.json': 'exp2/economia/n',
+    'configPro/pro/default_LATAM.json': 'telva/belleza/n',
+  };
+  for (const [file, config] of configs) {
+    assert.equal(
+      general(config).display.adUnitPath,
+      expectedDisplayAdUnits[file],
+    );
     assert.equal(general(config).video.adUnitPath, undefined);
   }
 });
@@ -292,6 +327,23 @@ test('16. los 12 JSON materializan exactamente los defaults PIP', () => {
     for (const override of Object.values(general(config).slotOverrides)) {
       assert.equal(override.video?.pip, undefined);
     }
+  }
+});
+
+test('16b. los 12 JSON materializan controles y mutedOnStart seguros', () => {
+  for (const config of configs.values()) {
+    const video = general(config).video;
+    assert.equal(video.mutedOnStart, true);
+    assert.deepEqual(video.controls, expectedVideoControls);
+  }
+});
+
+test('16c. los 12 JSON materializan la animación inicial desactivada', () => {
+  for (const config of configs.values()) {
+    assert.deepEqual(
+      general(config).style.animation,
+      expectedInitialOpenAnimation,
+    );
   }
 });
 
@@ -352,6 +404,8 @@ test('21. cada bloque de vídeo conserva todas sus particularidades previas', ()
   for (const [file, config] of configs) {
     const currentVideo = structuredClone(general(config).video);
     delete currentVideo.pip;
+    delete currentVideo.controls;
+    delete currentVideo.mutedOnStart;
     const digest = crypto.createHash('sha256').update(JSON.stringify(currentVideo)).digest('hex');
     assert.equal(
       digest,

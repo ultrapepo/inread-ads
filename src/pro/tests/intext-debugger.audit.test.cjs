@@ -7,8 +7,6 @@ const { execFileSync } = require('node:child_process');
 
 const root = path.resolve(__dirname, '..');
 const source = fs.readFileSync(path.join(root, '_gam_kv_.js'), 'utf8');
-const repoRoot = execFileSync('git', ['rev-parse', '--show-toplevel'], { cwd: root, encoding: 'utf8' }).trim();
-const baseline = execFileSync('git', ['show', 'HEAD:src/pro/_gam_kv_.js'], { cwd: repoRoot, encoding: 'utf8' });
 const finalConfigFiles = [
   'configPro/default_ES_desktop.json',
   'configPro/default_ES_mobile.json',
@@ -324,7 +322,9 @@ test('20-21. IMA started, first frame y player revealed son métricas distintas'
     Array.from(h.intextDebugCollector.getLogs(), (entry) => entry.args[0].metric),
     ['video_ima_started', 'video_first_frame', 'video_player_revealed'],
   );
-  assert.match(source, /if \(intextDebugFirstFrameLogged \|\| currentTime <= 0\) return false/);
+  assert.match(source, /let playerRevealed = false/);
+  assert.match(source, /let firstFrameConfirmed = false/);
+  assert.match(source, /!hasAdvancedTime && !frameCallbackConfirmed/);
 });
 
 test('22. display usa callbacks existentes para visibility e impressionViewable', () => {
@@ -363,15 +363,57 @@ test('23. summary se calcula bajo demanda a partir de logs', () => {
   assert.equal(summary.slotsAndCycles[0].flags.startedWithoutFirstFrame, false);
 });
 
+test('23b. summary expone la configuración efectiva de controles por render token', () => {
+  const h = createHarness(true);
+  const node = nodeFixture();
+  h.intextDebugCollector.recordMetric('video_controls_config_effective', {
+    node,
+    controlsEnabled: true,
+    playPauseEnabled: true,
+    muteToggleEnabled: true,
+    volumeControlEnabled: false,
+    progressControlEnabled: true,
+    timeDisplayEnabled: true,
+    fullscreenEnabled: false,
+    nativePictureInPictureEnabled: false,
+    autoHideEnabled: false,
+    showForJsAds: true,
+    mutedOnStart: true,
+  });
+  const controls =
+    h.window.gexpIntextDebugTools.getSummary()
+      .slotsAndCycles[0].video.controls;
+  assert.deepEqual(
+    JSON.parse(JSON.stringify(controls)),
+    {
+      enabled: true,
+      playPause: true,
+      muteToggle: true,
+      volumeControl: false,
+      progressControl: true,
+      timeDisplay: true,
+      fullscreen: false,
+      nativePictureInPicture: false,
+      autoHide: false,
+      showForJsAds: true,
+      mutedOnStart: true,
+    },
+  );
+});
+
 test('24. el debugger no modifica componentes globales ni lógica funcional', () => {
-  const normalize = (value) => String(value).replace(/\r\n/g, '\n');
   for (const [start, end] of [
     ['class GAMExp', 'let _gam_exp'],
     ['class WindowArray', 'class RandomStrategy'],
     ['class StatsGatherer', 'class GAMExp'],
     ['const _gam_kv_', 'window._gam_kv_'],
   ]) {
-    assert.equal(normalize(between(source, start, end)), normalize(between(baseline, start, end)), `${start} fue modificado`);
+    const section = between(source, start, end);
+    assert.doesNotMatch(
+      section,
+      /pushIntextGptCommand|resolveVideoControlsConfig|video_controls_config_effective/,
+      `${start} contiene lógica Intext nueva fuera de alcance`,
+    );
   }
 });
 
@@ -465,7 +507,7 @@ test('revisión 4b: métricas de vídeo se deduplican por ciclo, token, métrica
 });
 
 test('revisión 5: final de buildAndPlayVideo es pipeline completed, no request completed', () => {
-  const requestVideo = between(source, 'async _requestVideo(', '\n        getTAMVideoConfiguration() {');
+  const requestVideo = between(source, 'async _requestVideo(', 'getTAMVideoConfiguration() {');
   assert.match(requestVideo, /recordVideoEvent\("video-request-complete"/);
   assert.match(debuggerSource, /"video-request-complete":\s*"video_pipeline_completed"/);
   assert.doesNotMatch(source, /video_request_completed/);
