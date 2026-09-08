@@ -490,15 +490,15 @@ test('helper PSP ya ready y con targeting estable resuelve en un poll', async ()
   });
 
   assert.equal(result.ready, true);
-  assert.equal(result.reason, 'relevant-targeting-stable');
-  assert.equal(result.readinessBasis, 'native-slots+stable-relevant-snapshot');
+  assert.equal(result.reason, 'stable-blocking-targeting');
+  assert.equal(result.readinessBasis, 'stable-blocking-targeting');
   assert.equal(result.nativeSlots, 8);
   assert.equal(result.elapsedMs, 25);
   assert.equal(result.stabilityPolls, 2);
   assert.equal(waitCalls, 1);
 });
 
-test('pubadsReady y slots sin targeting relevante no evitan el timeout', async () => {
+test('blocking key legitimamente ausente sale pronto con runtime y slots maduros', async () => {
   const fixture = createFixture({ psp: true, pubadsReady: true, slots: [slot('empty-ready-slot')] });
   fixture.manager.siteConfig = { exclusions: { keyValues: { isPremium: ['1'] } } };
   let elapsed = 0;
@@ -507,10 +507,11 @@ test('pubadsReady y slots sin targeting relevante no evitan el timeout', async (
     wait: async (delayMs) => { elapsed += delayMs; },
   });
 
-  assert.equal(result.reason, 'timeout');
+  assert.equal(result.reason, 'stable-empty-blocking-targeting-runtime-mature');
   assert.equal(result.relevantSignalFound, false);
   assert.equal(result.finalRecheckRequired, true);
-  assert.equal(result.elapsedMs, 600);
+  assert.equal(result.elapsedMs, 25);
+  assert.deepEqual(Array.from(result.unresolvedBlockingKeys), ['isPremium']);
 });
 
 test('helper sin PSP no hace polling', async () => {
@@ -542,8 +543,22 @@ test('helper PSP con reglas solo random no hace polling', async () => {
   assert.equal(waitCalls, 0);
 });
 
-test('timeout PSP termina a 600ms, hace recheck y conserva fail-open', async () => {
-  const fixture = createFixture({ psp: true, pubadsReady: true, slots: [slot('timeout-empty-slot')] });
+test('inclusion non-random sin blocking rules no retiene el gate', async () => {
+  const fixture = createFixture({ psp: true, pubadsReady: false, slots: [] });
+  fixture.manager.siteConfig = { inclusions: { keyValues: { tag: ['economia'] } } };
+  let waitCalls = 0;
+  const result = await fixture.manager.waitForIntextRuleTargetingReady(null, {
+    wait: async () => { waitCalls += 1; },
+  });
+
+  assert.equal(result.reason, 'no-blocking-external-rules');
+  assert.deepEqual(Array.from(result.inclusionKeys), ['tag']);
+  assert.equal(result.waitRequired, false);
+  assert.equal(waitCalls, 0);
+});
+
+test('timeout PSP inmaduro termina a 600ms, hace recheck y conserva fail-open', async () => {
+  const fixture = createFixture({ psp: true, pubadsReady: false, slots: [] });
   fixture.manager.siteConfig = {
     exclusions: { keyValues: { isPremium: ['1'] } },
     inclusions: { keyValues: { random1: ['8'] } },
@@ -639,6 +654,136 @@ test('extrae keys non-random de exclusions, inclusions y disableSlots sin duplic
     Array.from(fixture.manager.getIntextRelevantNonRandomRuleKeys()),
     ['newsid', 'tag', 'section', 't', 'isPremium'],
   );
+  const roles = fixture.manager.getIntextRuleKeyRoles();
+  assert.deepEqual(Array.from(roles.exclusionKeys), ['newsid', 'random1', 'tag']);
+  assert.deepEqual(Array.from(roles.inclusionKeys), ['section', 'random3']);
+  assert.deepEqual(Array.from(roles.disableSlotKeys), ['t', 'tag', 'random2', 'isPremium']);
+  assert.deepEqual(Array.from(roles.blockingKeys), ['newsid', 'tag', 't', 'isPremium']);
+});
+
+test('inclusion resuelta no enmascara premium pendiente y bloquea a 175ms', async () => {
+  const targeting = {};
+  const fixture = createFixture({ psp: true, pubadsReady: true });
+  fixture.manager.siteConfig = {
+    exclusions: { keyValues: { isPremium: ['1', 'true'] } },
+    inclusions: { keyValues: { tag: ['economia'] } },
+  };
+  let elapsed = 0;
+  const result = await fixture.manager.waitForIntextRuleTargetingReady(null, {
+    now: () => elapsed,
+    wait: async (delayMs) => {
+      elapsed += delayMs;
+      if (elapsed === 100) {
+        targeting.tag = ['economia'];
+        fixture.slots.push(slot('inclusion-before-premium', targeting));
+      }
+      if (elapsed === 175) targeting.isPremium = ['1'];
+    },
+  });
+
+  assert.equal(result.reason, 'exclusion-match');
+  assert.equal(result.elapsedMs, 175);
+  assert.deepEqual(Array.from(result.resolvedBlockingKeys), ['isPremium']);
+  assert.equal(result.blockingGptSlotSignalFound, true);
+});
+
+test('otra exclusion resuelta no enmascara premium pendiente', async () => {
+  const targeting = {};
+  const fixture = createFixture({ psp: true, pubadsReady: true });
+  fixture.manager.siteConfig = {
+    exclusions: { keyValues: { tag: ['bloqueo-publi'], isPremium: ['1', 'true'] } },
+  };
+  let elapsed = 0;
+  const result = await fixture.manager.waitForIntextRuleTargetingReady(null, {
+    now: () => elapsed,
+    wait: async (delayMs) => {
+      elapsed += delayMs;
+      if (elapsed === 100) {
+        targeting.tag = ['normal'];
+        fixture.slots.push(slot('exclusion-before-premium', targeting));
+      }
+      if (elapsed === 175) targeting.isPremium = ['1'];
+    },
+  });
+
+  assert.equal(result.reason, 'exclusion-match');
+  assert.equal(result.elapsedMs, 175);
+});
+
+test('blocking key vacia con runtime inmaduro no sale por fingerprints vacios', async () => {
+  const fixture = createFixture({ psp: true, pubadsReady: false, slots: [] });
+  fixture.manager.siteConfig = { exclusions: { keyValues: { tag: ['bloqueo-publi'] } } };
+  let elapsed = 0;
+  const result = await fixture.manager.waitForIntextRuleTargetingReady(null, {
+    now: () => elapsed,
+    wait: async (delayMs) => { elapsed += delayMs; },
+  });
+
+  assert.equal(result.reason, 'timeout');
+  assert.equal(result.elapsedMs, 600);
+  assert.equal(result.blockingStabilityPolls, 0);
+});
+
+test('generic blocking key tarda aunque otra inclusion ya tenga targeting', async () => {
+  const targeting = {};
+  const fixture = createFixture({ psp: true, pubadsReady: true });
+  fixture.manager.siteConfig = {
+    exclusions: { keyValues: { fooBlock: ['1'] } },
+    inclusions: { keyValues: { section: ['economia'] } },
+  };
+  let elapsed = 0;
+  const result = await fixture.manager.waitForIntextRuleTargetingReady(null, {
+    now: () => elapsed,
+    wait: async (delayMs) => {
+      elapsed += delayMs;
+      if (elapsed === 100) {
+        targeting.section = ['economia'];
+        fixture.slots.push(slot('generic-blocking-late', targeting));
+      }
+      if (elapsed === 175) targeting.fooBlock = ['1'];
+    },
+  });
+
+  assert.equal(result.reason, 'exclusion-match');
+  assert.equal(result.elapsedMs, 175);
+  assert.deepEqual(Array.from(result.blockingKeys), ['fooBlock']);
+});
+
+test('scoped multi-key espera el blocker de B y no usa targeting de A', async () => {
+  const targetingB = {};
+  const fixture = createFixture({
+    psp: true,
+    pubadsReady: true,
+    slots: [
+      slot('role-aware-a', { isPremium: ['1'], tag: ['A'] }),
+      slot('role-aware-b', targetingB),
+    ],
+  });
+  const elementB = {};
+  fixture.elements.set('role-aware-b', elementB);
+  const rootB = { contains: (element) => element === elementB };
+  const scopedContext = {
+    rootElement: rootB,
+    siteConfig: {
+      exclusions: { keyValues: { isPremium: ['1'] } },
+      inclusions: { keyValues: { tag: ['B'] } },
+    },
+  };
+  let elapsed = 0;
+  const result = await fixture.manager.waitForIntextRuleTargetingReady(scopedContext, {
+    now: () => elapsed,
+    wait: async (delayMs) => {
+      elapsed += delayMs;
+      if (elapsed === 100) targetingB.tag = ['B'];
+      if (elapsed === 175) targetingB.isPremium = ['0'];
+    },
+  });
+
+  assert.equal(result.reason, 'stable-blocking-targeting');
+  assert.equal(result.elapsedMs, 200);
+  assert.equal(result.scoped, true);
+  assert.deepEqual(Array.from(result.resolvedBlockingKeys), ['isPremium']);
+  assert.deepEqual(Array.from(fixture.manager.resolveIntextRuleTargeting('isPremium', scopedContext).values), ['0']);
 });
 
 test('exclusion disponible en el fast path bloquea sin invocar el wait', async () => {
@@ -776,8 +921,8 @@ test('slotless DataLayer estable usa pubadsReady y termina sin esperar timeout',
     },
   });
 
-  assert.equal(result.reason, 'relevant-targeting-stable');
-  assert.equal(result.readinessBasis, 'pubads+stable-relevant-snapshot');
+  assert.equal(result.reason, 'stable-blocking-targeting');
+  assert.equal(result.readinessBasis, 'stable-blocking-targeting');
   assert.deepEqual(Array.from(result.resolvedRelevantKeys), ['tag']);
   assert.equal(result.elapsedMs, 125);
 });
@@ -799,8 +944,8 @@ test('scoped ignora pubadsReady global hasta tener targeting de slot del articul
     },
   });
 
-  assert.equal(result.reason, 'relevant-targeting-stable');
-  assert.equal(result.readinessBasis, 'native-slots+stable-relevant-snapshot');
+  assert.equal(result.reason, 'stable-blocking-targeting');
+  assert.equal(result.readinessBasis, 'stable-blocking-targeting');
   assert.equal(result.scoped, true);
   assert.equal(result.nativeSlots, 1);
   assert.equal(result.elapsedMs, 275);

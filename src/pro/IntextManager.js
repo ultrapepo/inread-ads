@@ -1603,7 +1603,7 @@ class IntextManager {
     } catch (e) { return []; }
   }
 
-  getIntextRelevantNonRandomRuleKeys(context = null) {
+  getIntextRuleKeyRoles(context = null) {
     const hostname = this.getHostnameNormalized(context?.hostname || this.siteContext?.site);
     const exclusions = this.resolveScopedRuleBlock(
       context?.siteConfig?.exclusions || this.siteConfig?.exclusions,
@@ -1613,12 +1613,11 @@ class IntextManager {
       context?.siteConfig?.inclusions || this.siteConfig?.inclusions,
       hostname,
     );
-    const keys = [];
-    const addKeys = (keyValues) => {
+    const collectKeys = (keyValues) => {
+      const keys = [];
       Object.entries(keyValues || {}).forEach(([key, values]) => {
         const normalizedKey = String(key);
         if (
-          !INTEXT_RANDOM_KEYS.includes(normalizedKey) &&
           Array.isArray(values) &&
           values.length > 0 &&
           !keys.includes(normalizedKey)
@@ -1626,16 +1625,41 @@ class IntextManager {
           keys.push(normalizedKey);
         }
       });
+      return keys;
     };
-    addKeys(exclusions?.keyValues);
-    addKeys(inclusions?.keyValues);
+    const exclusionKeys = collectKeys(exclusions?.keyValues);
+    const inclusionKeys = collectKeys(inclusions?.keyValues);
+    const disableSlotKeys = [];
     if (Array.isArray(exclusions?.disableSlots?.rules)) {
-      exclusions.disableSlots.rules.forEach((rule) => addKeys(rule?.ifKeyValues));
+      exclusions.disableSlots.rules.forEach((rule) => {
+        collectKeys(rule?.ifKeyValues).forEach((key) => {
+          if (!disableSlotKeys.includes(key)) disableSlotKeys.push(key);
+        });
+      });
     }
-    return keys;
+    const uniqueNonRandomKeys = (keys) => Array.from(new Set(keys))
+      .filter((key) => !INTEXT_RANDOM_KEYS.includes(key));
+    const blockingKeys = uniqueNonRandomKeys([...exclusionKeys, ...disableSlotKeys]);
+    const relevantNonRandomKeys = uniqueNonRandomKeys([
+      ...exclusionKeys,
+      ...inclusionKeys,
+      ...disableSlotKeys,
+    ]);
+    return {
+      exclusionKeys,
+      inclusionKeys,
+      disableSlotKeys,
+      blockingKeys,
+      relevantNonRandomKeys,
+    };
+  }
+
+  getIntextRelevantNonRandomRuleKeys(context = null) {
+    return this.getIntextRuleKeyRoles(context).relevantNonRandomKeys;
   }
 
   getIntextRelevantRuleTargetingState(relevantKeys, context = null) {
+    const roles = this.getIntextRuleKeyRoles(context);
     const resolutions = relevantKeys.map((key) => this.resolveIntextRuleTargeting(key, context));
     const resolvedKeys = resolutions
       .filter((entry) => entry.values.length > 0)
@@ -1645,41 +1669,102 @@ class IntextManager {
       entry.slotsMatched > 0 &&
       entry.sources.some((source) => source.source === "gpt-slot-targeting"),
     );
+    const resolutionByKey = new Map(resolutions.map((entry) => [entry.key, entry]));
+    const blockingResolutions = roles.blockingKeys
+      .map((key) => resolutionByKey.get(key))
+      .filter(Boolean);
+    const resolvedBlockingKeys = blockingResolutions
+      .filter((entry) => entry.values.length > 0)
+      .map((entry) => entry.key);
+    const unresolvedBlockingKeys = roles.blockingKeys
+      .filter((key) => !resolvedBlockingKeys.includes(key));
+    const nonRandomInclusionKeys = roles.inclusionKeys
+      .filter((key) => !INTEXT_RANDOM_KEYS.includes(key));
+    const resolvedInclusionKeys = nonRandomInclusionKeys
+      .filter((key) => resolvedKeys.includes(key));
+    const unresolvedInclusionKeys = nonRandomInclusionKeys
+      .filter((key) => !resolvedInclusionKeys.includes(key));
+    const blockingGptSlotSignalFound = blockingResolutions.some((entry) =>
+      entry.slotsMatched > 0 &&
+      entry.sources.some((source) => source.source === "gpt-slot-targeting"),
+    );
     const fingerprint = JSON.stringify(resolutions.map((entry) => [
+      entry.key,
+      entry.values.map(String).sort(),
+    ]));
+    const blockingFingerprint = JSON.stringify(blockingResolutions.map((entry) => [
       entry.key,
       entry.values.map(String).sort(),
     ]));
     return {
       relevantSignalFound: resolvedKeys.length > 0,
       gptSlotSignalFound,
+      blockingSignalFound: resolvedBlockingKeys.length > 0,
+      blockingGptSlotSignalFound,
       resolvedKeys,
       unresolvedKeys,
+      blockingKeys: roles.blockingKeys,
+      resolvedBlockingKeys,
+      unresolvedBlockingKeys,
+      inclusionKeys: nonRandomInclusionKeys,
+      resolvedInclusionKeys,
+      unresolvedInclusionKeys,
       resolutions,
       fingerprint,
+      blockingFingerprint,
     };
   }
 
-  getIntextRuleTargetingReadiness({
+  getIntextBlockingTargetingMaturity({
     context = null,
     resolution,
     nativeSlots,
     targetingState,
-    stabilityPolls = 0,
+    blockingStabilityPolls = 0,
   }) {
-    if (stabilityPolls < 2 || targetingState?.relevantSignalFound !== true) {
-      return { ready: false, readinessBasis: "none" };
+    const blockingKeys = targetingState?.blockingKeys || [];
+    if (blockingKeys.length === 0) {
+      return {
+        mature: true,
+        observationEligible: true,
+        reason: "no-blocking-external-rules",
+      };
     }
-    if (nativeSlots.length > 0 && targetingState.gptSlotSignalFound === true) {
-      return { ready: true, readinessBasis: "native-slots+stable-relevant-snapshot" };
-    }
-    if (
+    const allBlockingResolved =
+      targetingState.resolvedBlockingKeys.length === blockingKeys.length;
+    const allBlockingEmpty = targetingState.resolvedBlockingKeys.length === 0;
+    const resolvedRuntimeMature =
+      (nativeSlots.length > 0 && targetingState.blockingGptSlotSignalFound === true) ||
+      (
+        !context?.rootElement &&
+        nativeSlots.length === 0 &&
+        resolution.api?.pubadsReady === true
+      );
+    const emptyRuntimeMature =
       !context?.rootElement &&
-      nativeSlots.length === 0 &&
-      resolution.api?.pubadsReady === true
-    ) {
-      return { ready: true, readinessBasis: "pubads+stable-relevant-snapshot" };
+      nativeSlots.length > 0 &&
+      resolution.api?.pubadsReady === true &&
+      targetingState.gptSlotSignalFound !== true;
+    const observationEligible =
+      (allBlockingResolved && resolvedRuntimeMature) ||
+      (allBlockingEmpty && emptyRuntimeMature);
+    const requiredStabilityPolls = 2;
+    if (!observationEligible || blockingStabilityPolls < requiredStabilityPolls) {
+      return {
+        mature: false,
+        observationEligible,
+        requiredStabilityPolls,
+        reason: "none",
+      };
     }
-    return { ready: false, readinessBasis: "none" };
+    return {
+      mature: true,
+      observationEligible: true,
+      requiredStabilityPolls,
+      reason: allBlockingEmpty
+        ? "stable-empty-blocking-targeting-runtime-mature"
+        : "stable-blocking-targeting",
+    };
   }
 
   needsIntextRuleTargetingReadinessWait(context = null, state = {}) {
@@ -1688,13 +1773,14 @@ class IntextManager {
     if (resolution.pspDetected !== true || relevantKeys.length === 0) return false;
     const nativeSlots = state.nativeSlots || this.getIntextNativeGptSlots(context?.rootElement || null);
     const targetingState = state.targetingState || this.getIntextRelevantRuleTargetingState(relevantKeys, context);
-    return !this.getIntextRuleTargetingReadiness({
+    if (targetingState.blockingKeys.length === 0) return false;
+    return !this.getIntextBlockingTargetingMaturity({
       context,
       resolution,
       nativeSlots,
       targetingState,
-      stabilityPolls: state.stabilityPolls || 0,
-    }).ready;
+      blockingStabilityPolls: state.blockingStabilityPolls || 0,
+    }).mature;
   }
 
   async waitForIntextRuleTargetingReady(context = null, options = {}) {
@@ -1728,6 +1814,13 @@ class IntextManager {
       resolvedRelevantKeys: [],
       unresolvedRelevantKeys: relevantKeys,
       stabilityPolls: 0,
+      blockingKeys: [],
+      resolvedBlockingKeys: [],
+      unresolvedBlockingKeys: [],
+      inclusionKeys: [],
+      blockingSignalFound: false,
+      blockingGptSlotSignalFound: false,
+      blockingStabilityPolls: 0,
       readinessBasis: "none",
     };
 
@@ -1754,53 +1847,77 @@ class IntextManager {
 
     let nativeSlots = this.getIntextNativeGptSlots(rootElement);
     let targetingState = this.getIntextRelevantRuleTargetingState(relevantKeys, context);
-    let stableFingerprint = null;
-    let stabilityPolls = 0;
-    const updateStability = () => {
-      const hasNativeBasis = nativeSlots.length > 0 && targetingState.gptSlotSignalFound === true;
-      const hasPubadsBasis =
-        !scoped &&
-        nativeSlots.length === 0 &&
-        resolution.api?.pubadsReady === true &&
-        targetingState.relevantSignalFound === true;
-      if (!hasNativeBasis && !hasPubadsBasis) {
-        stableFingerprint = null;
-        stabilityPolls = 0;
-        return;
-      }
-      if (stableFingerprint === targetingState.fingerprint) stabilityPolls += 1;
-      else {
-        stableFingerprint = targetingState.fingerprint;
-        stabilityPolls = 1;
-      }
-    };
-    updateStability();
-    if (!this.needsIntextRuleTargetingReadinessWait(context, {
-      resolution,
-      relevantKeys,
-      nativeSlots,
-      targetingState,
-      stabilityPolls,
-    })) {
-      const readiness = this.getIntextRuleTargetingReadiness({
-        context,
-        resolution,
-        nativeSlots,
-        targetingState,
-        stabilityPolls,
-      });
+    if (targetingState.blockingKeys.length === 0) {
       return {
         ...baseResult,
         ready: true,
-        reason: "relevant-targeting-stable",
+        reason: "no-blocking-external-rules",
         elapsedMs: 0,
         pubadsReady: resolution.api?.pubadsReady === true,
         nativeSlots: nativeSlots.length,
         relevantSignalFound: targetingState.relevantSignalFound,
         resolvedRelevantKeys: targetingState.resolvedKeys,
         unresolvedRelevantKeys: targetingState.unresolvedKeys,
-        stabilityPolls,
-        readinessBasis: readiness.readinessBasis,
+        inclusionKeys: targetingState.inclusionKeys,
+      };
+    }
+    let stableBlockingFingerprint = null;
+    let blockingStabilityPolls = 0;
+    const updateBlockingStability = () => {
+      const maturity = this.getIntextBlockingTargetingMaturity({
+        context,
+        resolution,
+        nativeSlots,
+        targetingState,
+        blockingStabilityPolls: 0,
+      });
+      if (!maturity.observationEligible) {
+        stableBlockingFingerprint = null;
+        blockingStabilityPolls = 0;
+        return;
+      }
+      if (stableBlockingFingerprint === targetingState.blockingFingerprint) {
+        blockingStabilityPolls += 1;
+      }
+      else {
+        stableBlockingFingerprint = targetingState.blockingFingerprint;
+        blockingStabilityPolls = 1;
+      }
+    };
+    updateBlockingStability();
+    if (!this.needsIntextRuleTargetingReadinessWait(context, {
+      resolution,
+      relevantKeys,
+      nativeSlots,
+      targetingState,
+      blockingStabilityPolls,
+    })) {
+      const maturity = this.getIntextBlockingTargetingMaturity({
+        context,
+        resolution,
+        nativeSlots,
+        targetingState,
+        blockingStabilityPolls,
+      });
+      return {
+        ...baseResult,
+        ready: true,
+        reason: maturity.reason,
+        elapsedMs: 0,
+        pubadsReady: resolution.api?.pubadsReady === true,
+        nativeSlots: nativeSlots.length,
+        relevantSignalFound: targetingState.relevantSignalFound,
+        resolvedRelevantKeys: targetingState.resolvedKeys,
+        unresolvedRelevantKeys: targetingState.unresolvedKeys,
+        stabilityPolls: blockingStabilityPolls,
+        blockingKeys: targetingState.blockingKeys,
+        resolvedBlockingKeys: targetingState.resolvedBlockingKeys,
+        unresolvedBlockingKeys: targetingState.unresolvedBlockingKeys,
+        inclusionKeys: targetingState.inclusionKeys,
+        blockingSignalFound: targetingState.blockingSignalFound,
+        blockingGptSlotSignalFound: targetingState.blockingGptSlotSignalFound,
+        blockingStabilityPolls,
+        readinessBasis: maturity.reason,
         finalRecheckRequired: true,
       };
     }
@@ -1813,6 +1930,8 @@ class IntextManager {
       initialPubadsReady: resolution.api?.pubadsReady === true,
       initialNativeSlots: nativeSlots.length,
       relevantKeys,
+      blockingKeys: targetingState.blockingKeys,
+      inclusionKeys: targetingState.inclusionKeys,
     });
 
     let reason = "timeout";
@@ -1829,17 +1948,17 @@ class IntextManager {
       resolution = this.resolveIntextGptApi();
       nativeSlots = this.getIntextNativeGptSlots(rootElement);
       targetingState = this.getIntextRelevantRuleTargetingState(relevantKeys, context);
-      updateStability();
-      const readiness = this.getIntextRuleTargetingReadiness({
+      updateBlockingStability();
+      const maturity = this.getIntextBlockingTargetingMaturity({
         context,
         resolution,
         nativeSlots,
         targetingState,
-        stabilityPolls,
+        blockingStabilityPolls,
       });
-      if (readiness.ready) {
-        reason = "relevant-targeting-stable";
-        readinessBasis = readiness.readinessBasis;
+      if (maturity.mature) {
+        reason = maturity.reason;
+        readinessBasis = maturity.reason;
         break;
       }
     }
@@ -1860,7 +1979,14 @@ class IntextManager {
       relevantSignalFound: targetingState.relevantSignalFound,
       resolvedRelevantKeys: targetingState.resolvedKeys,
       unresolvedRelevantKeys: targetingState.unresolvedKeys,
-      stabilityPolls,
+      stabilityPolls: blockingStabilityPolls,
+      blockingKeys: targetingState.blockingKeys,
+      resolvedBlockingKeys: targetingState.resolvedBlockingKeys,
+      unresolvedBlockingKeys: targetingState.unresolvedBlockingKeys,
+      inclusionKeys: targetingState.inclusionKeys,
+      blockingSignalFound: targetingState.blockingSignalFound,
+      blockingGptSlotSignalFound: targetingState.blockingGptSlotSignalFound,
+      blockingStabilityPolls,
       readinessBasis,
       blockedEarly,
       timedOut,
@@ -1879,6 +2005,13 @@ class IntextManager {
       resolvedRelevantKeys: result.resolvedRelevantKeys,
       unresolvedRelevantKeys: result.unresolvedRelevantKeys,
       stabilityPolls: result.stabilityPolls,
+      blockingKeys: result.blockingKeys,
+      resolvedBlockingKeys: result.resolvedBlockingKeys,
+      unresolvedBlockingKeys: result.unresolvedBlockingKeys,
+      inclusionKeys: result.inclusionKeys,
+      blockingSignalFound: result.blockingSignalFound,
+      blockingGptSlotSignalFound: result.blockingGptSlotSignalFound,
+      blockingStabilityPolls: result.blockingStabilityPolls,
       readinessBasis: result.readinessBasis,
       scoped: result.scoped,
     });
