@@ -95,6 +95,43 @@ function slot(id, targeting = {}) {
   };
 }
 
+function createArticleRoot(fixture, slotId, urlSuffix) {
+  const slotElement = fixture.elements.get(slotId);
+  return {
+    contains: (element) => element === slotElement,
+    dataset: { url: `https://www.elmundo.es/${urlSuffix}` },
+    querySelector: () => null,
+  };
+}
+
+async function runContinuousArticleFlow(fixture, rootElement) {
+  const { manager } = fixture;
+  manager.baseSiteConfig = {
+    infiniteScroll: {},
+    exclusions: { keyValues: { isPremium: ['1', 'true'] } },
+  };
+  manager.siteConfig = manager.baseSiteConfig;
+  manager.resolveIntextRequestNetworkId = () => '99071977';
+  manager.resolveIntextDisplayAdUnitPath = () => 'mun/cultura/n';
+  manager.getIntextNetworkOverride = () => null;
+  manager.resolveScopedIntextNewsIdentity = async () => ({ newsId: 'article-b' });
+  manager.captureIntextContentIdentity = () => ({ newsId: 'article-b' });
+  manager.detectContentType = () => 'noticia';
+  manager.shouldBlockIntextByFallbackBlankControl = () => false;
+  manager.createIntextPositionsScoped = () => ({ result: 'created', found: 1, created: 1 });
+  manager.registerIntextManagerDecision = () => true;
+
+  let scopedRuleContext = null;
+  const isBlockedByExclusions = manager.isBlockedByExclusions.bind(manager);
+  manager.isBlockedByExclusions = (context) => {
+    scopedRuleContext = context;
+    return isBlockedByExclusions(context);
+  };
+
+  const result = await manager.onNewArticleDetected(rootElement, 1);
+  return { result, scopedRuleContext };
+}
+
 test('normaliza escalares, CSV, arrays anidados, duplicados y conserva el valor vacio', () => {
   const { manager } = createFixture();
   assert.deepEqual(Array.from(manager.normalizeIntextRuleTargetingValues([undefined, null, true, 1, 'a,b', ['1', 'true'], ''])), ['true', '1', 'a', 'b', '']);
@@ -154,13 +191,44 @@ test('context, data, ueDFPData, page GPT, slot, ueDataLayer y utag_data forman u
   assert.deepEqual(Array.from(resolved.values), ['context', 'data', 'uedfp', 'page', 'slot', 'uedl', 'utag']);
 });
 
-test('navegacion continua limita slots al root del articulo', () => {
-  const slotA = slot('article-a', { isPremium: ['0'] });
-  const slotB = slot('article-b', { isPremium: ['1'] });
-  const fixture = createFixture({ slots: [slotA, slotB] });
-  const elementB = fixture.elements.get('article-b');
-  const rootB = { contains: (element) => element === elementB };
-  const resolved = fixture.manager.resolveIntextRuleTargeting('isPremium', { rootElement: rootB, targeting: {} });
+test('flujo real de navegacion continua conserva root no enumerable y no mezcla A premium en B', async () => {
+  const fixture = createFixture({
+    slots: [
+      slot('article-a', { isPremium: ['1'] }),
+      slot('article-b', { isPremium: ['0'] }),
+    ],
+  });
+  const rootB = createArticleRoot(fixture, 'article-b', 'article-b');
+  const { result, scopedRuleContext } = await runContinuousArticleFlow(fixture, rootB);
+  const resolved = fixture.manager.resolveIntextRuleTargeting('isPremium', scopedRuleContext);
+
+  assert.equal(result.decision, 'allowed');
+  assert.equal(scopedRuleContext.rootElement, rootB);
+  assert.equal(Object.keys(scopedRuleContext).includes('rootElement'), false);
+  assert.deepEqual(
+    Object.getOwnPropertyDescriptor(scopedRuleContext, 'rootElement'),
+    { value: rootB, enumerable: false, configurable: false, writable: false },
+  );
+  assert.deepEqual(Array.from(resolved.values), ['0']);
+  assert.equal(resolved.scoped, true);
+  assert.equal(resolved.slotsChecked, 1);
+  assert.equal(resolved.slotsMatched, 1);
+});
+
+test('flujo real de navegacion continua bloquea B premium sin mezclar A no premium', async () => {
+  const fixture = createFixture({
+    slots: [
+      slot('article-a', { isPremium: ['0'] }),
+      slot('article-b', { isPremium: ['1'] }),
+    ],
+  });
+  const rootB = createArticleRoot(fixture, 'article-b', 'article-b');
+  const { result, scopedRuleContext } = await runContinuousArticleFlow(fixture, rootB);
+  const resolved = fixture.manager.resolveIntextRuleTargeting('isPremium', scopedRuleContext);
+
+  assert.equal(result.decision, 'excluded');
+  assert.equal(scopedRuleContext.rootElement, rootB);
+  assert.equal(Object.keys(scopedRuleContext).includes('rootElement'), false);
   assert.deepEqual(Array.from(resolved.values), ['1']);
   assert.equal(resolved.scoped, true);
   assert.equal(resolved.slotsChecked, 1);
@@ -200,6 +268,38 @@ test('PIP exclusions resuelven targeting nativo por la misma logica canonica', (
   node.config.video.pip.exclusions.enabled = false;
   node.config.video.pip.inclusions = { enabled: true, keyValues: { isPremium: ['1'] } };
   assert.equal(node.isIntextPipAllowedByInclusions().allowed, true);
+});
+
+test('PIP scoped usa solo los slots del articulo B en ambos sentidos premium', async () => {
+  for (const [targetingA, targetingB, expectedBlocked] of [
+    ['1', '0', false],
+    ['0', '1', true],
+  ]) {
+    const fixture = createFixture({
+      slots: [
+        slot('article-a', { isPremium: [targetingA] }),
+        slot('article-b', { isPremium: [targetingB] }),
+      ],
+    });
+    const rootB = createArticleRoot(fixture, 'article-b', `article-b-${targetingB}`);
+    const { scopedRuleContext } = await runContinuousArticleFlow(fixture, rootB);
+    const node = Object.create(fixture.context.IntextNode.prototype);
+    node.manager = fixture.manager;
+    node.config = {
+      video: {
+        pip: {
+          enabled: true,
+          exclusions: {
+            enabled: true,
+            keyValues: { isPremium: ['1', 'true'] },
+          },
+        },
+      },
+    };
+    node.scopedContext = scopedRuleContext;
+
+    assert.equal(node.isIntextPipBlockedByExclusions().blocked, expectedBlocked);
+  }
 });
 
 test('fallback getTargetingMap se usa cuando getTargeting esta vacio', () => {

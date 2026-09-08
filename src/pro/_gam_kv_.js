@@ -4517,6 +4517,12 @@ class IntextManager {
       pageUrl,
       hostname,
     };
+    Object.defineProperty(scopedContext, "rootElement", {
+      value: rootElement,
+      enumerable: false,
+      configurable: false,
+      writable: false,
+    });
     scopedContext.networkId = this.resolveIntextRequestNetworkId(scopedContext);
     scopedContext.adUnitPath = this.resolveIntextDisplayAdUnitPath(scopedContext);
 
@@ -5166,6 +5172,12 @@ class IntextManager {
       intextContentIdentity: contentIdentity,
       siteConfig: scrollConfig,
     };
+    Object.defineProperty(scopedRuleContext, "rootElement", {
+      value: scopedContext.rootElement,
+      enumerable: false,
+      configurable: false,
+      writable: false,
+    });
 
     if (this.isBlockedByExclusions(scopedRuleContext)) {
       logIntext(
@@ -12364,8 +12376,6 @@ class IntextWaterfall {
       const pb = resolution.api;
       return Boolean(pb && typeof pb.requestBids === "function" && pb.que && typeof pb.que.push === "function" && (!aliasesRequired || typeof pb.aliasBidder === "function"));
     };
-    Object.defineProperty(scopedContext, "rootElement", { value: rootElement, enumerable: false });
-
     if (isReady()) return Promise.resolve(true);
 
     logIntext(

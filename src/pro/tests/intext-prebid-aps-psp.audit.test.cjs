@@ -150,6 +150,23 @@ test('normal and PSP resolvers select only the intended real APIs', () => {
   }
 });
 
+test('waitForPbjsAvailability executes with immediately available normal and PSP PBJS', async () => {
+  for (const psp of [false, true]) {
+    const slot = createSlot();
+    const realPbjs = createRealPbjs([], slot);
+    const window = psp
+      ? { pbjs: { __ctrl: { baseObj: { que: [], requestBids() {} }, realObj: realPbjs } } }
+      : { pbjs: realPbjs };
+    const { Manager, Waterfall } = loadRuntime(window);
+    const manager = createManager(Manager);
+    const waterfall = createWaterfall(Waterfall, manager, slot);
+
+    assert.equal(await waterfall.waitForPbjsAvailability({ code: 'gexp-intext' }), true);
+    assert.equal(manager.resolveIntextPrebidApi().api, realPbjs);
+    assert.equal(manager.resolveIntextPrebidApi().source, psp ? '__ctrl.realObj' : 'window.pbjs');
+  }
+});
+
 test('PSP Prebid auction uses realObj, preserves alias order and applies hb targeting', async () => {
   const order = [];
   const slot = createSlot();
@@ -192,6 +209,7 @@ test('PSP Prebid waits for late realObj and never treats baseObj as ready', asyn
   const waterfall = createWaterfall(Waterfall, manager, slot);
   setTimeout(() => { window.pbjs.__ctrl.realObj = realPbjs; }, 5);
   assert.equal(await waterfall.waitForPbjsAvailability({ code: 'gexp-intext' }), true);
+  assert.equal(manager.resolveIntextPrebidApi().source, '__ctrl.realObj');
   await waterfall.executePrebid({ code: 'gexp-intext', mediaTypes: { banner: {} } });
   assert.ok(order.includes('requestBids'));
   assert.deepEqual(baseCalls, []);
@@ -363,4 +381,14 @@ test('core direct references are limited to resolver detection and diagnostics',
   assert.equal((manager.match(/window\.apstag/g) || []).length, 2);
   assert.doesNotMatch(waterfall, /window\.(?:pbjs|apstag)/);
   assert.doesNotMatch(waterfall, /__ctrl\.baseObj/);
+});
+
+test('waitForPbjsAvailability contains no accidental scoped-context references', () => {
+  const waterfall = between(source, 'class IntextWaterfall', 'class IntextVideoCreative');
+  const waitForAvailability = between(
+    waterfall,
+    '  waitForPbjsAvailability(configuration) {',
+    '  waitForPrebidGlobalInitFlag(configuration) {',
+  );
+  assert.doesNotMatch(waitForAvailability, /scopedContext|rootElement|Object\.defineProperty/);
 });
