@@ -95,20 +95,33 @@ function slot(id, targeting = {}) {
   };
 }
 
-function createArticleRoot(fixture, slotId, urlSuffix) {
-  const slotElement = fixture.elements.get(slotId);
+function createArticleRoot(fixture, slotIds, urlSuffix) {
+  const slotElements = new Set(
+    (Array.isArray(slotIds) ? slotIds : [slotIds]).map((slotId) => fixture.elements.get(slotId)),
+  );
   return {
-    contains: (element) => element === slotElement,
+    contains: (element) => slotElements.has(element),
     dataset: { url: `https://www.elmundo.es/${urlSuffix}` },
     querySelector: () => null,
   };
 }
 
-async function runContinuousArticleFlow(fixture, rootElement) {
-  const { manager } = fixture;
+async function runContinuousArticleFlow(fixture, rootElement, { createNode = false, managerExclusions = true } = {}) {
+  const { manager, context } = fixture;
   manager.baseSiteConfig = {
     infiniteScroll: {},
-    exclusions: { keyValues: { isPremium: ['1', 'true'] } },
+    ...(managerExclusions
+      ? { exclusions: { keyValues: { isPremium: ['1', 'true'] } } }
+      : {}),
+    video: {
+      pip: {
+        enabled: true,
+        exclusions: {
+          enabled: true,
+          keyValues: { isPremium: ['1', 'true'] },
+        },
+      },
+    },
   };
   manager.siteConfig = manager.baseSiteConfig;
   manager.resolveIntextRequestNetworkId = () => '99071977';
@@ -118,8 +131,34 @@ async function runContinuousArticleFlow(fixture, rootElement) {
   manager.captureIntextContentIdentity = () => ({ newsId: 'article-b' });
   manager.detectContentType = () => 'noticia';
   manager.shouldBlockIntextByFallbackBlankControl = () => false;
-  manager.createIntextPositionsScoped = () => ({ result: 'created', found: 1, created: 1 });
   manager.registerIntextManagerDecision = () => true;
+
+  if (createNode) {
+    const parentNode = {
+      insertBefore(node) { node.parentNode = this; },
+    };
+    const placement = {
+      paragraph: { parentNode, nextSibling: null },
+    };
+    context.IntextPlacementEngine = class {
+      findPlacements() { return [placement]; }
+    };
+    context.IntextContainer = class {
+      constructor(element) { this.element = element; }
+    };
+    context.IntextNode.prototype.initialize = function initialize() {};
+    manager.createWrapperNode = (index, type, suffix) => ({
+      id: `gexp-intext-${type}-${index}${suffix}`,
+      dataset: {},
+      parentNode,
+      nextSibling: null,
+    });
+    manager.getSlotOverridesForNode = () => null;
+    manager.nodes = [];
+    manager._navContinuaNodes = [];
+  } else {
+    manager.createIntextPositionsScoped = () => ({ result: 'created', found: 1, created: 1 });
+  }
 
   let scopedRuleContext = null;
   const isBlockedByExclusions = manager.isBlockedByExclusions.bind(manager);
@@ -129,7 +168,7 @@ async function runContinuousArticleFlow(fixture, rootElement) {
   };
 
   const result = await manager.onNewArticleDetected(rootElement, 1);
-  return { result, scopedRuleContext };
+  return { result, scopedRuleContext, node: manager.nodes?.[0] || null };
 }
 
 test('normaliza escalares, CSV, arrays anidados, duplicados y conserva el valor vacio', () => {
@@ -160,7 +199,10 @@ test('page-only permite inclusion y slot-only tambien', () => {
 
 test('page y todos los slots se unen y deduplican sin prioridad destructiva', () => {
   const { manager } = createFixture({ page: { foo: ['a'] }, slots: [slot('a', { foo: ['b'] }), slot('b', { foo: ['b', 'c'] }), slot('c')] });
-  assert.deepEqual(Array.from(manager.resolveIntextRuleTargeting('foo').values), ['a', 'b', 'c']);
+  const resolved = manager.resolveIntextRuleTargeting('foo');
+  assert.deepEqual(Array.from(resolved.values), ['a', 'b', 'c']);
+  assert.equal(resolved.scoped, false);
+  assert.equal(resolved.slotsChecked, 3);
   manager.siteConfig = { exclusions: { keyValues: { foo: ['b'] } }, inclusions: { keyValues: { foo: ['a'] } } };
   assert.equal(manager.isBlockedByExclusions(), true);
   assert.equal(manager.isAllowedByInclusions(), true);
@@ -270,36 +312,89 @@ test('PIP exclusions resuelven targeting nativo por la misma logica canonica', (
   assert.equal(node.isIntextPipAllowedByInclusions().allowed, true);
 });
 
-test('PIP scoped usa solo los slots del articulo B en ambos sentidos premium', async () => {
-  for (const [targetingA, targetingB, expectedBlocked] of [
-    ['1', '0', false],
-    ['0', '1', true],
-  ]) {
-    const fixture = createFixture({
-      slots: [
-        slot('article-a', { isPremium: [targetingA] }),
-        slot('article-b', { isPremium: [targetingB] }),
-      ],
-    });
-    const rootB = createArticleRoot(fixture, 'article-b', `article-b-${targetingB}`);
-    const { scopedRuleContext } = await runContinuousArticleFlow(fixture, rootB);
-    const node = Object.create(fixture.context.IntextNode.prototype);
-    node.manager = fixture.manager;
-    node.config = {
-      video: {
-        pip: {
-          enabled: true,
-          exclusions: {
-            enabled: true,
-            keyValues: { isPremium: ['1', 'true'] },
-          },
-        },
-      },
-    };
-    node.scopedContext = scopedRuleContext;
+test('flujo real propaga root no enumerable hasta IntextNode y PIP B no hereda A premium', async () => {
+  const fixture = createFixture({
+    slots: [
+      slot('article-a', { isPremium: ['1'] }),
+      slot('article-b', { isPremium: ['0'] }),
+    ],
+  });
+  const rootB = createArticleRoot(fixture, 'article-b', 'article-b-node');
+  const { result, node } = await runContinuousArticleFlow(
+    fixture,
+    rootB,
+    { createNode: true, managerExclusions: false },
+  );
+  assert.equal(result.decision, 'allowed');
+  assert.ok(node instanceof fixture.context.IntextNode);
+  assert.equal(node.scopedContext.rootElement, rootB);
+  assert.equal(Object.keys(node.scopedContext).includes('rootElement'), false);
+  assert.deepEqual(
+    Object.getOwnPropertyDescriptor(node.scopedContext, 'rootElement'),
+    { value: rootB, enumerable: false, configurable: false, writable: false },
+  );
 
-    assert.equal(node.isIntextPipBlockedByExclusions().blocked, expectedBlocked);
-  }
+  let pipResolution = null;
+  const resolveIntextRuleTargeting = fixture.manager.resolveIntextRuleTargeting.bind(fixture.manager);
+  fixture.manager.resolveIntextRuleTargeting = (key, context) => {
+    const resolution = resolveIntextRuleTargeting(key, context);
+    if (key === 'isPremium') pipResolution = resolution;
+    return resolution;
+  };
+  assert.equal(node.isIntextPipBlockedByExclusions().blocked, false);
+  assert.deepEqual(Array.from(pipResolution.values), ['0']);
+  assert.equal(pipResolution.scoped, true);
+  assert.equal(pipResolution.slotsChecked, 1);
+});
+
+test('PIP del IntextNode real bloquea B premium sin heredar A no premium', async () => {
+  const fixture = createFixture({
+    slots: [
+      slot('article-a', { isPremium: ['0'] }),
+      slot('article-b', { isPremium: ['1'] }),
+    ],
+  });
+  const rootB = createArticleRoot(fixture, 'article-b', 'article-b-premium-node');
+  const { node } = await runContinuousArticleFlow(
+    fixture,
+    rootB,
+    { createNode: true, managerExclusions: false },
+  );
+
+  let pipResolution = null;
+  const resolveIntextRuleTargeting = fixture.manager.resolveIntextRuleTargeting.bind(fixture.manager);
+  fixture.manager.resolveIntextRuleTargeting = (key, context) => {
+    const resolution = resolveIntextRuleTargeting(key, context);
+    if (key === 'isPremium') pipResolution = resolution;
+    return resolution;
+  };
+  assert.equal(node.isIntextPipBlockedByExclusions().blocked, true);
+  assert.deepEqual(Array.from(pipResolution.values), ['1']);
+  assert.equal(pipResolution.scoped, true);
+  assert.equal(pipResolution.slotsChecked, 1);
+});
+
+test('IntextNode scoped consulta todos los slots de B y ninguno fuera del root', async () => {
+  const fixture = createFixture({
+    slots: [
+      slot('article-a', { segment: ['outside'], isPremium: ['0'] }),
+      slot('article-b-1', { segment: ['sports'] }),
+      slot('article-b-2', { isPremium: ['1'] }),
+    ],
+  });
+  const rootB = createArticleRoot(fixture, ['article-b-1', 'article-b-2'], 'article-b-multi-slot');
+  const { node } = await runContinuousArticleFlow(
+    fixture,
+    rootB,
+    { createNode: true, managerExclusions: false },
+  );
+  const segment = fixture.manager.resolveIntextRuleTargeting('segment', node.scopedContext);
+  const premium = fixture.manager.resolveIntextRuleTargeting('isPremium', node.scopedContext);
+
+  assert.deepEqual(Array.from(segment.values), ['sports']);
+  assert.deepEqual(Array.from(premium.values), ['1']);
+  assert.equal(segment.slotsChecked, 2);
+  assert.equal(premium.slotsChecked, 2);
 });
 
 test('fallback getTargetingMap se usa cuando getTargeting esta vacio', () => {

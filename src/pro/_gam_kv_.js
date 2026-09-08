@@ -5307,6 +5307,19 @@ class IntextManager {
           `[IntextManager:NavContinua] navIndex=${navIndex} Slot ${index} (${displayWrapper.id}): ENABLED (mode: ${nodeConfig.decision?.mode || 'auto'})`
         );
 
+        const nodeScopedContext = {
+          ...(scopedContext || {}),
+          navIndex,
+        };
+        if (scopedContext?.rootElement) {
+          Object.defineProperty(nodeScopedContext, "rootElement", {
+            value: scopedContext.rootElement,
+            enumerable: false,
+            configurable: false,
+            writable: false,
+          });
+        }
+
         const node = new IntextNode({
           id: displayWrapper.id,
           videoId: videoWrapper.id,
@@ -5317,10 +5330,7 @@ class IntextManager {
           placement,
           slotIndex: index,
           navIndex: navIndex,
-          scopedContext: {
-            ...(scopedContext || {}),
-            navIndex,
-          },
+          scopedContext: nodeScopedContext,
         });
         displayContainer.ownerNode = node;
         videoContainer.ownerNode = node;
