@@ -16,6 +16,7 @@ function between(text, start, end) {
 
 function createFixture({ psp = false, pubadsReady = true, page = {}, slots = [], dataTargeting = {}, ueDfpTargeting = {}, ueTargeting = {}, utagTargeting = {} } = {}) {
   const elements = new Map();
+  const logs = [];
   slots.forEach((slot) => elements.set(slot.getSlotElementId(), { slot }));
   const pubads = {
     getSlots: () => slots,
@@ -64,7 +65,7 @@ function createFixture({ psp = false, pubadsReady = true, page = {}, slots = [],
     URLSearchParams,
     setTimeout,
     clearTimeout,
-    logIntext() {},
+    logIntext(...args) { logs.push(args); },
     warnIntext() {},
     errorIntext() {},
     intextDebugCollector: { attachManager() {}, recordTimeline() {}, recordMetric() {} },
@@ -82,7 +83,7 @@ function createFixture({ psp = false, pubadsReady = true, page = {}, slots = [],
   manager.gexp = { getRandom: () => '19' };
   manager.intextRandomSnapshot = Object.freeze({ random1: '8', random2: '2', random3: '3', random4: '4', source: 'gexp-slot-random-snapshot' });
   manager.intextQaCookieOverride = { enabled: false, forceExclusions: false };
-  return { manager, context, window, document, elements, realGpt, pubads, slots };
+  return { manager, context, window, document, elements, realGpt, pubads, slots, logs };
 }
 
 function slot(id, targeting = {}) {
@@ -438,9 +439,19 @@ test('hotfix PSP reproduce elmundo: espera 400ms, reevalua premium y no adelanta
 
   assert.equal(blocked, true);
   assert.equal(elapsed, 400);
-  assert.equal(waitCalls, 8);
+  assert.equal(waitCalls, 16);
   assert.equal(inclusionsChecked, 0);
   assert.deepEqual(sideEffects, { nodes: 0, display: 0, prebid: 0, aps: 0, video: 0 });
+  const startedLog = fixture.logs.find(([message]) => message.includes('intext_rule_targeting_wait_started'));
+  const completedLog = fixture.logs.find(([message]) => message.includes('intext_rule_targeting_wait_completed'));
+  const finalLog = fixture.logs.find(([message]) => message.includes('intext_rule_targeting_final_recheck'));
+  assert.equal(startedLog[1].pollMs, 25);
+  assert.equal(startedLog[1].maxWaitMs, 600);
+  assert.deepEqual(Array.from(startedLog[1].relevantKeys), ['isPremium']);
+  assert.equal(completedLog[1].reason, 'exclusion-match');
+  assert.equal(completedLog[1].elapsedMs, 400);
+  assert.equal(finalLog[1].blocked, true);
+  assert.equal(finalLog[1].elapsedWaitMs, 400);
 });
 
 test('hotfix PSP no premium hace recheck final y despues permite inclusions', async () => {
@@ -455,17 +466,17 @@ test('hotfix PSP no premium hace recheck final y despues permite inclusions', as
     now: () => elapsed,
     wait: async (delayMs) => {
       elapsed += delayMs;
-      if (elapsed === 400) {
+      if (elapsed === 125) fixture.window.ueDataLayer.isPremium = false;
+      if (elapsed === 175) {
         fixture.realGpt.pubadsReady = true;
         fixture.slots.push(slot('SelectorBased-slot-safe', { isPremium: ['0'] }));
-        fixture.window.ueDataLayer.isPremium = false;
       }
     },
   });
 
   assert.equal(await fixture.manager.isBlockedByExclusionsAfterTargetingReady(), false);
   assert.equal(fixture.manager.isAllowedByInclusions(), true);
-  assert.equal(elapsed, 400);
+  assert.equal(elapsed, 175);
 });
 
 test('helper PSP ya ready resuelve en la primera iteracion', async () => {
@@ -480,6 +491,21 @@ test('helper PSP ya ready resuelve en la primera iteracion', async () => {
   assert.equal(result.ready, true);
   assert.equal(result.reason, 'native-slots-ready');
   assert.equal(result.nativeSlots, 8);
+  assert.equal(result.elapsedMs, 0);
+  assert.equal(waitCalls, 0);
+});
+
+test('pagina inicial acepta pubadsReady sin slots con recheck inmediato', async () => {
+  const fixture = createFixture({ psp: true, pubadsReady: true, slots: [] });
+  fixture.manager.siteConfig = { exclusions: { keyValues: { isPremium: ['1'] } } };
+  let waitCalls = 0;
+  const result = await fixture.manager.waitForIntextRuleTargetingReady(null, {
+    now: () => 0,
+    wait: async () => { waitCalls += 1; },
+  });
+
+  assert.equal(result.reason, 'pubads-ready');
+  assert.equal(result.finalRecheckRequired, true);
   assert.equal(result.elapsedMs, 0);
   assert.equal(waitCalls, 0);
 });
@@ -500,7 +526,7 @@ test('helper sin PSP no hace polling', async () => {
 test('helper PSP con reglas solo random no hace polling', async () => {
   const fixture = createFixture({ psp: true, pubadsReady: null });
   fixture.manager.siteConfig = {
-    exclusions: { keyValues: {} },
+    exclusions: { keyValues: { random2: ['2'] } },
     inclusions: { keyValues: { random1: ['8'] } },
   };
   let waitCalls = 0;
@@ -513,7 +539,7 @@ test('helper PSP con reglas solo random no hace polling', async () => {
   assert.equal(waitCalls, 0);
 });
 
-test('timeout PSP termina a 1200ms, hace recheck y conserva fail-open', async () => {
+test('timeout PSP termina a 600ms, hace recheck y conserva fail-open', async () => {
   const fixture = createFixture({ psp: true, pubadsReady: null });
   fixture.manager.siteConfig = {
     exclusions: { keyValues: { isPremium: ['1'] } },
@@ -535,7 +561,7 @@ test('timeout PSP termina a 1200ms, hace recheck y conserva fail-open', async ()
   assert.equal(fixture.manager.isAllowedByInclusions(), true);
   assert.equal(timeoutResult.reason, 'timeout');
   assert.equal(timeoutResult.timedOut, true);
-  assert.equal(elapsed, 1200);
+  assert.equal(elapsed, 600);
   assert.equal(polls, 24);
 });
 
@@ -574,7 +600,7 @@ test('navegacion continua espera el slot de B y no consulta el premium de A', as
     now: () => elapsed,
     wait: async (delayMs) => {
       elapsed += delayMs;
-      if (elapsed === 300) {
+      if (elapsed === 250) {
         fixture.elements.set('article-b-late-test', elementB);
         fixture.slots.push(slot('article-b-late-test', { isPremium: ['1'] }));
       }
@@ -582,5 +608,159 @@ test('navegacion continua espera el slot de B y no consulta el premium de A', as
   });
 
   assert.equal(await fixture.manager.isBlockedByExclusionsAfterTargetingReady(scopedContext), true);
-  assert.equal(elapsed, 300);
+  assert.equal(elapsed, 250);
 });
+
+test('extrae keys non-random de exclusions, inclusions y disableSlots sin duplicados', () => {
+  const fixture = createFixture({ psp: true, pubadsReady: null });
+  fixture.manager.siteConfig = {
+    exclusions: {
+      keyValues: { newsid: ['1'], random1: ['8'], tag: ['blocked'] },
+      disableSlots: {
+        rules: [
+          { slots: [0], ifKeyValues: { t: ['x'], tag: ['blocked'], random2: ['2'] } },
+          { slots: [1], ifKeyValues: { isPremium: ['1'] } },
+        ],
+      },
+    },
+    inclusions: { keyValues: { section: ['sports'], random3: ['3'] } },
+  };
+
+  assert.deepEqual(
+    Array.from(fixture.manager.getIntextRelevantNonRandomRuleKeys()),
+    ['newsid', 'tag', 'section', 't', 'isPremium'],
+  );
+});
+
+test('exclusion disponible en el fast path bloquea sin invocar el wait', async () => {
+  const fixture = createFixture({ psp: true, pubadsReady: null, ueTargeting: { isPremium: true } });
+  fixture.manager.siteConfig = { exclusions: { keyValues: { isPremium: ['1', 'true'] } } };
+  let waits = 0;
+  fixture.manager.waitForIntextRuleTargetingReady = async () => { waits += 1; throw new Error('unexpected wait'); };
+
+  assert.equal(await fixture.manager.isBlockedByExclusionsAfterTargetingReady(), true);
+  assert.equal(waits, 0);
+});
+
+test('DataLayer premium tardio bloquea early a 75ms sin esperar GPT', async () => {
+  const fixture = createFixture({ psp: true, pubadsReady: null });
+  fixture.manager.siteConfig = { exclusions: { keyValues: { isPremium: ['1', 'true'] } } };
+  let elapsed = 0;
+  const result = await fixture.manager.waitForIntextRuleTargetingReady(null, {
+    now: () => elapsed,
+    wait: async (delayMs) => {
+      elapsed += delayMs;
+      if (elapsed === 75) fixture.window.ueDataLayer.isPremium = true;
+    },
+  });
+
+  assert.equal(result.reason, 'exclusion-match');
+  assert.equal(result.blockedEarly, true);
+  assert.equal(result.relevantSignalFound, true);
+  assert.equal(result.elapsedMs, 75);
+});
+
+test('slot-only premium tardio bloquea a 175ms', async () => {
+  const fixture = createFixture({ psp: true, pubadsReady: null });
+  fixture.manager.siteConfig = { exclusions: { keyValues: { isPremium: ['1'] } } };
+  let elapsed = 0;
+  const result = await fixture.manager.waitForIntextRuleTargetingReady(null, {
+    now: () => elapsed,
+    wait: async (delayMs) => {
+      elapsed += delayMs;
+      if (elapsed === 175) fixture.slots.push(slot('slot-only-premium', { isPremium: ['1'] }));
+    },
+  });
+
+  assert.equal(result.reason, 'exclusion-match');
+  assert.equal(result.elapsedMs, 175);
+});
+
+test('false temprano no permite antes de que un slot premium aparezca a 200ms', async () => {
+  const fixture = createFixture({ psp: true, pubadsReady: null });
+  fixture.manager.siteConfig = {
+    exclusions: { keyValues: { isPremium: ['1', 'true'] } },
+    inclusions: { keyValues: { random1: ['8'] } },
+  };
+  let elapsed = 0;
+  const originalWait = fixture.manager.waitForIntextRuleTargetingReady.bind(fixture.manager);
+  fixture.manager.waitForIntextRuleTargetingReady = (context) => originalWait(context, {
+    now: () => elapsed,
+    wait: async (delayMs) => {
+      elapsed += delayMs;
+      if (elapsed === 50) fixture.window.ueDataLayer.isPremium = false;
+      if (elapsed === 200) fixture.slots.push(slot('conflicting-premium', { isPremium: ['1'] }));
+    },
+  });
+
+  assert.equal(await fixture.manager.isBlockedByExclusionsAfterTargetingReady(), true);
+  assert.equal(elapsed, 200);
+  assert.deepEqual(Array.from(fixture.manager.resolveIntextRuleTargeting('isPremium').values), ['1', 'false']);
+});
+
+test('key editorial tag tardia usa el mismo gate sin hardcode de premium', async () => {
+  const fixture = createFixture({ psp: true, pubadsReady: null });
+  fixture.manager.siteConfig = { exclusions: { keyValues: { tag: ['bloqueo-publi'] } } };
+  let elapsed = 0;
+  const result = await fixture.manager.waitForIntextRuleTargetingReady(null, {
+    now: () => elapsed,
+    wait: async (delayMs) => {
+      elapsed += delayMs;
+      if (elapsed === 125) fixture.window.utag_data.tag = 'bloqueo-publi';
+    },
+  });
+
+  assert.deepEqual(Array.from(result.relevantKeys), ['tag']);
+  assert.equal(result.reason, 'exclusion-match');
+  assert.equal(result.elapsedMs, 125);
+});
+
+test('scoped ignora pubadsReady global hasta tener slots del articulo B', async () => {
+  const fixture = createFixture({ psp: true, pubadsReady: true, slots: [slot('article-a-global')] });
+  fixture.manager.siteConfig = { exclusions: { keyValues: { isPremium: ['1'] } } };
+  const elementB = {};
+  const rootB = { contains: (element) => element === elementB };
+  let elapsed = 0;
+  const result = await fixture.manager.waitForIntextRuleTargetingReady({ rootElement: rootB }, {
+    now: () => elapsed,
+    wait: async (delayMs) => {
+      elapsed += delayMs;
+      if (elapsed === 250) {
+        fixture.elements.set('article-b-safe', elementB);
+        fixture.slots.push(slot('article-b-safe', { isPremium: ['0'] }));
+      }
+    },
+  });
+
+  assert.equal(result.reason, 'native-slots-ready');
+  assert.equal(result.scoped, true);
+  assert.equal(result.nativeSlots, 1);
+  assert.equal(result.elapsedMs, 250);
+});
+
+test('el gate es unico antes de dos nodos y ninguna request cruza el boundary', () => {
+  const initialFlow = between(
+    source,
+    'if (await this.isBlockedByExclusionsAfterTargetingReady())',
+    'const placement = this.createIntextPositions();',
+  );
+  const createFlow = between(source, 'createIntextPositions() {', 'createWrapperNode(');
+  assert.equal((initialFlow.match(/isBlockedByExclusionsAfterTargetingReady/g) || []).length, 1);
+  assert.doesNotMatch(createFlow, /waitForIntextRuleTargetingReady/);
+  assert.doesNotMatch(initialFlow, /requestBids|fetchBids|\.display\(|\.refresh\(|buildAndPlayVideo/);
+  assert.ok(initialFlow.indexOf('isAllowedByInclusions') > initialFlow.indexOf('isBlockedByExclusionsAfterTargetingReady'));
+});
+
+test('readiness y P3 no leen sessionStorage ni datos de suscriptor', () => {
+  const methods = [
+    fixtureMethod('resolveIntextRuleTargeting'),
+    fixtureMethod('waitForIntextRuleTargetingReady'),
+    fixtureMethod('getIntextRelevantNonRandomRuleKeys'),
+  ].join('\n');
+  assert.doesNotMatch(methods, /sessionStorage|paymentSubscriptions|subscriptionPortals|\bpids\b|\buid\b/);
+});
+
+function fixtureMethod(name) {
+  const fixture = createFixture();
+  return fixture.manager[name].toString();
+}

@@ -2512,8 +2512,8 @@ const INTEXT_TELEMETRY_STANDARD_FIELDS = Object.freeze([
 ]);
 
 class IntextManager {
-  static INTEXT_RULE_TARGETING_READY_TIMEOUT_MS = 1200;
-  static INTEXT_RULE_TARGETING_READY_POLL_MS = 50;
+  static INTEXT_RULE_TARGETING_READY_MAX_WAIT_MS = 600;
+  static INTEXT_RULE_TARGETING_READY_POLL_MS = 25;
 
   constructor(config, gexpInstance) {
     this.config = config;
@@ -3144,30 +3144,55 @@ class IntextManager {
     } catch (e) { return []; }
   }
 
-  hasNonRandomIntextRuleTargeting(context = null) {
+  getIntextRelevantNonRandomRuleKeys(context = null) {
     const hostname = this.getHostnameNormalized(context?.hostname || this.siteContext?.site);
-    const blocks = [
-      this.resolveScopedRuleBlock(
-        context?.siteConfig?.exclusions || this.siteConfig?.exclusions,
-        hostname,
-      ),
-      this.resolveScopedRuleBlock(
-        context?.siteConfig?.inclusions || this.siteConfig?.inclusions,
-        hostname,
-      ),
-    ];
-    return blocks.some((block) => Object.entries(block?.keyValues || {}).some(
-      ([key, values]) =>
-        !INTEXT_RANDOM_KEYS.includes(String(key)) &&
-        Array.isArray(values) &&
-        values.length > 0,
-    ));
+    const exclusions = this.resolveScopedRuleBlock(
+      context?.siteConfig?.exclusions || this.siteConfig?.exclusions,
+      hostname,
+    );
+    const inclusions = this.resolveScopedRuleBlock(
+      context?.siteConfig?.inclusions || this.siteConfig?.inclusions,
+      hostname,
+    );
+    const keys = [];
+    const addKeys = (keyValues) => {
+      Object.entries(keyValues || {}).forEach(([key, values]) => {
+        const normalizedKey = String(key);
+        if (
+          !INTEXT_RANDOM_KEYS.includes(normalizedKey) &&
+          Array.isArray(values) &&
+          values.length > 0 &&
+          !keys.includes(normalizedKey)
+        ) {
+          keys.push(normalizedKey);
+        }
+      });
+    };
+    addKeys(exclusions?.keyValues);
+    addKeys(inclusions?.keyValues);
+    if (Array.isArray(exclusions?.disableSlots?.rules)) {
+      exclusions.disableSlots.rules.forEach((rule) => addKeys(rule?.ifKeyValues));
+    }
+    return keys;
+  }
+
+  needsIntextRuleTargetingReadinessWait(context = null, state = {}) {
+    const resolution = state.resolution || this.resolveIntextGptApi();
+    const relevantKeys = state.relevantKeys || this.getIntextRelevantNonRandomRuleKeys(context);
+    if (resolution.pspDetected !== true || relevantKeys.length === 0) return false;
+    const nativeSlots = state.nativeSlots || this.getIntextNativeGptSlots(context?.rootElement || null);
+    if (nativeSlots.length > 0) return false;
+    if (!context?.rootElement && resolution.api?.pubadsReady === true) return false;
+    return true;
   }
 
   async waitForIntextRuleTargetingReady(context = null, options = {}) {
-    const timeoutMs = Number.isFinite(options.timeoutMs)
-      ? Math.max(0, options.timeoutMs)
-      : IntextManager.INTEXT_RULE_TARGETING_READY_TIMEOUT_MS;
+    const configuredMaxWaitMs = Number.isFinite(options.maxWaitMs)
+      ? options.maxWaitMs
+      : options.timeoutMs;
+    const maxWaitMs = Number.isFinite(configuredMaxWaitMs)
+      ? Math.max(0, configuredMaxWaitMs)
+      : IntextManager.INTEXT_RULE_TARGETING_READY_MAX_WAIT_MS;
     const pollMs = Number.isFinite(options.pollMs)
       ? Math.max(1, options.pollMs)
       : IntextManager.INTEXT_RULE_TARGETING_READY_POLL_MS;
@@ -3179,72 +3204,111 @@ class IntextManager {
     const rootElement = context?.rootElement || null;
     const startedAt = now();
     let resolution = this.resolveIntextGptApi();
+    const relevantKeys = this.getIntextRelevantNonRandomRuleKeys(context);
+    const baseResult = {
+      pspDetected: resolution.pspDetected === true,
+      relevantKeys,
+      relevantSignalFound: false,
+      blockedEarly: false,
+      scoped,
+      timedOut: false,
+      waitRequired: false,
+      finalRecheckRequired: false,
+    };
 
     if (resolution.pspDetected !== true) {
       return {
+        ...baseResult,
         ready: true,
         reason: "psp-not-detected",
         elapsedMs: 0,
-        pspDetected: false,
         pubadsReady: resolution.api?.pubadsReady === true,
         nativeSlots: 0,
-        scoped,
-        timedOut: false,
-        waitRequired: false,
       };
     }
-    if (!this.hasNonRandomIntextRuleTargeting(context)) {
+    if (relevantKeys.length === 0) {
       return {
+        ...baseResult,
         ready: true,
         reason: "no-external-targeting-rules",
         elapsedMs: 0,
-        pspDetected: true,
         pubadsReady: resolution.api?.pubadsReady === true,
         nativeSlots: 0,
-        scoped,
-        timedOut: false,
-        waitRequired: false,
       };
     }
 
     let nativeSlots = this.getIntextNativeGptSlots(rootElement);
+    let relevantSignalFound = relevantKeys.some(
+      (key) => this.resolveIntextRuleTargeting(key, context).values.length > 0,
+    );
+    if (!this.needsIntextRuleTargetingReadinessWait(context, {
+      resolution,
+      relevantKeys,
+      nativeSlots,
+    })) {
+      return {
+        ...baseResult,
+        ready: true,
+        reason: nativeSlots.length > 0 ? "native-slots-ready" : "pubads-ready",
+        elapsedMs: 0,
+        pubadsReady: resolution.api?.pubadsReady === true,
+        nativeSlots: nativeSlots.length,
+        relevantSignalFound,
+        finalRecheckRequired: true,
+      };
+    }
+
     logIntext(`[IntextManager] intext_rule_targeting_wait_started`, {
       pspDetected: true,
       scoped,
-      timeoutMs,
       pollMs,
+      maxWaitMs,
       initialPubadsReady: resolution.api?.pubadsReady === true,
       initialNativeSlots: nativeSlots.length,
+      relevantKeys,
     });
 
-    while (
-      nativeSlots.length === 0 &&
-      resolution.api?.pubadsReady !== true &&
-      now() - startedAt < timeoutMs
-    ) {
-      const remainingMs = timeoutMs - (now() - startedAt);
+    let reason = "timeout";
+    let blockedEarly = false;
+    while (now() - startedAt < maxWaitMs) {
+      const remainingMs = maxWaitMs - (now() - startedAt);
       await wait(Math.min(pollMs, remainingMs));
+      if (this.isBlockedByExclusions(context)) {
+        reason = "exclusion-match";
+        blockedEarly = true;
+        relevantSignalFound = true;
+        break;
+      }
       resolution = this.resolveIntextGptApi();
       nativeSlots = this.getIntextNativeGptSlots(rootElement);
+      if (nativeSlots.length > 0) {
+        reason = "native-slots-ready";
+        break;
+      }
+      if (!scoped && resolution.api?.pubadsReady === true) {
+        reason = "pubads-ready";
+        break;
+      }
     }
 
+    relevantSignalFound = relevantSignalFound || relevantKeys.some(
+      (key) => this.resolveIntextRuleTargeting(key, context).values.length > 0,
+    );
     const elapsedMs = Math.max(0, now() - startedAt);
     const pubadsReady = resolution.api?.pubadsReady === true;
-    const ready = nativeSlots.length > 0 || pubadsReady;
+    const timedOut = reason === "timeout";
     const result = {
-      ready,
-      reason: nativeSlots.length > 0
-        ? "native-slots-ready"
-        : pubadsReady
-          ? "pubads-ready"
-          : "timeout",
+      ...baseResult,
+      ready: !timedOut,
+      reason,
       elapsedMs,
-      pspDetected: true,
       pubadsReady,
       nativeSlots: nativeSlots.length,
-      scoped,
-      timedOut: !ready,
+      relevantSignalFound,
+      blockedEarly,
+      timedOut,
       waitRequired: true,
+      finalRecheckRequired: true,
     };
     logIntext(`[IntextManager] intext_rule_targeting_wait_completed`, {
       reason: result.reason,
@@ -3252,6 +3316,8 @@ class IntextManager {
       pubadsReady: result.pubadsReady,
       nativeSlots: result.nativeSlots,
       timedOut: result.timedOut,
+      blockedEarly: result.blockedEarly,
+      relevantSignalFound: result.relevantSignalFound,
       scoped: result.scoped,
     });
     return result;
@@ -3260,11 +3326,14 @@ class IntextManager {
   async isBlockedByExclusionsAfterTargetingReady(context = null) {
     if (this.isBlockedByExclusions(context)) return true;
     const readiness = await this.waitForIntextRuleTargetingReady(context);
-    if (readiness.waitRequired !== true) return false;
-    const blocked = this.isBlockedByExclusions(context);
+    if (readiness.finalRecheckRequired !== true) return false;
+    const blocked = readiness.blockedEarly === true
+      ? true
+      : this.isBlockedByExclusions(context);
     logIntext(`[IntextManager] intext_rule_targeting_final_recheck`, {
       blocked,
       scoped: Boolean(context?.rootElement),
+      elapsedWaitMs: readiness.elapsedMs,
     });
     return blocked;
   }
