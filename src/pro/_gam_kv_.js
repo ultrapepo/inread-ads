@@ -10511,7 +10511,8 @@ class IntextNode {
   }
 
   clearIntextAmazonTargeting(slot = this.slot) {
-    const keys = Object.keys(this.getIntextAmazonTargeting(slot));
+    const keys = (slot?.getTargetingKeys?.() || Object.keys(slot?.getTargetingMap?.() || {}))
+      .filter((key) => String(key).startsWith("amzn"));
     keys.forEach((key) => slot.clearTargeting(key));
     if (keys.length) logIntext(`[Intext:APS:${this.id}] intext_apstag_display_stale_targeting_cleared`, {
       slotCode: this.id, slotID: slot.getSlotElementId?.(), amazonTargetingKeys: keys,
@@ -10527,7 +10528,7 @@ class IntextNode {
       (request.renderToken == null || this.isActiveRenderToken(request.renderToken, "aps-display-request", "tam")));
   }
 
-  preserveIntextAmazonTargetingForCurrentCycle(snapshot, renderToken) {
+  preserveIntextAmazonTargetingForCurrentCycle(snapshot, renderToken, phase = "before-refresh") {
     if (!snapshot || snapshot.request.renderToken !== renderToken || !this.isIntextAmazonDisplayRequestCurrent(snapshot.request)) return;
     const current = this.getIntextAmazonTargeting(this.slot);
     const restoredKeys = [];
@@ -10537,9 +10538,9 @@ class IntextNode {
         restoredKeys.push(key);
       }
     });
-    logIntext(`[Intext:APS:${this.id}] intext_apstag_display_targeting_preserved_before_refresh`, {
+    logIntext(`[Intext:APS:${this.id}] intext_apstag_display_targeting_preserved_${phase.replace("-", "_")}`, {
       slotCode: this.id, slotID: snapshot.request.slotID, tamRequestId: snapshot.request.tamRequestId,
-      renderToken, cycleId: snapshot.request.cycleId, restoredKeys, amazonTargetingKeys: Object.keys(snapshot.targeting),
+      phase, renderToken, cycleId: snapshot.request.cycleId, restoredKeys, amazonTargetingKeys: Object.keys(snapshot.targeting),
     });
   }
 
@@ -11016,11 +11017,11 @@ class IntextNode {
         }
 
         if (slotEl && !slotEl.hasAttribute("data-gpt-displayed")) {
+          this.preserveIntextAmazonTargetingForCurrentCycle(amazonTargetingForCycle, renderToken, "before-display");
           gpt.display(this.id);
           slotEl.setAttribute("data-gpt-displayed", "true");
         }
 
-        this.preserveIntextAmazonTargetingForCurrentCycle(amazonTargetingForCycle, renderToken);
         const allAmazonTargeting = this.getIntextAmazonTargeting(this.slot);
         const rawAmznKeys = Object.keys(allAmazonTargeting);
         const beforeRefreshTargeting = this.getDisplayGamRequestTargetingFinal(this.slot);
@@ -11052,6 +11053,7 @@ class IntextNode {
           return;
         }
         this.assertIntextRandomSnapshotOnSlot(this.slot, "immediately-before-gpt-refresh");
+        this.preserveIntextAmazonTargetingForCurrentCycle(amazonTargetingForCycle, renderToken);
         pubads.refresh([this.slot]);
         } catch (error) {
           warnIntext(`[Intext:GPT:${this.id}] intext_gpt_command_failed`, {
@@ -13295,9 +13297,22 @@ class IntextWaterfall {
           (renderToken == null || this.node.isActiveRenderToken(renderToken, "aps-video-request", "tam"));
       const details = (extra = {}) => ({ slotCode: this.node.id, slotID, tamRequestId: request.tamRequestId,
         cycleId: request.cycleId, renderToken, ...extra });
+      const cleanupFailedDisplayRequest = (reason) => {
+        // A stale cycle/token may still own this slot, but a replaced request must never clear its successor.
+        if (this.node._amazonDisplayRequest === request && this.node.slot === slot &&
+            this.node._slotGptApi === request.gpt && this.node._slotPubadsService === request.pubads) {
+          this.node._amazonTargetingForCycle = null;
+          const removedKeys = this.node.clearIntextAmazonTargeting(slot);
+          logIntext(`[Intext:APS:${this.node.id}] intext_apstag_display_targeting_cleanup`, details({ reason, removedKeys }));
+        }
+        request.valid = false;
+      };
       const settleOnce = (value) => {
         if (settled) return;
         settled = true;
+        if (display && (value !== "tam_done" || this.node._amazonTargetingForCycle?.request !== request)) {
+          cleanupFailedDisplayRequest(value === "tam_done" ? "tam-no-valid-result" : String(value).replace("_", "-"));
+        }
         if (value !== "tam_done") request.valid = false;
         clearTimeout(_tamSafetyTimer);
         if (availabilityTimer) clearTimeout(availabilityTimer);
@@ -13322,10 +13337,6 @@ class IntextWaterfall {
           return;
         }
         try {
-          let previousFallback = {};
-          if (display && typeof aps.targetingKeys === "function") {
-            try { previousFallback = this.node.normalizeIntextAmazonTargeting(aps.targetingKeys()?.[slotID]); } catch (_) { /* Optional APS compatibility API. */ }
-          }
           if (display) logIntext(`[Intext:APS:${this.node.id}] intext_apstag_display_request_started`, details({
             apsSource: resolution.source, pspDetected: resolution.pspDetected, gptSource: this.node._slotGptSource,
             slotName: configuration.slots[0].slotName,
@@ -13337,7 +13348,11 @@ class IntextWaterfall {
               return;
             }
             try {
-              const hasBids = Array.isArray(bids) && bids.length > 0;
+              // APS may omit slot metadata. Explicit metadata must match; otherwise the current single-slot callback owns the bid.
+              const hasBids = Array.isArray(bids) && (display
+                ? bids.some((bid) => bid && (bid.slotID == null || bid.slotID === request.slotID) &&
+                    (bid.slotName == null || bid.slotName === configuration.slots[0].slotName))
+                : bids.length > 0);
               logIntext(`[Intext:Slot:${this.node.id}]   TAM: ${hasBids ? `${bids.length} bid(s) received` : "no bids"}`);
               if (display) {
                 logIntext(`[Intext:APS:${this.node.id}] intext_apstag_display_bid_received`, details({ bidCount: hasBids ? bids.length : 0 }));
@@ -13347,10 +13362,9 @@ class IntextWaterfall {
                   let targeting = this.node.getIntextAmazonTargeting(slot);
                   let targetingSource = Object.keys(targeting).length ? "setDisplayBids" : "missing";
                   if (targetingSource === "missing" && typeof aps.targetingKeys === "function") {
-                    let fallback = {};
-                    try { fallback = this.node.normalizeIntextAmazonTargeting(aps.targetingKeys()?.[slotID]); } catch (_) { /* Continue to GAM when optional targeting is unavailable. */ }
-                    // An unchanged pre-auction cache cannot establish ownership of the new bid.
-                    if (Object.keys(fallback).length && JSON.stringify(fallback) !== JSON.stringify(previousFallback) && current()) {
+                    const fallback = this.node.normalizeIntextAmazonTargeting(aps.targetingKeys()?.[request.slotID]);
+                    // Ownership comes from this current fetchBids callback with a matching bid, never from changed KV values.
+                    if (Object.keys(fallback).length && hasBids && slotID === request.slotID && current()) {
                       Object.entries(fallback).forEach(([key, values]) => slot.setTargeting(key, values));
                       targeting = this.node.getIntextAmazonTargeting(slot);
                       if (Object.keys(targeting).length) {
