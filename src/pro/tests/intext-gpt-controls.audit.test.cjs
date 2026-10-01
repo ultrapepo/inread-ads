@@ -38,7 +38,7 @@ test('GPT Intext: resolver PSP aislado y scheduler con firmas separadas', () => 
 test('GPT Intext: display opera exclusivamente con API y servicio resueltos', () => {
   const display = between(
     intextSource,
-    'askDisplay(',
+    'async ensureIntextDisplayGptSlot(',
     'waitForViewport(',
   );
   [

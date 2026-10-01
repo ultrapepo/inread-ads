@@ -70,6 +70,7 @@ function createRuntime({ psp = false, innerOnly = false, both = false, invalid =
     getTargetingMap() { return { ...this.targeting }; },
     getSlotElementId() { return 'gexp-intext'; },
     getAdUnitPath() { return '/99071977/test/n'; },
+    getSizes() { return [[300, 250], 'fluid', [1, 1]]; },
   };
   const calls = [];
   const realPubads = {
@@ -169,6 +170,12 @@ function createDisplayNode(Node, manager, runtime, id = 'gexp-intext') {
       'removeIntextDisplayListeners',
       'clearIntextGptSlotIdentity',
       'destroyIntextDisplaySlot',
+      'ensureIntextDisplayGptSlot',
+      'normalizeIntextAmazonTargeting',
+      'getIntextAmazonTargeting',
+      'clearIntextAmazonTargeting',
+      'isIntextAmazonDisplayRequestCurrent',
+      'preserveIntextAmazonTargetingForCurrentCycle',
       'askDisplay',
     ].map((name) => [name, Node.prototype[name]])),
   };

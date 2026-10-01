@@ -1254,6 +1254,7 @@ class IntextManager {
       hasBaseObj: Boolean(controller?.baseObj),
       fetchBidsType: typeof api?.fetchBids,
       setDisplayBidsType: typeof api?.setDisplayBids,
+      targetingKeysType: typeof api?.targetingKeys,
     };
     logIntext(`[Intext:APS] intext_apstag_runtime_resolved`, diagnostic);
     if (pspDetected) logIntext(`[Intext:APS] intext_apstag_proxy_detected`, diagnostic);
@@ -8799,8 +8800,103 @@ class IntextNode {
     }).then((result) => result.executed === true);
   }
 
+  async ensureIntextDisplayGptSlot(renderToken = this._activeRenderToken, trigger = "unknown") {
+    if (!this.isActiveRenderToken(renderToken, "ensureIntextDisplayGptSlot:start", trigger)) return { ready: false, stale: true };
+    const networkId = this.manager.resolveIntextRequestNetworkId(this.scopedContext);
+    const adUnitPath = this.manager.resolveIntextDisplayAdUnitPath(this.scopedContext);
+    const sizes = this.config.display?.sizes || [[300, 250], [336, 280], [320, 100], [320, 50]];
+    if (!networkId || !adUnitPath) return { ready: false, networkBlocked: true };
+    const fullAdUnit = `/${networkId}/${adUnitPath}`;
+    const command = await this.manager.runIntextGptCommand((gpt, resolution) => {
+      if (!this.isActiveRenderToken(renderToken, "ensureIntextDisplayGptSlot:cmd", trigger)) return { ready: false, stale: true };
+      const pubads = gpt.pubads();
+      if (!this.isUsableIntextPubadsService(pubads)) return { ready: false, gptError: "pubads-service-invalid" };
+      const reused = Boolean(this.slot);
+      if (!this.slot) {
+        const candidateSlot = gpt.defineSlot(fullAdUnit, sizes, this.id);
+        if (!candidateSlot || typeof candidateSlot.addService !== "function") {
+          warnIntext(`[Intext:GPT:${this.id}] intext_gpt_slot_invalid`, { source: resolution.source, pspDetected: resolution.pspDetected });
+          return { ready: false, gptError: "slot-invalid" };
+        }
+        candidateSlot.addService(pubads);
+        this.slot = candidateSlot;
+        this._slotGptApi = gpt;
+        this._slotPubadsService = pubads;
+        this._slotGptSource = resolution.source;
+      } else if (this._slotGptApi !== gpt || this._slotPubadsService !== pubads) {
+        warnIntext(`[Intext:GPT:${this.id}] intext_gpt_command_failed`, { reason: "slot-api-identity-mismatch", source: resolution.source, slotSource: this._slotGptSource });
+        return { ready: false, gptError: "slot-api-identity-mismatch" };
+      }
+      logIntext(`[Intext:APS:${this.id}] intext_apstag_display_slot_prepared`, {
+        slotCode: this.id, slotID: this.slot.getSlotElementId?.(), slotName: fullAdUnit,
+        gptSource: this._slotGptSource, pspDetected: resolution.pspDetected, reused, renderToken,
+      });
+      return { ready: true, slot: this.slot, gpt, pubads, resolution };
+    });
+    return command.executed ? command.value : { ready: false, gptError: command.reason || "command-failed" };
+  }
+
+  normalizeIntextAmazonTargeting(targeting = {}) {
+    const normalized = {};
+    Object.keys(targeting || {}).filter((key) => key.startsWith("amzn")).sort().forEach((key) => {
+      const raw = targeting[key];
+      const values = (Array.isArray(raw) ? raw : [raw]).filter((value) => value !== undefined && value !== null && value !== "").map(String);
+      if (values.length) normalized[key] = values;
+    });
+    return normalized;
+  }
+
+  getIntextAmazonTargeting(slot = this.slot) {
+    if (!slot) return {};
+    try {
+      const map = slot.getTargetingMap?.() || {};
+      const keys = slot.getTargetingKeys?.() || Object.keys(map);
+      const amazon = {};
+      keys.filter((key) => String(key).startsWith("amzn")).forEach((key) => {
+        amazon[key] = typeof slot.getTargeting === "function" ? slot.getTargeting(key) : map[key];
+      });
+      return this.normalizeIntextAmazonTargeting(amazon);
+    } catch (error) { return {}; }
+  }
+
+  clearIntextAmazonTargeting(slot = this.slot) {
+    const keys = Object.keys(this.getIntextAmazonTargeting(slot));
+    keys.forEach((key) => slot.clearTargeting(key));
+    if (keys.length) logIntext(`[Intext:APS:${this.id}] intext_apstag_display_stale_targeting_cleared`, {
+      slotCode: this.id, slotID: slot.getSlotElementId?.(), amazonTargetingKeys: keys,
+      cycleId: this._intextTelemetryCycleId, renderToken: this._activeRenderToken,
+    });
+    return keys;
+  }
+
+  isIntextAmazonDisplayRequestCurrent(request) {
+    return Boolean(request && request.valid && this._amazonDisplayRequest === request &&
+      this.slot === request.slot && this._slotGptApi === request.gpt && this._slotPubadsService === request.pubads &&
+      this._intextTelemetryCycleId === request.cycleId &&
+      (request.renderToken == null || this.isActiveRenderToken(request.renderToken, "aps-display-request", "tam")));
+  }
+
+  preserveIntextAmazonTargetingForCurrentCycle(snapshot, renderToken) {
+    if (!snapshot || snapshot.request.renderToken !== renderToken || !this.isIntextAmazonDisplayRequestCurrent(snapshot.request)) return;
+    const current = this.getIntextAmazonTargeting(this.slot);
+    const restoredKeys = [];
+    Object.entries(snapshot.targeting).forEach(([key, values]) => {
+      if (JSON.stringify(current[key]) !== JSON.stringify(values)) {
+        this.slot.setTargeting(key, values.slice());
+        restoredKeys.push(key);
+      }
+    });
+    logIntext(`[Intext:APS:${this.id}] intext_apstag_display_targeting_preserved_before_refresh`, {
+      slotCode: this.id, slotID: snapshot.request.slotID, tamRequestId: snapshot.request.tamRequestId,
+      renderToken, cycleId: snapshot.request.cycleId, restoredKeys, amazonTargetingKeys: Object.keys(snapshot.targeting),
+    });
+  }
+
   askDisplay(bidResponse, renderToken = this._activeRenderToken, trigger = "unknown") {
-    return new Promise((resolve) => {
+    const amazonTargetingForCycle = this._amazonTargetingForCycle;
+    return this.ensureIntextDisplayGptSlot(renderToken, trigger).then((preparation) => {
+      if (!preparation.ready) return { filled: false, event: null, ...preparation };
+      return new Promise((resolve) => {
       let settled = false;
       let requestTimer = null;
       const settleOnce = (result) => {
@@ -8876,30 +8972,11 @@ class IntextNode {
         }
         const pubads = gpt.pubads();
         if (!this.isUsableIntextPubadsService(pubads)) {
-          warnIntext(`[Intext:GPT:${this.id}] intext_gpt_command_failed`, {
-            reason: "pubads-service-invalid",
-            source: resolution.source,
-          });
+          warnIntext(`[Intext:GPT:${this.id}] intext_gpt_command_failed`, { reason: "pubads-service-invalid", source: resolution.source });
           settleOnce({ filled: false, event: null, gptError: "pubads-service-invalid" });
           return;
         }
-        if (!this.slot) {
-          const candidateSlot = gpt.defineSlot(fullAdUnit, sizes, this.id);
-          if (!candidateSlot || typeof candidateSlot.addService !== "function") {
-            warnIntext(`[Intext:GPT:${this.id}] intext_gpt_slot_invalid`, {
-              pspDetected: resolution.pspDetected,
-              source: resolution.source,
-              candidateAddServiceType: typeof candidateSlot?.addService,
-            });
-            settleOnce({ filled: false, event: null, gptError: "slot-invalid" });
-            return;
-          }
-          candidateSlot.addService(pubads);
-          this.slot = candidateSlot;
-          this._slotGptApi = gpt;
-          this._slotPubadsService = pubads;
-          this._slotGptSource = resolution.source;
-        } else if (this._slotGptApi !== gpt || this._slotPubadsService !== pubads) {
+        if (this.slot !== preparation.slot || this._slotGptApi !== gpt || this._slotPubadsService !== pubads) {
           warnIntext(`[Intext:GPT:${this.id}] intext_gpt_command_failed`, {
             reason: "slot-api-identity-mismatch",
             source: resolution.source,
@@ -8913,15 +8990,6 @@ class IntextNode {
         this.clearDisplayRequestTargeting(this.slot);
         this.applyDisplayRequestTargeting(this.slot, preRequestDisplayTargeting.targeting);
         this.applyIntextRandomSnapshotToSlot(this.slot);
-        const apsAfterCore = this.manager.resolveIntextApstagApi().api;
-        if (apsAfterCore && typeof apsAfterCore.targetingKeys === "function") {
-          const tamKeys = apsAfterCore.targetingKeys();
-          if (tamKeys && tamKeys[this.id]) {
-            Object.entries(tamKeys[this.id]).forEach(([k, v]) => {
-              this.slot.setTargeting(k, v);
-            });
-          }
-        }
 
         if (this.wa) {
           this.wa.slot = this.slot;
@@ -8984,15 +9052,6 @@ class IntextNode {
         this.clearDisplayRequestTargeting(this.slot, "display_request_targeting_cleared_keys_post_core");
         this.applyDisplayRequestTargeting(this.slot, finalDisplayTargeting.targeting);
         this.applyDisplayBidTargeting(this.slot, bidResponse, this.waterfall?._lastCurrentBannerBids);
-        const aps = this.manager.resolveIntextApstagApi().api;
-        if (aps && typeof aps.targetingKeys === "function") {
-          const tamKeys = aps.targetingKeys();
-          if (tamKeys && tamKeys[this.id]) {
-            Object.entries(tamKeys[this.id]).forEach(([k, v]) => {
-              this.slot.setTargeting(k, v);
-            });
-          }
-        }
         this.applyIntextRandomSnapshotToSlot(this.slot);
         this.assertIntextRandomSnapshotOnSlot(this.slot, "after-final-display-targeting");
 
@@ -9002,6 +9061,7 @@ class IntextNode {
           if (this._initialDisplayRenderHandler === initialRenderHandler) {
             this._initialDisplayRenderHandler = null;
           }
+          if (this._initialDisplayRenderHandler === initialRenderHandler) this._initialDisplayRenderHandler = null;
           if (!this.isActiveRenderToken(renderToken, "display_initial_slotRenderEnded", trigger)) {
             if (this.isHouseLineItemSentinel(event)) {
               logIntext(`[Intext:Display:${this.id}] house_lineitem_sentinel_stale_callback_ignored`, {
@@ -9317,6 +9377,9 @@ class IntextNode {
           slotEl.setAttribute("data-gpt-displayed", "true");
         }
 
+        this.preserveIntextAmazonTargetingForCurrentCycle(amazonTargetingForCycle, renderToken);
+        const allAmazonTargeting = this.getIntextAmazonTargeting(this.slot);
+        const rawAmznKeys = Object.keys(allAmazonTargeting);
         const beforeRefreshTargeting = this.getDisplayGamRequestTargetingFinal(this.slot);
 
         logIntext(
@@ -9324,6 +9387,8 @@ class IntextNode {
           {
             final: beforeRefreshTargeting,
             allHbTargeting: this.pickHbTargeting(this.getSlotTargetingMapSafe(this.slot)),
+            allAmazonTargeting,
+            rawAmznKeys,
             rawRandom1: this.getSlotTargetingValueSafe(this.slot, "random1"),
             rawRandom2: this.getSlotTargetingValueSafe(this.slot, "random2"),
             rawRandom3: this.getSlotTargetingValueSafe(this.slot, "random3"),
@@ -9337,7 +9402,7 @@ class IntextNode {
 
         logIntext(
           `[Intext:Display:${this.id}] display_gam_request_targeting_final`,
-          this.getDisplayGamRequestTargetingFinal(this.slot),
+          { ...this.getDisplayGamRequestTargetingFinal(this.slot), allAmazonTargeting, rawAmznKeys },
         );
         if (!this.isActiveRenderToken(renderToken, "askDisplay:before_refresh", trigger)) {
           settleOnce({ filled: false, event: null, stale: true });
@@ -9356,11 +9421,7 @@ class IntextNode {
         }
       }).then((commandResult) => {
         if (!commandResult.executed) {
-          settleOnce({
-            filled: false,
-            event: null,
-            gptError: commandResult.reason || commandResult.resolution?.source || "command-failed",
-          });
+          settleOnce({ filled: false, event: null, gptError: commandResult.reason || commandResult.resolution?.source || "command-failed" });
         }
       }).catch((error) => {
         warnIntext(`[Intext:GPT:${this.id}] intext_gpt_command_failed`, {
@@ -9369,6 +9430,8 @@ class IntextNode {
         });
         settleOnce({ filled: false, event: null, gptError: "command-promise-rejected" });
       });
+    });
+
     });
   }
 
@@ -11551,13 +11614,43 @@ class IntextWaterfall {
     });
   }
 
-  executeAmazonTam(configuration) {
+  executeAmazonTam(configuration, { format = "display", renderToken = null, expectedSlotId = null } = {}) {
     return new Promise((resolve) => {
       let settled = false;
       let availabilityTimer = null;
+      const display = format === "display";
+      const slot = display ? this.node.slot : null;
+      const slotID = configuration?.slots?.[0]?.slotID;
+      if (display && (!slot || !slotID || slot.getSlotElementId?.() !== slotID || (expectedSlotId && expectedSlotId !== slotID))) {
+        warnIntext(`[Intext:APS:${this.node.id}] intext_apstag_display_slot_identity`, { slotID, identityMatches: false });
+        resolve(null);
+        return;
+      }
+      const request = {
+        tamRequestId: (this._tamRequestSequence = (this._tamRequestSequence || 0) + 1),
+        renderToken, cycleId: this.node._intextTelemetryCycleId, slotID,
+        slot, gpt: display ? this.node._slotGptApi : null,
+        pubads: display ? this.node._slotPubadsService : null, valid: true,
+      };
+      if (display) {
+        if (this.node._amazonDisplayRequest) this.node._amazonDisplayRequest.valid = false;
+        this.node._amazonDisplayRequest = request;
+        this.node._amazonTargetingForCycle = null;
+        this.node.clearIntextAmazonTargeting(slot);
+        this.node.mergeIntextTelemetry({ "gexp-intext-aps-display-targeting-source": "missing" });
+      } else {
+        this._amazonVideoRequest = request;
+      }
+      const current = () => display
+        ? this.node.isIntextAmazonDisplayRequestCurrent(request)
+        : this._amazonVideoRequest === request && request.valid && request.cycleId === this.node._intextTelemetryCycleId &&
+          (renderToken == null || this.node.isActiveRenderToken(renderToken, "aps-video-request", "tam"));
+      const details = (extra = {}) => ({ slotCode: this.node.id, slotID, tamRequestId: request.tamRequestId,
+        cycleId: request.cycleId, renderToken, ...extra });
       const settleOnce = (value) => {
         if (settled) return;
         settled = true;
+        if (value !== "tam_done") request.valid = false;
         clearTimeout(_tamSafetyTimer);
         if (availabilityTimer) clearTimeout(availabilityTimer);
         resolve(value);
@@ -11568,6 +11661,7 @@ class IntextWaterfall {
       }, 2000);
       const tryStart = () => {
         if (settled) return;
+        if (!current()) { settleOnce("tam_stale"); return; }
         const resolution = this.node.manager.resolveIntextApstagApi();
         const aps = resolution.api;
         if (!aps) {
@@ -11580,19 +11674,58 @@ class IntextWaterfall {
           return;
         }
         try {
+          let previousFallback = {};
+          if (display && typeof aps.targetingKeys === "function") {
+            try { previousFallback = this.node.normalizeIntextAmazonTargeting(aps.targetingKeys()?.[slotID]); } catch (_) { /* Optional APS compatibility API. */ }
+          }
+          if (display) logIntext(`[Intext:APS:${this.node.id}] intext_apstag_display_request_started`, details({
+            apsSource: resolution.source, pspDetected: resolution.pspDetected, gptSource: this.node._slotGptSource,
+            slotName: configuration.slots[0].slotName,
+          }));
           aps.fetchBids(configuration, (bids) => {
-            if (settled) return;
+            if (settled || !current()) {
+              if (display) logIntext(`[Intext:APS:${this.node.id}] intext_apstag_display_late_callback_ignored`, details());
+              if (!settled) settleOnce("tam_stale");
+              return;
+            }
             try {
               const hasBids = Array.isArray(bids) && bids.length > 0;
               logIntext(`[Intext:Slot:${this.node.id}]   TAM: ${hasBids ? `${bids.length} bid(s) received` : "no bids"}`);
-              aps.setDisplayBids();
-              if (hasBids && typeof window !== "undefined" && window.gexpIntextDebug === true) {
-                const targeting = this.node.slot?.getTargetingMap?.() || {};
-                if (!Object.keys(targeting).some((key) => key.startsWith("amzn"))) {
-                  warnIntext(`[Intext:APS:${this.node.id}] intext_apstag_targeting_missing_after_bid`, {
-                    code: this.node.id,
-                  });
+              if (display) {
+                logIntext(`[Intext:APS:${this.node.id}] intext_apstag_display_bid_received`, details({ bidCount: hasBids ? bids.length : 0 }));
+                if (hasBids) {
+                  aps.setDisplayBids();
+                  if (!current()) { settleOnce("tam_stale"); return; }
+                  let targeting = this.node.getIntextAmazonTargeting(slot);
+                  let targetingSource = Object.keys(targeting).length ? "setDisplayBids" : "missing";
+                  if (targetingSource === "missing" && typeof aps.targetingKeys === "function") {
+                    let fallback = {};
+                    try { fallback = this.node.normalizeIntextAmazonTargeting(aps.targetingKeys()?.[slotID]); } catch (_) { /* Continue to GAM when optional targeting is unavailable. */ }
+                    // An unchanged pre-auction cache cannot establish ownership of the new bid.
+                    if (Object.keys(fallback).length && JSON.stringify(fallback) !== JSON.stringify(previousFallback) && current()) {
+                      Object.entries(fallback).forEach(([key, values]) => slot.setTargeting(key, values));
+                      targeting = this.node.getIntextAmazonTargeting(slot);
+                      if (Object.keys(targeting).length) {
+                        targetingSource = "targetingKeys-fallback";
+                        logIntext(`[Intext:APS:${this.node.id}] intext_apstag_display_targeting_fallback_applied`, details({ amazonTargetingKeys: Object.keys(targeting) }));
+                      }
+                    }
+                  }
+                  if (!current()) { settleOnce("tam_stale"); return; }
+                  this.node.mergeIntextTelemetry({ "gexp-intext-aps-display-targeting-source": targetingSource });
+                  if (Object.keys(targeting).length) {
+                    this.node._amazonTargetingForCycle = { request, targeting };
+                    logIntext(`[Intext:APS:${this.node.id}] intext_apstag_display_targeting_applied`, details({ targetingSource, amazonTargetingKeys: Object.keys(targeting) }));
+                  } else {
+                    warnIntext(`[Intext:APS:${this.node.id}] intext_apstag_display_targeting_missing_after_bid`, details({ targetingSource }));
+                  }
                 }
+              } else {
+                aps.setDisplayBids();
+                let videoTargeting = null;
+                try { if (typeof aps.targetingKeys === "function") videoTargeting = aps.targetingKeys()?.[this.node.videoId]; } catch (_) { /* Diagnostic only. */ }
+                const available = videoTargeting && Object.keys(videoTargeting).length > 0;
+                logIntext(`[Intext:APS:${this.node.id}] intext_apstag_video_targeting_${available ? "available" : "unavailable"}`, details({ amazonTargetingKeys: available ? Object.keys(videoTargeting).filter((key) => key.startsWith("amzn")) : [] }));
               }
               settleOnce("tam_done");
             } catch (err) {
@@ -11982,12 +12115,19 @@ class IntextWaterfall {
         trigger: requestTrigger,
       });
     }
+    const preparation = await this.node.ensureIntextDisplayGptSlot(renderToken, requestTrigger);
+    if (!this.node.isActiveRenderToken(renderToken, "_requestDisplay:slot_prepared", requestTrigger)) return false;
+    if (!preparation?.ready) { this.node.discardDisplay(); return false; }
+    if (this.node._amazonDisplayRequest) this.node._amazonDisplayRequest.valid = false;
+    this.node._amazonTargetingForCycle = null;
+    this.node.clearIntextAmazonTargeting(this.node.slot);
     const tamConfig = this.getTAMConfiguration();
     if (tamConfig) {
       logIntext(
         `[Intext:Slot:${this.node.id}] ├─ TAM Display: requesting...`,
       );
-      await this.executeAmazonTam(tamConfig);
+      const tamResult = await this.executeAmazonTam(tamConfig, { format: "display", renderToken, expectedSlotId: this.node.slot.getSlotElementId() });
+      if (tamResult === "tam_stale") return "closed";
       logIntext(
         `[Intext:Slot:${this.node.id}] ├─ TAM Display: done`,
       );
@@ -12069,7 +12209,7 @@ class IntextWaterfall {
       logIntext(
         `[Intext:Slot:${this.node.id}] ├─ TAM Video: requesting...`,
       );
-      await this.executeAmazonTam(tamVideoConfig);
+      await this.executeAmazonTam(tamVideoConfig, { format: "video", renderToken });
       logIntext(
         `[Intext:Slot:${this.node.id}] ├─ TAM Video: done`,
       );
@@ -12771,20 +12911,29 @@ class IntextWaterfall {
 
   getTAMConfiguration() {
     if (this.config.tam?.enabled === false) return null;
-    const slotId = this.node.id;
-    const slotName = this.node.manager.resolveIntextDisplayAdUnitPath(this.node.scopedContext) || "";
-    const sizes = this.getDisplaySizes().filter(
-      (s) => s !== "fluid" && s[0] > 1,
-    );
+    const slot = this.node.slot;
+    const slotId = slot ? slot.getSlotElementId?.() : this.node.id;
+    const configuredSlotName = this.node.manager.resolveIntextDisplayAdUnitPath(this.node.scopedContext) || "";
     const networkId = this.node.manager.resolveIntextRequestNetworkId(this.node.scopedContext);
-
-    if (!slotId || !slotName || !sizes.length || !networkId) return null;
+    const slotName = slot ? slot.getAdUnitPath?.() : `/${networkId}/${configuredSlotName}`;
+    const rawSizes = slot ? slot.getSizes?.() : this.getDisplaySizes();
+    const sizes = (rawSizes || []).map((size) => Array.isArray(size) ? size : [size?.getWidth?.(), size?.getHeight?.()])
+      .map(([width, height]) => [Number(width), Number(height)])
+      .filter(([width, height]) => Number.isFinite(width) && Number.isFinite(height) && width > 1 && height > 1);
+    const resolution = this.node.manager.resolveIntextGptApi();
+    const identityMatches = Boolean(slot && slotId === slot.getSlotElementId?.() && slotName === slot.getAdUnitPath?.() &&
+      this.node._slotGptApi === resolution.api && this.node._slotPubadsService === resolution.api?.pubads?.());
+    logIntext(`[Intext:APS:${this.node.id}] intext_apstag_display_slot_identity`, {
+      slotID: slotId, slotName, sizes, gptSlotElementId: slot?.getSlotElementId?.(),
+      gptAdUnitPath: slot?.getAdUnitPath?.(), gptSource: resolution.source, identityMatches,
+    });
+    if (!slotId || !slotName || !sizes.length || (slot && !identityMatches) || (!slot && (!networkId || !configuredSlotName))) return null;
 
     return {
       slots: [
         {
           slotID: slotId,
-          slotName: `/${networkId}/${slotName}`,
+          slotName,
           sizes: sizes,
         },
       ],

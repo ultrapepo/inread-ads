@@ -201,7 +201,7 @@ test('alias object options preserve useBaseGvlid precedence over gvlid', async (
 });
 
 test('source order explicitly gates addAdUnits/requestBids on alias completion', () => {
-  const execute = between(source, 'executePrebid(configuration)', 'executeAmazonTam(configuration)');
+  const execute = between(source, 'executePrebid(configuration)', 'executeAmazonTam(configuration,');
   assert.ok(execute.indexOf('await this.ensurePrebidAliasesRegistered(pb)') < execute.indexOf('runPrebid(pb);'));
   assert.ok(execute.indexOf('this.registerPrebidAdUnit(configuration, pb)') < execute.indexOf('pb.requestBids'));
 });

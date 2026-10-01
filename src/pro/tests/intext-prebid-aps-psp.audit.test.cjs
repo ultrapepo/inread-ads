@@ -49,6 +49,8 @@ function loadRuntime(window) {
     ${between(source, 'class IntextWaterfall', 'class IntextVideoCreative')}
     IntextWaterfall;
   `, context);
+  const Node = vm.runInContext(`${between(source, 'class IntextNode', 'class IntextContainer')}; IntextNode`, context);
+  Waterfall.Node = Node;
   return { Manager, Waterfall, warnings };
 }
 
@@ -59,6 +61,11 @@ function createSlot() {
     clearTargeting(key) { delete this.targeting[key]; },
     getTargetingMap() { return { ...this.targeting }; },
     getSlotElementId() { return 'gexp-intext'; },
+    getAdUnitPath() { return '/99071977/test/n'; },
+    getSizes() { return [[300, 250]]; },
+    getTargetingKeys() { return Object.keys(this.targeting); },
+    getTargeting(key) { return this.targeting[key] || []; },
+    addService() { return this; },
   };
 }
 
@@ -104,6 +111,9 @@ function createWaterfall(Waterfall, manager, slot, aliases = { ix_video: 'ix' })
     scopedContext: null,
     _slotPubadsService: { getSlots: () => [slot] },
     mergeIntextTelemetry() {},
+    isActiveRenderToken() { return true; },
+    ...Object.fromEntries(['normalizeIntextAmazonTargeting', 'getIntextAmazonTargeting', 'clearIntextAmazonTargeting',
+      'isIntextAmazonDisplayRequestCurrent', 'ensureIntextDisplayGptSlot', 'isUsableIntextPubadsService'].map((key) => [key, Waterfall.Node.prototype[key]])),
   };
   waterfall.config = {
     prebid: { pbjsAvailabilityWaitMs: 80, pbjsAvailabilityRetryMs: 5, graceMs: 0 },
@@ -274,7 +284,7 @@ test('normal and PSP APS use one real instance and preserve amzn targeting', asy
     const window = { gexpIntextDebug: true, apstag: psp ? proxy : realAps };
     const { Manager, Waterfall } = loadRuntime(window);
     const waterfall = createWaterfall(Waterfall, createManager(Manager), slot, null);
-    assert.equal(await waterfall.executeAmazonTam({ slots: [] }), 'tam_done');
+    assert.equal(await waterfall.executeAmazonTam({ slots: [{ slotID: 'gexp-intext' }] }), 'tam_done');
     assert.deepEqual(order, ['fetchBids', 'setDisplayBids']);
     assert.deepEqual(forbidden, []);
     assert.equal(slot.getTargetingMap().amznbid[0], 'aps-p2');
@@ -290,7 +300,7 @@ test('PSP APS waits for late realObj within its safety budget', async () => {
   const { Manager, Waterfall } = loadRuntime(window);
   const waterfall = createWaterfall(Waterfall, createManager(Manager), slot, null);
   setTimeout(() => { window.apstag.__ctrl.realObj = realAps; }, 5);
-  assert.equal(await waterfall.executeAmazonTam({ slots: [] }), 'tam_done');
+  assert.equal(await waterfall.executeAmazonTam({ slots: [{ slotID: 'gexp-intext' }] }), 'tam_done');
   assert.deepEqual(order, ['fetchBids', 'setDisplayBids']);
   assert.deepEqual(baseCalls, []);
 });
@@ -305,7 +315,7 @@ test('PSP APS without realObj resolves at the safety timeout without functional 
   };
   const { Manager, Waterfall } = loadRuntime(window);
   const waterfall = createWaterfall(Waterfall, createManager(Manager), createSlot(), null);
-  assert.equal(await waterfall.executeAmazonTam({ slots: [] }), 'tam_timeout');
+  assert.equal(await waterfall.executeAmazonTam({ slots: [{ slotID: 'gexp-intext' }] }), 'tam_timeout');
   assert.deepEqual(calls, []);
 });
 
@@ -313,7 +323,7 @@ test('APS absent keeps the legacy immediate controlled skip', async () => {
   const window = {};
   const { Manager, Waterfall } = loadRuntime(window);
   const waterfall = createWaterfall(Waterfall, createManager(Manager), createSlot(), null);
-  assert.equal(await waterfall.executeAmazonTam({ slots: [] }), null);
+  assert.equal(await waterfall.executeAmazonTam({ slots: [{ slotID: 'gexp-intext' }] }), null);
 });
 
 test('integrated PSP runtime routes Prebid, APS and GPT to their distinct real APIs', async () => {
@@ -323,6 +333,8 @@ test('integrated PSP runtime routes Prebid, APS and GPT to their distinct real A
   const realAps = createRealAps(order, slot);
   const realPubads = {
     getSlots: () => [slot],
+    addEventListener() {},
+    removeEventListener() {},
     refresh() { order.push('realGpt.refresh'); },
   };
   const realGpt = {
@@ -358,9 +370,13 @@ test('integrated PSP runtime routes Prebid, APS and GPT to their distinct real A
   manager.runIntextGptCommand = Manager.prototype.runIntextGptCommand.bind(manager);
   const waterfall = createWaterfall(Waterfall, manager, slot);
   await waterfall.executePrebid({ code: 'gexp-intext', mediaTypes: { banner: {} } });
-  await waterfall.executeAmazonTam({ slots: [] });
+  manager.resolveIntextRequestNetworkId = () => '99071977';
+  manager.resolveIntextDisplayAdUnitPath = () => 'test/n';
+  waterfall.node.config = { display: { sizes: [[300, 250]] } };
+  waterfall.node.slot = null;
+  assert.equal((await waterfall.node.ensureIntextDisplayGptSlot(1)).ready, true);
+  await waterfall.executeAmazonTam({ slots: [{ slotID: 'gexp-intext' }] });
   const gptResult = await manager.runIntextGptCommand((gpt) => {
-    gpt.defineSlot('/99071977/test/n', [[300, 250]], 'gexp-intext');
     gpt.display('gexp-intext');
     gpt.pubads().refresh([slot]);
   });
@@ -368,7 +384,8 @@ test('integrated PSP runtime routes Prebid, APS and GPT to their distinct real A
   assert.ok(order.indexOf('aliasBidder') < order.indexOf('addAdUnits'));
   assert.ok(order.indexOf('addAdUnits') < order.indexOf('requestBids'));
   assert.ok(order.indexOf('requestBids') < order.indexOf('fetchBids'));
-  assert.ok(order.indexOf('setDisplayBids') < order.indexOf('realGpt.defineSlot'));
+  assert.ok(order.indexOf('realGpt.defineSlot') < order.indexOf('setDisplayBids'));
+  assert.equal(order.filter((operation) => operation === 'realGpt.defineSlot').length, 1);
   assert.ok(order.includes('gpt.cmd:true'));
   assert.ok(order.includes('realGpt.display'));
   assert.ok(order.includes('realGpt.refresh'));
