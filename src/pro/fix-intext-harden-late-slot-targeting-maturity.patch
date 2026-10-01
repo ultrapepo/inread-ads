@@ -1,0 +1,681 @@
+From: Pedro <108982065+ultrapepo@users.noreply.github.com>
+Date: Thu, 01 Oct 2026 09:40:43 GMT
+Subject: [PATCH] fix(intext): harden late slot targeting maturity
+
+Use two observations for own slot targeting and five for uncertain absence.
+Compare native slot sets by logical ID and preserve per-key readiness.
+
+Apply on top of the existing per-blocking-key working state.
+
+diff --git a/src/pro/IntextManager.js b/src/pro/IntextManager.js
+index efab924..a537843 100644
+--- a/src/pro/IntextManager.js
++++ b/src/pro/IntextManager.js
+@@ -915,6 +915,8 @@ const INTEXT_TELEMETRY_STANDARD_FIELDS = Object.freeze([
+ class IntextManager {
+   static INTEXT_RULE_TARGETING_READY_MAX_WAIT_MS = 600;
+   static INTEXT_RULE_TARGETING_READY_POLL_MS = 25;
++  static INTEXT_OWN_SLOT_STABILITY_POLLS = 2;
++  static INTEXT_SLOT_ABSENCE_STABILITY_POLLS = 5;
+ 
+   constructor(config, gexpInstance) {
+     this.config = config;
+@@ -1711,6 +1713,9 @@ class IntextManager {
+         slotsChecked: entry.slotsChecked,
+         slotsMatched: entry.slotsMatched,
+         fingerprint: JSON.stringify(entry.values.map(String).sort()),
++        sourceFingerprint: JSON.stringify(entry.sources.map((source) => [
++          source.source, source.values.map(String).sort(),
++        ]).sort(([left], [right]) => left.localeCompare(right))),
+       }];
+     }));
+     return {
+@@ -1752,7 +1757,10 @@ class IntextManager {
+         (slotsObserved || (nativeSlots.length === 0 && keyState?.resolved === true));
+     const observationEligible = ownSlotSignal || absenceRuntimeMature;
+     const stabilityPolls = stability && stability.fingerprint === keyState?.fingerprint ? stability.polls : 0;
+-    const mature = observationEligible && stabilityPolls >= 2;
++    const requiredStabilityPolls = ownSlotSignal
++      ? IntextManager.INTEXT_OWN_SLOT_STABILITY_POLLS
++      : IntextManager.INTEXT_SLOT_ABSENCE_STABILITY_POLLS;
++    const mature = observationEligible && stabilityPolls >= requiredStabilityPolls;
+     return {
+       key,
+       status: mature ? (keyState.resolved ? "resolved-mature" : "absent-mature") : "pending",
+@@ -1760,12 +1768,21 @@ class IntextManager {
+       observationEligible,
+       reason: mature
+         ? (ownSlotSignal ? "stable-own-slot-targeting" :
+-          keyState.resolved ? "stable-global-after-runtime-ready" : "stable-absent-after-runtime-ready")
+-        : (keyState?.resolved && !ownSlotSignal ? "global-signal-slot-not-mature" : "blocking-key-not-mature"),
++          keyState.resolved ? "stable-global-with-stable-slot-absence" : "stable-absent-after-slot-settle")
++        : (ownSlotSignal ? "slot-targeting-pending" :
++          nativeSlots.length === 0 ? "slot-discovery-pending" : "slot-targeting-pending"),
+       stabilityPolls,
++      requiredStabilityPolls,
++      hasOwnSlotSignal: ownSlotSignal,
++      slotAbsenceUncertain: !ownSlotSignal,
+     };
+   }
+ 
++  getIntextNativeSlotIdentity(slot) {
++    try { return String(slot?.getSlotElementId?.() || "").trim(); }
++    catch (e) { return ""; }
++  }
++
+   getIntextBlockingTargetingMaturity({
+     context = null,
+     resolution,
+@@ -1791,7 +1808,7 @@ class IntextManager {
+     return {
+       mature,
+       observationEligible: keyMaturities.every((entry) => entry.observationEligible),
+-      requiredStabilityPolls: 2,
++      requiredStabilityPolls: Math.max(...keyMaturities.map((entry) => entry.requiredStabilityPolls)),
+       keyMaturities,
+       reason: !mature ? "none" : keyMaturities.every((entry) => entry.status === "absent-mature")
+         ? "stable-empty-blocking-targeting-runtime-mature"
+@@ -1896,25 +1913,25 @@ class IntextManager {
+       };
+     }
+     const blockingStability = new Map();
+-    let observedNativeSlots = [];
++    let observedSlotSetFingerprint = null;
+     let blockingStabilityPolls = 0;
+     const updateBlockingStability = () => {
+-      const sameSlots = observedNativeSlots.length === nativeSlots.length &&
+-        nativeSlots.every((slot) => observedNativeSlots.includes(slot));
++      const slotIds = nativeSlots.map((slot) => this.getIntextNativeSlotIdentity(slot));
++      // Unknown identities cannot certify a stable absence. JSON avoids delimiter collisions.
++      const slotSetFingerprint = slotIds.every(Boolean) ? JSON.stringify(slotIds.sort()) : null;
++      const sameSlots = slotSetFingerprint !== null && observedSlotSetFingerprint === slotSetFingerprint;
+       for (const key of targetingState.blockingKeys) {
+         const keyState = targetingState.blockingKeyStates[key];
+         const maturity = this.getIntextBlockingKeyMaturity({
+           key, context, resolution, nativeSlots, keyState,
+         });
+         const previous = blockingStability.get(key);
+-        // Values stay key-local; source/slot changes start a new eligible observation run.
++        // Own targeting keeps its fast path; absence also observes slot discovery and runtime.
+         const observation = JSON.stringify([
+-          keyState.hasContextSignal, keyState.hasDataSignal, keyState.hasUeDfpSignal,
+-          keyState.hasGptPageSignal, keyState.hasGptSlotSignal,
+-          keyState.hasUeDataLayerSignal, keyState.hasUtagSignal,
+-          keyState.slotsChecked, keyState.slotsMatched,
++          keyState.sourceFingerprint, keyState.slotsMatched,
++          ...(maturity.hasOwnSlotSignal ? [] : [keyState.slotsChecked, scoped ? null : resolution.api?.pubadsReady === true]),
+         ]);
+-        const unchanged = sameSlots && previous?.fingerprint === keyState.fingerprint &&
++        const unchanged = (maturity.hasOwnSlotSignal || sameSlots) && previous?.fingerprint === keyState.fingerprint &&
+           previous?.observation === observation;
+         blockingStability.set(key, {
+           fingerprint: keyState.fingerprint,
+@@ -1922,7 +1939,7 @@ class IntextManager {
+           polls: maturity.observationEligible ? (unchanged ? previous.polls + 1 : 1) : 0,
+         });
+       }
+-      observedNativeSlots = nativeSlots.slice();
++      observedSlotSetFingerprint = slotSetFingerprint;
+       // Retain the aggregate counter only for existing telemetry consumers.
+       blockingStabilityPolls = Math.min(...Array.from(blockingStability.values(), (entry) => entry.polls));
+     };
+@@ -1959,7 +1976,7 @@ class IntextManager {
+         blockingSignalFound: targetingState.blockingSignalFound,
+         blockingGptSlotSignalFound: targetingState.blockingGptSlotSignalFound,
+         blockingStabilityPolls,
+-        blockingKeyMaturities: maturity.keyMaturities.map(({ key, status, reason, stabilityPolls }) => ({ key, status, reason, stabilityPolls })),
++        blockingKeyMaturities: maturity.keyMaturities.map(({ key, status, reason, stabilityPolls, requiredStabilityPolls }) => ({ key, status, reason, stabilityPolls, requiredStabilityPolls })),
+         readinessBasis: maturity.reason,
+         finalRecheckRequired: true,
+       };
+@@ -2033,7 +2050,7 @@ class IntextManager {
+       blockingSignalFound: targetingState.blockingSignalFound,
+       blockingGptSlotSignalFound: targetingState.blockingGptSlotSignalFound,
+       blockingStabilityPolls,
+-      blockingKeyMaturities: maturity.keyMaturities.map(({ key, status, reason, stabilityPolls }) => ({ key, status, reason, stabilityPolls })),
++      blockingKeyMaturities: maturity.keyMaturities.map(({ key, status, reason, stabilityPolls, requiredStabilityPolls }) => ({ key, status, reason, stabilityPolls, requiredStabilityPolls })),
+       pendingBlockingKeysAtExit: maturity.keyMaturities.filter((entry) => entry.status === "pending").map((entry) => entry.key),
+       readinessBasis,
+       blockedEarly,
+diff --git a/src/pro/_gam_kv_.js b/src/pro/_gam_kv_.js
+index 75c1db2..ec4e556 100644
+--- a/src/pro/_gam_kv_.js
++++ b/src/pro/_gam_kv_.js
+@@ -2514,6 +2514,8 @@ const INTEXT_TELEMETRY_STANDARD_FIELDS = Object.freeze([
+ class IntextManager {
+   static INTEXT_RULE_TARGETING_READY_MAX_WAIT_MS = 600;
+   static INTEXT_RULE_TARGETING_READY_POLL_MS = 25;
++  static INTEXT_OWN_SLOT_STABILITY_POLLS = 2;
++  static INTEXT_SLOT_ABSENCE_STABILITY_POLLS = 5;
+ 
+   constructor(config, gexpInstance) {
+     this.config = config;
+@@ -3252,6 +3254,9 @@ class IntextManager {
+         slotsChecked: entry.slotsChecked,
+         slotsMatched: entry.slotsMatched,
+         fingerprint: JSON.stringify(entry.values.map(String).sort()),
++        sourceFingerprint: JSON.stringify(entry.sources.map((source) => [
++          source.source, source.values.map(String).sort(),
++        ]).sort(([left], [right]) => left.localeCompare(right))),
+       }];
+     }));
+     return {
+@@ -3293,7 +3298,10 @@ class IntextManager {
+         (slotsObserved || (nativeSlots.length === 0 && keyState?.resolved === true));
+     const observationEligible = ownSlotSignal || absenceRuntimeMature;
+     const stabilityPolls = stability && stability.fingerprint === keyState?.fingerprint ? stability.polls : 0;
+-    const mature = observationEligible && stabilityPolls >= 2;
++    const requiredStabilityPolls = ownSlotSignal
++      ? IntextManager.INTEXT_OWN_SLOT_STABILITY_POLLS
++      : IntextManager.INTEXT_SLOT_ABSENCE_STABILITY_POLLS;
++    const mature = observationEligible && stabilityPolls >= requiredStabilityPolls;
+     return {
+       key,
+       status: mature ? (keyState.resolved ? "resolved-mature" : "absent-mature") : "pending",
+@@ -3301,12 +3309,21 @@ class IntextManager {
+       observationEligible,
+       reason: mature
+         ? (ownSlotSignal ? "stable-own-slot-targeting" :
+-          keyState.resolved ? "stable-global-after-runtime-ready" : "stable-absent-after-runtime-ready")
+-        : (keyState?.resolved && !ownSlotSignal ? "global-signal-slot-not-mature" : "blocking-key-not-mature"),
++          keyState.resolved ? "stable-global-with-stable-slot-absence" : "stable-absent-after-slot-settle")
++        : (ownSlotSignal ? "slot-targeting-pending" :
++          nativeSlots.length === 0 ? "slot-discovery-pending" : "slot-targeting-pending"),
+       stabilityPolls,
++      requiredStabilityPolls,
++      hasOwnSlotSignal: ownSlotSignal,
++      slotAbsenceUncertain: !ownSlotSignal,
+     };
+   }
+ 
++  getIntextNativeSlotIdentity(slot) {
++    try { return String(slot?.getSlotElementId?.() || "").trim(); }
++    catch (e) { return ""; }
++  }
++
+   getIntextBlockingTargetingMaturity({
+     context = null,
+     resolution,
+@@ -3332,7 +3349,7 @@ class IntextManager {
+     return {
+       mature,
+       observationEligible: keyMaturities.every((entry) => entry.observationEligible),
+-      requiredStabilityPolls: 2,
++      requiredStabilityPolls: Math.max(...keyMaturities.map((entry) => entry.requiredStabilityPolls)),
+       keyMaturities,
+       reason: !mature ? "none" : keyMaturities.every((entry) => entry.status === "absent-mature")
+         ? "stable-empty-blocking-targeting-runtime-mature"
+@@ -3437,25 +3454,25 @@ class IntextManager {
+       };
+     }
+     const blockingStability = new Map();
+-    let observedNativeSlots = [];
++    let observedSlotSetFingerprint = null;
+     let blockingStabilityPolls = 0;
+     const updateBlockingStability = () => {
+-      const sameSlots = observedNativeSlots.length === nativeSlots.length &&
+-        nativeSlots.every((slot) => observedNativeSlots.includes(slot));
++      const slotIds = nativeSlots.map((slot) => this.getIntextNativeSlotIdentity(slot));
++      // Unknown identities cannot certify a stable absence. JSON avoids delimiter collisions.
++      const slotSetFingerprint = slotIds.every(Boolean) ? JSON.stringify(slotIds.sort()) : null;
++      const sameSlots = slotSetFingerprint !== null && observedSlotSetFingerprint === slotSetFingerprint;
+       for (const key of targetingState.blockingKeys) {
+         const keyState = targetingState.blockingKeyStates[key];
+         const maturity = this.getIntextBlockingKeyMaturity({
+           key, context, resolution, nativeSlots, keyState,
+         });
+         const previous = blockingStability.get(key);
+-        // Values stay key-local; source/slot changes start a new eligible observation run.
++        // Own targeting keeps its fast path; absence also observes slot discovery and runtime.
+         const observation = JSON.stringify([
+-          keyState.hasContextSignal, keyState.hasDataSignal, keyState.hasUeDfpSignal,
+-          keyState.hasGptPageSignal, keyState.hasGptSlotSignal,
+-          keyState.hasUeDataLayerSignal, keyState.hasUtagSignal,
+-          keyState.slotsChecked, keyState.slotsMatched,
++          keyState.sourceFingerprint, keyState.slotsMatched,
++          ...(maturity.hasOwnSlotSignal ? [] : [keyState.slotsChecked, scoped ? null : resolution.api?.pubadsReady === true]),
+         ]);
+-        const unchanged = sameSlots && previous?.fingerprint === keyState.fingerprint &&
++        const unchanged = (maturity.hasOwnSlotSignal || sameSlots) && previous?.fingerprint === keyState.fingerprint &&
+           previous?.observation === observation;
+         blockingStability.set(key, {
+           fingerprint: keyState.fingerprint,
+@@ -3463,7 +3480,7 @@ class IntextManager {
+           polls: maturity.observationEligible ? (unchanged ? previous.polls + 1 : 1) : 0,
+         });
+       }
+-      observedNativeSlots = nativeSlots.slice();
++      observedSlotSetFingerprint = slotSetFingerprint;
+       // Retain the aggregate counter only for existing telemetry consumers.
+       blockingStabilityPolls = Math.min(...Array.from(blockingStability.values(), (entry) => entry.polls));
+     };
+@@ -3500,7 +3517,7 @@ class IntextManager {
+         blockingSignalFound: targetingState.blockingSignalFound,
+         blockingGptSlotSignalFound: targetingState.blockingGptSlotSignalFound,
+         blockingStabilityPolls,
+-        blockingKeyMaturities: maturity.keyMaturities.map(({ key, status, reason, stabilityPolls }) => ({ key, status, reason, stabilityPolls })),
++        blockingKeyMaturities: maturity.keyMaturities.map(({ key, status, reason, stabilityPolls, requiredStabilityPolls }) => ({ key, status, reason, stabilityPolls, requiredStabilityPolls })),
+         readinessBasis: maturity.reason,
+         finalRecheckRequired: true,
+       };
+@@ -3574,7 +3591,7 @@ class IntextManager {
+       blockingSignalFound: targetingState.blockingSignalFound,
+       blockingGptSlotSignalFound: targetingState.blockingGptSlotSignalFound,
+       blockingStabilityPolls,
+-      blockingKeyMaturities: maturity.keyMaturities.map(({ key, status, reason, stabilityPolls }) => ({ key, status, reason, stabilityPolls })),
++      blockingKeyMaturities: maturity.keyMaturities.map(({ key, status, reason, stabilityPolls, requiredStabilityPolls }) => ({ key, status, reason, stabilityPolls, requiredStabilityPolls })),
+       pendingBlockingKeysAtExit: maturity.keyMaturities.filter((entry) => entry.status === "pending").map((entry) => entry.key),
+       readinessBasis,
+       blockedEarly,
+diff --git a/src/pro/tests/intext-rule-targeting.audit.test.cjs b/src/pro/tests/intext-rule-targeting.audit.test.cjs
+index f7eb478..b57f7d8 100644
+--- a/src/pro/tests/intext-rule-targeting.audit.test.cjs
++++ b/src/pro/tests/intext-rule-targeting.audit.test.cjs
+@@ -515,7 +515,7 @@ test('blocking key legitimamente ausente sale pronto con runtime y slots maduros
+   assert.equal(result.reason, 'stable-empty-blocking-targeting-runtime-mature');
+   assert.equal(result.relevantSignalFound, false);
+   assert.equal(result.finalRecheckRequired, true);
+-  assert.equal(result.elapsedMs, 25);
++  assert.equal(result.elapsedMs, 100);
+   assert.deepEqual(Array.from(result.unresolvedBlockingKeys), ['isPremium']);
+ });
+ 
+@@ -929,7 +929,7 @@ test('slotless DataLayer estable usa pubadsReady y termina sin esperar timeout',
+   assert.equal(result.reason, 'stable-blocking-targeting');
+   assert.equal(result.readinessBasis, 'stable-blocking-targeting');
+   assert.deepEqual(Array.from(result.resolvedRelevantKeys), ['tag']);
+-  assert.equal(result.elapsedMs, 125);
++  assert.equal(result.elapsedMs, 200);
+ });
+ 
+ test('scoped ignora pubadsReady global hasta tener targeting de slot del articulo B', async () => {
+@@ -1024,22 +1024,33 @@ test('per-key: blocker GPT no certifica otro blocker global false y bloquea a 17
+   assert.equal(result.elapsedMs, 175);
+ });
+ 
+-test('per-key: partial resolved y optional absent terminan a 25ms con telemetry compacta', async () => {
++test('per-key: partial resolved y optional absent terminan a 100ms con telemetry compacta', async () => {
+   const fixture = createFixture({ psp: true, slots: [slot('partial', { tag: ['normal'], isPremium: ['0'] })] });
+   fixture.manager.siteConfig = { exclusions: { keyValues: { newsid: ['x'], tag: ['x'], t: ['x'], isPremium: ['1'] } } };
+-  const result = await observeReadiness(fixture);
++  let elapsed = 0;
++  const firstMatureAt = {};
++  const originalMaturity = fixture.manager.getIntextBlockingKeyMaturity.bind(fixture.manager);
++  fixture.manager.getIntextBlockingKeyMaturity = (state) => {
++    const maturity = originalMaturity(state);
++    if (maturity.mature && firstMatureAt[maturity.key] === undefined) firstMatureAt[maturity.key] = elapsed;
++    return maturity;
++  };
++  const result = await observeReadiness(fixture, null, (pollTime) => { elapsed = pollTime; });
+   const states = keyMaturities(result);
+-  assert.equal(result.elapsedMs, 25);
++  assert.equal(result.elapsedMs, 100);
+   assert.equal(result.timedOut, false);
+   assert.equal(states.tag.status, 'resolved-mature');
+   assert.equal(states.isPremium.reason, 'stable-own-slot-targeting');
+   assert.equal(states.newsid.status, 'absent-mature');
+-  assert.equal(states.t.reason, 'stable-absent-after-runtime-ready');
+-  assert.ok(Object.values(states).every((entry) => entry.stabilityPolls === 2));
++  assert.equal(states.t.reason, 'stable-absent-after-slot-settle');
++  assert.equal(states.tag.requiredStabilityPolls, 2);
++  assert.equal(states.t.requiredStabilityPolls, 5);
++  assert.ok(Object.values(states).every((entry) => entry.stabilityPolls === 5));
++  assert.deepEqual(firstMatureAt, { tag: 25, isPremium: 25, newsid: 100, t: 100 });
+   assert.deepEqual(Array.from(result.pendingBlockingKeysAtExit), []);
+   const completed = fixture.logs.find(([message]) => message.includes('intext_rule_targeting_wait_completed'))[1];
+   assert.equal(completed.blockingKeyMaturities.length, 4);
+-  assert.deepEqual(Object.keys(completed.blockingKeyMaturities[0]), ['key', 'status', 'reason', 'stabilityPolls']);
++  assert.deepEqual(Object.keys(completed.blockingKeyMaturities[0]), ['key', 'status', 'reason', 'stabilityPolls', 'requiredStabilityPolls']);
+ });
+ 
+ test('per-key: global false desde 50ms no madura con slot vacio y GPT inmaduro', async () => {
+@@ -1055,13 +1066,13 @@ test('per-key: global false desde 50ms no madura con slot vacio y GPT inmaduro',
+   assert.equal(result.elapsedMs, 175);
+ });
+ 
+-test('per-key: global false con ausencia slot-level madura resuelve a 25ms', async () => {
++test('per-key: global false con ausencia slot-level madura resuelve a 100ms', async () => {
+   const fixture = createFixture({ psp: true, slots: [slot('mature-absence')], ueTargeting: { isPremium: false } });
+   fixture.manager.siteConfig = { exclusions: { keyValues: { isPremium: ['1', 'true'] } } };
+   const result = await observeReadiness(fixture);
+-  assert.equal(result.elapsedMs, 25);
++  assert.equal(result.elapsedMs, 100);
+   assert.equal(keyMaturities(result).isPremium.status, 'resolved-mature');
+-  assert.equal(keyMaturities(result).isPremium.reason, 'stable-global-after-runtime-ready');
++  assert.equal(keyMaturities(result).isPremium.reason, 'stable-global-with-stable-slot-absence');
+ });
+ 
+ test('per-key: fingerprints vacios previos a runtime ready no cuentan como estabilidad madura', async () => {
+@@ -1070,9 +1081,9 @@ test('per-key: fingerprints vacios previos a runtime ready no cuentan como estab
+   const result = await observeReadiness(fixture, null, (elapsed) => {
+     if (elapsed === 100) fixture.realGpt.pubadsReady = true;
+   });
+-  assert.equal(result.elapsedMs, 125);
++  assert.equal(result.elapsedMs, 200);
+   assert.equal(keyMaturities(result).fooBlock.status, 'absent-mature');
+-  assert.equal(keyMaturities(result).fooBlock.stabilityPolls, 2);
++  assert.equal(keyMaturities(result).fooBlock.stabilityPolls, 5);
+ });
+ 
+ test('per-key: all absent no depende de inclusion GPT resuelta', async () => {
+@@ -1082,7 +1093,7 @@ test('per-key: all absent no depende de inclusion GPT resuelta', async () => {
+     inclusions: { keyValues: { section: ['sports'] } },
+   };
+   const result = await observeReadiness(fixture);
+-  assert.equal(result.elapsedMs, 25);
++  assert.equal(result.elapsedMs, 100);
+   assert.equal(result.reason, 'stable-empty-blocking-targeting-runtime-mature');
+   assert.ok(Object.values(keyMaturities(result)).every((entry) => entry.status === 'absent-mature'));
+ });
+@@ -1111,7 +1122,7 @@ test('per-key: mixed sources derivan exclusivamente del resolver canonico', asyn
+   assert.equal(keys.t.fingerprint, '[]');
+   assert.equal(keys.isPremium.fingerprint, '["false"]');
+   const result = await observeReadiness(fixture, ruleContext);
+-  assert.equal(result.elapsedMs, 25);
++  assert.equal(result.elapsedMs, 100);
+   assert.equal(keyMaturities(result).t.status, 'absent-mature');
+   assert.ok(Object.entries(keyMaturities(result)).filter(([key]) => key !== 't').every(([, entry]) => entry.status === 'resolved-mature'));
+ });
+@@ -1158,7 +1169,7 @@ test('per-key: scoped partial observa solo slots B y ausencia estable sin pubads
+   fixture.manager.siteConfig = { exclusions: { keyValues: { fooBlock: ['1'], barBlock: ['1'] } } };
+   const ruleContext = { rootElement: createArticleRoot(fixture, 'partial-b', 'partial-b') };
+   const result = await observeReadiness(fixture, ruleContext);
+-  assert.equal(result.elapsedMs, 25);
++  assert.equal(result.elapsedMs, 100);
+   assert.equal(result.nativeSlots, 1);
+   assert.equal(outsideReads, 0);
+   assert.equal(keyMaturities(result).fooBlock.status, 'absent-mature');
+@@ -1178,7 +1189,7 @@ test('per-key: scoped slot aun no estable permite early block a 175ms', async ()
+       fixture.elements.set('late-b', elementB);
+       fixture.slots.push(slot('late-b', targetingB));
+     }
+-    // The article runtime is still changing; empty snapshots from different slots do not settle B.
++    // Fresh wrappers keep B's logical identity; reinforced absence still catches late targeting.
+     if (elapsed === 125 || elapsed === 150) fixture.slots[1] = slot('late-b', targetingB);
+     if (elapsed === 175) targetingB.fooBlock = ['1'];
+   });
+@@ -1186,15 +1197,15 @@ test('per-key: scoped slot aun no estable permite early block a 175ms', async ()
+   assert.equal(result.elapsedMs, 175);
+ });
+ 
+-test('per-key: replacement scoped slot reinicia estabilidad incluso con mismos valores', async () => {
++test('per-key: replacement scoped object con mismo slot ID conserva estabilidad', async () => {
+   const fixture = createFixture({ psp: true, slots: [slot('replace-b')] });
+   fixture.manager.siteConfig = { exclusions: { keyValues: { fooBlock: ['1'] } } };
+   const ruleContext = { rootElement: createArticleRoot(fixture, 'replace-b', 'replace-b') };
+   const result = await observeReadiness(fixture, ruleContext, (elapsed) => {
+     if (elapsed === 25) fixture.slots[0] = slot('replace-b');
+   });
+-  assert.equal(result.elapsedMs, 50);
+-  assert.equal(keyMaturities(result).fooBlock.stabilityPolls, 2);
++  assert.equal(result.elapsedMs, 100);
++  assert.equal(keyMaturities(result).fooBlock.stabilityPolls, 5);
+ });
+ 
+ test('per-key: cambio de fuente con valores identicos exige dos snapshots de la propia key', async () => {
+@@ -1252,3 +1263,265 @@ test('per-key: request boundary real permanece cerrado mientras un blocker siga
+   assert.ok(Object.values(calls).every((count) => count === 0));
+   assert.equal(result.decision, 'excluded');
+ });
++
++test('late-slot: global false + pubadsReady true antes del slot targeting bloquea a 175ms', async () => {
++  const fixture = createFixture({ psp: true, pubadsReady: false });
++  fixture.manager.siteConfig = { exclusions: { keyValues: { isPremium: ['1', 'true'] } } };
++  const targeting = {};
++  const polls = [];
++  const result = await observeReadiness(fixture, null, (elapsed) => {
++    polls.push(elapsed);
++    if (elapsed === 50) fixture.window.ueDataLayer.isPremium = false;
++    if (elapsed === 100) {
++      fixture.realGpt.pubadsReady = true;
++      fixture.slots.push(slot('late-premium-ready', targeting));
++    }
++    if (elapsed === 125 || elapsed === 150) {
++      assert.equal(fixture.realGpt.pubadsReady, true);
++      assert.equal(fixture.manager.isBlockedByExclusions(), false);
++    }
++    if (elapsed === 175) targeting.isPremium = ['1'];
++  });
++  assert.ok(polls.includes(125) && polls.includes(150));
++  assert.equal(result.elapsedMs, 175);
++  assert.equal(result.reason, 'exclusion-match');
++  assert.equal(result.blockedEarly, true);
++});
++
++test('late-slot: slot discovery tardio reinicia grace y bloquea a 200ms', async () => {
++  const fixture = createFixture({ psp: true, pubadsReady: false });
++  fixture.manager.siteConfig = { exclusions: { keyValues: { isPremium: ['1', 'true'] } } };
++  const targeting = {};
++  const result = await observeReadiness(fixture, null, (elapsed) => {
++    if (elapsed === 100) {
++      fixture.realGpt.pubadsReady = true;
++      fixture.window.ueDataLayer.isPremium = false;
++    }
++    if (elapsed === 150) fixture.slots.push(slot('discovery-late', targeting));
++    if (elapsed === 200) targeting.isPremium = ['1'];
++  });
++  assert.equal(result.elapsedMs, 200);
++  assert.equal(result.reason, 'exclusion-match');
++});
++
++test('late-slot: own slot non-blocking durante grace pasa al fast path a 175ms', async () => {
++  const fixture = createFixture({ psp: true, pubadsReady: false });
++  fixture.manager.siteConfig = { exclusions: { keyValues: { isPremium: ['1', 'true'] } } };
++  const targeting = {};
++  const result = await observeReadiness(fixture, null, (elapsed) => {
++    if (elapsed === 100) {
++      fixture.realGpt.pubadsReady = true;
++      fixture.window.ueDataLayer.isPremium = false;
++      fixture.slots.push(slot('absence-to-own-slot', targeting));
++    }
++    if (elapsed === 150) targeting.isPremium = ['0'];
++  });
++  const maturity = keyMaturities(result).isPremium;
++  assert.equal(result.elapsedMs, 175);
++  assert.equal(maturity.reason, 'stable-own-slot-targeting');
++  assert.equal(maturity.stabilityPolls, 2);
++  assert.equal(maturity.requiredStabilityPolls, 2);
++});
++
++test('late-slot: own slot generic disponible a 100ms madura a 125ms', async () => {
++  const fixture = createFixture({ psp: true, pubadsReady: false });
++  fixture.manager.siteConfig = { exclusions: { keyValues: { fooBlock: ['1'] } } };
++  const result = await observeReadiness(fixture, null, (elapsed) => {
++    if (elapsed === 100) fixture.slots.push(slot('fast-generic-own', { fooBlock: ['0'] }));
++  });
++  assert.equal(result.elapsedMs, 125);
++  assert.equal(keyMaturities(result).fooBlock.requiredStabilityPolls, 2);
++});
++
++test('late-slot: pubadsReady desde t=0 no oculta generic blocking targeting tardio', async () => {
++  const targeting = {};
++  const fixture = createFixture({ psp: true, slots: [slot('generic-late-ready', targeting)], ueTargeting: { fooBlock: '0' } });
++  fixture.manager.siteConfig = { exclusions: { keyValues: { fooBlock: ['1'] } } };
++  const result = await observeReadiness(fixture, null, (elapsed) => {
++    assert.equal(fixture.realGpt.pubadsReady, true);
++    if (elapsed === 75) targeting.fooBlock = ['1'];
++  });
++  assert.equal(result.elapsedMs, 75);
++  assert.equal(result.reason, 'exclusion-match');
++  assert.equal(result.blockedEarly, true);
++});
++
++test('late-slot: global slotless estable usa discovery threshold de cinco observaciones', async () => {
++  const fixture = createFixture({ psp: true, ueTargeting: { fooBlock: '0' } });
++  fixture.manager.siteConfig = { exclusions: { keyValues: { fooBlock: ['1'] } } };
++  const result = await observeReadiness(fixture);
++  assert.equal(result.elapsedMs, 100);
++  assert.equal(result.nativeSlots, 0);
++  assert.equal(keyMaturities(result).fooBlock.status, 'resolved-mature');
++  assert.equal(keyMaturities(result).fooBlock.requiredStabilityPolls, 5);
++});
++
++test('late-slot: scoped B pending a 125ms bloquea a 175ms sin consultar A', async () => {
++  const targetingB = {};
++  const outside = slot('scoped-late-a', { fooBlock: ['0'] });
++  let outsideReads = 0;
++  outside.getTargeting = outside.getTargetingMap = () => { outsideReads += 1; return []; };
++  const fixture = createFixture({ psp: true, slots: [outside] });
++  fixture.manager.siteConfig = { exclusions: { keyValues: { fooBlock: ['1'] } } };
++  const elementB = {};
++  const ruleContext = { rootElement: { contains: (element) => element === elementB } };
++  const result = await observeReadiness(fixture, ruleContext, (elapsed) => {
++    if (elapsed === 100) {
++      fixture.elements.set('scoped-late-b', elementB);
++      fixture.slots.push(slot('scoped-late-b', targetingB));
++    }
++    if (elapsed === 175) targetingB.fooBlock = ['1'];
++  });
++  assert.equal(result.elapsedMs, 175);
++  assert.equal(result.reason, 'exclusion-match');
++  assert.equal(outsideReads, 0);
++});
++
++test('late-slot: getSlots devuelve wrappers nuevos del mismo scoped ID sin reset', async () => {
++  const fixture = createFixture({ psp: true, slots: [slot('wrappers-b')] });
++  fixture.manager.siteConfig = { exclusions: { keyValues: { fooBlock: ['1'] } } };
++  let wrapperCalls = 0;
++  fixture.pubads.getSlots = () => { wrapperCalls += 1; return [slot('wrappers-b')]; };
++  const ruleContext = { rootElement: createArticleRoot(fixture, 'wrappers-b', 'wrappers-b') };
++  const result = await observeReadiness(fixture, ruleContext);
++  assert.equal(result.elapsedMs, 100);
++  assert.equal(keyMaturities(result).fooBlock.stabilityPolls, 5);
++  assert.ok(wrapperCalls > 5);
++});
++
++test('late-slot: cambio real del scoped slot set reinicia ausencia y conserva own key', async () => {
++  const fixture = createFixture({ psp: true, slots: [slot('set-b-1', { fooBlock: ['0'] })] });
++  fixture.manager.siteConfig = { exclusions: { keyValues: { fooBlock: ['1'], barBlock: ['1'] } } };
++  const ruleContext = { rootElement: { contains: (element) => element?.article === 'B' } };
++  fixture.elements.set('set-b-1', { article: 'B' });
++  const result = await observeReadiness(fixture, ruleContext, (elapsed) => {
++    if (elapsed === 25) {
++      fixture.elements.set('set-b-2', { article: 'B' });
++      fixture.slots.push(slot('set-b-2'));
++    }
++  });
++  assert.equal(result.elapsedMs, 125);
++  assert.equal(keyMaturities(result).barBlock.stabilityPolls, 5);
++  assert.equal(keyMaturities(result).fooBlock.stabilityPolls, 6);
++});
++
++test('late-slot: slot ID cambia con mismo numero de slots y reinicia ausencia', async () => {
++  const fixture = createFixture({ psp: true, slots: [slot('same-count-1')] });
++  fixture.manager.siteConfig = { exclusions: { keyValues: { fooBlock: ['1'] } } };
++  const result = await observeReadiness(fixture, null, (elapsed) => {
++    if (elapsed === 25) fixture.slots[0] = slot('same-count-2');
++  });
++  assert.equal(result.elapsedMs, 125);
++  assert.equal(keyMaturities(result).fooBlock.stabilityPolls, 5);
++});
++
++test('late-slot: slots nuevos vacios no retrasan own slot snapshot canonico estable', async () => {
++  const fixture = createFixture({ psp: true, slots: [slot('own-stable', { fooBlock: ['0'] })] });
++  fixture.manager.siteConfig = { exclusions: { keyValues: { fooBlock: ['1'] } } };
++  const result = await observeReadiness(fixture, null, (elapsed) => {
++    if (elapsed === 25) fixture.slots.push(slot('unrelated-empty'));
++  });
++  assert.equal(result.elapsedMs, 25);
++  assert.equal(keyMaturities(result).fooBlock.stabilityPolls, 2);
++});
++
++test('late-slot: ordenar el mismo slot set no reinicia ausencia', async () => {
++  const fixture = createFixture({ psp: true, slots: [slot('ordered-1'), slot('ordered-2')] });
++  fixture.manager.siteConfig = { exclusions: { keyValues: { fooBlock: ['1'] } } };
++  const result = await observeReadiness(fixture, null, () => { fixture.slots.reverse(); });
++  assert.equal(result.elapsedMs, 100);
++  assert.equal(keyMaturities(result).fooBlock.stabilityPolls, 5);
++});
++
++test('late-slot: cambio de sources de ESA key reinicia grace con union igual', async () => {
++  const fixture = createFixture({ psp: true, slots: [slot('source-reset')], ueTargeting: { fooBlock: '0' } });
++  fixture.manager.siteConfig = { exclusions: { keyValues: { fooBlock: ['1'] } } };
++  const result = await observeReadiness(fixture, null, (elapsed) => {
++    if (elapsed === 25) fixture.context.data.customTargeting.fooBlock = '0';
++  });
++  assert.equal(result.elapsedMs, 125);
++  assert.equal(keyMaturities(result).fooBlock.stabilityPolls, 5);
++});
++
++test('late-slot: valores por source cambian con igual union y reinician estabilidad', async () => {
++  const fixture = createFixture({
++    psp: true, slots: [slot('source-values-reset')],
++    ueTargeting: { fooBlock: '0' }, dataTargeting: { fooBlock: 'safe' },
++  });
++  fixture.manager.siteConfig = { exclusions: { keyValues: { fooBlock: ['1'] } } };
++  const result = await observeReadiness(fixture, null, (elapsed) => {
++    if (elapsed === 25) {
++      fixture.window.ueDataLayer.fooBlock = 'safe';
++      fixture.context.data.customTargeting.fooBlock = '0';
++    }
++  });
++  assert.equal(result.elapsedMs, 125);
++  assert.equal(keyMaturities(result).fooBlock.stabilityPolls, 5);
++});
++
++test('late-slot: cambio de pubadsReady inicial reinicia observaciones elegibles', async () => {
++  const fixture = createFixture({ psp: true, slots: [slot('runtime-reset')] });
++  fixture.manager.siteConfig = { exclusions: { keyValues: { fooBlock: ['1'] } } };
++  const result = await observeReadiness(fixture, null, (elapsed) => {
++    if (elapsed === 25) fixture.realGpt.pubadsReady = false;
++    if (elapsed === 50) fixture.realGpt.pubadsReady = true;
++  });
++  assert.equal(result.elapsedMs, 150);
++  assert.equal(keyMaturities(result).fooBlock.stabilityPolls, 5);
++});
++
++test('late-slot: inclusion cambiante no resetea ausencia de blocking key', async () => {
++  const targeting = { section: ['sports'] };
++  const fixture = createFixture({ psp: true, slots: [slot('absence-inclusion-changing', targeting)] });
++  fixture.manager.siteConfig = {
++    exclusions: { keyValues: { fooBlock: ['1'] } }, inclusions: { keyValues: { section: ['sports'] } },
++  };
++  const result = await observeReadiness(fixture, null, (elapsed) => {
++    targeting.section = elapsed % 50 === 0 ? ['sports'] : [];
++  });
++  assert.equal(result.elapsedMs, 100);
++  assert.equal(keyMaturities(result).fooBlock.stabilityPolls, 5);
++});
++
++test('late-slot: disableSlots usa absence grace y targeting propio sin alterar matching', async () => {
++  const targeting = {};
++  const fixture = createFixture({ psp: true, slots: [slot('disable-late', targeting)], ueTargeting: { fooBlock: '0' } });
++  fixture.manager.siteConfig = { exclusions: { disableSlots: { rules: [{ slots: [0], ifKeyValues: { fooBlock: ['1'] } }] } } };
++  const result = await observeReadiness(fixture, null, (elapsed) => {
++    if (elapsed === 75) targeting.fooBlock = ['1'];
++  });
++  assert.equal(result.elapsedMs, 100);
++  assert.equal(result.blockedEarly, false);
++  assert.equal(keyMaturities(result).fooBlock.reason, 'stable-own-slot-targeting');
++  assert.equal(fixture.manager.isSlotDisabledByExclusion(0), true);
++});
++
++test('late-slot: request boundary permanece cerrado con pubadsReady true y slot ambiguo', async () => {
++  const targetingB = {};
++  const fixture = createFixture({ psp: true, slots: [slot('boundary-ready-b', targetingB)], ueTargeting: { isPremium: false } });
++  const rootB = createArticleRoot(fixture, 'boundary-ready-b', 'boundary-ready-b');
++  const calls = { prebid: 0, aps: 0, display: 0, refresh: 0, video: 0, nodes: 0, inclusions: 0 };
++  fixture.window.pbjs = { requestBids() { calls.prebid += 1; } };
++  fixture.window.apstag = { fetchBids() { calls.aps += 1; } };
++  fixture.realGpt.display = () => { calls.display += 1; };
++  fixture.pubads.refresh = () => { calls.refresh += 1; };
++  fixture.manager.isAllowedByInclusions = () => { calls.inclusions += 1; return true; };
++  fixture.manager.buildAndPlayVideo = () => { calls.video += 1; };
++  let elapsed = 0;
++  const originalWait = fixture.manager.waitForIntextRuleTargetingReady.bind(fixture.manager);
++  fixture.manager.waitForIntextRuleTargetingReady = (ruleContext) => originalWait(ruleContext, {
++    now: () => elapsed,
++    wait: async (delayMs) => {
++      elapsed += delayMs;
++      assert.equal(fixture.realGpt.pubadsReady, true);
++      assert.ok(Object.values(calls).every((count) => count === 0));
++      if (elapsed === 75) targetingB.isPremium = ['1'];
++    },
++  });
++  const { result } = await runContinuousArticleFlow(fixture, rootB, {
++    onCreatePositions: () => { calls.nodes += 1; throw new Error('nodes before exclusion recheck'); },
++  });
++  assert.equal(elapsed, 75);
++  assert.equal(result.decision, 'excluded');
++  assert.ok(Object.values(calls).every((count) => count === 0));
++});

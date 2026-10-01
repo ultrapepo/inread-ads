@@ -1,0 +1,895 @@
+From: Pedro <108982065+ultrapepo@users.noreply.github.com>
+Date: Thu, 01 Oct 2026 09:10:24 GMT
+Subject: [PATCH] fix(intext): resolve PSP blocker maturity per targeting key
+
+Resolve blocking targeting maturity independently per key and source.
+Keep the existing polling budget, early exclusions and request boundary.
+
+diff --git a/src/pro/IntextManager.js b/src/pro/IntextManager.js
+index 773c487..efab924 100644
+--- a/src/pro/IntextManager.js
++++ b/src/pro/IntextManager.js
+@@ -1696,6 +1696,23 @@ class IntextManager {
+       entry.key,
+       entry.values.map(String).sort(),
+     ]));
++    const blockingKeyStates = Object.fromEntries(blockingResolutions.map((entry) => {
++      const hasSource = (name) => entry.sources.some((source) => source.source === name);
++      return [entry.key, {
++        values: entry.values,
++        resolved: entry.values.length > 0,
++        hasContextSignal: hasSource("context.targeting"),
++        hasDataSignal: hasSource("data.customTargeting"),
++        hasUeDfpSignal: hasSource("ueDFPData.customTargeting"),
++        hasGptPageSignal: hasSource("gpt-page-targeting"),
++        hasGptSlotSignal: entry.slotsMatched > 0 && hasSource("gpt-slot-targeting"),
++        hasUeDataLayerSignal: hasSource("ueDataLayer"),
++        hasUtagSignal: hasSource("utag_data"),
++        slotsChecked: entry.slotsChecked,
++        slotsMatched: entry.slotsMatched,
++        fingerprint: JSON.stringify(entry.values.map(String).sort()),
++      }];
++    }));
+     return {
+       relevantSignalFound: resolvedKeys.length > 0,
+       gptSlotSignalFound,
+@@ -1712,6 +1729,40 @@ class IntextManager {
+       resolutions,
+       fingerprint,
+       blockingFingerprint,
++      blockingKeyStates,
++    };
++  }
++
++  getIntextBlockingKeyMaturity({
++    key,
++    context = null,
++    resolution,
++    nativeSlots,
++    keyState,
++    stability,
++  }) {
++    const scoped = Boolean(context?.rootElement);
++    const slotsObserved = nativeSlots.length > 0 && keyState?.slotsChecked > 0;
++    const ownSlotSignal = slotsObserved && keyState?.hasGptSlotSignal === true;
++    // A global value cannot certify missing slot targeting before this runtime is ready.
++    // Scoped observations are tied to the actual article slots by the wait-local tracker.
++    const absenceRuntimeMature = scoped
++      ? slotsObserved
++      : resolution.api?.pubadsReady === true &&
++        (slotsObserved || (nativeSlots.length === 0 && keyState?.resolved === true));
++    const observationEligible = ownSlotSignal || absenceRuntimeMature;
++    const stabilityPolls = stability && stability.fingerprint === keyState?.fingerprint ? stability.polls : 0;
++    const mature = observationEligible && stabilityPolls >= 2;
++    return {
++      key,
++      status: mature ? (keyState.resolved ? "resolved-mature" : "absent-mature") : "pending",
++      mature,
++      observationEligible,
++      reason: mature
++        ? (ownSlotSignal ? "stable-own-slot-targeting" :
++          keyState.resolved ? "stable-global-after-runtime-ready" : "stable-absent-after-runtime-ready")
++        : (keyState?.resolved && !ownSlotSignal ? "global-signal-slot-not-mature" : "blocking-key-not-mature"),
++      stabilityPolls,
+     };
+   }
+ 
+@@ -1720,7 +1771,7 @@ class IntextManager {
+     resolution,
+     nativeSlots,
+     targetingState,
+-    blockingStabilityPolls = 0,
++    blockingStability = new Map(),
+   }) {
+     const blockingKeys = targetingState?.blockingKeys || [];
+     if (blockingKeys.length === 0) {
+@@ -1728,40 +1779,21 @@ class IntextManager {
+         mature: true,
+         observationEligible: true,
+         reason: "no-blocking-external-rules",
++        keyMaturities: [],
+       };
+     }
+-    const allBlockingResolved =
+-      targetingState.resolvedBlockingKeys.length === blockingKeys.length;
+-    const allBlockingEmpty = targetingState.resolvedBlockingKeys.length === 0;
+-    const resolvedRuntimeMature =
+-      (nativeSlots.length > 0 && targetingState.blockingGptSlotSignalFound === true) ||
+-      (
+-        !context?.rootElement &&
+-        nativeSlots.length === 0 &&
+-        resolution.api?.pubadsReady === true
+-      );
+-    const emptyRuntimeMature =
+-      !context?.rootElement &&
+-      nativeSlots.length > 0 &&
+-      resolution.api?.pubadsReady === true &&
+-      targetingState.gptSlotSignalFound !== true;
+-    const observationEligible =
+-      (allBlockingResolved && resolvedRuntimeMature) ||
+-      (allBlockingEmpty && emptyRuntimeMature);
+-    const requiredStabilityPolls = 2;
+-    if (!observationEligible || blockingStabilityPolls < requiredStabilityPolls) {
+-      return {
+-        mature: false,
+-        observationEligible,
+-        requiredStabilityPolls,
+-        reason: "none",
+-      };
+-    }
++    const keyMaturities = blockingKeys.map((key) => this.getIntextBlockingKeyMaturity({
++      key, context, resolution, nativeSlots,
++      keyState: targetingState.blockingKeyStates[key],
++      stability: blockingStability.get(key),
++    }));
++    const mature = keyMaturities.every((entry) => entry.mature);
+     return {
+-      mature: true,
+-      observationEligible: true,
+-      requiredStabilityPolls,
+-      reason: allBlockingEmpty
++      mature,
++      observationEligible: keyMaturities.every((entry) => entry.observationEligible),
++      requiredStabilityPolls: 2,
++      keyMaturities,
++      reason: !mature ? "none" : keyMaturities.every((entry) => entry.status === "absent-mature")
+         ? "stable-empty-blocking-targeting-runtime-mature"
+         : "stable-blocking-targeting",
+     };
+@@ -1779,7 +1811,7 @@ class IntextManager {
+       resolution,
+       nativeSlots,
+       targetingState,
+-      blockingStabilityPolls: state.blockingStabilityPolls || 0,
++      blockingStability: state.blockingStability,
+     }).mature;
+   }
+ 
+@@ -1821,6 +1853,8 @@ class IntextManager {
+       blockingSignalFound: false,
+       blockingGptSlotSignalFound: false,
+       blockingStabilityPolls: 0,
++      blockingKeyMaturities: [],
++      pendingBlockingKeysAtExit: [],
+       readinessBasis: "none",
+     };
+ 
+@@ -1861,28 +1895,36 @@ class IntextManager {
+         inclusionKeys: targetingState.inclusionKeys,
+       };
+     }
+-    let stableBlockingFingerprint = null;
++    const blockingStability = new Map();
++    let observedNativeSlots = [];
+     let blockingStabilityPolls = 0;
+     const updateBlockingStability = () => {
+-      const maturity = this.getIntextBlockingTargetingMaturity({
+-        context,
+-        resolution,
+-        nativeSlots,
+-        targetingState,
+-        blockingStabilityPolls: 0,
+-      });
+-      if (!maturity.observationEligible) {
+-        stableBlockingFingerprint = null;
+-        blockingStabilityPolls = 0;
+-        return;
+-      }
+-      if (stableBlockingFingerprint === targetingState.blockingFingerprint) {
+-        blockingStabilityPolls += 1;
+-      }
+-      else {
+-        stableBlockingFingerprint = targetingState.blockingFingerprint;
+-        blockingStabilityPolls = 1;
++      const sameSlots = observedNativeSlots.length === nativeSlots.length &&
++        nativeSlots.every((slot) => observedNativeSlots.includes(slot));
++      for (const key of targetingState.blockingKeys) {
++        const keyState = targetingState.blockingKeyStates[key];
++        const maturity = this.getIntextBlockingKeyMaturity({
++          key, context, resolution, nativeSlots, keyState,
++        });
++        const previous = blockingStability.get(key);
++        // Values stay key-local; source/slot changes start a new eligible observation run.
++        const observation = JSON.stringify([
++          keyState.hasContextSignal, keyState.hasDataSignal, keyState.hasUeDfpSignal,
++          keyState.hasGptPageSignal, keyState.hasGptSlotSignal,
++          keyState.hasUeDataLayerSignal, keyState.hasUtagSignal,
++          keyState.slotsChecked, keyState.slotsMatched,
++        ]);
++        const unchanged = sameSlots && previous?.fingerprint === keyState.fingerprint &&
++          previous?.observation === observation;
++        blockingStability.set(key, {
++          fingerprint: keyState.fingerprint,
++          observation,
++          polls: maturity.observationEligible ? (unchanged ? previous.polls + 1 : 1) : 0,
++        });
+       }
++      observedNativeSlots = nativeSlots.slice();
++      // Retain the aggregate counter only for existing telemetry consumers.
++      blockingStabilityPolls = Math.min(...Array.from(blockingStability.values(), (entry) => entry.polls));
+     };
+     updateBlockingStability();
+     if (!this.needsIntextRuleTargetingReadinessWait(context, {
+@@ -1890,14 +1932,14 @@ class IntextManager {
+       relevantKeys,
+       nativeSlots,
+       targetingState,
+-      blockingStabilityPolls,
++      blockingStability,
+     })) {
+       const maturity = this.getIntextBlockingTargetingMaturity({
+         context,
+         resolution,
+         nativeSlots,
+         targetingState,
+-        blockingStabilityPolls,
++        blockingStability,
+       });
+       return {
+         ...baseResult,
+@@ -1917,6 +1959,7 @@ class IntextManager {
+         blockingSignalFound: targetingState.blockingSignalFound,
+         blockingGptSlotSignalFound: targetingState.blockingGptSlotSignalFound,
+         blockingStabilityPolls,
++        blockingKeyMaturities: maturity.keyMaturities.map(({ key, status, reason, stabilityPolls }) => ({ key, status, reason, stabilityPolls })),
+         readinessBasis: maturity.reason,
+         finalRecheckRequired: true,
+       };
+@@ -1954,7 +1997,7 @@ class IntextManager {
+         resolution,
+         nativeSlots,
+         targetingState,
+-        blockingStabilityPolls,
++        blockingStability,
+       });
+       if (maturity.mature) {
+         reason = maturity.reason;
+@@ -1969,6 +2012,9 @@ class IntextManager {
+     const elapsedMs = Math.max(0, now() - startedAt);
+     const pubadsReady = resolution.api?.pubadsReady === true;
+     const timedOut = reason === "timeout";
++    const maturity = this.getIntextBlockingTargetingMaturity({
++      context, resolution, nativeSlots, targetingState, blockingStability,
++    });
+     const result = {
+       ...baseResult,
+       ready: !timedOut,
+@@ -1987,6 +2033,8 @@ class IntextManager {
+       blockingSignalFound: targetingState.blockingSignalFound,
+       blockingGptSlotSignalFound: targetingState.blockingGptSlotSignalFound,
+       blockingStabilityPolls,
++      blockingKeyMaturities: maturity.keyMaturities.map(({ key, status, reason, stabilityPolls }) => ({ key, status, reason, stabilityPolls })),
++      pendingBlockingKeysAtExit: maturity.keyMaturities.filter((entry) => entry.status === "pending").map((entry) => entry.key),
+       readinessBasis,
+       blockedEarly,
+       timedOut,
+@@ -2012,6 +2060,8 @@ class IntextManager {
+       blockingSignalFound: result.blockingSignalFound,
+       blockingGptSlotSignalFound: result.blockingGptSlotSignalFound,
+       blockingStabilityPolls: result.blockingStabilityPolls,
++      blockingKeyMaturities: result.blockingKeyMaturities,
++      pendingBlockingKeysAtExit: result.pendingBlockingKeysAtExit,
+       readinessBasis: result.readinessBasis,
+       scoped: result.scoped,
+     });
+diff --git a/src/pro/_gam_kv_.js b/src/pro/_gam_kv_.js
+index 98a582e..75c1db2 100644
+--- a/src/pro/_gam_kv_.js
++++ b/src/pro/_gam_kv_.js
+@@ -3237,6 +3237,23 @@ class IntextManager {
+       entry.key,
+       entry.values.map(String).sort(),
+     ]));
++    const blockingKeyStates = Object.fromEntries(blockingResolutions.map((entry) => {
++      const hasSource = (name) => entry.sources.some((source) => source.source === name);
++      return [entry.key, {
++        values: entry.values,
++        resolved: entry.values.length > 0,
++        hasContextSignal: hasSource("context.targeting"),
++        hasDataSignal: hasSource("data.customTargeting"),
++        hasUeDfpSignal: hasSource("ueDFPData.customTargeting"),
++        hasGptPageSignal: hasSource("gpt-page-targeting"),
++        hasGptSlotSignal: entry.slotsMatched > 0 && hasSource("gpt-slot-targeting"),
++        hasUeDataLayerSignal: hasSource("ueDataLayer"),
++        hasUtagSignal: hasSource("utag_data"),
++        slotsChecked: entry.slotsChecked,
++        slotsMatched: entry.slotsMatched,
++        fingerprint: JSON.stringify(entry.values.map(String).sort()),
++      }];
++    }));
+     return {
+       relevantSignalFound: resolvedKeys.length > 0,
+       gptSlotSignalFound,
+@@ -3253,6 +3270,40 @@ class IntextManager {
+       resolutions,
+       fingerprint,
+       blockingFingerprint,
++      blockingKeyStates,
++    };
++  }
++
++  getIntextBlockingKeyMaturity({
++    key,
++    context = null,
++    resolution,
++    nativeSlots,
++    keyState,
++    stability,
++  }) {
++    const scoped = Boolean(context?.rootElement);
++    const slotsObserved = nativeSlots.length > 0 && keyState?.slotsChecked > 0;
++    const ownSlotSignal = slotsObserved && keyState?.hasGptSlotSignal === true;
++    // A global value cannot certify missing slot targeting before this runtime is ready.
++    // Scoped observations are tied to the actual article slots by the wait-local tracker.
++    const absenceRuntimeMature = scoped
++      ? slotsObserved
++      : resolution.api?.pubadsReady === true &&
++        (slotsObserved || (nativeSlots.length === 0 && keyState?.resolved === true));
++    const observationEligible = ownSlotSignal || absenceRuntimeMature;
++    const stabilityPolls = stability && stability.fingerprint === keyState?.fingerprint ? stability.polls : 0;
++    const mature = observationEligible && stabilityPolls >= 2;
++    return {
++      key,
++      status: mature ? (keyState.resolved ? "resolved-mature" : "absent-mature") : "pending",
++      mature,
++      observationEligible,
++      reason: mature
++        ? (ownSlotSignal ? "stable-own-slot-targeting" :
++          keyState.resolved ? "stable-global-after-runtime-ready" : "stable-absent-after-runtime-ready")
++        : (keyState?.resolved && !ownSlotSignal ? "global-signal-slot-not-mature" : "blocking-key-not-mature"),
++      stabilityPolls,
+     };
+   }
+ 
+@@ -3261,7 +3312,7 @@ class IntextManager {
+     resolution,
+     nativeSlots,
+     targetingState,
+-    blockingStabilityPolls = 0,
++    blockingStability = new Map(),
+   }) {
+     const blockingKeys = targetingState?.blockingKeys || [];
+     if (blockingKeys.length === 0) {
+@@ -3269,40 +3320,21 @@ class IntextManager {
+         mature: true,
+         observationEligible: true,
+         reason: "no-blocking-external-rules",
++        keyMaturities: [],
+       };
+     }
+-    const allBlockingResolved =
+-      targetingState.resolvedBlockingKeys.length === blockingKeys.length;
+-    const allBlockingEmpty = targetingState.resolvedBlockingKeys.length === 0;
+-    const resolvedRuntimeMature =
+-      (nativeSlots.length > 0 && targetingState.blockingGptSlotSignalFound === true) ||
+-      (
+-        !context?.rootElement &&
+-        nativeSlots.length === 0 &&
+-        resolution.api?.pubadsReady === true
+-      );
+-    const emptyRuntimeMature =
+-      !context?.rootElement &&
+-      nativeSlots.length > 0 &&
+-      resolution.api?.pubadsReady === true &&
+-      targetingState.gptSlotSignalFound !== true;
+-    const observationEligible =
+-      (allBlockingResolved && resolvedRuntimeMature) ||
+-      (allBlockingEmpty && emptyRuntimeMature);
+-    const requiredStabilityPolls = 2;
+-    if (!observationEligible || blockingStabilityPolls < requiredStabilityPolls) {
+-      return {
+-        mature: false,
+-        observationEligible,
+-        requiredStabilityPolls,
+-        reason: "none",
+-      };
+-    }
++    const keyMaturities = blockingKeys.map((key) => this.getIntextBlockingKeyMaturity({
++      key, context, resolution, nativeSlots,
++      keyState: targetingState.blockingKeyStates[key],
++      stability: blockingStability.get(key),
++    }));
++    const mature = keyMaturities.every((entry) => entry.mature);
+     return {
+-      mature: true,
+-      observationEligible: true,
+-      requiredStabilityPolls,
+-      reason: allBlockingEmpty
++      mature,
++      observationEligible: keyMaturities.every((entry) => entry.observationEligible),
++      requiredStabilityPolls: 2,
++      keyMaturities,
++      reason: !mature ? "none" : keyMaturities.every((entry) => entry.status === "absent-mature")
+         ? "stable-empty-blocking-targeting-runtime-mature"
+         : "stable-blocking-targeting",
+     };
+@@ -3320,7 +3352,7 @@ class IntextManager {
+       resolution,
+       nativeSlots,
+       targetingState,
+-      blockingStabilityPolls: state.blockingStabilityPolls || 0,
++      blockingStability: state.blockingStability,
+     }).mature;
+   }
+ 
+@@ -3362,6 +3394,8 @@ class IntextManager {
+       blockingSignalFound: false,
+       blockingGptSlotSignalFound: false,
+       blockingStabilityPolls: 0,
++      blockingKeyMaturities: [],
++      pendingBlockingKeysAtExit: [],
+       readinessBasis: "none",
+     };
+ 
+@@ -3402,28 +3436,36 @@ class IntextManager {
+         inclusionKeys: targetingState.inclusionKeys,
+       };
+     }
+-    let stableBlockingFingerprint = null;
++    const blockingStability = new Map();
++    let observedNativeSlots = [];
+     let blockingStabilityPolls = 0;
+     const updateBlockingStability = () => {
+-      const maturity = this.getIntextBlockingTargetingMaturity({
+-        context,
+-        resolution,
+-        nativeSlots,
+-        targetingState,
+-        blockingStabilityPolls: 0,
+-      });
+-      if (!maturity.observationEligible) {
+-        stableBlockingFingerprint = null;
+-        blockingStabilityPolls = 0;
+-        return;
+-      }
+-      if (stableBlockingFingerprint === targetingState.blockingFingerprint) {
+-        blockingStabilityPolls += 1;
+-      }
+-      else {
+-        stableBlockingFingerprint = targetingState.blockingFingerprint;
+-        blockingStabilityPolls = 1;
++      const sameSlots = observedNativeSlots.length === nativeSlots.length &&
++        nativeSlots.every((slot) => observedNativeSlots.includes(slot));
++      for (const key of targetingState.blockingKeys) {
++        const keyState = targetingState.blockingKeyStates[key];
++        const maturity = this.getIntextBlockingKeyMaturity({
++          key, context, resolution, nativeSlots, keyState,
++        });
++        const previous = blockingStability.get(key);
++        // Values stay key-local; source/slot changes start a new eligible observation run.
++        const observation = JSON.stringify([
++          keyState.hasContextSignal, keyState.hasDataSignal, keyState.hasUeDfpSignal,
++          keyState.hasGptPageSignal, keyState.hasGptSlotSignal,
++          keyState.hasUeDataLayerSignal, keyState.hasUtagSignal,
++          keyState.slotsChecked, keyState.slotsMatched,
++        ]);
++        const unchanged = sameSlots && previous?.fingerprint === keyState.fingerprint &&
++          previous?.observation === observation;
++        blockingStability.set(key, {
++          fingerprint: keyState.fingerprint,
++          observation,
++          polls: maturity.observationEligible ? (unchanged ? previous.polls + 1 : 1) : 0,
++        });
+       }
++      observedNativeSlots = nativeSlots.slice();
++      // Retain the aggregate counter only for existing telemetry consumers.
++      blockingStabilityPolls = Math.min(...Array.from(blockingStability.values(), (entry) => entry.polls));
+     };
+     updateBlockingStability();
+     if (!this.needsIntextRuleTargetingReadinessWait(context, {
+@@ -3431,14 +3473,14 @@ class IntextManager {
+       relevantKeys,
+       nativeSlots,
+       targetingState,
+-      blockingStabilityPolls,
++      blockingStability,
+     })) {
+       const maturity = this.getIntextBlockingTargetingMaturity({
+         context,
+         resolution,
+         nativeSlots,
+         targetingState,
+-        blockingStabilityPolls,
++        blockingStability,
+       });
+       return {
+         ...baseResult,
+@@ -3458,6 +3500,7 @@ class IntextManager {
+         blockingSignalFound: targetingState.blockingSignalFound,
+         blockingGptSlotSignalFound: targetingState.blockingGptSlotSignalFound,
+         blockingStabilityPolls,
++        blockingKeyMaturities: maturity.keyMaturities.map(({ key, status, reason, stabilityPolls }) => ({ key, status, reason, stabilityPolls })),
+         readinessBasis: maturity.reason,
+         finalRecheckRequired: true,
+       };
+@@ -3495,7 +3538,7 @@ class IntextManager {
+         resolution,
+         nativeSlots,
+         targetingState,
+-        blockingStabilityPolls,
++        blockingStability,
+       });
+       if (maturity.mature) {
+         reason = maturity.reason;
+@@ -3510,6 +3553,9 @@ class IntextManager {
+     const elapsedMs = Math.max(0, now() - startedAt);
+     const pubadsReady = resolution.api?.pubadsReady === true;
+     const timedOut = reason === "timeout";
++    const maturity = this.getIntextBlockingTargetingMaturity({
++      context, resolution, nativeSlots, targetingState, blockingStability,
++    });
+     const result = {
+       ...baseResult,
+       ready: !timedOut,
+@@ -3528,6 +3574,8 @@ class IntextManager {
+       blockingSignalFound: targetingState.blockingSignalFound,
+       blockingGptSlotSignalFound: targetingState.blockingGptSlotSignalFound,
+       blockingStabilityPolls,
++      blockingKeyMaturities: maturity.keyMaturities.map(({ key, status, reason, stabilityPolls }) => ({ key, status, reason, stabilityPolls })),
++      pendingBlockingKeysAtExit: maturity.keyMaturities.filter((entry) => entry.status === "pending").map((entry) => entry.key),
+       readinessBasis,
+       blockedEarly,
+       timedOut,
+@@ -3553,6 +3601,8 @@ class IntextManager {
+       blockingSignalFound: result.blockingSignalFound,
+       blockingGptSlotSignalFound: result.blockingGptSlotSignalFound,
+       blockingStabilityPolls: result.blockingStabilityPolls,
++      blockingKeyMaturities: result.blockingKeyMaturities,
++      pendingBlockingKeysAtExit: result.pendingBlockingKeysAtExit,
+       readinessBasis: result.readinessBasis,
+       scoped: result.scoped,
+     });
+diff --git a/src/pro/tests/intext-rule-targeting.audit.test.cjs b/src/pro/tests/intext-rule-targeting.audit.test.cjs
+index ae0899a..f7eb478 100644
+--- a/src/pro/tests/intext-rule-targeting.audit.test.cjs
++++ b/src/pro/tests/intext-rule-targeting.audit.test.cjs
+@@ -107,12 +107,17 @@ function createArticleRoot(fixture, slotIds, urlSuffix) {
+   };
+ }
+ 
+-async function runContinuousArticleFlow(fixture, rootElement, { createNode = false, managerExclusions = true } = {}) {
++async function runContinuousArticleFlow(fixture, rootElement, {
++  createNode = false,
++  managerExclusions = true,
++  exclusionKeyValues = { isPremium: ['1', 'true'] },
++  onCreatePositions = null,
++} = {}) {
+   const { manager, context } = fixture;
+   manager.baseSiteConfig = {
+     infiniteScroll: {},
+     ...(managerExclusions
+-      ? { exclusions: { keyValues: { isPremium: ['1', 'true'] } } }
++      ? { exclusions: { keyValues: exclusionKeyValues } }
+       : {}),
+     video: {
+       pip: {
+@@ -158,7 +163,7 @@ async function runContinuousArticleFlow(fixture, rootElement, { createNode = fal
+     manager.nodes = [];
+     manager._navContinuaNodes = [];
+   } else {
+-    manager.createIntextPositionsScoped = () => ({ result: 'created', found: 1, created: 1 });
++    manager.createIntextPositionsScoped = onCreatePositions || (() => ({ result: 'created', found: 1, created: 1 }));
+   }
+ 
+   let scopedRuleContext = null;
+@@ -615,7 +620,7 @@ test('navegacion continua espera targeting estable de B y no consulta el premium
+   });
+   const elementB = {};
+   fixture.elements.set('article-b-late-test', elementB);
+-  const rootB = { contains: (element) => element === elementB };
++  const rootB = { contains: (element) => elapsed >= 150 && element === elementB };
+   const scopedContext = {
+     rootElement: rootB,
+     siteConfig: { exclusions: { keyValues: { isPremium: ['1'] } } },
+@@ -663,7 +668,7 @@ test('extrae keys non-random de exclusions, inclusions y disableSlots sin duplic
+ 
+ test('inclusion resuelta no enmascara premium pendiente y bloquea a 175ms', async () => {
+   const targeting = {};
+-  const fixture = createFixture({ psp: true, pubadsReady: true });
++  const fixture = createFixture({ psp: true, pubadsReady: false });
+   fixture.manager.siteConfig = {
+     exclusions: { keyValues: { isPremium: ['1', 'true'] } },
+     inclusions: { keyValues: { tag: ['economia'] } },
+@@ -689,7 +694,7 @@ test('inclusion resuelta no enmascara premium pendiente y bloquea a 175ms', asyn
+ 
+ test('otra exclusion resuelta no enmascara premium pendiente', async () => {
+   const targeting = {};
+-  const fixture = createFixture({ psp: true, pubadsReady: true });
++  const fixture = createFixture({ psp: true, pubadsReady: false });
+   fixture.manager.siteConfig = {
+     exclusions: { keyValues: { tag: ['bloqueo-publi'], isPremium: ['1', 'true'] } },
+   };
+@@ -726,7 +731,7 @@ test('blocking key vacia con runtime inmaduro no sale por fingerprints vacios',
+ 
+ test('generic blocking key tarda aunque otra inclusion ya tenga targeting', async () => {
+   const targeting = {};
+-  const fixture = createFixture({ psp: true, pubadsReady: true });
++  const fixture = createFixture({ psp: true, pubadsReady: false });
+   fixture.manager.siteConfig = {
+     exclusions: { keyValues: { fooBlock: ['1'] } },
+     inclusions: { keyValues: { section: ['economia'] } },
+@@ -761,7 +766,7 @@ test('scoped multi-key espera el blocker de B y no usa targeting de A', async ()
+   });
+   const elementB = {};
+   fixture.elements.set('role-aware-b', elementB);
+-  const rootB = { contains: (element) => element === elementB };
++  const rootB = { contains: (element) => elapsed >= 175 && element === elementB };
+   const scopedContext = {
+     rootElement: rootB,
+     siteConfig: {
+@@ -977,3 +982,273 @@ function fixtureMethod(name) {
+   const fixture = createFixture();
+   return fixture.manager[name].toString();
+ }
++
++async function observeReadiness(fixture, ruleContext = null, onPoll = () => {}) {
++  let elapsed = 0;
++  return fixture.manager.waitForIntextRuleTargetingReady(ruleContext, {
++    now: () => elapsed,
++    wait: async (delayMs) => { elapsed += delayMs; onPoll(elapsed); },
++  });
++}
++
++function keyMaturities(result) {
++  return Object.fromEntries(Array.from(result.blockingKeyMaturities, (entry) => [entry.key, entry]));
++}
++
++test('per-key: blocker GPT no certifica otro blocker global false y bloquea a 175ms', async () => {
++  const targeting = {};
++  const fixture = createFixture({ psp: true, pubadsReady: false });
++  fixture.manager.siteConfig = {
++    exclusions: { keyValues: { tag: ['bloqueo-publi'], isPremium: ['1', 'true'] } },
++  };
++  const result = await observeReadiness(fixture, null, (elapsed) => {
++    if (elapsed === 100) {
++      targeting.tag = ['normal'];
++      fixture.window.ueDataLayer.isPremium = false;
++      fixture.slots.push(slot('blocker-masking-blocker', targeting));
++    }
++    if (elapsed === 125) {
++      const state = fixture.manager.getIntextRelevantRuleTargetingState(['tag', 'isPremium']);
++      assert.equal(state.blockingGptSlotSignalFound, true);
++      assert.equal(state.blockingKeyStates.isPremium.hasGptSlotSignal, false);
++      assert.equal(state.blockingKeyStates.isPremium.hasUeDataLayerSignal, true);
++      assert.equal(fixture.manager.needsIntextRuleTargetingReadinessWait(), true);
++    }
++    if (elapsed === 175) {
++      fixture.realGpt.pubadsReady = true;
++      targeting.isPremium = ['1'];
++    }
++  });
++  assert.equal(result.reason, 'exclusion-match');
++  assert.equal(result.blockedEarly, true);
++  assert.equal(result.elapsedMs, 175);
++});
++
++test('per-key: partial resolved y optional absent terminan a 25ms con telemetry compacta', async () => {
++  const fixture = createFixture({ psp: true, slots: [slot('partial', { tag: ['normal'], isPremium: ['0'] })] });
++  fixture.manager.siteConfig = { exclusions: { keyValues: { newsid: ['x'], tag: ['x'], t: ['x'], isPremium: ['1'] } } };
++  const result = await observeReadiness(fixture);
++  const states = keyMaturities(result);
++  assert.equal(result.elapsedMs, 25);
++  assert.equal(result.timedOut, false);
++  assert.equal(states.tag.status, 'resolved-mature');
++  assert.equal(states.isPremium.reason, 'stable-own-slot-targeting');
++  assert.equal(states.newsid.status, 'absent-mature');
++  assert.equal(states.t.reason, 'stable-absent-after-runtime-ready');
++  assert.ok(Object.values(states).every((entry) => entry.stabilityPolls === 2));
++  assert.deepEqual(Array.from(result.pendingBlockingKeysAtExit), []);
++  const completed = fixture.logs.find(([message]) => message.includes('intext_rule_targeting_wait_completed'))[1];
++  assert.equal(completed.blockingKeyMaturities.length, 4);
++  assert.deepEqual(Object.keys(completed.blockingKeyMaturities[0]), ['key', 'status', 'reason', 'stabilityPolls']);
++});
++
++test('per-key: global false desde 50ms no madura con slot vacio y GPT inmaduro', async () => {
++  const targeting = {};
++  const fixture = createFixture({ psp: true, pubadsReady: false });
++  fixture.manager.siteConfig = { exclusions: { keyValues: { isPremium: ['1', 'true'] } } };
++  const result = await observeReadiness(fixture, null, (elapsed) => {
++    if (elapsed === 50) fixture.window.ueDataLayer.isPremium = false;
++    if (elapsed === 100) fixture.slots.push(slot('global-false-late-true', targeting));
++    if (elapsed === 175) targeting.isPremium = ['1'];
++  });
++  assert.equal(result.reason, 'exclusion-match');
++  assert.equal(result.elapsedMs, 175);
++});
++
++test('per-key: global false con ausencia slot-level madura resuelve a 25ms', async () => {
++  const fixture = createFixture({ psp: true, slots: [slot('mature-absence')], ueTargeting: { isPremium: false } });
++  fixture.manager.siteConfig = { exclusions: { keyValues: { isPremium: ['1', 'true'] } } };
++  const result = await observeReadiness(fixture);
++  assert.equal(result.elapsedMs, 25);
++  assert.equal(keyMaturities(result).isPremium.status, 'resolved-mature');
++  assert.equal(keyMaturities(result).isPremium.reason, 'stable-global-after-runtime-ready');
++});
++
++test('per-key: fingerprints vacios previos a runtime ready no cuentan como estabilidad madura', async () => {
++  const fixture = createFixture({ psp: true, pubadsReady: false, slots: [slot('runtime-not-ready')] });
++  fixture.manager.siteConfig = { exclusions: { keyValues: { fooBlock: ['1'] } } };
++  const result = await observeReadiness(fixture, null, (elapsed) => {
++    if (elapsed === 100) fixture.realGpt.pubadsReady = true;
++  });
++  assert.equal(result.elapsedMs, 125);
++  assert.equal(keyMaturities(result).fooBlock.status, 'absent-mature');
++  assert.equal(keyMaturities(result).fooBlock.stabilityPolls, 2);
++});
++
++test('per-key: all absent no depende de inclusion GPT resuelta', async () => {
++  const fixture = createFixture({ psp: true, slots: [slot('all-absent', { section: ['sports'] })] });
++  fixture.manager.siteConfig = {
++    exclusions: { keyValues: { newsid: ['x'], tag: ['x'], t: ['x'], isPremium: ['1'] } },
++    inclusions: { keyValues: { section: ['sports'] } },
++  };
++  const result = await observeReadiness(fixture);
++  assert.equal(result.elapsedMs, 25);
++  assert.equal(result.reason, 'stable-empty-blocking-targeting-runtime-mature');
++  assert.ok(Object.values(keyMaturities(result)).every((entry) => entry.status === 'absent-mature'));
++});
++
++test('per-key: mixed sources derivan exclusivamente del resolver canonico', async () => {
++  const fixture = createFixture({
++    psp: true, slots: [slot('mixed', { tag: ['normal'] })], ueTargeting: { isPremium: false },
++    dataTargeting: { dataBlock: 'safe' }, ueDfpTargeting: { dfpBlock: 'safe' },
++    page: { pageBlock: ['safe'] }, utagTargeting: { utagBlock: 'safe' },
++  });
++  fixture.manager.siteConfig = { exclusions: { keyValues: Object.fromEntries(
++    ['newsid', 'tag', 't', 'isPremium', 'dataBlock', 'dfpBlock', 'pageBlock', 'utagBlock'].map((key) => [key, ['blocked']]),
++  ) } };
++  const ruleContext = { targeting: { newsid: 'safe' } };
++  const state = fixture.manager.getIntextRelevantRuleTargetingState(
++    fixture.manager.getIntextRelevantNonRandomRuleKeys(ruleContext), ruleContext,
++  );
++  const keys = state.blockingKeyStates;
++  assert.equal(keys.newsid.hasContextSignal, true);
++  assert.equal(keys.tag.hasGptSlotSignal, true);
++  assert.equal(keys.isPremium.hasUeDataLayerSignal, true);
++  assert.equal(keys.dataBlock.hasDataSignal, true);
++  assert.equal(keys.dfpBlock.hasUeDfpSignal, true);
++  assert.equal(keys.pageBlock.hasGptPageSignal, true);
++  assert.equal(keys.utagBlock.hasUtagSignal, true);
++  assert.equal(keys.t.fingerprint, '[]');
++  assert.equal(keys.isPremium.fingerprint, '["false"]');
++  const result = await observeReadiness(fixture, ruleContext);
++  assert.equal(result.elapsedMs, 25);
++  assert.equal(keyMaturities(result).t.status, 'absent-mature');
++  assert.ok(Object.entries(keyMaturities(result)).filter(([key]) => key !== 't').every(([, entry]) => entry.status === 'resolved-mature'));
++});
++
++test('per-key: own slot targeting madura aunque pubadsReady sea false', async () => {
++  const fixture = createFixture({ psp: true, pubadsReady: false, slots: [slot('own-slot', { isPremium: ['0'] })] });
++  fixture.manager.siteConfig = { exclusions: { keyValues: { isPremium: ['1'] } } };
++  const result = await observeReadiness(fixture);
++  assert.equal(result.elapsedMs, 25);
++  assert.equal(keyMaturities(result).isPremium.reason, 'stable-own-slot-targeting');
++});
++
++test('per-key: inclusion cambiante no resetea ni certifica blocker maturity', async () => {
++  const targeting = { fooBlock: ['0'], section: ['sports'] };
++  const fixture = createFixture({ psp: true, pubadsReady: false, slots: [slot('inclusion-changing', targeting)] });
++  fixture.manager.siteConfig = {
++    exclusions: { keyValues: { fooBlock: ['1'] } }, inclusions: { keyValues: { section: ['sports'] } },
++  };
++  const result = await observeReadiness(fixture, null, () => { delete targeting.section; });
++  assert.equal(result.elapsedMs, 25);
++  assert.deepEqual(Object.keys(keyMaturities(result)), ['fooBlock']);
++  assert.equal(keyMaturities(result).fooBlock.stabilityPolls, 2);
++});
++
++test('per-key: generic blockers tienen contadores independientes y disableSlots participa', async () => {
++  const targeting = { fooBlock: ['safe'], barBlock: ['safe'] };
++  const fixture = createFixture({ psp: true, slots: [slot('generic-counters', targeting)] });
++  fixture.manager.siteConfig = { exclusions: {
++    keyValues: { fooBlock: ['1'] }, disableSlots: { rules: [{ slots: [0], ifKeyValues: { barBlock: ['1'] } }] },
++  } };
++  const result = await observeReadiness(fixture, null, (elapsed) => {
++    if (elapsed === 25) targeting.barBlock = ['other-safe'];
++  });
++  assert.equal(result.elapsedMs, 50);
++  assert.equal(keyMaturities(result).fooBlock.stabilityPolls, 3);
++  assert.equal(keyMaturities(result).barBlock.stabilityPolls, 2);
++});
++
++test('per-key: scoped partial observa solo slots B y ausencia estable sin pubadsReady global', async () => {
++  const outside = slot('partial-a', { fooBlock: ['1'] });
++  let outsideReads = 0;
++  outside.getTargeting = outside.getTargetingMap = () => { outsideReads += 1; return []; };
++  const fixture = createFixture({ psp: true, pubadsReady: false, slots: [outside, slot('partial-b', { barBlock: ['0'] })] });
++  fixture.manager.siteConfig = { exclusions: { keyValues: { fooBlock: ['1'], barBlock: ['1'] } } };
++  const ruleContext = { rootElement: createArticleRoot(fixture, 'partial-b', 'partial-b') };
++  const result = await observeReadiness(fixture, ruleContext);
++  assert.equal(result.elapsedMs, 25);
++  assert.equal(result.nativeSlots, 1);
++  assert.equal(outsideReads, 0);
++  assert.equal(keyMaturities(result).fooBlock.status, 'absent-mature');
++  assert.equal(keyMaturities(result).barBlock.status, 'resolved-mature');
++  const state = fixture.manager.getIntextRelevantRuleTargetingState(['fooBlock', 'barBlock'], ruleContext);
++  assert.equal(state.blockingKeyStates.fooBlock.slotsChecked, 1);
++});
++
++test('per-key: scoped slot aun no estable permite early block a 175ms', async () => {
++  const fixture = createFixture({ psp: true, slots: [slot('late-a', { fooBlock: ['0'] })] });
++  fixture.manager.siteConfig = { exclusions: { keyValues: { fooBlock: ['1'] } } };
++  const elementB = {};
++  const ruleContext = { rootElement: { contains: (element) => element === elementB } };
++  const targetingB = {};
++  const result = await observeReadiness(fixture, ruleContext, (elapsed) => {
++    if (elapsed === 100) {
++      fixture.elements.set('late-b', elementB);
++      fixture.slots.push(slot('late-b', targetingB));
++    }
++    // The article runtime is still changing; empty snapshots from different slots do not settle B.
++    if (elapsed === 125 || elapsed === 150) fixture.slots[1] = slot('late-b', targetingB);
++    if (elapsed === 175) targetingB.fooBlock = ['1'];
++  });
++  assert.equal(result.reason, 'exclusion-match');
++  assert.equal(result.elapsedMs, 175);
++});
++
++test('per-key: replacement scoped slot reinicia estabilidad incluso con mismos valores', async () => {
++  const fixture = createFixture({ psp: true, slots: [slot('replace-b')] });
++  fixture.manager.siteConfig = { exclusions: { keyValues: { fooBlock: ['1'] } } };
++  const ruleContext = { rootElement: createArticleRoot(fixture, 'replace-b', 'replace-b') };
++  const result = await observeReadiness(fixture, ruleContext, (elapsed) => {
++    if (elapsed === 25) fixture.slots[0] = slot('replace-b');
++  });
++  assert.equal(result.elapsedMs, 50);
++  assert.equal(keyMaturities(result).fooBlock.stabilityPolls, 2);
++});
++
++test('per-key: cambio de fuente con valores identicos exige dos snapshots de la propia key', async () => {
++  const targeting = {};
++  const fixture = createFixture({ psp: true, slots: [slot('source-changing', targeting)], ueTargeting: { fooBlock: '0' } });
++  fixture.manager.siteConfig = { exclusions: { keyValues: { fooBlock: ['1'] } } };
++  const result = await observeReadiness(fixture, null, (elapsed) => {
++    if (elapsed === 25) targeting.fooBlock = ['0'];
++  });
++  assert.equal(result.elapsedMs, 50);
++  assert.equal(keyMaturities(result).fooBlock.reason, 'stable-own-slot-targeting');
++});
++
++test('per-key: timeout expone pending blockers sin madurarlos por estabilidad global', async () => {
++  const fixture = createFixture({ psp: true, pubadsReady: false, slots: [slot('timeout-partial', { fooBlock: ['0'] })] });
++  fixture.manager.siteConfig = { exclusions: { keyValues: { fooBlock: ['1'], barBlock: ['1'] } } };
++  const result = await observeReadiness(fixture);
++  assert.equal(result.elapsedMs, 600);
++  assert.equal(result.timedOut, true);
++  assert.equal(result.finalRecheckRequired, true);
++  assert.deepEqual(Array.from(result.pendingBlockingKeysAtExit), ['barBlock']);
++  assert.equal(keyMaturities(result).fooBlock.status, 'resolved-mature');
++  assert.equal(keyMaturities(result).barBlock.status, 'pending');
++});
++
++test('per-key: request boundary real permanece cerrado mientras un blocker siga pending', async () => {
++  const targetingB = { barBlock: ['0'] };
++  const fixture = createFixture({ psp: true, slots: [slot('request-b', targetingB)] });
++  const rootB = createArticleRoot(fixture, 'request-b', 'request-b');
++  const calls = { prebid: 0, aps: 0, display: 0, refresh: 0, video: 0, nodes: 0, inclusions: 0 };
++  fixture.window.pbjs = { requestBids() { calls.prebid += 1; } };
++  fixture.window.apstag = { fetchBids() { calls.aps += 1; } };
++  fixture.realGpt.display = () => { calls.display += 1; };
++  fixture.pubads.refresh = () => { calls.refresh += 1; };
++  fixture.manager.isAllowedByInclusions = () => { calls.inclusions += 1; return true; };
++  fixture.manager.buildAndPlayVideo = () => { calls.video += 1; };
++  let elapsed = 0;
++  const originalWait = fixture.manager.waitForIntextRuleTargetingReady.bind(fixture.manager);
++  fixture.manager.waitForIntextRuleTargetingReady = (ruleContext) => originalWait(ruleContext, {
++    now: () => elapsed,
++    wait: async (delayMs) => {
++      elapsed += delayMs;
++      assert.ok(Object.values(calls).every((count) => count === 0));
++      if (elapsed === 175) targetingB.isPremium = ['1'];
++    },
++  });
++  // B is not part of the scoped runtime until its slot appears at 150ms.
++  const contains = rootB.contains;
++  rootB.contains = (element) => elapsed >= 150 && contains(element);
++  const { result } = await runContinuousArticleFlow(fixture, rootB, {
++    exclusionKeyValues: { isPremium: ['1', 'true'], barBlock: ['1'] },
++    onCreatePositions: () => { calls.nodes += 1; throw new Error('nodes before exclusions'); },
++  });
++  assert.equal(elapsed, 175);
++  assert.ok(Object.values(calls).every((count) => count === 0));
++  assert.equal(result.decision, 'excluded');
++});
+
+base-commit: 8482950d249459b4cb161a00af2d72ce1e07a144

@@ -1,0 +1,522 @@
+From: Pedro <108982065+ultrapepo@users.noreply.github.com>
+Date: Thu, 01 Oct 2026 10:06:03 GMT
+Subject: [PATCH] fix(intext): harden partial GPT slot targeting coverage
+
+Use the fast threshold only for complete own-slot coverage.
+Partial coverage settles per key with five stable observations.
+Keep continuity tied to the logical native slot set.
+
+Apply on top of the existing per-key and late-slot working state.
+
+diff --git a/src/pro/IntextManager.js b/src/pro/IntextManager.js
+index a537843..d09efc7 100644
+--- a/src/pro/IntextManager.js
++++ b/src/pro/IntextManager.js
+@@ -1747,17 +1747,22 @@ class IntextManager {
+     stability,
+   }) {
+     const scoped = Boolean(context?.rootElement);
+-    const slotsObserved = nativeSlots.length > 0 && keyState?.slotsChecked > 0;
+-    const ownSlotSignal = slotsObserved && keyState?.hasGptSlotSignal === true;
++    const slotsChecked = Number(keyState?.slotsChecked || 0);
++    const slotsMatched = Number(keyState?.slotsMatched || 0);
++    const slotsObserved = nativeSlots.length > 0 && slotsChecked > 0;
++    const hasOwnSlotSignal = slotsObserved && slotsMatched > 0 && keyState?.hasGptSlotSignal === true;
++    const hasCompleteSlotCoverage = hasOwnSlotSignal && slotsMatched === slotsChecked;
++    const hasPartialSlotCoverage = hasOwnSlotSignal && slotsMatched < slotsChecked;
++    const slotCoverage = hasCompleteSlotCoverage ? "complete" : hasPartialSlotCoverage ? "partial" : "none";
+     // A global value cannot certify missing slot targeting before this runtime is ready.
+     // Scoped observations are tied to the actual article slots by the wait-local tracker.
+     const absenceRuntimeMature = scoped
+       ? slotsObserved
+       : resolution.api?.pubadsReady === true &&
+         (slotsObserved || (nativeSlots.length === 0 && keyState?.resolved === true));
+-    const observationEligible = ownSlotSignal || absenceRuntimeMature;
++    const observationEligible = hasOwnSlotSignal || absenceRuntimeMature;
+     const stabilityPolls = stability && stability.fingerprint === keyState?.fingerprint ? stability.polls : 0;
+-    const requiredStabilityPolls = ownSlotSignal
++    const requiredStabilityPolls = hasCompleteSlotCoverage
+       ? IntextManager.INTEXT_OWN_SLOT_STABILITY_POLLS
+       : IntextManager.INTEXT_SLOT_ABSENCE_STABILITY_POLLS;
+     const mature = observationEligible && stabilityPolls >= requiredStabilityPolls;
+@@ -1767,14 +1772,20 @@ class IntextManager {
+       mature,
+       observationEligible,
+       reason: mature
+-        ? (ownSlotSignal ? "stable-own-slot-targeting" :
++        ? (hasCompleteSlotCoverage ? "stable-own-slot-targeting" :
++          hasPartialSlotCoverage ? "stable-partial-slot-coverage" :
+           keyState.resolved ? "stable-global-with-stable-slot-absence" : "stable-absent-after-slot-settle")
+-        : (ownSlotSignal ? "slot-targeting-pending" :
++        : (hasPartialSlotCoverage ? "partial-slot-targeting-pending" :
+           nativeSlots.length === 0 ? "slot-discovery-pending" : "slot-targeting-pending"),
+       stabilityPolls,
+       requiredStabilityPolls,
+-      hasOwnSlotSignal: ownSlotSignal,
+-      slotAbsenceUncertain: !ownSlotSignal,
++      hasOwnSlotSignal,
++      hasCompleteSlotCoverage,
++      hasPartialSlotCoverage,
++      slotsChecked,
++      slotsMatched,
++      slotCoverage,
++      slotAbsenceUncertain: !hasCompleteSlotCoverage,
+     };
+   }
+ 
+@@ -1926,12 +1937,12 @@ class IntextManager {
+           key, context, resolution, nativeSlots, keyState,
+         });
+         const previous = blockingStability.get(key);
+-        // Own targeting keeps its fast path; absence also observes slot discovery and runtime.
++        // Only complete coverage gets the fast path; partial coverage also observes absence.
+         const observation = JSON.stringify([
+           keyState.sourceFingerprint, keyState.slotsMatched,
+-          ...(maturity.hasOwnSlotSignal ? [] : [keyState.slotsChecked, scoped ? null : resolution.api?.pubadsReady === true]),
++          ...(maturity.hasCompleteSlotCoverage ? [] : [keyState.slotsChecked, scoped ? null : resolution.api?.pubadsReady === true]),
+         ]);
+-        const unchanged = (maturity.hasOwnSlotSignal || sameSlots) && previous?.fingerprint === keyState.fingerprint &&
++        const unchanged = sameSlots && previous?.fingerprint === keyState.fingerprint &&
+           previous?.observation === observation;
+         blockingStability.set(key, {
+           fingerprint: keyState.fingerprint,
+@@ -1976,7 +1987,7 @@ class IntextManager {
+         blockingSignalFound: targetingState.blockingSignalFound,
+         blockingGptSlotSignalFound: targetingState.blockingGptSlotSignalFound,
+         blockingStabilityPolls,
+-        blockingKeyMaturities: maturity.keyMaturities.map(({ key, status, reason, stabilityPolls, requiredStabilityPolls }) => ({ key, status, reason, stabilityPolls, requiredStabilityPolls })),
++        blockingKeyMaturities: maturity.keyMaturities.map(({ key, status, reason, stabilityPolls, requiredStabilityPolls, slotsChecked, slotsMatched, slotCoverage }) => ({ key, status, reason, stabilityPolls, requiredStabilityPolls, slotsChecked, slotsMatched, slotCoverage })),
+         readinessBasis: maturity.reason,
+         finalRecheckRequired: true,
+       };
+@@ -2050,7 +2061,7 @@ class IntextManager {
+       blockingSignalFound: targetingState.blockingSignalFound,
+       blockingGptSlotSignalFound: targetingState.blockingGptSlotSignalFound,
+       blockingStabilityPolls,
+-      blockingKeyMaturities: maturity.keyMaturities.map(({ key, status, reason, stabilityPolls, requiredStabilityPolls }) => ({ key, status, reason, stabilityPolls, requiredStabilityPolls })),
++      blockingKeyMaturities: maturity.keyMaturities.map(({ key, status, reason, stabilityPolls, requiredStabilityPolls, slotsChecked, slotsMatched, slotCoverage }) => ({ key, status, reason, stabilityPolls, requiredStabilityPolls, slotsChecked, slotsMatched, slotCoverage })),
+       pendingBlockingKeysAtExit: maturity.keyMaturities.filter((entry) => entry.status === "pending").map((entry) => entry.key),
+       readinessBasis,
+       blockedEarly,
+diff --git a/src/pro/_gam_kv_.js b/src/pro/_gam_kv_.js
+index ec4e556..899cbc8 100644
+--- a/src/pro/_gam_kv_.js
++++ b/src/pro/_gam_kv_.js
+@@ -3288,17 +3288,22 @@ class IntextManager {
+     stability,
+   }) {
+     const scoped = Boolean(context?.rootElement);
+-    const slotsObserved = nativeSlots.length > 0 && keyState?.slotsChecked > 0;
+-    const ownSlotSignal = slotsObserved && keyState?.hasGptSlotSignal === true;
++    const slotsChecked = Number(keyState?.slotsChecked || 0);
++    const slotsMatched = Number(keyState?.slotsMatched || 0);
++    const slotsObserved = nativeSlots.length > 0 && slotsChecked > 0;
++    const hasOwnSlotSignal = slotsObserved && slotsMatched > 0 && keyState?.hasGptSlotSignal === true;
++    const hasCompleteSlotCoverage = hasOwnSlotSignal && slotsMatched === slotsChecked;
++    const hasPartialSlotCoverage = hasOwnSlotSignal && slotsMatched < slotsChecked;
++    const slotCoverage = hasCompleteSlotCoverage ? "complete" : hasPartialSlotCoverage ? "partial" : "none";
+     // A global value cannot certify missing slot targeting before this runtime is ready.
+     // Scoped observations are tied to the actual article slots by the wait-local tracker.
+     const absenceRuntimeMature = scoped
+       ? slotsObserved
+       : resolution.api?.pubadsReady === true &&
+         (slotsObserved || (nativeSlots.length === 0 && keyState?.resolved === true));
+-    const observationEligible = ownSlotSignal || absenceRuntimeMature;
++    const observationEligible = hasOwnSlotSignal || absenceRuntimeMature;
+     const stabilityPolls = stability && stability.fingerprint === keyState?.fingerprint ? stability.polls : 0;
+-    const requiredStabilityPolls = ownSlotSignal
++    const requiredStabilityPolls = hasCompleteSlotCoverage
+       ? IntextManager.INTEXT_OWN_SLOT_STABILITY_POLLS
+       : IntextManager.INTEXT_SLOT_ABSENCE_STABILITY_POLLS;
+     const mature = observationEligible && stabilityPolls >= requiredStabilityPolls;
+@@ -3308,14 +3313,20 @@ class IntextManager {
+       mature,
+       observationEligible,
+       reason: mature
+-        ? (ownSlotSignal ? "stable-own-slot-targeting" :
++        ? (hasCompleteSlotCoverage ? "stable-own-slot-targeting" :
++          hasPartialSlotCoverage ? "stable-partial-slot-coverage" :
+           keyState.resolved ? "stable-global-with-stable-slot-absence" : "stable-absent-after-slot-settle")
+-        : (ownSlotSignal ? "slot-targeting-pending" :
++        : (hasPartialSlotCoverage ? "partial-slot-targeting-pending" :
+           nativeSlots.length === 0 ? "slot-discovery-pending" : "slot-targeting-pending"),
+       stabilityPolls,
+       requiredStabilityPolls,
+-      hasOwnSlotSignal: ownSlotSignal,
+-      slotAbsenceUncertain: !ownSlotSignal,
++      hasOwnSlotSignal,
++      hasCompleteSlotCoverage,
++      hasPartialSlotCoverage,
++      slotsChecked,
++      slotsMatched,
++      slotCoverage,
++      slotAbsenceUncertain: !hasCompleteSlotCoverage,
+     };
+   }
+ 
+@@ -3467,12 +3478,12 @@ class IntextManager {
+           key, context, resolution, nativeSlots, keyState,
+         });
+         const previous = blockingStability.get(key);
+-        // Own targeting keeps its fast path; absence also observes slot discovery and runtime.
++        // Only complete coverage gets the fast path; partial coverage also observes absence.
+         const observation = JSON.stringify([
+           keyState.sourceFingerprint, keyState.slotsMatched,
+-          ...(maturity.hasOwnSlotSignal ? [] : [keyState.slotsChecked, scoped ? null : resolution.api?.pubadsReady === true]),
++          ...(maturity.hasCompleteSlotCoverage ? [] : [keyState.slotsChecked, scoped ? null : resolution.api?.pubadsReady === true]),
+         ]);
+-        const unchanged = (maturity.hasOwnSlotSignal || sameSlots) && previous?.fingerprint === keyState.fingerprint &&
++        const unchanged = sameSlots && previous?.fingerprint === keyState.fingerprint &&
+           previous?.observation === observation;
+         blockingStability.set(key, {
+           fingerprint: keyState.fingerprint,
+@@ -3517,7 +3528,7 @@ class IntextManager {
+         blockingSignalFound: targetingState.blockingSignalFound,
+         blockingGptSlotSignalFound: targetingState.blockingGptSlotSignalFound,
+         blockingStabilityPolls,
+-        blockingKeyMaturities: maturity.keyMaturities.map(({ key, status, reason, stabilityPolls, requiredStabilityPolls }) => ({ key, status, reason, stabilityPolls, requiredStabilityPolls })),
++        blockingKeyMaturities: maturity.keyMaturities.map(({ key, status, reason, stabilityPolls, requiredStabilityPolls, slotsChecked, slotsMatched, slotCoverage }) => ({ key, status, reason, stabilityPolls, requiredStabilityPolls, slotsChecked, slotsMatched, slotCoverage })),
+         readinessBasis: maturity.reason,
+         finalRecheckRequired: true,
+       };
+@@ -3591,7 +3602,7 @@ class IntextManager {
+       blockingSignalFound: targetingState.blockingSignalFound,
+       blockingGptSlotSignalFound: targetingState.blockingGptSlotSignalFound,
+       blockingStabilityPolls,
+-      blockingKeyMaturities: maturity.keyMaturities.map(({ key, status, reason, stabilityPolls, requiredStabilityPolls }) => ({ key, status, reason, stabilityPolls, requiredStabilityPolls })),
++      blockingKeyMaturities: maturity.keyMaturities.map(({ key, status, reason, stabilityPolls, requiredStabilityPolls, slotsChecked, slotsMatched, slotCoverage }) => ({ key, status, reason, stabilityPolls, requiredStabilityPolls, slotsChecked, slotsMatched, slotCoverage })),
+       pendingBlockingKeysAtExit: maturity.keyMaturities.filter((entry) => entry.status === "pending").map((entry) => entry.key),
+       readinessBasis,
+       blockedEarly,
+diff --git a/src/pro/tests/intext-rule-targeting.audit.test.cjs b/src/pro/tests/intext-rule-targeting.audit.test.cjs
+index b57f7d8..16f40b1 100644
+--- a/src/pro/tests/intext-rule-targeting.audit.test.cjs
++++ b/src/pro/tests/intext-rule-targeting.audit.test.cjs
+@@ -995,6 +995,279 @@ function keyMaturities(result) {
+   return Object.fromEntries(Array.from(result.blockingKeyMaturities, (entry) => [entry.key, entry]));
+ }
+ 
++test('coverage: initial dos slots, uno matched, no ready a 125/150 y block a 175ms', async () => {
++  const fixture = createFixture({ psp: true });
++  fixture.manager.siteConfig = { exclusions: { keyValues: { isPremium: ['1', 'true'] } } };
++  const targetingB = {};
++  const polls = [];
++  const result = await observeReadiness(fixture, null, (elapsed) => {
++    polls.push(elapsed);
++    assert.equal(fixture.realGpt.pubadsReady, true);
++    if (elapsed === 100) fixture.slots.push(slot('coverage-a', { isPremium: ['0'] }), slot('coverage-b', targetingB));
++    if (elapsed === 125 || elapsed === 150) {
++      const keyState = fixture.manager.getIntextRelevantRuleTargetingState(['isPremium']).blockingKeyStates.isPremium;
++      const maturity = fixture.manager.getIntextBlockingKeyMaturity({
++        key: 'isPremium', resolution: fixture.manager.resolveIntextGptApi(),
++        nativeSlots: fixture.slots, keyState, stability: { fingerprint: keyState.fingerprint, polls: 2 },
++      });
++      assert.equal(maturity.hasOwnSlotSignal, true);
++      assert.equal(maturity.hasCompleteSlotCoverage, false);
++      assert.equal(maturity.hasPartialSlotCoverage, true);
++      assert.equal(maturity.requiredStabilityPolls, 5);
++      assert.equal(maturity.status, 'pending');
++      assert.equal(maturity.reason, 'partial-slot-targeting-pending');
++    }
++    if (elapsed === 175) targetingB.isPremium = ['1'];
++  });
++  assert.ok(polls.includes(125) && polls.includes(150));
++  assert.equal(result.elapsedMs, 175);
++  assert.equal(result.reason, 'exclusion-match');
++  assert.deepEqual(Array.from(fixture.manager.resolveIntextRuleTargeting('isPremium').values), ['0', '1']);
++});
++
++test('coverage: scoped B dos slots, uno matched, late block a 175ms sin slots A', async () => {
++  const outside = slot('coverage-outside-a', { isPremium: ['1'] });
++  let outsideReads = 0;
++  const readOutside = outside.getTargeting;
++  outside.getTargeting = (key) => { outsideReads += 1; return readOutside(key); };
++  const fixture = createFixture({ psp: true, slots: [outside] });
++  fixture.manager.siteConfig = { exclusions: { keyValues: { isPremium: ['1'] } } };
++  const targetingB2 = {};
++  const ruleContext = { rootElement: { contains: (element) => element?.article === 'B' } };
++  const polls = [];
++  const result = await observeReadiness(fixture, ruleContext, (elapsed) => {
++    polls.push(elapsed);
++    if (elapsed === 100) {
++      fixture.elements.set('coverage-b1', { article: 'B' });
++      fixture.elements.set('coverage-b2', { article: 'B' });
++      fixture.slots.push(slot('coverage-b1', { isPremium: ['0'] }), slot('coverage-b2', targetingB2));
++    }
++    if (elapsed === 175) targetingB2.isPremium = ['1'];
++  });
++  assert.ok(polls.includes(125) && polls.includes(150));
++  assert.equal(result.elapsedMs, 175);
++  assert.equal(result.reason, 'exclusion-match');
++  assert.equal(keyMaturities(result).isPremium.slotsChecked, 2);
++  assert.equal(outsideReads, 0);
++});
++
++test('coverage: completa en dos slots a 100ms conserva fast path a 125ms', async () => {
++  const fixture = createFixture({ psp: true });
++  fixture.manager.siteConfig = { exclusions: { keyValues: { isPremium: ['1'] } } };
++  const result = await observeReadiness(fixture, null, (elapsed) => {
++    if (elapsed === 100) fixture.slots.push(slot('complete-a', { isPremium: ['0'] }), slot('complete-b', { isPremium: ['0'] }));
++  });
++  const maturity = keyMaturities(result).isPremium;
++  assert.equal(result.elapsedMs, 125);
++  assert.equal(maturity.reason, 'stable-own-slot-targeting');
++  assert.equal(maturity.requiredStabilityPolls, 2);
++  assert.equal(maturity.stabilityPolls, 2);
++  assert.equal(maturity.slotsChecked, 2);
++  assert.equal(maturity.slotsMatched, 2);
++  assert.equal(maturity.slotCoverage, 'complete');
++});
++
++test('coverage: un matched de cinco slots estable madura a 100ms sin timeout', async () => {
++  const fixture = createFixture({ psp: true, slots: [
++    slot('partial-stable-1', { isPremium: ['0'] }),
++    ...Array.from({ length: 4 }, (_, index) => slot(`partial-stable-${index + 2}`)),
++  ] });
++  fixture.manager.siteConfig = { exclusions: { keyValues: { isPremium: ['1'] } } };
++  const result = await observeReadiness(fixture);
++  const maturity = keyMaturities(result).isPremium;
++  assert.equal(result.elapsedMs, 100);
++  assert.equal(result.timedOut, false);
++  assert.equal(maturity.status, 'resolved-mature');
++  assert.equal(maturity.reason, 'stable-partial-slot-coverage');
++  assert.equal(maturity.requiredStabilityPolls, 5);
++  assert.equal(maturity.slotsChecked, 5);
++  assert.equal(maturity.slotsMatched, 1);
++  assert.equal(maturity.slotCoverage, 'partial');
++  const completed = fixture.logs.find(([message]) => message.includes('intext_rule_targeting_wait_completed'))[1];
++  assert.deepEqual(Object.keys(completed.blockingKeyMaturities[0]), [
++    'key', 'status', 'reason', 'stabilityPolls', 'requiredStabilityPolls', 'slotsChecked', 'slotsMatched', 'slotCoverage',
++  ]);
++});
++
++test('coverage: partial 1/5 pasa a complete 5/5 con igual union y madura a 175ms', async () => {
++  const fixture = createFixture({ psp: true });
++  fixture.manager.siteConfig = { exclusions: { keyValues: { isPremium: ['1'] } } };
++  const targets = Array.from({ length: 5 }, (_, index) => index === 0 ? { isPremium: ['0'] } : {});
++  const result = await observeReadiness(fixture, null, (elapsed) => {
++    if (elapsed === 100) fixture.slots.push(...targets.map((targeting, index) => slot(`complete-later-${index}`, targeting)));
++    if (elapsed === 150) targets.forEach((targeting) => { targeting.isPremium = ['0']; });
++  });
++  assert.equal(result.elapsedMs, 175);
++  assert.equal(keyMaturities(result).isPremium.requiredStabilityPolls, 2);
++  assert.equal(keyMaturities(result).isPremium.stabilityPolls, 2);
++  assert.equal(keyMaturities(result).isPremium.slotCoverage, 'complete');
++});
++
++test('coverage: partial a complete blocking bloquea a 150ms antes de estabilidad', async () => {
++  const fixture = createFixture({ psp: true });
++  fixture.manager.siteConfig = { exclusions: { keyValues: { isPremium: ['1'] } } };
++  const targetingB = {};
++  const result = await observeReadiness(fixture, null, (elapsed) => {
++    if (elapsed === 100) fixture.slots.push(slot('completion-block-a', { isPremium: ['0'] }), slot('completion-block-b', targetingB));
++    if (elapsed === 150) targetingB.isPremium = ['1'];
++  });
++  assert.equal(result.elapsedMs, 150);
++  assert.equal(result.reason, 'exclusion-match');
++  assert.equal(result.blockedEarly, true);
++});
++
++test('coverage: nuevo slot en poll 2 convierte complete a partial y bloquea en poll 4', async () => {
++  const fixture = createFixture({ psp: true, slots: [slot('discovery-complete-a', { isPremium: ['0'] })] });
++  fixture.manager.siteConfig = { exclusions: { keyValues: { isPremium: ['1'] } } };
++  const targetingB = {};
++  const result = await observeReadiness(fixture, null, (elapsed) => {
++    if (elapsed === 25) fixture.slots.push(slot('discovery-complete-b', targetingB));
++    if (elapsed === 75) targetingB.isPremium = ['1'];
++  });
++  assert.equal(result.elapsedMs, 75);
++  assert.equal(result.reason, 'exclusion-match');
++});
++
++test('coverage: eliminar un slot sin targeting reinicia y reclasifica partial a complete', async () => {
++  const fixture = createFixture({ psp: true, slots: [slot('removal-a', { fooBlock: ['0'] }), slot('removal-b')] });
++  fixture.manager.siteConfig = { exclusions: { keyValues: { fooBlock: ['1'] } } };
++  const result = await observeReadiness(fixture, null, (elapsed) => {
++    if (elapsed === 25) fixture.slots.pop();
++  });
++  assert.equal(result.elapsedMs, 50);
++  assert.equal(keyMaturities(result).fooBlock.stabilityPolls, 2);
++  assert.equal(keyMaturities(result).fooBlock.requiredStabilityPolls, 2);
++  assert.equal(keyMaturities(result).fooBlock.slotCoverage, 'complete');
++});
++
++test('coverage: wrappers nuevos con mismos IDs mantienen complete fast path', async () => {
++  const fixture = createFixture({ psp: true });
++  fixture.manager.siteConfig = { exclusions: { keyValues: { fooBlock: ['1'] } } };
++  fixture.pubads.getSlots = () => [slot('coverage-wrapper-1', { fooBlock: ['0'] }), slot('coverage-wrapper-2', { fooBlock: ['0'] })];
++  const result = await observeReadiness(fixture);
++  assert.equal(result.elapsedMs, 25);
++  assert.equal(keyMaturities(result).fooBlock.slotCoverage, 'complete');
++  assert.equal(keyMaturities(result).fooBlock.stabilityPolls, 2);
++});
++
++test('coverage: reordenar mismos IDs no resetea complete coverage', async () => {
++  const fixture = createFixture({ psp: true, slots: [slot('coverage-order-1', { fooBlock: ['0'] }), slot('coverage-order-2', { fooBlock: ['0'] })] });
++  fixture.manager.siteConfig = { exclusions: { keyValues: { fooBlock: ['1'] } } };
++  const result = await observeReadiness(fixture, null, () => { fixture.slots.reverse(); });
++  assert.equal(result.elapsedMs, 25);
++  assert.equal(keyMaturities(result).fooBlock.slotCoverage, 'complete');
++});
++
++test('coverage: generic fooBlock partial detecta blocker tardio', async () => {
++  const targetingB = {};
++  const fixture = createFixture({ psp: true, slots: [slot('generic-partial-a', { fooBlock: ['0'] }), slot('generic-partial-b', targetingB)] });
++  fixture.manager.siteConfig = { exclusions: { keyValues: { fooBlock: ['1'] } } };
++  const result = await observeReadiness(fixture, null, (elapsed) => {
++    if (elapsed === 75) targetingB.fooBlock = ['1'];
++  });
++  assert.equal(result.elapsedMs, 75);
++  assert.equal(result.reason, 'exclusion-match');
++});
++
++test('coverage: key exclusiva de disableSlots usa cobertura parcial sin cambiar matching', async () => {
++  const targetingB = {};
++  const fixture = createFixture({ psp: true, slots: [slot('disable-partial-a', { fooBlock: ['0'] }), slot('disable-partial-b', targetingB)] });
++  fixture.manager.siteConfig = { exclusions: { disableSlots: { rules: [{ slots: [0], ifKeyValues: { fooBlock: ['1'] } }] } } };
++  const result = await observeReadiness(fixture);
++  assert.equal(result.elapsedMs, 100);
++  assert.equal(keyMaturities(result).fooBlock.requiredStabilityPolls, 5);
++  assert.equal(keyMaturities(result).fooBlock.slotCoverage, 'partial');
++  assert.equal(fixture.manager.isSlotDisabledByExclusion(0), false);
++  targetingB.fooBlock = ['1'];
++  assert.equal(fixture.manager.isSlotDisabledByExclusion(0), true);
++});
++
++test('coverage: global false no completa coverage parcial GPT', async () => {
++  const fixture = createFixture({ psp: true, ueTargeting: { isPremium: false }, slots: [slot('global-partial-a', { isPremium: ['0'] }), slot('global-partial-b')] });
++  fixture.manager.siteConfig = { exclusions: { keyValues: { isPremium: ['1', 'true'] } } };
++  const result = await observeReadiness(fixture);
++  assert.equal(result.elapsedMs, 100);
++  assert.equal(keyMaturities(result).isPremium.requiredStabilityPolls, 5);
++  assert.equal(keyMaturities(result).isPremium.slotCoverage, 'partial');
++});
++
++test('coverage: GPT page targeting no completa coverage parcial slot-level', async () => {
++  const fixture = createFixture({ psp: true, page: { isPremium: ['0'] }, slots: [slot('page-partial-a', { isPremium: ['0'] }), slot('page-partial-b')] });
++  fixture.manager.siteConfig = { exclusions: { keyValues: { isPremium: ['1'] } } };
++  const result = await observeReadiness(fixture);
++  assert.equal(result.elapsedMs, 100);
++  assert.equal(keyMaturities(result).isPremium.requiredStabilityPolls, 5);
++  assert.equal(keyMaturities(result).isPremium.slotCoverage, 'partial');
++});
++
++test('coverage: request boundary del flujo real cerrado durante partial coverage pending', async () => {
++  const targetingB2 = {};
++  const fixture = createFixture({ psp: true, slots: [slot('boundary-partial-b1', { isPremium: ['0'] }), slot('boundary-partial-b2', targetingB2)] });
++  const rootB = createArticleRoot(fixture, ['boundary-partial-b1', 'boundary-partial-b2'], 'boundary-partial-b');
++  const calls = { nodes: 0, prebid: 0, aps: 0, display: 0, refresh: 0, video: 0, inclusions: 0 };
++  fixture.window.pbjs = { requestBids() { calls.prebid += 1; } };
++  fixture.window.apstag = { fetchBids() { calls.aps += 1; } };
++  fixture.realGpt.display = () => { calls.display += 1; };
++  fixture.pubads.refresh = () => { calls.refresh += 1; };
++  fixture.manager.isAllowedByInclusions = () => { calls.inclusions += 1; return true; };
++  fixture.manager.buildAndPlayVideo = () => { calls.video += 1; };
++  let elapsed = 0;
++  const originalWait = fixture.manager.waitForIntextRuleTargetingReady.bind(fixture.manager);
++  fixture.manager.waitForIntextRuleTargetingReady = (ruleContext) => originalWait(ruleContext, {
++    now: () => elapsed,
++    wait: async (delayMs) => {
++      elapsed += delayMs;
++      assert.ok(Object.values(calls).every((count) => count === 0));
++      if (elapsed === 75) targetingB2.isPremium = ['1'];
++    },
++  });
++  const { result } = await runContinuousArticleFlow(fixture, rootB, {
++    onCreatePositions: () => { calls.nodes += 1; throw new Error('nodes during partial coverage'); },
++  });
++  assert.equal(elapsed, 75);
++  assert.equal(result.decision, 'excluded');
++  assert.ok(Object.values(calls).every((count) => count === 0));
++});
++
++test('coverage: slotsMatched 1 a 2 reinicia observacion aunque siga partial y union igual', async () => {
++  const targetingB = {};
++  const fixture = createFixture({ psp: true, slots: [
++    slot('matched-change-a', { fooBlock: ['0'] }), slot('matched-change-b', targetingB), slot('matched-change-c'),
++  ] });
++  fixture.manager.siteConfig = { exclusions: { keyValues: { fooBlock: ['1'] } } };
++  const result = await observeReadiness(fixture, null, (elapsed) => {
++    if (elapsed === 25) targetingB.fooBlock = ['0'];
++  });
++  assert.equal(result.elapsedMs, 125);
++  assert.equal(keyMaturities(result).fooBlock.stabilityPolls, 5);
++  assert.equal(keyMaturities(result).fooBlock.slotsMatched, 2);
++  assert.equal(keyMaturities(result).fooBlock.slotsChecked, 3);
++  assert.equal(keyMaturities(result).fooBlock.slotCoverage, 'partial');
++});
++
++test('coverage: cambio real de IDs con complete coverage y mismos counters reinicia snapshot', async () => {
++  const fixture = createFixture({ psp: true, slots: [slot('full-id-a', { fooBlock: ['0'] }), slot('full-id-b', { fooBlock: ['0'] })] });
++  fixture.manager.siteConfig = { exclusions: { keyValues: { fooBlock: ['1'] } } };
++  const result = await observeReadiness(fixture, null, (elapsed) => {
++    if (elapsed === 25) fixture.slots[1] = slot('full-id-c', { fooBlock: ['0'] });
++  });
++  assert.equal(result.elapsedMs, 50);
++  assert.equal(keyMaturities(result).fooBlock.stabilityPolls, 2);
++  assert.equal(keyMaturities(result).fooBlock.slotCoverage, 'complete');
++});
++
++test('coverage: unknown slot identity no certifica ausencia estable', async () => {
++  const fixture = createFixture({ psp: true, slots: [slot('')] });
++  fixture.manager.siteConfig = { exclusions: { keyValues: { fooBlock: ['1'] } } };
++  assert.equal(fixture.manager.getIntextNativeGptSlots().length, 1);
++  const result = await observeReadiness(fixture);
++  assert.equal(result.elapsedMs, 600);
++  assert.equal(result.timedOut, true);
++  assert.equal(keyMaturities(result).fooBlock.status, 'pending');
++  assert.equal(keyMaturities(result).fooBlock.slotCoverage, 'none');
++  assert.deepEqual(Array.from(result.pendingBlockingKeysAtExit), ['fooBlock']);
++});
++
+ test('per-key: blocker GPT no certifica otro blocker global false y bloquea a 175ms', async () => {
+   const targeting = {};
+   const fixture = createFixture({ psp: true, pubadsReady: false });
+@@ -1050,7 +1323,7 @@ test('per-key: partial resolved y optional absent terminan a 100ms con telemetry
+   assert.deepEqual(Array.from(result.pendingBlockingKeysAtExit), []);
+   const completed = fixture.logs.find(([message]) => message.includes('intext_rule_targeting_wait_completed'))[1];
+   assert.equal(completed.blockingKeyMaturities.length, 4);
+-  assert.deepEqual(Object.keys(completed.blockingKeyMaturities[0]), ['key', 'status', 'reason', 'stabilityPolls', 'requiredStabilityPolls']);
++  assert.deepEqual(Object.keys(completed.blockingKeyMaturities[0]), ['key', 'status', 'reason', 'stabilityPolls', 'requiredStabilityPolls', 'slotsChecked', 'slotsMatched', 'slotCoverage']);
+ });
+ 
+ test('per-key: global false desde 50ms no madura con slot vacio y GPT inmaduro', async () => {
+@@ -1389,7 +1662,7 @@ test('late-slot: getSlots devuelve wrappers nuevos del mismo scoped ID sin reset
+   assert.ok(wrapperCalls > 5);
+ });
+ 
+-test('late-slot: cambio real del scoped slot set reinicia ausencia y conserva own key', async () => {
++test('late-slot: cambio real del scoped slot set reinicia ausencia y reclasifica own key parcial', async () => {
+   const fixture = createFixture({ psp: true, slots: [slot('set-b-1', { fooBlock: ['0'] })] });
+   fixture.manager.siteConfig = { exclusions: { keyValues: { fooBlock: ['1'], barBlock: ['1'] } } };
+   const ruleContext = { rootElement: { contains: (element) => element?.article === 'B' } };
+@@ -1402,7 +1675,8 @@ test('late-slot: cambio real del scoped slot set reinicia ausencia y conserva ow
+   });
+   assert.equal(result.elapsedMs, 125);
+   assert.equal(keyMaturities(result).barBlock.stabilityPolls, 5);
+-  assert.equal(keyMaturities(result).fooBlock.stabilityPolls, 6);
++  assert.equal(keyMaturities(result).fooBlock.stabilityPolls, 5);
++  assert.equal(keyMaturities(result).fooBlock.slotCoverage, 'partial');
+ });
+ 
+ test('late-slot: slot ID cambia con mismo numero de slots y reinicia ausencia', async () => {
+@@ -1415,14 +1689,16 @@ test('late-slot: slot ID cambia con mismo numero de slots y reinicia ausencia',
+   assert.equal(keyMaturities(result).fooBlock.stabilityPolls, 5);
+ });
+ 
+-test('late-slot: slots nuevos vacios no retrasan own slot snapshot canonico estable', async () => {
++test('late-slot: slot nuevo vacio convierte own coverage completa en parcial', async () => {
+   const fixture = createFixture({ psp: true, slots: [slot('own-stable', { fooBlock: ['0'] })] });
+   fixture.manager.siteConfig = { exclusions: { keyValues: { fooBlock: ['1'] } } };
+   const result = await observeReadiness(fixture, null, (elapsed) => {
+     if (elapsed === 25) fixture.slots.push(slot('unrelated-empty'));
+   });
+-  assert.equal(result.elapsedMs, 25);
+-  assert.equal(keyMaturities(result).fooBlock.stabilityPolls, 2);
++  assert.equal(result.elapsedMs, 125);
++  assert.equal(keyMaturities(result).fooBlock.stabilityPolls, 5);
++  assert.equal(keyMaturities(result).fooBlock.requiredStabilityPolls, 5);
++  assert.equal(keyMaturities(result).fooBlock.slotCoverage, 'partial');
+ });
+ 
+ test('late-slot: ordenar el mismo slot set no reinicia ausencia', async () => {

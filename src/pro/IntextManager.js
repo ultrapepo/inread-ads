@@ -915,6 +915,8 @@ const INTEXT_TELEMETRY_STANDARD_FIELDS = Object.freeze([
 class IntextManager {
   static INTEXT_RULE_TARGETING_READY_MAX_WAIT_MS = 600;
   static INTEXT_RULE_TARGETING_READY_POLL_MS = 25;
+  static INTEXT_OWN_SLOT_STABILITY_POLLS = 2;
+  static INTEXT_SLOT_ABSENCE_STABILITY_POLLS = 5;
 
   constructor(config, gexpInstance) {
     this.config = config;
@@ -1696,6 +1698,26 @@ class IntextManager {
       entry.key,
       entry.values.map(String).sort(),
     ]));
+    const blockingKeyStates = Object.fromEntries(blockingResolutions.map((entry) => {
+      const hasSource = (name) => entry.sources.some((source) => source.source === name);
+      return [entry.key, {
+        values: entry.values,
+        resolved: entry.values.length > 0,
+        hasContextSignal: hasSource("context.targeting"),
+        hasDataSignal: hasSource("data.customTargeting"),
+        hasUeDfpSignal: hasSource("ueDFPData.customTargeting"),
+        hasGptPageSignal: hasSource("gpt-page-targeting"),
+        hasGptSlotSignal: entry.slotsMatched > 0 && hasSource("gpt-slot-targeting"),
+        hasUeDataLayerSignal: hasSource("ueDataLayer"),
+        hasUtagSignal: hasSource("utag_data"),
+        slotsChecked: entry.slotsChecked,
+        slotsMatched: entry.slotsMatched,
+        fingerprint: JSON.stringify(entry.values.map(String).sort()),
+        sourceFingerprint: JSON.stringify(entry.sources.map((source) => [
+          source.source, source.values.map(String).sort(),
+        ]).sort(([left], [right]) => left.localeCompare(right))),
+      }];
+    }));
     return {
       relevantSignalFound: resolvedKeys.length > 0,
       gptSlotSignalFound,
@@ -1712,7 +1734,64 @@ class IntextManager {
       resolutions,
       fingerprint,
       blockingFingerprint,
+      blockingKeyStates,
     };
+  }
+
+  getIntextBlockingKeyMaturity({
+    key,
+    context = null,
+    resolution,
+    nativeSlots,
+    keyState,
+    stability,
+  }) {
+    const scoped = Boolean(context?.rootElement);
+    const slotsChecked = Number(keyState?.slotsChecked || 0);
+    const slotsMatched = Number(keyState?.slotsMatched || 0);
+    const slotsObserved = nativeSlots.length > 0 && slotsChecked > 0;
+    const hasOwnSlotSignal = slotsObserved && slotsMatched > 0 && keyState?.hasGptSlotSignal === true;
+    const hasCompleteSlotCoverage = hasOwnSlotSignal && slotsMatched === slotsChecked;
+    const hasPartialSlotCoverage = hasOwnSlotSignal && slotsMatched < slotsChecked;
+    const slotCoverage = hasCompleteSlotCoverage ? "complete" : hasPartialSlotCoverage ? "partial" : "none";
+    // A global value cannot certify missing slot targeting before this runtime is ready.
+    // Scoped observations are tied to the actual article slots by the wait-local tracker.
+    const absenceRuntimeMature = scoped
+      ? slotsObserved
+      : resolution.api?.pubadsReady === true &&
+        (slotsObserved || (nativeSlots.length === 0 && keyState?.resolved === true));
+    const observationEligible = hasOwnSlotSignal || absenceRuntimeMature;
+    const stabilityPolls = stability && stability.fingerprint === keyState?.fingerprint ? stability.polls : 0;
+    const requiredStabilityPolls = hasCompleteSlotCoverage
+      ? IntextManager.INTEXT_OWN_SLOT_STABILITY_POLLS
+      : IntextManager.INTEXT_SLOT_ABSENCE_STABILITY_POLLS;
+    const mature = observationEligible && stabilityPolls >= requiredStabilityPolls;
+    return {
+      key,
+      status: mature ? (keyState.resolved ? "resolved-mature" : "absent-mature") : "pending",
+      mature,
+      observationEligible,
+      reason: mature
+        ? (hasCompleteSlotCoverage ? "stable-own-slot-targeting" :
+          hasPartialSlotCoverage ? "stable-partial-slot-coverage" :
+          keyState.resolved ? "stable-global-with-stable-slot-absence" : "stable-absent-after-slot-settle")
+        : (hasPartialSlotCoverage ? "partial-slot-targeting-pending" :
+          nativeSlots.length === 0 ? "slot-discovery-pending" : "slot-targeting-pending"),
+      stabilityPolls,
+      requiredStabilityPolls,
+      hasOwnSlotSignal,
+      hasCompleteSlotCoverage,
+      hasPartialSlotCoverage,
+      slotsChecked,
+      slotsMatched,
+      slotCoverage,
+      slotAbsenceUncertain: !hasCompleteSlotCoverage,
+    };
+  }
+
+  getIntextNativeSlotIdentity(slot) {
+    try { return String(slot?.getSlotElementId?.() || "").trim(); }
+    catch (e) { return ""; }
   }
 
   getIntextBlockingTargetingMaturity({
@@ -1720,7 +1799,7 @@ class IntextManager {
     resolution,
     nativeSlots,
     targetingState,
-    blockingStabilityPolls = 0,
+    blockingStability = new Map(),
   }) {
     const blockingKeys = targetingState?.blockingKeys || [];
     if (blockingKeys.length === 0) {
@@ -1728,40 +1807,21 @@ class IntextManager {
         mature: true,
         observationEligible: true,
         reason: "no-blocking-external-rules",
+        keyMaturities: [],
       };
     }
-    const allBlockingResolved =
-      targetingState.resolvedBlockingKeys.length === blockingKeys.length;
-    const allBlockingEmpty = targetingState.resolvedBlockingKeys.length === 0;
-    const resolvedRuntimeMature =
-      (nativeSlots.length > 0 && targetingState.blockingGptSlotSignalFound === true) ||
-      (
-        !context?.rootElement &&
-        nativeSlots.length === 0 &&
-        resolution.api?.pubadsReady === true
-      );
-    const emptyRuntimeMature =
-      !context?.rootElement &&
-      nativeSlots.length > 0 &&
-      resolution.api?.pubadsReady === true &&
-      targetingState.gptSlotSignalFound !== true;
-    const observationEligible =
-      (allBlockingResolved && resolvedRuntimeMature) ||
-      (allBlockingEmpty && emptyRuntimeMature);
-    const requiredStabilityPolls = 2;
-    if (!observationEligible || blockingStabilityPolls < requiredStabilityPolls) {
-      return {
-        mature: false,
-        observationEligible,
-        requiredStabilityPolls,
-        reason: "none",
-      };
-    }
+    const keyMaturities = blockingKeys.map((key) => this.getIntextBlockingKeyMaturity({
+      key, context, resolution, nativeSlots,
+      keyState: targetingState.blockingKeyStates[key],
+      stability: blockingStability.get(key),
+    }));
+    const mature = keyMaturities.every((entry) => entry.mature);
     return {
-      mature: true,
-      observationEligible: true,
-      requiredStabilityPolls,
-      reason: allBlockingEmpty
+      mature,
+      observationEligible: keyMaturities.every((entry) => entry.observationEligible),
+      requiredStabilityPolls: Math.max(...keyMaturities.map((entry) => entry.requiredStabilityPolls)),
+      keyMaturities,
+      reason: !mature ? "none" : keyMaturities.every((entry) => entry.status === "absent-mature")
         ? "stable-empty-blocking-targeting-runtime-mature"
         : "stable-blocking-targeting",
     };
@@ -1779,7 +1839,7 @@ class IntextManager {
       resolution,
       nativeSlots,
       targetingState,
-      blockingStabilityPolls: state.blockingStabilityPolls || 0,
+      blockingStability: state.blockingStability,
     }).mature;
   }
 
@@ -1821,6 +1881,8 @@ class IntextManager {
       blockingSignalFound: false,
       blockingGptSlotSignalFound: false,
       blockingStabilityPolls: 0,
+      blockingKeyMaturities: [],
+      pendingBlockingKeysAtExit: [],
       readinessBasis: "none",
     };
 
@@ -1861,28 +1923,36 @@ class IntextManager {
         inclusionKeys: targetingState.inclusionKeys,
       };
     }
-    let stableBlockingFingerprint = null;
+    const blockingStability = new Map();
+    let observedSlotSetFingerprint = null;
     let blockingStabilityPolls = 0;
     const updateBlockingStability = () => {
-      const maturity = this.getIntextBlockingTargetingMaturity({
-        context,
-        resolution,
-        nativeSlots,
-        targetingState,
-        blockingStabilityPolls: 0,
-      });
-      if (!maturity.observationEligible) {
-        stableBlockingFingerprint = null;
-        blockingStabilityPolls = 0;
-        return;
+      const slotIds = nativeSlots.map((slot) => this.getIntextNativeSlotIdentity(slot));
+      // Unknown identities cannot certify a stable absence. JSON avoids delimiter collisions.
+      const slotSetFingerprint = slotIds.every(Boolean) ? JSON.stringify(slotIds.sort()) : null;
+      const sameSlots = slotSetFingerprint !== null && observedSlotSetFingerprint === slotSetFingerprint;
+      for (const key of targetingState.blockingKeys) {
+        const keyState = targetingState.blockingKeyStates[key];
+        const maturity = this.getIntextBlockingKeyMaturity({
+          key, context, resolution, nativeSlots, keyState,
+        });
+        const previous = blockingStability.get(key);
+        // Only complete coverage gets the fast path; partial coverage also observes absence.
+        const observation = JSON.stringify([
+          keyState.sourceFingerprint, keyState.slotsMatched,
+          ...(maturity.hasCompleteSlotCoverage ? [] : [keyState.slotsChecked, scoped ? null : resolution.api?.pubadsReady === true]),
+        ]);
+        const unchanged = sameSlots && previous?.fingerprint === keyState.fingerprint &&
+          previous?.observation === observation;
+        blockingStability.set(key, {
+          fingerprint: keyState.fingerprint,
+          observation,
+          polls: maturity.observationEligible ? (unchanged ? previous.polls + 1 : 1) : 0,
+        });
       }
-      if (stableBlockingFingerprint === targetingState.blockingFingerprint) {
-        blockingStabilityPolls += 1;
-      }
-      else {
-        stableBlockingFingerprint = targetingState.blockingFingerprint;
-        blockingStabilityPolls = 1;
-      }
+      observedSlotSetFingerprint = slotSetFingerprint;
+      // Retain the aggregate counter only for existing telemetry consumers.
+      blockingStabilityPolls = Math.min(...Array.from(blockingStability.values(), (entry) => entry.polls));
     };
     updateBlockingStability();
     if (!this.needsIntextRuleTargetingReadinessWait(context, {
@@ -1890,14 +1960,14 @@ class IntextManager {
       relevantKeys,
       nativeSlots,
       targetingState,
-      blockingStabilityPolls,
+      blockingStability,
     })) {
       const maturity = this.getIntextBlockingTargetingMaturity({
         context,
         resolution,
         nativeSlots,
         targetingState,
-        blockingStabilityPolls,
+        blockingStability,
       });
       return {
         ...baseResult,
@@ -1917,6 +1987,7 @@ class IntextManager {
         blockingSignalFound: targetingState.blockingSignalFound,
         blockingGptSlotSignalFound: targetingState.blockingGptSlotSignalFound,
         blockingStabilityPolls,
+        blockingKeyMaturities: maturity.keyMaturities.map(({ key, status, reason, stabilityPolls, requiredStabilityPolls, slotsChecked, slotsMatched, slotCoverage }) => ({ key, status, reason, stabilityPolls, requiredStabilityPolls, slotsChecked, slotsMatched, slotCoverage })),
         readinessBasis: maturity.reason,
         finalRecheckRequired: true,
       };
@@ -1954,7 +2025,7 @@ class IntextManager {
         resolution,
         nativeSlots,
         targetingState,
-        blockingStabilityPolls,
+        blockingStability,
       });
       if (maturity.mature) {
         reason = maturity.reason;
@@ -1969,6 +2040,9 @@ class IntextManager {
     const elapsedMs = Math.max(0, now() - startedAt);
     const pubadsReady = resolution.api?.pubadsReady === true;
     const timedOut = reason === "timeout";
+    const maturity = this.getIntextBlockingTargetingMaturity({
+      context, resolution, nativeSlots, targetingState, blockingStability,
+    });
     const result = {
       ...baseResult,
       ready: !timedOut,
@@ -1987,6 +2061,8 @@ class IntextManager {
       blockingSignalFound: targetingState.blockingSignalFound,
       blockingGptSlotSignalFound: targetingState.blockingGptSlotSignalFound,
       blockingStabilityPolls,
+      blockingKeyMaturities: maturity.keyMaturities.map(({ key, status, reason, stabilityPolls, requiredStabilityPolls, slotsChecked, slotsMatched, slotCoverage }) => ({ key, status, reason, stabilityPolls, requiredStabilityPolls, slotsChecked, slotsMatched, slotCoverage })),
+      pendingBlockingKeysAtExit: maturity.keyMaturities.filter((entry) => entry.status === "pending").map((entry) => entry.key),
       readinessBasis,
       blockedEarly,
       timedOut,
@@ -2012,6 +2088,8 @@ class IntextManager {
       blockingSignalFound: result.blockingSignalFound,
       blockingGptSlotSignalFound: result.blockingGptSlotSignalFound,
       blockingStabilityPolls: result.blockingStabilityPolls,
+      blockingKeyMaturities: result.blockingKeyMaturities,
+      pendingBlockingKeysAtExit: result.pendingBlockingKeysAtExit,
       readinessBasis: result.readinessBasis,
       scoped: result.scoped,
     });

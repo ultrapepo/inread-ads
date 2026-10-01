@@ -107,12 +107,17 @@ function createArticleRoot(fixture, slotIds, urlSuffix) {
   };
 }
 
-async function runContinuousArticleFlow(fixture, rootElement, { createNode = false, managerExclusions = true } = {}) {
+async function runContinuousArticleFlow(fixture, rootElement, {
+  createNode = false,
+  managerExclusions = true,
+  exclusionKeyValues = { isPremium: ['1', 'true'] },
+  onCreatePositions = null,
+} = {}) {
   const { manager, context } = fixture;
   manager.baseSiteConfig = {
     infiniteScroll: {},
     ...(managerExclusions
-      ? { exclusions: { keyValues: { isPremium: ['1', 'true'] } } }
+      ? { exclusions: { keyValues: exclusionKeyValues } }
       : {}),
     video: {
       pip: {
@@ -158,7 +163,7 @@ async function runContinuousArticleFlow(fixture, rootElement, { createNode = fal
     manager.nodes = [];
     manager._navContinuaNodes = [];
   } else {
-    manager.createIntextPositionsScoped = () => ({ result: 'created', found: 1, created: 1 });
+    manager.createIntextPositionsScoped = onCreatePositions || (() => ({ result: 'created', found: 1, created: 1 }));
   }
 
   let scopedRuleContext = null;
@@ -510,7 +515,7 @@ test('blocking key legitimamente ausente sale pronto con runtime y slots maduros
   assert.equal(result.reason, 'stable-empty-blocking-targeting-runtime-mature');
   assert.equal(result.relevantSignalFound, false);
   assert.equal(result.finalRecheckRequired, true);
-  assert.equal(result.elapsedMs, 25);
+  assert.equal(result.elapsedMs, 100);
   assert.deepEqual(Array.from(result.unresolvedBlockingKeys), ['isPremium']);
 });
 
@@ -615,7 +620,7 @@ test('navegacion continua espera targeting estable de B y no consulta el premium
   });
   const elementB = {};
   fixture.elements.set('article-b-late-test', elementB);
-  const rootB = { contains: (element) => element === elementB };
+  const rootB = { contains: (element) => elapsed >= 150 && element === elementB };
   const scopedContext = {
     rootElement: rootB,
     siteConfig: { exclusions: { keyValues: { isPremium: ['1'] } } },
@@ -663,7 +668,7 @@ test('extrae keys non-random de exclusions, inclusions y disableSlots sin duplic
 
 test('inclusion resuelta no enmascara premium pendiente y bloquea a 175ms', async () => {
   const targeting = {};
-  const fixture = createFixture({ psp: true, pubadsReady: true });
+  const fixture = createFixture({ psp: true, pubadsReady: false });
   fixture.manager.siteConfig = {
     exclusions: { keyValues: { isPremium: ['1', 'true'] } },
     inclusions: { keyValues: { tag: ['economia'] } },
@@ -689,7 +694,7 @@ test('inclusion resuelta no enmascara premium pendiente y bloquea a 175ms', asyn
 
 test('otra exclusion resuelta no enmascara premium pendiente', async () => {
   const targeting = {};
-  const fixture = createFixture({ psp: true, pubadsReady: true });
+  const fixture = createFixture({ psp: true, pubadsReady: false });
   fixture.manager.siteConfig = {
     exclusions: { keyValues: { tag: ['bloqueo-publi'], isPremium: ['1', 'true'] } },
   };
@@ -726,7 +731,7 @@ test('blocking key vacia con runtime inmaduro no sale por fingerprints vacios', 
 
 test('generic blocking key tarda aunque otra inclusion ya tenga targeting', async () => {
   const targeting = {};
-  const fixture = createFixture({ psp: true, pubadsReady: true });
+  const fixture = createFixture({ psp: true, pubadsReady: false });
   fixture.manager.siteConfig = {
     exclusions: { keyValues: { fooBlock: ['1'] } },
     inclusions: { keyValues: { section: ['economia'] } },
@@ -761,7 +766,7 @@ test('scoped multi-key espera el blocker de B y no usa targeting de A', async ()
   });
   const elementB = {};
   fixture.elements.set('role-aware-b', elementB);
-  const rootB = { contains: (element) => element === elementB };
+  const rootB = { contains: (element) => elapsed >= 175 && element === elementB };
   const scopedContext = {
     rootElement: rootB,
     siteConfig: {
@@ -924,7 +929,7 @@ test('slotless DataLayer estable usa pubadsReady y termina sin esperar timeout',
   assert.equal(result.reason, 'stable-blocking-targeting');
   assert.equal(result.readinessBasis, 'stable-blocking-targeting');
   assert.deepEqual(Array.from(result.resolvedRelevantKeys), ['tag']);
-  assert.equal(result.elapsedMs, 125);
+  assert.equal(result.elapsedMs, 200);
 });
 
 test('scoped ignora pubadsReady global hasta tener targeting de slot del articulo B', async () => {
@@ -977,3 +982,822 @@ function fixtureMethod(name) {
   const fixture = createFixture();
   return fixture.manager[name].toString();
 }
+
+async function observeReadiness(fixture, ruleContext = null, onPoll = () => {}) {
+  let elapsed = 0;
+  return fixture.manager.waitForIntextRuleTargetingReady(ruleContext, {
+    now: () => elapsed,
+    wait: async (delayMs) => { elapsed += delayMs; onPoll(elapsed); },
+  });
+}
+
+function keyMaturities(result) {
+  return Object.fromEntries(Array.from(result.blockingKeyMaturities, (entry) => [entry.key, entry]));
+}
+
+test('coverage: initial dos slots, uno matched, no ready a 125/150 y block a 175ms', async () => {
+  const fixture = createFixture({ psp: true });
+  fixture.manager.siteConfig = { exclusions: { keyValues: { isPremium: ['1', 'true'] } } };
+  const targetingB = {};
+  const polls = [];
+  const result = await observeReadiness(fixture, null, (elapsed) => {
+    polls.push(elapsed);
+    assert.equal(fixture.realGpt.pubadsReady, true);
+    if (elapsed === 100) fixture.slots.push(slot('coverage-a', { isPremium: ['0'] }), slot('coverage-b', targetingB));
+    if (elapsed === 125 || elapsed === 150) {
+      const keyState = fixture.manager.getIntextRelevantRuleTargetingState(['isPremium']).blockingKeyStates.isPremium;
+      const maturity = fixture.manager.getIntextBlockingKeyMaturity({
+        key: 'isPremium', resolution: fixture.manager.resolveIntextGptApi(),
+        nativeSlots: fixture.slots, keyState, stability: { fingerprint: keyState.fingerprint, polls: 2 },
+      });
+      assert.equal(maturity.hasOwnSlotSignal, true);
+      assert.equal(maturity.hasCompleteSlotCoverage, false);
+      assert.equal(maturity.hasPartialSlotCoverage, true);
+      assert.equal(maturity.requiredStabilityPolls, 5);
+      assert.equal(maturity.status, 'pending');
+      assert.equal(maturity.reason, 'partial-slot-targeting-pending');
+    }
+    if (elapsed === 175) targetingB.isPremium = ['1'];
+  });
+  assert.ok(polls.includes(125) && polls.includes(150));
+  assert.equal(result.elapsedMs, 175);
+  assert.equal(result.reason, 'exclusion-match');
+  assert.deepEqual(Array.from(fixture.manager.resolveIntextRuleTargeting('isPremium').values), ['0', '1']);
+});
+
+test('coverage: scoped B dos slots, uno matched, late block a 175ms sin slots A', async () => {
+  const outside = slot('coverage-outside-a', { isPremium: ['1'] });
+  let outsideReads = 0;
+  const readOutside = outside.getTargeting;
+  outside.getTargeting = (key) => { outsideReads += 1; return readOutside(key); };
+  const fixture = createFixture({ psp: true, slots: [outside] });
+  fixture.manager.siteConfig = { exclusions: { keyValues: { isPremium: ['1'] } } };
+  const targetingB2 = {};
+  const ruleContext = { rootElement: { contains: (element) => element?.article === 'B' } };
+  const polls = [];
+  const result = await observeReadiness(fixture, ruleContext, (elapsed) => {
+    polls.push(elapsed);
+    if (elapsed === 100) {
+      fixture.elements.set('coverage-b1', { article: 'B' });
+      fixture.elements.set('coverage-b2', { article: 'B' });
+      fixture.slots.push(slot('coverage-b1', { isPremium: ['0'] }), slot('coverage-b2', targetingB2));
+    }
+    if (elapsed === 175) targetingB2.isPremium = ['1'];
+  });
+  assert.ok(polls.includes(125) && polls.includes(150));
+  assert.equal(result.elapsedMs, 175);
+  assert.equal(result.reason, 'exclusion-match');
+  assert.equal(keyMaturities(result).isPremium.slotsChecked, 2);
+  assert.equal(outsideReads, 0);
+});
+
+test('coverage: completa en dos slots a 100ms conserva fast path a 125ms', async () => {
+  const fixture = createFixture({ psp: true });
+  fixture.manager.siteConfig = { exclusions: { keyValues: { isPremium: ['1'] } } };
+  const result = await observeReadiness(fixture, null, (elapsed) => {
+    if (elapsed === 100) fixture.slots.push(slot('complete-a', { isPremium: ['0'] }), slot('complete-b', { isPremium: ['0'] }));
+  });
+  const maturity = keyMaturities(result).isPremium;
+  assert.equal(result.elapsedMs, 125);
+  assert.equal(maturity.reason, 'stable-own-slot-targeting');
+  assert.equal(maturity.requiredStabilityPolls, 2);
+  assert.equal(maturity.stabilityPolls, 2);
+  assert.equal(maturity.slotsChecked, 2);
+  assert.equal(maturity.slotsMatched, 2);
+  assert.equal(maturity.slotCoverage, 'complete');
+});
+
+test('coverage: un matched de cinco slots estable madura a 100ms sin timeout', async () => {
+  const fixture = createFixture({ psp: true, slots: [
+    slot('partial-stable-1', { isPremium: ['0'] }),
+    ...Array.from({ length: 4 }, (_, index) => slot(`partial-stable-${index + 2}`)),
+  ] });
+  fixture.manager.siteConfig = { exclusions: { keyValues: { isPremium: ['1'] } } };
+  const result = await observeReadiness(fixture);
+  const maturity = keyMaturities(result).isPremium;
+  assert.equal(result.elapsedMs, 100);
+  assert.equal(result.timedOut, false);
+  assert.equal(maturity.status, 'resolved-mature');
+  assert.equal(maturity.reason, 'stable-partial-slot-coverage');
+  assert.equal(maturity.requiredStabilityPolls, 5);
+  assert.equal(maturity.slotsChecked, 5);
+  assert.equal(maturity.slotsMatched, 1);
+  assert.equal(maturity.slotCoverage, 'partial');
+  const completed = fixture.logs.find(([message]) => message.includes('intext_rule_targeting_wait_completed'))[1];
+  assert.deepEqual(Object.keys(completed.blockingKeyMaturities[0]), [
+    'key', 'status', 'reason', 'stabilityPolls', 'requiredStabilityPolls', 'slotsChecked', 'slotsMatched', 'slotCoverage',
+  ]);
+});
+
+test('coverage: partial 1/5 pasa a complete 5/5 con igual union y madura a 175ms', async () => {
+  const fixture = createFixture({ psp: true });
+  fixture.manager.siteConfig = { exclusions: { keyValues: { isPremium: ['1'] } } };
+  const targets = Array.from({ length: 5 }, (_, index) => index === 0 ? { isPremium: ['0'] } : {});
+  const result = await observeReadiness(fixture, null, (elapsed) => {
+    if (elapsed === 100) fixture.slots.push(...targets.map((targeting, index) => slot(`complete-later-${index}`, targeting)));
+    if (elapsed === 150) targets.forEach((targeting) => { targeting.isPremium = ['0']; });
+  });
+  assert.equal(result.elapsedMs, 175);
+  assert.equal(keyMaturities(result).isPremium.requiredStabilityPolls, 2);
+  assert.equal(keyMaturities(result).isPremium.stabilityPolls, 2);
+  assert.equal(keyMaturities(result).isPremium.slotCoverage, 'complete');
+});
+
+test('coverage: partial a complete blocking bloquea a 150ms antes de estabilidad', async () => {
+  const fixture = createFixture({ psp: true });
+  fixture.manager.siteConfig = { exclusions: { keyValues: { isPremium: ['1'] } } };
+  const targetingB = {};
+  const result = await observeReadiness(fixture, null, (elapsed) => {
+    if (elapsed === 100) fixture.slots.push(slot('completion-block-a', { isPremium: ['0'] }), slot('completion-block-b', targetingB));
+    if (elapsed === 150) targetingB.isPremium = ['1'];
+  });
+  assert.equal(result.elapsedMs, 150);
+  assert.equal(result.reason, 'exclusion-match');
+  assert.equal(result.blockedEarly, true);
+});
+
+test('coverage: nuevo slot en poll 2 convierte complete a partial y bloquea en poll 4', async () => {
+  const fixture = createFixture({ psp: true, slots: [slot('discovery-complete-a', { isPremium: ['0'] })] });
+  fixture.manager.siteConfig = { exclusions: { keyValues: { isPremium: ['1'] } } };
+  const targetingB = {};
+  const result = await observeReadiness(fixture, null, (elapsed) => {
+    if (elapsed === 25) fixture.slots.push(slot('discovery-complete-b', targetingB));
+    if (elapsed === 75) targetingB.isPremium = ['1'];
+  });
+  assert.equal(result.elapsedMs, 75);
+  assert.equal(result.reason, 'exclusion-match');
+});
+
+test('coverage: eliminar un slot sin targeting reinicia y reclasifica partial a complete', async () => {
+  const fixture = createFixture({ psp: true, slots: [slot('removal-a', { fooBlock: ['0'] }), slot('removal-b')] });
+  fixture.manager.siteConfig = { exclusions: { keyValues: { fooBlock: ['1'] } } };
+  const result = await observeReadiness(fixture, null, (elapsed) => {
+    if (elapsed === 25) fixture.slots.pop();
+  });
+  assert.equal(result.elapsedMs, 50);
+  assert.equal(keyMaturities(result).fooBlock.stabilityPolls, 2);
+  assert.equal(keyMaturities(result).fooBlock.requiredStabilityPolls, 2);
+  assert.equal(keyMaturities(result).fooBlock.slotCoverage, 'complete');
+});
+
+test('coverage: wrappers nuevos con mismos IDs mantienen complete fast path', async () => {
+  const fixture = createFixture({ psp: true });
+  fixture.manager.siteConfig = { exclusions: { keyValues: { fooBlock: ['1'] } } };
+  fixture.pubads.getSlots = () => [slot('coverage-wrapper-1', { fooBlock: ['0'] }), slot('coverage-wrapper-2', { fooBlock: ['0'] })];
+  const result = await observeReadiness(fixture);
+  assert.equal(result.elapsedMs, 25);
+  assert.equal(keyMaturities(result).fooBlock.slotCoverage, 'complete');
+  assert.equal(keyMaturities(result).fooBlock.stabilityPolls, 2);
+});
+
+test('coverage: reordenar mismos IDs no resetea complete coverage', async () => {
+  const fixture = createFixture({ psp: true, slots: [slot('coverage-order-1', { fooBlock: ['0'] }), slot('coverage-order-2', { fooBlock: ['0'] })] });
+  fixture.manager.siteConfig = { exclusions: { keyValues: { fooBlock: ['1'] } } };
+  const result = await observeReadiness(fixture, null, () => { fixture.slots.reverse(); });
+  assert.equal(result.elapsedMs, 25);
+  assert.equal(keyMaturities(result).fooBlock.slotCoverage, 'complete');
+});
+
+test('coverage: generic fooBlock partial detecta blocker tardio', async () => {
+  const targetingB = {};
+  const fixture = createFixture({ psp: true, slots: [slot('generic-partial-a', { fooBlock: ['0'] }), slot('generic-partial-b', targetingB)] });
+  fixture.manager.siteConfig = { exclusions: { keyValues: { fooBlock: ['1'] } } };
+  const result = await observeReadiness(fixture, null, (elapsed) => {
+    if (elapsed === 75) targetingB.fooBlock = ['1'];
+  });
+  assert.equal(result.elapsedMs, 75);
+  assert.equal(result.reason, 'exclusion-match');
+});
+
+test('coverage: key exclusiva de disableSlots usa cobertura parcial sin cambiar matching', async () => {
+  const targetingB = {};
+  const fixture = createFixture({ psp: true, slots: [slot('disable-partial-a', { fooBlock: ['0'] }), slot('disable-partial-b', targetingB)] });
+  fixture.manager.siteConfig = { exclusions: { disableSlots: { rules: [{ slots: [0], ifKeyValues: { fooBlock: ['1'] } }] } } };
+  const result = await observeReadiness(fixture);
+  assert.equal(result.elapsedMs, 100);
+  assert.equal(keyMaturities(result).fooBlock.requiredStabilityPolls, 5);
+  assert.equal(keyMaturities(result).fooBlock.slotCoverage, 'partial');
+  assert.equal(fixture.manager.isSlotDisabledByExclusion(0), false);
+  targetingB.fooBlock = ['1'];
+  assert.equal(fixture.manager.isSlotDisabledByExclusion(0), true);
+});
+
+test('coverage: global false no completa coverage parcial GPT', async () => {
+  const fixture = createFixture({ psp: true, ueTargeting: { isPremium: false }, slots: [slot('global-partial-a', { isPremium: ['0'] }), slot('global-partial-b')] });
+  fixture.manager.siteConfig = { exclusions: { keyValues: { isPremium: ['1', 'true'] } } };
+  const result = await observeReadiness(fixture);
+  assert.equal(result.elapsedMs, 100);
+  assert.equal(keyMaturities(result).isPremium.requiredStabilityPolls, 5);
+  assert.equal(keyMaturities(result).isPremium.slotCoverage, 'partial');
+});
+
+test('coverage: GPT page targeting no completa coverage parcial slot-level', async () => {
+  const fixture = createFixture({ psp: true, page: { isPremium: ['0'] }, slots: [slot('page-partial-a', { isPremium: ['0'] }), slot('page-partial-b')] });
+  fixture.manager.siteConfig = { exclusions: { keyValues: { isPremium: ['1'] } } };
+  const result = await observeReadiness(fixture);
+  assert.equal(result.elapsedMs, 100);
+  assert.equal(keyMaturities(result).isPremium.requiredStabilityPolls, 5);
+  assert.equal(keyMaturities(result).isPremium.slotCoverage, 'partial');
+});
+
+test('coverage: request boundary del flujo real cerrado durante partial coverage pending', async () => {
+  const targetingB2 = {};
+  const fixture = createFixture({ psp: true, slots: [slot('boundary-partial-b1', { isPremium: ['0'] }), slot('boundary-partial-b2', targetingB2)] });
+  const rootB = createArticleRoot(fixture, ['boundary-partial-b1', 'boundary-partial-b2'], 'boundary-partial-b');
+  const calls = { nodes: 0, prebid: 0, aps: 0, display: 0, refresh: 0, video: 0, inclusions: 0 };
+  fixture.window.pbjs = { requestBids() { calls.prebid += 1; } };
+  fixture.window.apstag = { fetchBids() { calls.aps += 1; } };
+  fixture.realGpt.display = () => { calls.display += 1; };
+  fixture.pubads.refresh = () => { calls.refresh += 1; };
+  fixture.manager.isAllowedByInclusions = () => { calls.inclusions += 1; return true; };
+  fixture.manager.buildAndPlayVideo = () => { calls.video += 1; };
+  let elapsed = 0;
+  const originalWait = fixture.manager.waitForIntextRuleTargetingReady.bind(fixture.manager);
+  fixture.manager.waitForIntextRuleTargetingReady = (ruleContext) => originalWait(ruleContext, {
+    now: () => elapsed,
+    wait: async (delayMs) => {
+      elapsed += delayMs;
+      assert.ok(Object.values(calls).every((count) => count === 0));
+      if (elapsed === 75) targetingB2.isPremium = ['1'];
+    },
+  });
+  const { result } = await runContinuousArticleFlow(fixture, rootB, {
+    onCreatePositions: () => { calls.nodes += 1; throw new Error('nodes during partial coverage'); },
+  });
+  assert.equal(elapsed, 75);
+  assert.equal(result.decision, 'excluded');
+  assert.ok(Object.values(calls).every((count) => count === 0));
+});
+
+test('coverage: slotsMatched 1 a 2 reinicia observacion aunque siga partial y union igual', async () => {
+  const targetingB = {};
+  const fixture = createFixture({ psp: true, slots: [
+    slot('matched-change-a', { fooBlock: ['0'] }), slot('matched-change-b', targetingB), slot('matched-change-c'),
+  ] });
+  fixture.manager.siteConfig = { exclusions: { keyValues: { fooBlock: ['1'] } } };
+  const result = await observeReadiness(fixture, null, (elapsed) => {
+    if (elapsed === 25) targetingB.fooBlock = ['0'];
+  });
+  assert.equal(result.elapsedMs, 125);
+  assert.equal(keyMaturities(result).fooBlock.stabilityPolls, 5);
+  assert.equal(keyMaturities(result).fooBlock.slotsMatched, 2);
+  assert.equal(keyMaturities(result).fooBlock.slotsChecked, 3);
+  assert.equal(keyMaturities(result).fooBlock.slotCoverage, 'partial');
+});
+
+test('coverage: cambio real de IDs con complete coverage y mismos counters reinicia snapshot', async () => {
+  const fixture = createFixture({ psp: true, slots: [slot('full-id-a', { fooBlock: ['0'] }), slot('full-id-b', { fooBlock: ['0'] })] });
+  fixture.manager.siteConfig = { exclusions: { keyValues: { fooBlock: ['1'] } } };
+  const result = await observeReadiness(fixture, null, (elapsed) => {
+    if (elapsed === 25) fixture.slots[1] = slot('full-id-c', { fooBlock: ['0'] });
+  });
+  assert.equal(result.elapsedMs, 50);
+  assert.equal(keyMaturities(result).fooBlock.stabilityPolls, 2);
+  assert.equal(keyMaturities(result).fooBlock.slotCoverage, 'complete');
+});
+
+test('coverage: unknown slot identity no certifica ausencia estable', async () => {
+  const fixture = createFixture({ psp: true, slots: [slot('')] });
+  fixture.manager.siteConfig = { exclusions: { keyValues: { fooBlock: ['1'] } } };
+  assert.equal(fixture.manager.getIntextNativeGptSlots().length, 1);
+  const result = await observeReadiness(fixture);
+  assert.equal(result.elapsedMs, 600);
+  assert.equal(result.timedOut, true);
+  assert.equal(keyMaturities(result).fooBlock.status, 'pending');
+  assert.equal(keyMaturities(result).fooBlock.slotCoverage, 'none');
+  assert.deepEqual(Array.from(result.pendingBlockingKeysAtExit), ['fooBlock']);
+});
+
+test('per-key: blocker GPT no certifica otro blocker global false y bloquea a 175ms', async () => {
+  const targeting = {};
+  const fixture = createFixture({ psp: true, pubadsReady: false });
+  fixture.manager.siteConfig = {
+    exclusions: { keyValues: { tag: ['bloqueo-publi'], isPremium: ['1', 'true'] } },
+  };
+  const result = await observeReadiness(fixture, null, (elapsed) => {
+    if (elapsed === 100) {
+      targeting.tag = ['normal'];
+      fixture.window.ueDataLayer.isPremium = false;
+      fixture.slots.push(slot('blocker-masking-blocker', targeting));
+    }
+    if (elapsed === 125) {
+      const state = fixture.manager.getIntextRelevantRuleTargetingState(['tag', 'isPremium']);
+      assert.equal(state.blockingGptSlotSignalFound, true);
+      assert.equal(state.blockingKeyStates.isPremium.hasGptSlotSignal, false);
+      assert.equal(state.blockingKeyStates.isPremium.hasUeDataLayerSignal, true);
+      assert.equal(fixture.manager.needsIntextRuleTargetingReadinessWait(), true);
+    }
+    if (elapsed === 175) {
+      fixture.realGpt.pubadsReady = true;
+      targeting.isPremium = ['1'];
+    }
+  });
+  assert.equal(result.reason, 'exclusion-match');
+  assert.equal(result.blockedEarly, true);
+  assert.equal(result.elapsedMs, 175);
+});
+
+test('per-key: partial resolved y optional absent terminan a 100ms con telemetry compacta', async () => {
+  const fixture = createFixture({ psp: true, slots: [slot('partial', { tag: ['normal'], isPremium: ['0'] })] });
+  fixture.manager.siteConfig = { exclusions: { keyValues: { newsid: ['x'], tag: ['x'], t: ['x'], isPremium: ['1'] } } };
+  let elapsed = 0;
+  const firstMatureAt = {};
+  const originalMaturity = fixture.manager.getIntextBlockingKeyMaturity.bind(fixture.manager);
+  fixture.manager.getIntextBlockingKeyMaturity = (state) => {
+    const maturity = originalMaturity(state);
+    if (maturity.mature && firstMatureAt[maturity.key] === undefined) firstMatureAt[maturity.key] = elapsed;
+    return maturity;
+  };
+  const result = await observeReadiness(fixture, null, (pollTime) => { elapsed = pollTime; });
+  const states = keyMaturities(result);
+  assert.equal(result.elapsedMs, 100);
+  assert.equal(result.timedOut, false);
+  assert.equal(states.tag.status, 'resolved-mature');
+  assert.equal(states.isPremium.reason, 'stable-own-slot-targeting');
+  assert.equal(states.newsid.status, 'absent-mature');
+  assert.equal(states.t.reason, 'stable-absent-after-slot-settle');
+  assert.equal(states.tag.requiredStabilityPolls, 2);
+  assert.equal(states.t.requiredStabilityPolls, 5);
+  assert.ok(Object.values(states).every((entry) => entry.stabilityPolls === 5));
+  assert.deepEqual(firstMatureAt, { tag: 25, isPremium: 25, newsid: 100, t: 100 });
+  assert.deepEqual(Array.from(result.pendingBlockingKeysAtExit), []);
+  const completed = fixture.logs.find(([message]) => message.includes('intext_rule_targeting_wait_completed'))[1];
+  assert.equal(completed.blockingKeyMaturities.length, 4);
+  assert.deepEqual(Object.keys(completed.blockingKeyMaturities[0]), ['key', 'status', 'reason', 'stabilityPolls', 'requiredStabilityPolls', 'slotsChecked', 'slotsMatched', 'slotCoverage']);
+});
+
+test('per-key: global false desde 50ms no madura con slot vacio y GPT inmaduro', async () => {
+  const targeting = {};
+  const fixture = createFixture({ psp: true, pubadsReady: false });
+  fixture.manager.siteConfig = { exclusions: { keyValues: { isPremium: ['1', 'true'] } } };
+  const result = await observeReadiness(fixture, null, (elapsed) => {
+    if (elapsed === 50) fixture.window.ueDataLayer.isPremium = false;
+    if (elapsed === 100) fixture.slots.push(slot('global-false-late-true', targeting));
+    if (elapsed === 175) targeting.isPremium = ['1'];
+  });
+  assert.equal(result.reason, 'exclusion-match');
+  assert.equal(result.elapsedMs, 175);
+});
+
+test('per-key: global false con ausencia slot-level madura resuelve a 100ms', async () => {
+  const fixture = createFixture({ psp: true, slots: [slot('mature-absence')], ueTargeting: { isPremium: false } });
+  fixture.manager.siteConfig = { exclusions: { keyValues: { isPremium: ['1', 'true'] } } };
+  const result = await observeReadiness(fixture);
+  assert.equal(result.elapsedMs, 100);
+  assert.equal(keyMaturities(result).isPremium.status, 'resolved-mature');
+  assert.equal(keyMaturities(result).isPremium.reason, 'stable-global-with-stable-slot-absence');
+});
+
+test('per-key: fingerprints vacios previos a runtime ready no cuentan como estabilidad madura', async () => {
+  const fixture = createFixture({ psp: true, pubadsReady: false, slots: [slot('runtime-not-ready')] });
+  fixture.manager.siteConfig = { exclusions: { keyValues: { fooBlock: ['1'] } } };
+  const result = await observeReadiness(fixture, null, (elapsed) => {
+    if (elapsed === 100) fixture.realGpt.pubadsReady = true;
+  });
+  assert.equal(result.elapsedMs, 200);
+  assert.equal(keyMaturities(result).fooBlock.status, 'absent-mature');
+  assert.equal(keyMaturities(result).fooBlock.stabilityPolls, 5);
+});
+
+test('per-key: all absent no depende de inclusion GPT resuelta', async () => {
+  const fixture = createFixture({ psp: true, slots: [slot('all-absent', { section: ['sports'] })] });
+  fixture.manager.siteConfig = {
+    exclusions: { keyValues: { newsid: ['x'], tag: ['x'], t: ['x'], isPremium: ['1'] } },
+    inclusions: { keyValues: { section: ['sports'] } },
+  };
+  const result = await observeReadiness(fixture);
+  assert.equal(result.elapsedMs, 100);
+  assert.equal(result.reason, 'stable-empty-blocking-targeting-runtime-mature');
+  assert.ok(Object.values(keyMaturities(result)).every((entry) => entry.status === 'absent-mature'));
+});
+
+test('per-key: mixed sources derivan exclusivamente del resolver canonico', async () => {
+  const fixture = createFixture({
+    psp: true, slots: [slot('mixed', { tag: ['normal'] })], ueTargeting: { isPremium: false },
+    dataTargeting: { dataBlock: 'safe' }, ueDfpTargeting: { dfpBlock: 'safe' },
+    page: { pageBlock: ['safe'] }, utagTargeting: { utagBlock: 'safe' },
+  });
+  fixture.manager.siteConfig = { exclusions: { keyValues: Object.fromEntries(
+    ['newsid', 'tag', 't', 'isPremium', 'dataBlock', 'dfpBlock', 'pageBlock', 'utagBlock'].map((key) => [key, ['blocked']]),
+  ) } };
+  const ruleContext = { targeting: { newsid: 'safe' } };
+  const state = fixture.manager.getIntextRelevantRuleTargetingState(
+    fixture.manager.getIntextRelevantNonRandomRuleKeys(ruleContext), ruleContext,
+  );
+  const keys = state.blockingKeyStates;
+  assert.equal(keys.newsid.hasContextSignal, true);
+  assert.equal(keys.tag.hasGptSlotSignal, true);
+  assert.equal(keys.isPremium.hasUeDataLayerSignal, true);
+  assert.equal(keys.dataBlock.hasDataSignal, true);
+  assert.equal(keys.dfpBlock.hasUeDfpSignal, true);
+  assert.equal(keys.pageBlock.hasGptPageSignal, true);
+  assert.equal(keys.utagBlock.hasUtagSignal, true);
+  assert.equal(keys.t.fingerprint, '[]');
+  assert.equal(keys.isPremium.fingerprint, '["false"]');
+  const result = await observeReadiness(fixture, ruleContext);
+  assert.equal(result.elapsedMs, 100);
+  assert.equal(keyMaturities(result).t.status, 'absent-mature');
+  assert.ok(Object.entries(keyMaturities(result)).filter(([key]) => key !== 't').every(([, entry]) => entry.status === 'resolved-mature'));
+});
+
+test('per-key: own slot targeting madura aunque pubadsReady sea false', async () => {
+  const fixture = createFixture({ psp: true, pubadsReady: false, slots: [slot('own-slot', { isPremium: ['0'] })] });
+  fixture.manager.siteConfig = { exclusions: { keyValues: { isPremium: ['1'] } } };
+  const result = await observeReadiness(fixture);
+  assert.equal(result.elapsedMs, 25);
+  assert.equal(keyMaturities(result).isPremium.reason, 'stable-own-slot-targeting');
+});
+
+test('per-key: inclusion cambiante no resetea ni certifica blocker maturity', async () => {
+  const targeting = { fooBlock: ['0'], section: ['sports'] };
+  const fixture = createFixture({ psp: true, pubadsReady: false, slots: [slot('inclusion-changing', targeting)] });
+  fixture.manager.siteConfig = {
+    exclusions: { keyValues: { fooBlock: ['1'] } }, inclusions: { keyValues: { section: ['sports'] } },
+  };
+  const result = await observeReadiness(fixture, null, () => { delete targeting.section; });
+  assert.equal(result.elapsedMs, 25);
+  assert.deepEqual(Object.keys(keyMaturities(result)), ['fooBlock']);
+  assert.equal(keyMaturities(result).fooBlock.stabilityPolls, 2);
+});
+
+test('per-key: generic blockers tienen contadores independientes y disableSlots participa', async () => {
+  const targeting = { fooBlock: ['safe'], barBlock: ['safe'] };
+  const fixture = createFixture({ psp: true, slots: [slot('generic-counters', targeting)] });
+  fixture.manager.siteConfig = { exclusions: {
+    keyValues: { fooBlock: ['1'] }, disableSlots: { rules: [{ slots: [0], ifKeyValues: { barBlock: ['1'] } }] },
+  } };
+  const result = await observeReadiness(fixture, null, (elapsed) => {
+    if (elapsed === 25) targeting.barBlock = ['other-safe'];
+  });
+  assert.equal(result.elapsedMs, 50);
+  assert.equal(keyMaturities(result).fooBlock.stabilityPolls, 3);
+  assert.equal(keyMaturities(result).barBlock.stabilityPolls, 2);
+});
+
+test('per-key: scoped partial observa solo slots B y ausencia estable sin pubadsReady global', async () => {
+  const outside = slot('partial-a', { fooBlock: ['1'] });
+  let outsideReads = 0;
+  outside.getTargeting = outside.getTargetingMap = () => { outsideReads += 1; return []; };
+  const fixture = createFixture({ psp: true, pubadsReady: false, slots: [outside, slot('partial-b', { barBlock: ['0'] })] });
+  fixture.manager.siteConfig = { exclusions: { keyValues: { fooBlock: ['1'], barBlock: ['1'] } } };
+  const ruleContext = { rootElement: createArticleRoot(fixture, 'partial-b', 'partial-b') };
+  const result = await observeReadiness(fixture, ruleContext);
+  assert.equal(result.elapsedMs, 100);
+  assert.equal(result.nativeSlots, 1);
+  assert.equal(outsideReads, 0);
+  assert.equal(keyMaturities(result).fooBlock.status, 'absent-mature');
+  assert.equal(keyMaturities(result).barBlock.status, 'resolved-mature');
+  const state = fixture.manager.getIntextRelevantRuleTargetingState(['fooBlock', 'barBlock'], ruleContext);
+  assert.equal(state.blockingKeyStates.fooBlock.slotsChecked, 1);
+});
+
+test('per-key: scoped slot aun no estable permite early block a 175ms', async () => {
+  const fixture = createFixture({ psp: true, slots: [slot('late-a', { fooBlock: ['0'] })] });
+  fixture.manager.siteConfig = { exclusions: { keyValues: { fooBlock: ['1'] } } };
+  const elementB = {};
+  const ruleContext = { rootElement: { contains: (element) => element === elementB } };
+  const targetingB = {};
+  const result = await observeReadiness(fixture, ruleContext, (elapsed) => {
+    if (elapsed === 100) {
+      fixture.elements.set('late-b', elementB);
+      fixture.slots.push(slot('late-b', targetingB));
+    }
+    // Fresh wrappers keep B's logical identity; reinforced absence still catches late targeting.
+    if (elapsed === 125 || elapsed === 150) fixture.slots[1] = slot('late-b', targetingB);
+    if (elapsed === 175) targetingB.fooBlock = ['1'];
+  });
+  assert.equal(result.reason, 'exclusion-match');
+  assert.equal(result.elapsedMs, 175);
+});
+
+test('per-key: replacement scoped object con mismo slot ID conserva estabilidad', async () => {
+  const fixture = createFixture({ psp: true, slots: [slot('replace-b')] });
+  fixture.manager.siteConfig = { exclusions: { keyValues: { fooBlock: ['1'] } } };
+  const ruleContext = { rootElement: createArticleRoot(fixture, 'replace-b', 'replace-b') };
+  const result = await observeReadiness(fixture, ruleContext, (elapsed) => {
+    if (elapsed === 25) fixture.slots[0] = slot('replace-b');
+  });
+  assert.equal(result.elapsedMs, 100);
+  assert.equal(keyMaturities(result).fooBlock.stabilityPolls, 5);
+});
+
+test('per-key: cambio de fuente con valores identicos exige dos snapshots de la propia key', async () => {
+  const targeting = {};
+  const fixture = createFixture({ psp: true, slots: [slot('source-changing', targeting)], ueTargeting: { fooBlock: '0' } });
+  fixture.manager.siteConfig = { exclusions: { keyValues: { fooBlock: ['1'] } } };
+  const result = await observeReadiness(fixture, null, (elapsed) => {
+    if (elapsed === 25) targeting.fooBlock = ['0'];
+  });
+  assert.equal(result.elapsedMs, 50);
+  assert.equal(keyMaturities(result).fooBlock.reason, 'stable-own-slot-targeting');
+});
+
+test('per-key: timeout expone pending blockers sin madurarlos por estabilidad global', async () => {
+  const fixture = createFixture({ psp: true, pubadsReady: false, slots: [slot('timeout-partial', { fooBlock: ['0'] })] });
+  fixture.manager.siteConfig = { exclusions: { keyValues: { fooBlock: ['1'], barBlock: ['1'] } } };
+  const result = await observeReadiness(fixture);
+  assert.equal(result.elapsedMs, 600);
+  assert.equal(result.timedOut, true);
+  assert.equal(result.finalRecheckRequired, true);
+  assert.deepEqual(Array.from(result.pendingBlockingKeysAtExit), ['barBlock']);
+  assert.equal(keyMaturities(result).fooBlock.status, 'resolved-mature');
+  assert.equal(keyMaturities(result).barBlock.status, 'pending');
+});
+
+test('per-key: request boundary real permanece cerrado mientras un blocker siga pending', async () => {
+  const targetingB = { barBlock: ['0'] };
+  const fixture = createFixture({ psp: true, slots: [slot('request-b', targetingB)] });
+  const rootB = createArticleRoot(fixture, 'request-b', 'request-b');
+  const calls = { prebid: 0, aps: 0, display: 0, refresh: 0, video: 0, nodes: 0, inclusions: 0 };
+  fixture.window.pbjs = { requestBids() { calls.prebid += 1; } };
+  fixture.window.apstag = { fetchBids() { calls.aps += 1; } };
+  fixture.realGpt.display = () => { calls.display += 1; };
+  fixture.pubads.refresh = () => { calls.refresh += 1; };
+  fixture.manager.isAllowedByInclusions = () => { calls.inclusions += 1; return true; };
+  fixture.manager.buildAndPlayVideo = () => { calls.video += 1; };
+  let elapsed = 0;
+  const originalWait = fixture.manager.waitForIntextRuleTargetingReady.bind(fixture.manager);
+  fixture.manager.waitForIntextRuleTargetingReady = (ruleContext) => originalWait(ruleContext, {
+    now: () => elapsed,
+    wait: async (delayMs) => {
+      elapsed += delayMs;
+      assert.ok(Object.values(calls).every((count) => count === 0));
+      if (elapsed === 175) targetingB.isPremium = ['1'];
+    },
+  });
+  // B is not part of the scoped runtime until its slot appears at 150ms.
+  const contains = rootB.contains;
+  rootB.contains = (element) => elapsed >= 150 && contains(element);
+  const { result } = await runContinuousArticleFlow(fixture, rootB, {
+    exclusionKeyValues: { isPremium: ['1', 'true'], barBlock: ['1'] },
+    onCreatePositions: () => { calls.nodes += 1; throw new Error('nodes before exclusions'); },
+  });
+  assert.equal(elapsed, 175);
+  assert.ok(Object.values(calls).every((count) => count === 0));
+  assert.equal(result.decision, 'excluded');
+});
+
+test('late-slot: global false + pubadsReady true antes del slot targeting bloquea a 175ms', async () => {
+  const fixture = createFixture({ psp: true, pubadsReady: false });
+  fixture.manager.siteConfig = { exclusions: { keyValues: { isPremium: ['1', 'true'] } } };
+  const targeting = {};
+  const polls = [];
+  const result = await observeReadiness(fixture, null, (elapsed) => {
+    polls.push(elapsed);
+    if (elapsed === 50) fixture.window.ueDataLayer.isPremium = false;
+    if (elapsed === 100) {
+      fixture.realGpt.pubadsReady = true;
+      fixture.slots.push(slot('late-premium-ready', targeting));
+    }
+    if (elapsed === 125 || elapsed === 150) {
+      assert.equal(fixture.realGpt.pubadsReady, true);
+      assert.equal(fixture.manager.isBlockedByExclusions(), false);
+    }
+    if (elapsed === 175) targeting.isPremium = ['1'];
+  });
+  assert.ok(polls.includes(125) && polls.includes(150));
+  assert.equal(result.elapsedMs, 175);
+  assert.equal(result.reason, 'exclusion-match');
+  assert.equal(result.blockedEarly, true);
+});
+
+test('late-slot: slot discovery tardio reinicia grace y bloquea a 200ms', async () => {
+  const fixture = createFixture({ psp: true, pubadsReady: false });
+  fixture.manager.siteConfig = { exclusions: { keyValues: { isPremium: ['1', 'true'] } } };
+  const targeting = {};
+  const result = await observeReadiness(fixture, null, (elapsed) => {
+    if (elapsed === 100) {
+      fixture.realGpt.pubadsReady = true;
+      fixture.window.ueDataLayer.isPremium = false;
+    }
+    if (elapsed === 150) fixture.slots.push(slot('discovery-late', targeting));
+    if (elapsed === 200) targeting.isPremium = ['1'];
+  });
+  assert.equal(result.elapsedMs, 200);
+  assert.equal(result.reason, 'exclusion-match');
+});
+
+test('late-slot: own slot non-blocking durante grace pasa al fast path a 175ms', async () => {
+  const fixture = createFixture({ psp: true, pubadsReady: false });
+  fixture.manager.siteConfig = { exclusions: { keyValues: { isPremium: ['1', 'true'] } } };
+  const targeting = {};
+  const result = await observeReadiness(fixture, null, (elapsed) => {
+    if (elapsed === 100) {
+      fixture.realGpt.pubadsReady = true;
+      fixture.window.ueDataLayer.isPremium = false;
+      fixture.slots.push(slot('absence-to-own-slot', targeting));
+    }
+    if (elapsed === 150) targeting.isPremium = ['0'];
+  });
+  const maturity = keyMaturities(result).isPremium;
+  assert.equal(result.elapsedMs, 175);
+  assert.equal(maturity.reason, 'stable-own-slot-targeting');
+  assert.equal(maturity.stabilityPolls, 2);
+  assert.equal(maturity.requiredStabilityPolls, 2);
+});
+
+test('late-slot: own slot generic disponible a 100ms madura a 125ms', async () => {
+  const fixture = createFixture({ psp: true, pubadsReady: false });
+  fixture.manager.siteConfig = { exclusions: { keyValues: { fooBlock: ['1'] } } };
+  const result = await observeReadiness(fixture, null, (elapsed) => {
+    if (elapsed === 100) fixture.slots.push(slot('fast-generic-own', { fooBlock: ['0'] }));
+  });
+  assert.equal(result.elapsedMs, 125);
+  assert.equal(keyMaturities(result).fooBlock.requiredStabilityPolls, 2);
+});
+
+test('late-slot: pubadsReady desde t=0 no oculta generic blocking targeting tardio', async () => {
+  const targeting = {};
+  const fixture = createFixture({ psp: true, slots: [slot('generic-late-ready', targeting)], ueTargeting: { fooBlock: '0' } });
+  fixture.manager.siteConfig = { exclusions: { keyValues: { fooBlock: ['1'] } } };
+  const result = await observeReadiness(fixture, null, (elapsed) => {
+    assert.equal(fixture.realGpt.pubadsReady, true);
+    if (elapsed === 75) targeting.fooBlock = ['1'];
+  });
+  assert.equal(result.elapsedMs, 75);
+  assert.equal(result.reason, 'exclusion-match');
+  assert.equal(result.blockedEarly, true);
+});
+
+test('late-slot: global slotless estable usa discovery threshold de cinco observaciones', async () => {
+  const fixture = createFixture({ psp: true, ueTargeting: { fooBlock: '0' } });
+  fixture.manager.siteConfig = { exclusions: { keyValues: { fooBlock: ['1'] } } };
+  const result = await observeReadiness(fixture);
+  assert.equal(result.elapsedMs, 100);
+  assert.equal(result.nativeSlots, 0);
+  assert.equal(keyMaturities(result).fooBlock.status, 'resolved-mature');
+  assert.equal(keyMaturities(result).fooBlock.requiredStabilityPolls, 5);
+});
+
+test('late-slot: scoped B pending a 125ms bloquea a 175ms sin consultar A', async () => {
+  const targetingB = {};
+  const outside = slot('scoped-late-a', { fooBlock: ['0'] });
+  let outsideReads = 0;
+  outside.getTargeting = outside.getTargetingMap = () => { outsideReads += 1; return []; };
+  const fixture = createFixture({ psp: true, slots: [outside] });
+  fixture.manager.siteConfig = { exclusions: { keyValues: { fooBlock: ['1'] } } };
+  const elementB = {};
+  const ruleContext = { rootElement: { contains: (element) => element === elementB } };
+  const result = await observeReadiness(fixture, ruleContext, (elapsed) => {
+    if (elapsed === 100) {
+      fixture.elements.set('scoped-late-b', elementB);
+      fixture.slots.push(slot('scoped-late-b', targetingB));
+    }
+    if (elapsed === 175) targetingB.fooBlock = ['1'];
+  });
+  assert.equal(result.elapsedMs, 175);
+  assert.equal(result.reason, 'exclusion-match');
+  assert.equal(outsideReads, 0);
+});
+
+test('late-slot: getSlots devuelve wrappers nuevos del mismo scoped ID sin reset', async () => {
+  const fixture = createFixture({ psp: true, slots: [slot('wrappers-b')] });
+  fixture.manager.siteConfig = { exclusions: { keyValues: { fooBlock: ['1'] } } };
+  let wrapperCalls = 0;
+  fixture.pubads.getSlots = () => { wrapperCalls += 1; return [slot('wrappers-b')]; };
+  const ruleContext = { rootElement: createArticleRoot(fixture, 'wrappers-b', 'wrappers-b') };
+  const result = await observeReadiness(fixture, ruleContext);
+  assert.equal(result.elapsedMs, 100);
+  assert.equal(keyMaturities(result).fooBlock.stabilityPolls, 5);
+  assert.ok(wrapperCalls > 5);
+});
+
+test('late-slot: cambio real del scoped slot set reinicia ausencia y reclasifica own key parcial', async () => {
+  const fixture = createFixture({ psp: true, slots: [slot('set-b-1', { fooBlock: ['0'] })] });
+  fixture.manager.siteConfig = { exclusions: { keyValues: { fooBlock: ['1'], barBlock: ['1'] } } };
+  const ruleContext = { rootElement: { contains: (element) => element?.article === 'B' } };
+  fixture.elements.set('set-b-1', { article: 'B' });
+  const result = await observeReadiness(fixture, ruleContext, (elapsed) => {
+    if (elapsed === 25) {
+      fixture.elements.set('set-b-2', { article: 'B' });
+      fixture.slots.push(slot('set-b-2'));
+    }
+  });
+  assert.equal(result.elapsedMs, 125);
+  assert.equal(keyMaturities(result).barBlock.stabilityPolls, 5);
+  assert.equal(keyMaturities(result).fooBlock.stabilityPolls, 5);
+  assert.equal(keyMaturities(result).fooBlock.slotCoverage, 'partial');
+});
+
+test('late-slot: slot ID cambia con mismo numero de slots y reinicia ausencia', async () => {
+  const fixture = createFixture({ psp: true, slots: [slot('same-count-1')] });
+  fixture.manager.siteConfig = { exclusions: { keyValues: { fooBlock: ['1'] } } };
+  const result = await observeReadiness(fixture, null, (elapsed) => {
+    if (elapsed === 25) fixture.slots[0] = slot('same-count-2');
+  });
+  assert.equal(result.elapsedMs, 125);
+  assert.equal(keyMaturities(result).fooBlock.stabilityPolls, 5);
+});
+
+test('late-slot: slot nuevo vacio convierte own coverage completa en parcial', async () => {
+  const fixture = createFixture({ psp: true, slots: [slot('own-stable', { fooBlock: ['0'] })] });
+  fixture.manager.siteConfig = { exclusions: { keyValues: { fooBlock: ['1'] } } };
+  const result = await observeReadiness(fixture, null, (elapsed) => {
+    if (elapsed === 25) fixture.slots.push(slot('unrelated-empty'));
+  });
+  assert.equal(result.elapsedMs, 125);
+  assert.equal(keyMaturities(result).fooBlock.stabilityPolls, 5);
+  assert.equal(keyMaturities(result).fooBlock.requiredStabilityPolls, 5);
+  assert.equal(keyMaturities(result).fooBlock.slotCoverage, 'partial');
+});
+
+test('late-slot: ordenar el mismo slot set no reinicia ausencia', async () => {
+  const fixture = createFixture({ psp: true, slots: [slot('ordered-1'), slot('ordered-2')] });
+  fixture.manager.siteConfig = { exclusions: { keyValues: { fooBlock: ['1'] } } };
+  const result = await observeReadiness(fixture, null, () => { fixture.slots.reverse(); });
+  assert.equal(result.elapsedMs, 100);
+  assert.equal(keyMaturities(result).fooBlock.stabilityPolls, 5);
+});
+
+test('late-slot: cambio de sources de ESA key reinicia grace con union igual', async () => {
+  const fixture = createFixture({ psp: true, slots: [slot('source-reset')], ueTargeting: { fooBlock: '0' } });
+  fixture.manager.siteConfig = { exclusions: { keyValues: { fooBlock: ['1'] } } };
+  const result = await observeReadiness(fixture, null, (elapsed) => {
+    if (elapsed === 25) fixture.context.data.customTargeting.fooBlock = '0';
+  });
+  assert.equal(result.elapsedMs, 125);
+  assert.equal(keyMaturities(result).fooBlock.stabilityPolls, 5);
+});
+
+test('late-slot: valores por source cambian con igual union y reinician estabilidad', async () => {
+  const fixture = createFixture({
+    psp: true, slots: [slot('source-values-reset')],
+    ueTargeting: { fooBlock: '0' }, dataTargeting: { fooBlock: 'safe' },
+  });
+  fixture.manager.siteConfig = { exclusions: { keyValues: { fooBlock: ['1'] } } };
+  const result = await observeReadiness(fixture, null, (elapsed) => {
+    if (elapsed === 25) {
+      fixture.window.ueDataLayer.fooBlock = 'safe';
+      fixture.context.data.customTargeting.fooBlock = '0';
+    }
+  });
+  assert.equal(result.elapsedMs, 125);
+  assert.equal(keyMaturities(result).fooBlock.stabilityPolls, 5);
+});
+
+test('late-slot: cambio de pubadsReady inicial reinicia observaciones elegibles', async () => {
+  const fixture = createFixture({ psp: true, slots: [slot('runtime-reset')] });
+  fixture.manager.siteConfig = { exclusions: { keyValues: { fooBlock: ['1'] } } };
+  const result = await observeReadiness(fixture, null, (elapsed) => {
+    if (elapsed === 25) fixture.realGpt.pubadsReady = false;
+    if (elapsed === 50) fixture.realGpt.pubadsReady = true;
+  });
+  assert.equal(result.elapsedMs, 150);
+  assert.equal(keyMaturities(result).fooBlock.stabilityPolls, 5);
+});
+
+test('late-slot: inclusion cambiante no resetea ausencia de blocking key', async () => {
+  const targeting = { section: ['sports'] };
+  const fixture = createFixture({ psp: true, slots: [slot('absence-inclusion-changing', targeting)] });
+  fixture.manager.siteConfig = {
+    exclusions: { keyValues: { fooBlock: ['1'] } }, inclusions: { keyValues: { section: ['sports'] } },
+  };
+  const result = await observeReadiness(fixture, null, (elapsed) => {
+    targeting.section = elapsed % 50 === 0 ? ['sports'] : [];
+  });
+  assert.equal(result.elapsedMs, 100);
+  assert.equal(keyMaturities(result).fooBlock.stabilityPolls, 5);
+});
+
+test('late-slot: disableSlots usa absence grace y targeting propio sin alterar matching', async () => {
+  const targeting = {};
+  const fixture = createFixture({ psp: true, slots: [slot('disable-late', targeting)], ueTargeting: { fooBlock: '0' } });
+  fixture.manager.siteConfig = { exclusions: { disableSlots: { rules: [{ slots: [0], ifKeyValues: { fooBlock: ['1'] } }] } } };
+  const result = await observeReadiness(fixture, null, (elapsed) => {
+    if (elapsed === 75) targeting.fooBlock = ['1'];
+  });
+  assert.equal(result.elapsedMs, 100);
+  assert.equal(result.blockedEarly, false);
+  assert.equal(keyMaturities(result).fooBlock.reason, 'stable-own-slot-targeting');
+  assert.equal(fixture.manager.isSlotDisabledByExclusion(0), true);
+});
+
+test('late-slot: request boundary permanece cerrado con pubadsReady true y slot ambiguo', async () => {
+  const targetingB = {};
+  const fixture = createFixture({ psp: true, slots: [slot('boundary-ready-b', targetingB)], ueTargeting: { isPremium: false } });
+  const rootB = createArticleRoot(fixture, 'boundary-ready-b', 'boundary-ready-b');
+  const calls = { prebid: 0, aps: 0, display: 0, refresh: 0, video: 0, nodes: 0, inclusions: 0 };
+  fixture.window.pbjs = { requestBids() { calls.prebid += 1; } };
+  fixture.window.apstag = { fetchBids() { calls.aps += 1; } };
+  fixture.realGpt.display = () => { calls.display += 1; };
+  fixture.pubads.refresh = () => { calls.refresh += 1; };
+  fixture.manager.isAllowedByInclusions = () => { calls.inclusions += 1; return true; };
+  fixture.manager.buildAndPlayVideo = () => { calls.video += 1; };
+  let elapsed = 0;
+  const originalWait = fixture.manager.waitForIntextRuleTargetingReady.bind(fixture.manager);
+  fixture.manager.waitForIntextRuleTargetingReady = (ruleContext) => originalWait(ruleContext, {
+    now: () => elapsed,
+    wait: async (delayMs) => {
+      elapsed += delayMs;
+      assert.equal(fixture.realGpt.pubadsReady, true);
+      assert.ok(Object.values(calls).every((count) => count === 0));
+      if (elapsed === 75) targetingB.isPremium = ['1'];
+    },
+  });
+  const { result } = await runContinuousArticleFlow(fixture, rootB, {
+    onCreatePositions: () => { calls.nodes += 1; throw new Error('nodes before exclusion recheck'); },
+  });
+  assert.equal(elapsed, 75);
+  assert.equal(result.decision, 'excluded');
+  assert.ok(Object.values(calls).every((count) => count === 0));
+});
