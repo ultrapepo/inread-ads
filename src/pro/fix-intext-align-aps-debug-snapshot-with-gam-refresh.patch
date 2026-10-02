@@ -1,0 +1,62 @@
+diff --git a/src/pro/IntextManager.js b/src/pro/IntextManager.js
+index 0136568..930a396 100644
+--- a/src/pro/IntextManager.js
++++ b/src/pro/IntextManager.js
+@@ -9379,6 +9379,13 @@ class IntextNode {
+           slotEl.setAttribute("data-gpt-displayed", "true");
+         }
+ 
++        if (!this.isActiveRenderToken(renderToken, "askDisplay:before_refresh", trigger)) {
++          settleOnce({ filled: false, event: null, stale: true });
++          return;
++        }
++        this.assertIntextRandomSnapshotOnSlot(this.slot, "immediately-before-gpt-refresh");
++        this.preserveIntextAmazonTargetingForCurrentCycle(amazonTargetingForCycle, renderToken, "before-refresh");
++
+         const allAmazonTargeting = this.getIntextAmazonTargeting(this.slot);
+         const rawAmznKeys = Object.keys(allAmazonTargeting);
+         const beforeRefreshTargeting = this.getDisplayGamRequestTargetingFinal(this.slot);
+@@ -9405,12 +9412,6 @@ class IntextNode {
+           `[Intext:Display:${this.id}] display_gam_request_targeting_final`,
+           { ...this.getDisplayGamRequestTargetingFinal(this.slot), allAmazonTargeting, rawAmznKeys },
+         );
+-        if (!this.isActiveRenderToken(renderToken, "askDisplay:before_refresh", trigger)) {
+-          settleOnce({ filled: false, event: null, stale: true });
+-          return;
+-        }
+-        this.assertIntextRandomSnapshotOnSlot(this.slot, "immediately-before-gpt-refresh");
+-        this.preserveIntextAmazonTargetingForCurrentCycle(amazonTargetingForCycle, renderToken);
+         pubads.refresh([this.slot]);
+         } catch (error) {
+           warnIntext(`[Intext:GPT:${this.id}] intext_gpt_command_failed`, {
+diff --git a/src/pro/_gam_kv_.js b/src/pro/_gam_kv_.js
+index a24cef8..76a6ad0 100644
+--- a/src/pro/_gam_kv_.js
++++ b/src/pro/_gam_kv_.js
+@@ -11022,6 +11022,13 @@ class IntextNode {
+           slotEl.setAttribute("data-gpt-displayed", "true");
+         }
+ 
++        if (!this.isActiveRenderToken(renderToken, "askDisplay:before_refresh", trigger)) {
++          settleOnce({ filled: false, event: null, stale: true });
++          return;
++        }
++        this.assertIntextRandomSnapshotOnSlot(this.slot, "immediately-before-gpt-refresh");
++        this.preserveIntextAmazonTargetingForCurrentCycle(amazonTargetingForCycle, renderToken, "before-refresh");
++
+         const allAmazonTargeting = this.getIntextAmazonTargeting(this.slot);
+         const rawAmznKeys = Object.keys(allAmazonTargeting);
+         const beforeRefreshTargeting = this.getDisplayGamRequestTargetingFinal(this.slot);
+@@ -11048,12 +11055,6 @@ class IntextNode {
+           `[Intext:Display:${this.id}] display_gam_request_targeting_final`,
+           { ...this.getDisplayGamRequestTargetingFinal(this.slot), allAmazonTargeting, rawAmznKeys },
+         );
+-        if (!this.isActiveRenderToken(renderToken, "askDisplay:before_refresh", trigger)) {
+-          settleOnce({ filled: false, event: null, stale: true });
+-          return;
+-        }
+-        this.assertIntextRandomSnapshotOnSlot(this.slot, "immediately-before-gpt-refresh");
+-        this.preserveIntextAmazonTargetingForCurrentCycle(amazonTargetingForCycle, renderToken);
+         pubads.refresh([this.slot]);
+         } catch (error) {
+           warnIntext(`[Intext:GPT:${this.id}] intext_gpt_command_failed`, {

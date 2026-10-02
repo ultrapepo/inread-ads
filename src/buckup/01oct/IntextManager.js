@@ -1,5 +1,3 @@
-const GEXP_INTEXT_VERSION = "2026.10.02-p0-random-slot";
-if (typeof window !== "undefined") window.__gexpIntextVersion = GEXP_INTEXT_VERSION;
 const INtext_STYLE_ID = "gexp-intext-styles";
 const INtext_BASE_STYLES = `
         .gexp-intext-slot {
@@ -93,6 +91,46 @@ const INtext_BASE_STYLES = `
             align-items: flex-start;
             justify-content: center;
             overflow: hidden;
+        }
+
+        .gexp-intext-first-open-surface {
+            animation:
+                gexp-intext-first-open-reveal
+                var(--gexp-intext-first-open-duration, 280ms)
+                cubic-bezier(0.16, 1, 0.3, 1)
+                both;
+        }
+
+        @keyframes gexp-intext-first-open-reveal {
+            from {
+                opacity: 0;
+                transform:
+                    translate3d(
+                        0,
+                        var(--gexp-intext-first-open-translate-y, 10px),
+                        0
+                    )
+                    scale(
+                        var(--gexp-intext-first-open-scale, 0.99)
+                    );
+            }
+
+            to {
+                opacity: 1;
+                transform:
+                    translate3d(0, 0, 0)
+                    scale(1);
+            }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .gexp-intext-first-open-surface:not(
+                .gexp-intext-first-open-ignore-reduced-motion
+            ) {
+                animation-duration: 1ms !important;
+                animation-delay: 0ms !important;
+                transform: none !important;
+            }
         }
 
         .gexp-intext-slot:not(.video-started) .video-js {
@@ -638,6 +676,22 @@ const createIntextDebugCollector = (options = {}) => {
         firstFrameToRevealMs: delta(t, "video_first_frame", "video_player_revealed"),
         startedToCompleteMs: delta(t, "video_ima_started", "video_complete"),
       });
+      const controlsData =
+        group._data.video_controls_config_effective || {};
+      group.video.controls = {
+        enabled: controlsData.controlsEnabled ?? null,
+        playPause: controlsData.playPauseEnabled ?? null,
+        muteToggle: controlsData.muteToggleEnabled ?? null,
+        volumeControl: controlsData.volumeControlEnabled ?? null,
+        progressControl: controlsData.progressControlEnabled ?? null,
+        timeDisplay: controlsData.timeDisplayEnabled ?? null,
+        fullscreen: controlsData.fullscreenEnabled ?? null,
+        nativePictureInPicture:
+          controlsData.nativePictureInPictureEnabled ?? null,
+        autoHide: controlsData.autoHideEnabled ?? null,
+        showForJsAds: controlsData.showForJsAds ?? null,
+        mutedOnStart: controlsData.mutedOnStart ?? null,
+      };
       const pipEntries = group._events.video_pip_entered || [];
       const pipReturns = group._events.video_pip_returned_inline || [];
       const pipDismissals = group._events.video_pip_dismissed || [];
@@ -732,7 +786,7 @@ const createIntextDebugCollector = (options = {}) => {
   const getPackage = () => {
     if (!active() || !ensureActive()) return null;
     const now = Date.now();
-    return { schemaVersion: "1.0.0", generatedAt: new Date(now).toISOString(), startedAt: new Date(intextDebugLogBuffer.startedAt).toISOString(), durationMs: now - intextDebugLogBuffer.startedAt, page: getPage(), runtime: manager?.getIntextRuntimeIdentity?.() || { gexpIntextVersion: window.__gexpIntextVersion || "2026.10.02-p0-random-slot", dualMode: false, pspDetected: Boolean(window?.googletag?.__ctrl) }, debugger: { suppressedDuplicateLogs: (manager?._intextSuppressedDuplicateLogs || 0) + intextSuppressedStateLogs, totalEntries: intextDebugLogBuffer.entries.length, droppedEntries: intextDebugLogBuffer.droppedEntries, approximateBytes: intextDebugLogBuffer.approximateBytes }, summary: getSummary(), logs: intextDebugLogBuffer.entries.slice() };
+    return { schemaVersion: "1.0.0", generatedAt: new Date(now).toISOString(), startedAt: new Date(intextDebugLogBuffer.startedAt).toISOString(), durationMs: now - intextDebugLogBuffer.startedAt, page: getPage(), debugger: { totalEntries: intextDebugLogBuffer.entries.length, droppedEntries: intextDebugLogBuffer.droppedEntries, approximateBytes: intextDebugLogBuffer.approximateBytes }, summary: getSummary(), logs: intextDebugLogBuffer.entries.slice() };
   };
   const download = (content, mime, extension) => {
     const page = getPage();
@@ -771,37 +825,7 @@ const createIntextDebugCollector = (options = {}) => {
 
 const intextDebugCollector = createIntextDebugCollector();
 intextDebugCollector.ensureActive();
-// Only repeated final layout/state observations are suppressed. Auction and
-// lifecycle events continue through the ordinary Intext logger unchanged.
-const intextStateLogFingerprints = new Map();
-let intextSuppressedStateLogs = 0;
-const INTEXT_STATE_LOG_EVENTS = new Set([
-  "display_wrapper_total_height_applied", "display_wrapper_height_applied",
-  "display_300x600_visual_height_adjusted", "display_height_lock_set_600",
-  "display_height_lock_restored_600", "display_layout_classified",
-  "display_1x1_special_layout_960x540_applied", "display_1x1_expanded_layout_300x600_applied",
-  "display_special_creative_layout_applied", "display_wide_tall_layout_applied",
-  "display_wide_standard_layout_applied", "display_960x540_centered",
-  "intext_node_reset_visual_state",
-]);
-const isDuplicateIntextStateLog = (args) => {
-  const message = String(args[0] || "");
-  const match = message.match(/^(\[Intext:[^\]]+\]) (\w+)(.*)$/);
-  if (!match || !INTEXT_STATE_LOG_EVENTS.has(match[2])) return false;
-  const suffix = match[3].replace(/,?\s*source=[^,]*/g, "");
-  const payload = args.slice(1).map((value) => value && typeof value === "object"
-    ? Object.fromEntries(Object.entries(value).filter(([key]) => !["source", "reason"].includes(key)))
-    : value);
-  const key = `${match[1]} ${match[2]}`;
-  const fingerprint = JSON.stringify([suffix, payload]);
-  if (intextStateLogFingerprints.get(key) === fingerprint) {
-    intextSuppressedStateLogs += 1;
-    return true;
-  }
-  intextStateLogFingerprints.set(key, fingerprint);
-  return false;
-};
-const logIntext = (...args) => { if (window.gexpIntextDebug && !isDuplicateIntextStateLog(args)) { intextDebugCollector.capture("log", args); console.log(...formatLog(args, badgeLog)); } };
+const logIntext = (...args) => { if (window.gexpIntextDebug) { intextDebugCollector.capture("log", args); console.log(...formatLog(args, badgeLog)); } };
 const warnIntext = (...args) => { if (window.gexpIntextDebug) { intextDebugCollector.capture("warn", args); console.warn(...formatLog(args, badgeWarn)); } };
 const warnIntextAlways = (...args) => { if (window.gexpIntextDebug) intextDebugCollector.capture("warn", args); console.warn(...formatLog(args, badgeWarn)); };
 const errorIntext = (...args) => { if (window.gexpIntextDebug) intextDebugCollector.capture("error", args); console.error(...formatLog(args, badgeErr)); };
@@ -811,7 +835,6 @@ const groupEndIntext = () => { if (window.gexpIntextDebug) { intextDebugCollecto
 const INTEXT_RANDOM_KEYS = Object.freeze(["random1", "random2", "random3", "random4"]);
 const intextPrebidAliasRegistry = new WeakMap();
 const INTEXT_TELEMETRY_STANDARD_FIELDS = Object.freeze([
-  "gexp-intext-version",
   "gexp-intext-telemetry-event-type",
   "gexp-intext-opportunity-id",
   "gexp-intext-manager-event-id",
@@ -946,7 +969,6 @@ const INTEXT_TELEMETRY_STANDARD_FIELDS = Object.freeze([
 ]);
 
 class IntextManager {
-  static VERSION = typeof GEXP_INTEXT_VERSION !== "undefined" ? GEXP_INTEXT_VERSION : "2026.10.02-p0-random-slot";
   static INTEXT_RULE_TARGETING_READY_MAX_WAIT_MS = 600;
   static INTEXT_RULE_TARGETING_READY_POLL_MS = 25;
   static INTEXT_OWN_SLOT_STABILITY_POLLS = 2;
@@ -1050,7 +1072,6 @@ class IntextManager {
     if (this.siteConfig?.debug === true) {
       window.gexpIntextDebug = true;
     }
-    this.recordIntextRuntimeIdentity();
 
     if (!this.gexp.isEnabled()) {
       if (this.intextQaCookieOverride?.enabled === true) {
@@ -1088,21 +1109,18 @@ class IntextManager {
         if (!this.isContentTypeAllowed(this.siteConfig, this.siteContext.contentType, "[IntextManager]")) {
           return;
         }
-        const snapshot = this.requiresIntextNativeRandom()
-          ? await this.waitForIntextRandomSnapshotReady()
-          : this.captureIntextRandomSnapshot();
-        this.recordIntextRuntimeIdentity();
+        const snapshot = this.captureIntextRandomSnapshot();
         if (!this.validateIntextRandomSnapshot(snapshot)) {
           this.registerIntextManagerDecision({
             navIndex: 0,
             scope: "initial",
             decision: "blocked",
-            reason: "random-snapshot-unresolved",
+            reason: "random-snapshot-invalid",
           });
           this.registerIntextDiagnosticEvent({
-            diagnosticKey: "random-snapshot-unresolved",
+            diagnosticKey: "random-snapshot-invalid",
             "gexp-intext-decision": "blocked",
-            "gexp-intext-decision-reason": "random-snapshot-unresolved",
+            "gexp-intext-decision-reason": "random-snapshot-invalid",
           });
           return;
         }
@@ -1138,7 +1156,7 @@ class IntextManager {
         if (this.siteConfig?.infiniteScroll?.enabled && infiniteScrollTypes.includes(this.siteContext.contentType)) {
           this.startNavContinuaObserver();
         }
-      });
+      }, true);
     };
 
     if (document.readyState === "loading") {
@@ -1161,20 +1179,13 @@ class IntextManager {
   resolveIntextGptApi() {
     const proxy = typeof window !== "undefined" ? window.googletag : null;
     if (!proxy) {
-      return {
-        api: null,
-        source: "gpt-unavailable",
-        pspDetected: false,
-        proxy: null,
-        controller: null,
-      };
+      return { api: null, source: "gpt-unavailable", pspDetected: false, proxy: null, controller: null };
     }
 
     const controller = proxy.__ctrl;
     const pspDetected = Boolean(controller && typeof controller === "object");
     let api = null;
     let source = "gpt-invalid";
-
     if (pspDetected) {
       if (this.isUsableIntextGptApi(controller.baseObject)) {
         api = controller.baseObject;
@@ -1196,18 +1207,14 @@ class IntextManager {
       hasController: Boolean(controller),
       hasBaseObject: Boolean(controller?.baseObject),
       hasInnerObject: Boolean(controller?.innerObject),
-      usable: Boolean(api),
       selectedApiReady: api?.apiReady,
       selectedPubadsReady: api?.pubadsReady,
       defineSlotType: typeof api?.defineSlot,
       pubadsType: typeof api?.pubads,
       displayType: typeof api?.display,
     };
-    this.logIntextState(`[Intext:GPT] intext_gpt_runtime_resolved`, diagnostic);
-    if (pspDetected) {
-      this.logIntextState(`[Intext:GPT] intext_gpt_proxy_detected`, diagnostic);
-    }
-
+    logIntext(`[Intext:GPT] intext_gpt_runtime_resolved`, diagnostic);
+    if (pspDetected) logIntext(`[Intext:GPT] intext_gpt_proxy_detected`, diagnostic);
     return { api, source, pspDetected, proxy, controller };
   }
 
@@ -1216,45 +1223,24 @@ class IntextManager {
     if (!proxy) {
       return { api: null, source: "pbjs-unavailable", pspDetected: false, proxy: null, controller: null };
     }
-
     const controller = proxy.__ctrl;
     const pspDetected = Boolean(controller && typeof controller === "object");
-    const isUsable = (candidate) => Boolean(
-      candidate &&
-      candidate.que &&
-      typeof candidate.que.push === "function" &&
-      typeof candidate.requestBids === "function"
-    );
+    const isUsable = (candidate) => Boolean(candidate && candidate.que && typeof candidate.que.push === "function" && typeof candidate.requestBids === "function");
     let api = null;
     let source = "pbjs-invalid";
     if (pspDetected) {
-      if (isUsable(controller.realObj)) {
-        api = controller.realObj;
-        source = "__ctrl.realObj";
-      } else {
-        source = "psp-real-pbjs-unavailable";
-      }
-    } else if (isUsable(proxy)) {
-      api = proxy;
-      source = "window.pbjs";
-    }
-
+      if (isUsable(controller.realObj)) { api = controller.realObj; source = "__ctrl.realObj"; }
+      else source = "psp-real-pbjs-unavailable";
+    } else if (isUsable(proxy)) { api = proxy; source = "window.pbjs"; }
     const diagnostic = {
-      pspDetected,
-      source,
-      hasController: Boolean(controller),
-      hasRealObj: Boolean(controller?.realObj),
-      hasBaseObj: Boolean(controller?.baseObj),
-      version: api?.version || null,
-      requestBidsType: typeof api?.requestBids,
-      aliasBidderType: typeof api?.aliasBidder,
+      pspDetected, source, hasController: Boolean(controller), hasRealObj: Boolean(controller?.realObj),
+      hasBaseObj: Boolean(controller?.baseObj), version: api?.version || null,
+      requestBidsType: typeof api?.requestBids, aliasBidderType: typeof api?.aliasBidder,
       addAdUnitsType: typeof api?.addAdUnits,
     };
-    this.logIntextState(`[Intext:Prebid] intext_prebid_runtime_resolved`, diagnostic);
-    if (pspDetected) this.logIntextState(`[Intext:Prebid] intext_prebid_proxy_detected`, diagnostic);
-    if (source === "psp-real-pbjs-unavailable") {
-      logIntext(`[Intext:Prebid] intext_prebid_real_api_unavailable`, diagnostic);
-    }
+    logIntext(`[Intext:Prebid] intext_prebid_runtime_resolved`, diagnostic);
+    if (pspDetected) logIntext(`[Intext:Prebid] intext_prebid_proxy_detected`, diagnostic);
+    if (source === "psp-real-pbjs-unavailable") logIntext(`[Intext:Prebid] intext_prebid_real_api_unavailable`, diagnostic);
     return { api, source, pspDetected, proxy, controller };
   }
 
@@ -1263,43 +1249,23 @@ class IntextManager {
     if (!proxy) {
       return { api: null, source: "apstag-unavailable", pspDetected: false, proxy: null, controller: null };
     }
-
     const controller = proxy.__ctrl;
     const pspDetected = Boolean(controller && typeof controller === "object");
-    const isUsable = (candidate) => Boolean(
-      candidate &&
-      typeof candidate.fetchBids === "function" &&
-      typeof candidate.setDisplayBids === "function"
-    );
+    const isUsable = (candidate) => Boolean(candidate && typeof candidate.fetchBids === "function" && typeof candidate.setDisplayBids === "function");
     let api = null;
     let source = "apstag-invalid";
     if (pspDetected) {
-      if (isUsable(controller.realObj)) {
-        api = controller.realObj;
-        source = "__ctrl.realObj";
-      } else {
-        source = "psp-real-apstag-unavailable";
-      }
-    } else if (isUsable(proxy)) {
-      api = proxy;
-      source = "window.apstag";
-    }
-
+      if (isUsable(controller.realObj)) { api = controller.realObj; source = "__ctrl.realObj"; }
+      else source = "psp-real-apstag-unavailable";
+    } else if (isUsable(proxy)) { api = proxy; source = "window.apstag"; }
     const diagnostic = {
-      pspDetected,
-      source,
-      hasController: Boolean(controller),
-      hasRealObj: Boolean(controller?.realObj),
-      hasBaseObj: Boolean(controller?.baseObj),
-      fetchBidsType: typeof api?.fetchBids,
+      pspDetected, source, hasController: Boolean(controller), hasRealObj: Boolean(controller?.realObj),
+      hasBaseObj: Boolean(controller?.baseObj), fetchBidsType: typeof api?.fetchBids,
       setDisplayBidsType: typeof api?.setDisplayBids,
-      targetingKeysType: typeof api?.targetingKeys,
     };
-    this.logIntextState(`[Intext:APS] intext_apstag_runtime_resolved`, diagnostic);
-    if (pspDetected) this.logIntextState(`[Intext:APS] intext_apstag_proxy_detected`, diagnostic);
-    if (source === "psp-real-apstag-unavailable") {
-      logIntext(`[Intext:APS] intext_apstag_real_api_unavailable`, diagnostic);
-    }
+    logIntext(`[Intext:APS] intext_apstag_runtime_resolved`, diagnostic);
+    if (pspDetected) logIntext(`[Intext:APS] intext_apstag_proxy_detected`, diagnostic);
+    if (source === "psp-real-apstag-unavailable") logIntext(`[Intext:APS] intext_apstag_real_api_unavailable`, diagnostic);
     return { api, source, pspDetected, proxy, controller };
   }
 
@@ -1316,7 +1282,6 @@ class IntextManager {
     }
     return new Promise((resolve) => {
       let settled = false;
-      const timeoutMs = 2000;
       const settleOnce = (result) => {
         if (settled) return;
         settled = true;
@@ -1332,13 +1297,11 @@ class IntextManager {
         });
         settleOnce({ executed: false, reason, resolution, error });
       };
-      const timeoutId = setTimeout(() => fail("command-timeout"), timeoutMs);
-
+      const timeoutId = setTimeout(() => fail("command-timeout"), 2000);
       if (!initial.proxy?.cmd || typeof initial.proxy.cmd.push !== "function") {
         fail(initial.source || "gpt-command-queue-unavailable");
         return;
       }
-
       const execute = () => {
         if (settled) return;
         const current = this.resolveIntextGptApi();
@@ -1347,19 +1310,14 @@ class IntextManager {
           return;
         }
         try {
-          const value = callback(current.api, current);
-          settleOnce({ executed: true, value, resolution: current });
+          settleOnce({ executed: true, value: callback(current.api, current), resolution: current });
         } catch (error) {
           fail("callback-exception", current, error);
         }
       };
-
       try {
-        if (initial.pspDetected) {
-          initial.proxy.cmd.push(execute, true);
-        } else {
-          initial.proxy.cmd.push(execute);
-        }
+        if (initial.pspDetected) initial.proxy.cmd.push(execute, true);
+        else initial.proxy.cmd.push(execute);
       } catch (error) {
         fail("queue-push-exception", initial, error);
       }
@@ -1544,152 +1502,15 @@ class IntextManager {
     return String(value);
   }
 
-  logIntextState(message, payload = {}) {
-    if (typeof window === "undefined" || window.gexpIntextDebug !== true) return false;
-    this._intextStateLogFingerprints ||= new Map();
-    const fingerprint = JSON.stringify(payload);
-    if (this._intextStateLogFingerprints.get(message) === fingerprint) {
-      this._intextSuppressedDuplicateLogs = (this._intextSuppressedDuplicateLogs || 0) + 1;
-      return false;
-    }
-    this._intextStateLogFingerprints.set(message, fingerprint);
-    logIntext(message, payload);
-    return true;
-  }
-
-  getIntextRuntimeIdentity() {
-    return {
-      gexpIntextVersion: IntextManager.VERSION,
-      dualMode: this.gexp?.dualMode === true,
-      pspDetected: this.resolveIntextGptApi().pspDetected,
-      randomSource: this.intextRandomSnapshot?.source || "unresolved",
-    };
-  }
-
-  recordIntextRuntimeIdentity() {
-    if (typeof window === "undefined") return;
-    const runtime = this.getIntextRuntimeIdentity();
-    window.__gexpIntextRuntime = runtime;
-    if (window.gexpIntextDebug === true) intextDebugCollector.attachManager(this);
-    if (window.__gexpIntextRuntimeIdentityLogged || window.gexpIntextDebug !== true) return;
-    window.__gexpIntextRuntimeIdentityLogged = true;
-    logIntext("[IntextManager] intext_runtime_identity", {
-      version: runtime.gexpIntextVersion,
-      dualMode: runtime.dualMode,
-      pspDetected: runtime.pspDetected,
-      randomSource: runtime.randomSource,
-    });
-  }
-
-  requiresIntextNativeRandom() {
-    return this.gexp?.dualMode === true || this.resolveIntextGptApi().pspDetected;
-  }
-
-  readIntextRandomQuartet(target) {
-    const values = {};
-    let present = false;
-    let invalid = false;
-    INTEXT_RANDOM_KEYS.forEach((key) => {
-      const raw = target?.getTargeting?.(key);
-      const entries = Array.isArray(raw) ? raw : (raw == null ? [] : [raw]);
-      if (!entries.length) { values[key] = null; return; }
-      present = true;
-      const valid = entries.every((value) => {
-        if (typeof value !== "string" && typeof value !== "number") return false;
-        const text = String(value).trim();
-        const number = Number(text);
-        return text !== "" && Number.isInteger(number) && number >= 1 && number <= 20;
-      });
-      const normalized = valid ? entries.map((value) => String(Number(value))) : [];
-      if (!valid || normalized.some((value) => value !== normalized[0])) invalid = true;
-      values[key] = valid ? normalized[0] : null;
-    });
-    return { values, present, invalid, complete: !invalid && INTEXT_RANDOM_KEYS.every((key) => values[key] !== null) };
-  }
-
-  resolveIntextNativeRandomObservation() {
-    const runtime = this.resolveIntextGptApi();
-    const empty = { candidate: null, conflict: false, usableSlots: false, fingerprint: null, referenceSlotIds: [] };
-    if (!runtime.api) return empty;
-    try {
-      const pubads = runtime.api.pubads();
-      const slots = this.filterIntextNativeGptSlots(pubads.getSlots(), null, true);
-      const observed = slots.map((slot) => ({
-        id: String(slot.getSlotElementId()),
-        ...this.readIntextRandomQuartet(slot),
-      })).sort((a, b) => a.id.localeCompare(b.id));
-      const complete = observed.filter((slot) => slot.complete);
-      const candidate = complete[0]?.values || null;
-      const conflict = observed.some((slot) => slot.invalid || (candidate && INTEXT_RANDOM_KEYS.some(
-        (key) => slot.values[key] !== null && slot.values[key] !== candidate[key],
-      )));
-      return {
-        candidate: conflict ? null : candidate,
-        conflict,
-        usableSlots: observed.some((slot) => slot.present),
-        // Logical slot identity and quartet, independent of getSlots() ordering.
-        fingerprint: JSON.stringify({ ids: observed.map((slot) => slot.id), quartet: candidate, conflict }),
-        observed,
-        referenceSlotIds: complete.map((slot) => slot.id),
-        pubads,
-      };
-    } catch (e) { return empty; }
-  }
-
-  waitForIntextRandomSnapshotReady(options = {}) {
-    if (this.intextRandomSnapshot) return Promise.resolve(this.intextRandomSnapshot);
-    if (this._intextRandomReadinessPromise) return this._intextRandomReadinessPromise;
-    this._intextRandomReadinessPromise = this.resolveIntextRandomSnapshotReady(options);
-    return this._intextRandomReadinessPromise;
-  }
-
-  async resolveIntextRandomSnapshotReady(options = {}) {
-    const now = options.now || (() => Date.now());
-    const wait = options.wait || ((ms) => new Promise((resolve) => setTimeout(resolve, ms)));
-    const startedAt = now();
-    let previous = null;
-    let observation;
-    while (true) {
-      observation = this.resolveIntextNativeRandomObservation();
-      if (observation.conflict) {
-        logIntext("[IntextManager] intext_random_native_slot_conflict", { observed: observation.observed });
-      }
-      if (observation.candidate && observation.fingerprint === previous) {
-        this.intextRandomReferenceSlotIds = Object.freeze(observation.referenceSlotIds.slice());
-        this.intextRandomSnapshot = Object.freeze({ ...observation.candidate, source: "gpt-native-slot-targeting" });
-        return this.intextRandomSnapshot;
-      }
-      previous = observation.candidate ? observation.fingerprint : null;
-      const elapsed = now() - startedAt;
-      if (elapsed >= IntextManager.INTEXT_RULE_TARGETING_READY_MAX_WAIT_MS) break;
-      await wait(Math.min(IntextManager.INTEXT_RULE_TARGETING_READY_POLL_MS,
-        IntextManager.INTEXT_RULE_TARGETING_READY_MAX_WAIT_MS - elapsed));
-    }
-    // Never let page targeting hide native targeting or a conflicting cohort.
-    if (!observation.usableSlots && !observation.conflict) {
-      try {
-        const page = this.readIntextRandomQuartet(observation.pubads);
-        if (page.complete) {
-          this.intextRandomSnapshot = Object.freeze({ ...page.values, source: "gpt-page-targeting-fallback" });
-          return this.intextRandomSnapshot;
-        }
-      } catch (e) { }
-    }
-    logIntext("[IntextManager] intext_random_snapshot_unresolved", { reason: "random-snapshot-unresolved" });
-    this.intextRandomSnapshot = Object.freeze({ random1: "", random2: "", random3: "", random4: "", source: "unresolved" });
-    return this.intextRandomSnapshot;
-  }
-
   captureIntextRandomSnapshot() {
     if (this.intextRandomSnapshot) return this.intextRandomSnapshot;
-    if (this.requiresIntextNativeRandom()) return null;
     try {
       this.intextRandomSnapshot = Object.freeze({
         random1: String(this.gexp.getRandom(1)),
         random2: String(this.gexp.getRandom(2)),
         random3: String(this.gexp.getRandom(3)),
         random4: String(this.gexp.getRandom(4)),
-        source: "gexp-owner-random",
+        source: "gexp-slot-random-snapshot",
       });
     } catch (e) {
       this.intextRandomSnapshot = Object.freeze({
@@ -1697,7 +1518,7 @@ class IntextManager {
         random2: "",
         random3: "",
         random4: "",
-        source: "unresolved",
+        source: "gexp-slot-random-snapshot",
       });
     }
     return this.intextRandomSnapshot;
@@ -1717,32 +1538,6 @@ class IntextManager {
   validateIntextRandomSnapshotStability(context = "runtime") {
     const snapshot = this.intextRandomSnapshot;
     if (!this.validateIntextRandomSnapshot(snapshot)) return false;
-    if (this.requiresIntextNativeRandom()) {
-      const observation = this.resolveIntextNativeRandomObservation();
-      let current = observation.candidate;
-      if (!observation.usableSlots && !observation.conflict && snapshot.source === "gpt-page-targeting-fallback") {
-        try {
-          const page = this.readIntextRandomQuartet(observation.pubads);
-          if (page.complete) current = page.values;
-        } catch (e) { }
-      }
-      if (!current && !observation.conflict) return false; // Not ready is not canonical drift.
-      const stable = !observation.conflict && INTEXT_RANDOM_KEYS.every((key) => current?.[key] === snapshot[key]);
-      if (!stable) {
-        const fingerprint = JSON.stringify({ current, observed: observation.observed });
-        this._intextCanonicalDriftFingerprints ||= new Set();
-        if (!this._intextCanonicalDriftFingerprints.has(fingerprint)) {
-          this._intextCanonicalDriftFingerprints.add(fingerprint);
-          logIntext("[IntextManager] intext_random_canonical_drift", { context, expected: snapshot, observed: observation.observed });
-          this.registerIntextDiagnosticEvent({
-            diagnosticKey: `intext_random_canonical_drift:${fingerprint}`,
-            "gexp-intext-random-expected": JSON.stringify(snapshot),
-            "gexp-intext-random-observed": fingerprint,
-          });
-        }
-      }
-      return stable;
-    }
     let current = null;
     try {
       current = {
@@ -1793,25 +1588,18 @@ class IntextManager {
     return Array.from(new Set(normalized));
   }
 
-  filterIntextNativeGptSlots(slots, rootElement = null, requireIdentity = false) {
-    if (!Array.isArray(slots)) return [];
-    return slots.filter((slot) => {
-      const id = String(slot?.getSlotElementId?.() || "");
-      if ((requireIdentity && !id) || /^gexp-intext(?:-|$)/i.test(id)) return false;
-      if (this.nodes?.some((node) => node.id === id || node.videoId === id)) return false;
-      const element = typeof document !== "undefined" ? document.getElementById?.(id) : null;
-      if (rootElement && !(element && rootElement.contains(element))) return false;
-      if (element?.classList?.contains("gexp-intext-slot")) return false;
-      const positions = [slot?.getTargeting?.("p"), slot?.getTargeting?.("position")].flat();
-      return !positions.some((value) => /^gexp-intext(?:-|$)/i.test(String(value)));
-    });
-  }
-
   getIntextNativeGptSlots(rootElement = null) {
     try {
       const pubads = this.resolveIntextGptApi().api?.pubads?.();
       const slots = pubads?.getSlots?.();
-      return this.filterIntextNativeGptSlots(slots, rootElement);
+      if (!Array.isArray(slots)) return [];
+      return slots.filter((slot) => {
+        const slotElementId = String(slot?.getSlotElementId?.() || "");
+        if (/^gexp-intext(?:-|$)/.test(slotElementId)) return false;
+        if (!rootElement) return true;
+        const element = slotElementId ? document.getElementById(slotElementId) : null;
+        return Boolean(element && rootElement.contains(element));
+      });
     } catch (e) { return []; }
   }
 
@@ -1969,7 +1757,7 @@ class IntextManager {
     const absenceRuntimeMature = scoped
       ? slotsObserved
       : resolution.api?.pubadsReady === true &&
-        (slotsObserved || (nativeSlots.length === 0 && keyState?.resolved === true));
+      (slotsObserved || (nativeSlots.length === 0 && keyState?.resolved === true));
     const observationEligible = hasOwnSlotSignal || absenceRuntimeMature;
     const stabilityPolls = stability && stability.fingerprint === keyState?.fingerprint ? stability.polls : 0;
     const requiredStabilityPolls = hasCompleteSlotCoverage
@@ -1984,7 +1772,7 @@ class IntextManager {
       reason: mature
         ? (hasCompleteSlotCoverage ? "stable-own-slot-targeting" :
           hasPartialSlotCoverage ? "stable-partial-slot-coverage" :
-          keyState.resolved ? "stable-global-with-stable-slot-absence" : "stable-absent-after-slot-settle")
+            keyState.resolved ? "stable-global-with-stable-slot-absence" : "stable-absent-after-slot-settle")
         : (hasPartialSlotCoverage ? "partial-slot-targeting-pending" :
           nativeSlots.length === 0 ? "slot-discovery-pending" : "slot-targeting-pending"),
       stabilityPolls,
@@ -2336,7 +2124,7 @@ class IntextManager {
       });
     };
     if (INTEXT_RANDOM_KEYS.includes(normalizedKey)) {
-      add((this.intextRandomSnapshot?.source || "unresolved"), this.getIntextRandomValue(normalizedKey));
+      add("gexp-slot-random-snapshot", this.getIntextRandomValue(normalizedKey));
     } else {
       add("context.targeting", context?.targeting?.[normalizedKey]);
       add("data.customTargeting", typeof data !== "undefined" ? data?.customTargeting?.[normalizedKey] : undefined);
@@ -2371,7 +2159,6 @@ class IntextManager {
     // The gexp-intext-randomN-effective fields are the canonical Intext
     // analysis values. Bare randomN fields remain for compatibility only.
     return {
-      "gexp-intext-version": IntextManager.VERSION,
       "gexp-intext-random-source": String(snapshot.source || "unresolved"),
       "gexp-intext-random1-effective": String(snapshot.random1 || ""),
       "gexp-intext-random2-effective": String(snapshot.random2 || ""),
@@ -2591,16 +2378,6 @@ class IntextManager {
   }
 
   recordIntextNetworkDebug(metric, payload = {}) {
-    if (typeof window === "undefined" || window.gexpIntextDebug !== true) return;
-    if (metric !== "intext_network_force_invalid") {
-      this._intextNetworkLogFingerprints ||= new Map();
-      const fingerprint = JSON.stringify(payload);
-      if (this._intextNetworkLogFingerprints.get(metric) === fingerprint) {
-        this._intextSuppressedDuplicateLogs = (this._intextSuppressedDuplicateLogs || 0) + 1;
-        return;
-      }
-      this._intextNetworkLogFingerprints.set(metric, fingerprint);
-    }
     if (typeof window !== "undefined" && window.gexpIntextDebug === true) {
       intextDebugCollector.recordMetric(metric, {
         manager: this,
@@ -2720,7 +2497,7 @@ class IntextManager {
       detectedNetworkId,
       requestNetworkId,
     });
-    this.logIntextState(`[IntextManager] ${debugMetric}`, {
+    logIntext(`[IntextManager] ${debugMetric}`, {
       mode,
       source,
       configuredNetworkId,
@@ -3313,7 +3090,7 @@ class IntextManager {
     const snapshotValue = this.getIntextRandomValue(key);
     if (INTEXT_RANDOM_KEYS.includes(String(key))) {
       return snapshotValue !== null
-        ? { value: snapshotValue, source: (this.intextRandomSnapshot?.source || "unresolved") }
+        ? { value: snapshotValue, source: "gexp-slot-random-snapshot" }
         : { value: null, source: "random-snapshot-unresolved" };
     }
     const readFromMap = (map) => {
@@ -4825,7 +4602,7 @@ class IntextPlacementEngine {
           `[IntextPlacement] ⚠️ Adjacency avoidance triggered: paragraph ${targetIndex + 1} is grouped with an ad ("${avoidance.selector}"). Searching for a safe paragraph...`
         );
         const preferUp = (avoidance.direction || "up") === "up";
-        
+
         const tryOrder = [];
         for (let d = 1; d < paragraphs.length; d++) {
           if (preferUp) {
@@ -4844,7 +4621,7 @@ class IntextPlacementEngine {
           if (newIdx >= paragraphs.length) continue;
           const newRemaining = paragraphs.length - (newIdx + 1);
           if (newRemaining < 1) continue;
-          
+
           const candidate = paragraphs[newIdx];
           if (candidate && !isAdjacentToAd(candidate)) {
             logIntext(
@@ -4969,9 +4746,125 @@ class IntextNode {
     this._intextPipLastExitPlayedPct = null;
     this._intextPipPlaybackActive = false;
     this._intextPipPlaybackSource = "unresolved";
+    this._initialOpenAnimationPlayed = false;
     if (window.gexpIntextDebug) {
       intextDebugCollector.attachManager(this.manager);
       intextDebugCollector.recordTimeline("created", { node: this, slotId: this.id });
+    }
+  }
+
+  playInitialOpenAnimation(surface, source = "unknown") {
+    const animation =
+      this.config?.style?.animation || {};
+
+    if (
+      animation.enabled !== true ||
+      this._initialOpenAnimationPlayed === true ||
+      !surface ||
+      !surface.isConnected ||
+      typeof surface.classList?.add !== "function" ||
+      typeof surface.classList?.remove !== "function" ||
+      typeof surface.addEventListener !== "function" ||
+      typeof surface.removeEventListener !== "function"
+    ) {
+      return false;
+    }
+
+    const surfaceWrapper =
+      surface.closest?.(".gexp-intext-slot");
+    const wrapper =
+      surfaceWrapper ||
+      (String(source).startsWith("video")
+        ? this.videoContainer?.getElement?.()
+        : this.container?.getElement?.());
+
+    if (!wrapper?.style?.setProperty) {
+      return false;
+    }
+
+    const configuredDuration =
+      Number(animation.durationMs ?? 280);
+    const durationMs = Math.max(
+      0,
+      Number.isFinite(configuredDuration)
+        ? configuredDuration
+        : 280,
+    );
+
+    const configuredTranslateY =
+      Number(animation.translateYPx ?? 10);
+    const translateYPx = Math.max(
+      0,
+      Number.isFinite(configuredTranslateY)
+        ? configuredTranslateY
+        : 10,
+    );
+
+    const configuredScale =
+      Number(animation.scaleFrom ?? 0.99);
+    const scaleFrom = Math.min(
+      1,
+      Math.max(
+        0.9,
+        Number.isFinite(configuredScale)
+          ? configuredScale
+          : 0.99,
+      ),
+    );
+
+    const cleanup = () => {
+      try {
+        surface.classList.remove(
+          "gexp-intext-first-open-surface",
+        );
+        surface.classList.remove(
+          "gexp-intext-first-open-ignore-reduced-motion",
+        );
+        surface.removeEventListener(
+          "animationend",
+          cleanup,
+        );
+      } catch (error) {
+        // Visual cleanup must never affect the creative lifecycle.
+      }
+    };
+
+    try {
+      wrapper.style.setProperty(
+        "--gexp-intext-first-open-duration",
+        `${durationMs}ms`,
+      );
+      wrapper.style.setProperty(
+        "--gexp-intext-first-open-translate-y",
+        `${translateYPx}px`,
+      );
+      wrapper.style.setProperty(
+        "--gexp-intext-first-open-scale",
+        String(scaleFrom),
+      );
+
+      if (animation.respectReducedMotion === false) {
+        surface.classList.add(
+          "gexp-intext-first-open-ignore-reduced-motion",
+        );
+      }
+      surface.classList.add(
+        "gexp-intext-first-open-surface",
+      );
+      surface.addEventListener(
+        "animationend",
+        cleanup,
+        { once: true },
+      );
+      window.setTimeout(
+        cleanup,
+        durationMs + 100,
+      );
+      this._initialOpenAnimationPlayed = true;
+      return true;
+    } catch (error) {
+      cleanup();
+      return false;
     }
   }
 
@@ -7144,9 +7037,11 @@ class IntextNode {
   filterIntextTelemetryForCI(payload = {}) {
     const mode = this.getIntextTelemetryMode();
     if (mode === "debug") {
+      logIntext(`[Intext:Telemetry:${this.id}] intext_telemetry_debug_passthrough`, {
+        keys: Object.keys(payload).length,
+      });
       return {
         ...payload,
-        "gexp-intext-version": IntextManager.VERSION,
         "gexp-intext-telemetry-mode": "debug",
         "gexp-intext-telemetry-filtered": "false",
       };
@@ -7158,7 +7053,6 @@ class IntextNode {
       if (allowlist.has(key)) filtered[key] = value;
     });
     const didFilter = Object.keys(filtered).length < Object.keys(payload).length;
-    filtered["gexp-intext-version"] = IntextManager.VERSION;
     filtered["gexp-intext-telemetry-mode"] = "standard";
     filtered["gexp-intext-telemetry-filtered"] = String(didFilter);
     logIntext(`[Intext:Telemetry:${this.id}] intext_telemetry_standard_filter_applied`, {
@@ -7811,7 +7705,7 @@ class IntextNode {
 
   readIntextPageKv(key) {
     if (INTEXT_RANDOM_KEYS.includes(String(key))) {
-      return { value: this.manager?.getIntextRandomValue?.(key), source: (this.manager?.intextRandomSnapshot?.source || "unresolved") };
+      return { value: this.manager?.getIntextRandomValue?.(key), source: "gexp-slot-random-snapshot" };
     }
     const readFromMap = (map) => {
       if (!map || typeof map !== "object") return null;
@@ -8131,7 +8025,7 @@ class IntextNode {
       const fallbackValue = fallbackTargeting[key];
       if (preferredValue !== undefined && preferredValue !== null && preferredValue !== "") {
         finalTargeting[key] = String(preferredValue);
-        if (snapshotValue !== null) sourceLabels.push(`${key}:${this.manager?.intextRandomSnapshot?.source || "unresolved"}`);
+        if (snapshotValue !== null) sourceLabels.push(`${key}:gexp-slot-random-snapshot`);
       } else if (fallbackValue !== undefined && fallbackValue !== null && fallbackValue !== "") {
         finalTargeting[key] = String(fallbackValue);
       }
@@ -8275,7 +8169,7 @@ class IntextNode {
       const fallbackValue = fallbackTargeting[key];
       if (preferredValue !== undefined && preferredValue !== null && preferredValue !== "") {
         finalTargeting[key] = String(preferredValue);
-        if (snapshotValue !== null) sourceLabels.push(`${key}:${this.manager?.intextRandomSnapshot?.source || "unresolved"}`);
+        if (snapshotValue !== null) sourceLabels.push(`${key}:gexp-slot-random-snapshot`);
       } else if (fallbackValue !== undefined && fallbackValue !== null && fallbackValue !== "") {
         finalTargeting[key] = String(fallbackValue);
       }
@@ -8947,7 +8841,7 @@ class IntextNode {
       }));
     }
 
-    // Block native GEXP core from auto-refreshing Intext slots. 
+    // Block native GEXP core from auto-refreshing Intext slots.
     // Native refresh bypasses our waterfall, corrupts randoms, ignores video state, and injects empty HBs.
     this.wa.refreshSlot = () => {
       logIntext(`[Intext:Display:${this.id}] Blocked native GEXP refresh. Intext manages its own refresh lifecycle.`);
@@ -8971,12 +8865,7 @@ class IntextNode {
   }
 
   isUsableIntextPubadsService(pubads) {
-    return Boolean(
-      pubads &&
-      typeof pubads.refresh === "function" &&
-      typeof pubads.addEventListener === "function" &&
-      typeof pubads.removeEventListener === "function"
-    );
+    return Boolean(pubads && typeof pubads.refresh === "function" && typeof pubads.addEventListener === "function" && typeof pubads.removeEventListener === "function");
   }
 
   removeIntextDisplayListeners() {
@@ -9009,7 +8898,6 @@ class IntextNode {
     this.removeIntextDisplayListeners();
     this.clearIntextGptSlotIdentity();
     if (!slot || typeof fallbackGpt?.destroySlots !== "function") return Promise.resolve(false);
-
     return this.manager.runIntextGptCommand(() => {
       fallbackGpt.destroySlots([slot]);
       logIntext(`[Intext:GPT:${this.id}] intext_gpt_slot_destroyed`, {
@@ -9019,104 +8907,8 @@ class IntextNode {
     }).then((result) => result.executed === true);
   }
 
-  async ensureIntextDisplayGptSlot(renderToken = this._activeRenderToken, trigger = "unknown") {
-    if (!this.isActiveRenderToken(renderToken, "ensureIntextDisplayGptSlot:start", trigger)) return { ready: false, stale: true };
-    const networkId = this.manager.resolveIntextRequestNetworkId(this.scopedContext);
-    const adUnitPath = this.manager.resolveIntextDisplayAdUnitPath(this.scopedContext);
-    const sizes = this.config.display?.sizes || [[300, 250], [336, 280], [320, 100], [320, 50]];
-    if (!networkId || !adUnitPath) return { ready: false, networkBlocked: true };
-    const fullAdUnit = `/${networkId}/${adUnitPath}`;
-    const command = await this.manager.runIntextGptCommand((gpt, resolution) => {
-      if (!this.isActiveRenderToken(renderToken, "ensureIntextDisplayGptSlot:cmd", trigger)) return { ready: false, stale: true };
-      const pubads = gpt.pubads();
-      if (!this.isUsableIntextPubadsService(pubads)) return { ready: false, gptError: "pubads-service-invalid" };
-      const reused = Boolean(this.slot);
-      if (!this.slot) {
-        const candidateSlot = gpt.defineSlot(fullAdUnit, sizes, this.id);
-        if (!candidateSlot || typeof candidateSlot.addService !== "function") {
-          warnIntext(`[Intext:GPT:${this.id}] intext_gpt_slot_invalid`, { source: resolution.source, pspDetected: resolution.pspDetected });
-          return { ready: false, gptError: "slot-invalid" };
-        }
-        candidateSlot.addService(pubads);
-        this.slot = candidateSlot;
-        this._slotGptApi = gpt;
-        this._slotPubadsService = pubads;
-        this._slotGptSource = resolution.source;
-      } else if (this._slotGptApi !== gpt || this._slotPubadsService !== pubads) {
-        warnIntext(`[Intext:GPT:${this.id}] intext_gpt_command_failed`, { reason: "slot-api-identity-mismatch", source: resolution.source, slotSource: this._slotGptSource });
-        return { ready: false, gptError: "slot-api-identity-mismatch" };
-      }
-      logIntext(`[Intext:APS:${this.id}] intext_apstag_display_slot_prepared`, {
-        slotCode: this.id, slotID: this.slot.getSlotElementId?.(), slotName: fullAdUnit,
-        gptSource: this._slotGptSource, pspDetected: resolution.pspDetected, reused, renderToken,
-      });
-      return { ready: true, slot: this.slot, gpt, pubads, resolution };
-    });
-    return command.executed ? command.value : { ready: false, gptError: command.reason || "command-failed" };
-  }
-
-  normalizeIntextAmazonTargeting(targeting = {}) {
-    const normalized = {};
-    Object.keys(targeting || {}).filter((key) => key.startsWith("amzn")).sort().forEach((key) => {
-      const raw = targeting[key];
-      const values = (Array.isArray(raw) ? raw : [raw]).filter((value) => value !== undefined && value !== null && value !== "").map(String);
-      if (values.length) normalized[key] = values;
-    });
-    return normalized;
-  }
-
-  getIntextAmazonTargeting(slot = this.slot) {
-    if (!slot) return {};
-    try {
-      const map = slot.getTargetingMap?.() || {};
-      const keys = slot.getTargetingKeys?.() || Object.keys(map);
-      const amazon = {};
-      keys.filter((key) => String(key).startsWith("amzn")).forEach((key) => {
-        amazon[key] = typeof slot.getTargeting === "function" ? slot.getTargeting(key) : map[key];
-      });
-      return this.normalizeIntextAmazonTargeting(amazon);
-    } catch (error) { return {}; }
-  }
-
-  clearIntextAmazonTargeting(slot = this.slot) {
-    const keys = (slot?.getTargetingKeys?.() || Object.keys(slot?.getTargetingMap?.() || {}))
-      .filter((key) => String(key).startsWith("amzn"));
-    keys.forEach((key) => slot.clearTargeting(key));
-    if (keys.length) logIntext(`[Intext:APS:${this.id}] intext_apstag_display_stale_targeting_cleared`, {
-      slotCode: this.id, slotID: slot.getSlotElementId?.(), amazonTargetingKeys: keys,
-      cycleId: this._intextTelemetryCycleId, renderToken: this._activeRenderToken,
-    });
-    return keys;
-  }
-
-  isIntextAmazonDisplayRequestCurrent(request) {
-    return Boolean(request && request.valid && this._amazonDisplayRequest === request &&
-      this.slot === request.slot && this._slotGptApi === request.gpt && this._slotPubadsService === request.pubads &&
-      this._intextTelemetryCycleId === request.cycleId &&
-      (request.renderToken == null || this.isActiveRenderToken(request.renderToken, "aps-display-request", "tam")));
-  }
-
-  preserveIntextAmazonTargetingForCurrentCycle(snapshot, renderToken, phase = "before-refresh") {
-    if (!snapshot || snapshot.request.renderToken !== renderToken || !this.isIntextAmazonDisplayRequestCurrent(snapshot.request)) return;
-    const current = this.getIntextAmazonTargeting(this.slot);
-    const restoredKeys = [];
-    Object.entries(snapshot.targeting).forEach(([key, values]) => {
-      if (JSON.stringify(current[key]) !== JSON.stringify(values)) {
-        this.slot.setTargeting(key, values.slice());
-        restoredKeys.push(key);
-      }
-    });
-    logIntext(`[Intext:APS:${this.id}] intext_apstag_display_targeting_preserved_${phase.replace("-", "_")}`, {
-      slotCode: this.id, slotID: snapshot.request.slotID, tamRequestId: snapshot.request.tamRequestId,
-      phase, renderToken, cycleId: snapshot.request.cycleId, restoredKeys, amazonTargetingKeys: Object.keys(snapshot.targeting),
-    });
-  }
-
   askDisplay(bidResponse, renderToken = this._activeRenderToken, trigger = "unknown") {
-    const amazonTargetingForCycle = this._amazonTargetingForCycle;
-    return this.ensureIntextDisplayGptSlot(renderToken, trigger).then((preparation) => {
-      if (!preparation.ready) return { filled: false, event: null, ...preparation };
-      return new Promise((resolve) => {
+    return new Promise((resolve) => {
       let settled = false;
       let requestTimer = null;
       const settleOnce = (result) => {
@@ -9127,12 +8919,7 @@ class IntextNode {
           requestTimer = null;
         }
         if (this._initialDisplayRenderHandler && this._slotPubadsService) {
-          try {
-            this._slotPubadsService.removeEventListener(
-              "slotRenderEnded",
-              this._initialDisplayRenderHandler,
-            );
-          } catch (e) { }
+          try { this._slotPubadsService.removeEventListener("slotRenderEnded", this._initialDisplayRenderHandler); } catch (e) { }
           this._initialDisplayRenderHandler = null;
         }
         this._displayRequestInFlight = false;
@@ -9186,452 +8973,476 @@ class IntextNode {
 
       this.manager.runIntextGptCommand((gpt, resolution) => {
         try {
-        if (!this.isActiveRenderToken(renderToken, "askDisplay:googletag_cmd", trigger)) {
-          settleOnce({ filled: false, event: null, stale: true });
-          return;
-        }
-        const pubads = gpt.pubads();
-        if (!this.isUsableIntextPubadsService(pubads)) {
-          warnIntext(`[Intext:GPT:${this.id}] intext_gpt_command_failed`, { reason: "pubads-service-invalid", source: resolution.source });
-          settleOnce({ filled: false, event: null, gptError: "pubads-service-invalid" });
-          return;
-        }
-        if (this.slot !== preparation.slot || this._slotGptApi !== gpt || this._slotPubadsService !== pubads) {
-          warnIntext(`[Intext:GPT:${this.id}] intext_gpt_command_failed`, {
-            reason: "slot-api-identity-mismatch",
-            source: resolution.source,
-            slotSource: this._slotGptSource,
-          });
-          settleOnce({ filled: false, event: null, gptError: "slot-api-identity-mismatch" });
-          return;
-        }
-
-        const preRequestDisplayTargeting = this.resolveDisplayRequestTargeting();
-        this.clearDisplayRequestTargeting(this.slot);
-        this.applyDisplayRequestTargeting(this.slot, preRequestDisplayTargeting.targeting);
-        this.applyIntextRandomSnapshotToSlot(this.slot);
-
-        if (this.wa) {
-          this.wa.slot = this.slot;
-          this.wa.allowUpdate = true;
-        }
-
-        try {
-          const targetMap = this.slot.getTargetingKeys().reduce((acc, key) => {
-            acc[key] = this.slot.getTargeting(key);
-            return acc;
-          }, {});
-          logIntext(`[Intext:Display:${this.id}] 📤 Launching GAM Display Request. Targeted keys:`, targetMap);
-        } catch (e) { }
-        // -----------------------------------------------
-
-        const isRefresh =
-          this._intextTelemetryCycle?.["gexp-intext-refresh"] === "true" ||
-          this.waterfall?._intextTelemetryCycle?.["gexp-intext-refresh"] === "true" ||
-          this.waterfall?.lastTrigger === "refresh";
-        const isFallback =
-          this._intextTelemetryCycle?.["gexp-intext-fallback"] === "true" ||
-          this.waterfall?._intextTelemetryCycle?.["gexp-intext-fallback"] === "true" ||
-          this.waterfall?.lastTrigger === "fallback";
-        this.mergeIntextTelemetry({
-          "gexp-intext-request-type": "display",
-          "gexp-intext": "true",
-          "gexp-intext-position": this.id,
-          "gexp-intext-display": "true",
-          "gexp-intext-is-refresh": isRefresh ? "true" : "false",
-          "gexp-intext-refresh": isRefresh ? "true" : "false",
-          "gexp-intext-is-fallback": isFallback ? "true" : "false",
-          "gexp-intext-fallback": isFallback ? "true" : "false",
-        });
-        this.manager.gexp.request(this.slot);
-        this.ensureIntextCycleTelemetryIdentity();
-        this.applyIntextRandomSnapshotToSlot(this.slot);
-        this.assertIntextRandomSnapshotOnSlot(this.slot, "after-gexp-request");
-        const postCoreSlotTargeting = this.getSlotTargetingMapSafe(this.slot);
-        const finalDisplayTargeting = this.resolveDisplayRequestTargeting(postCoreSlotTargeting);
-
-        finalDisplayTargeting.targeting["gexp-intext"] = "true";
-        finalDisplayTargeting.targeting["gexp-intext-position"] = this.id;
-        finalDisplayTargeting.targeting["gexp-intext-display"] = "true";
-        finalDisplayTargeting.targeting["gexp-intext-is-refresh"] = isRefresh ? "true" : "false";
-        finalDisplayTargeting.targeting["gexp-intext-refresh"] = isRefresh ? "true" : "false";
-        finalDisplayTargeting.targeting["gexp-intext-is-fallback"] = isFallback ? "true" : "false";
-        finalDisplayTargeting.targeting["gexp-intext-fallback"] = isFallback ? "true" : "false";
-
-        if (this.wa && this.wa.cI) {
-          this.wa.cI["gexp-intext"] = "true";
-          this.wa.cI["gexp-intext-position"] = this.id;
-          this.wa.cI["gexp-intext-display"] = "true";
-          this.wa.cI["gexp-intext-is-refresh"] = isRefresh ? "true" : "false";
-          this.wa.cI["gexp-intext-refresh"] = this.wa.cI["gexp-intext-is-refresh"];
-          this.wa.cI["gexp-intext-is-fallback"] = isFallback ? "true" : "false";
-          this.wa.cI["gexp-intext-fallback"] = this.wa.cI["gexp-intext-is-fallback"];
-          this.flushIntextTelemetryToCI();
-        }
-
-        this.clearDisplayRequestTargeting(this.slot, "display_request_targeting_cleared_keys_post_core");
-        this.applyDisplayRequestTargeting(this.slot, finalDisplayTargeting.targeting);
-        this.applyDisplayBidTargeting(this.slot, bidResponse, this.waterfall?._lastCurrentBannerBids);
-        this.applyIntextRandomSnapshotToSlot(this.slot);
-        this.assertIntextRandomSnapshotOnSlot(this.slot, "after-final-display-targeting");
-
-        const initialRenderHandler = (event) => {
-          if (event.slot !== this.slot) return;
-          pubads.removeEventListener("slotRenderEnded", initialRenderHandler);
-          if (this._initialDisplayRenderHandler === initialRenderHandler) {
-            this._initialDisplayRenderHandler = null;
+          if (!this.isActiveRenderToken(renderToken, "askDisplay:googletag_cmd", trigger)) {
+            settleOnce({ filled: false, event: null, stale: true });
+            return;
           }
-          if (this._initialDisplayRenderHandler === initialRenderHandler) this._initialDisplayRenderHandler = null;
-          if (!this.isActiveRenderToken(renderToken, "display_initial_slotRenderEnded", trigger)) {
-            if (this.isHouseLineItemSentinel(event)) {
-              logIntext(`[Intext:Display:${this.id}] house_lineitem_sentinel_stale_callback_ignored`, {
-                slotCode: this.id,
-                oldToken: renderToken,
-                activeToken: this._activeRenderToken,
-                cycleId: this._intextTelemetryCycleId,
-                lineItemId: event?.lineItemId,
+          const pubads = gpt.pubads();
+          if (!this.isUsableIntextPubadsService(pubads)) {
+            warnIntext(`[Intext:GPT:${this.id}] intext_gpt_command_failed`, { reason: "pubads-service-invalid", source: resolution.source });
+            settleOnce({ filled: false, event: null, gptError: "pubads-service-invalid" });
+            return;
+          }
+          if (!this.slot) {
+            const candidateSlot = gpt.defineSlot(fullAdUnit, sizes, this.id);
+            if (!candidateSlot || typeof candidateSlot.addService !== "function") {
+              warnIntext(`[Intext:GPT:${this.id}] intext_gpt_slot_invalid`, {
+                pspDetected: resolution.pspDetected,
+                source: resolution.source,
+                candidateAddServiceType: typeof candidateSlot?.addService,
+              });
+              settleOnce({ filled: false, event: null, gptError: "slot-invalid" });
+              return;
+            }
+            candidateSlot.addService(pubads);
+            this.slot = candidateSlot;
+            this._slotGptApi = gpt;
+            this._slotPubadsService = pubads;
+            this._slotGptSource = resolution.source;
+          } else if (this._slotGptApi !== gpt || this._slotPubadsService !== pubads) {
+            warnIntext(`[Intext:GPT:${this.id}] intext_gpt_command_failed`, {
+              reason: "slot-api-identity-mismatch",
+              source: resolution.source,
+              slotSource: this._slotGptSource,
+            });
+            settleOnce({ filled: false, event: null, gptError: "slot-api-identity-mismatch" });
+            return;
+          }
+
+          const preRequestDisplayTargeting = this.resolveDisplayRequestTargeting();
+          this.clearDisplayRequestTargeting(this.slot);
+          this.applyDisplayRequestTargeting(this.slot, preRequestDisplayTargeting.targeting);
+          this.applyIntextRandomSnapshotToSlot(this.slot);
+          const apsAfterCore = this.manager.resolveIntextApstagApi().api;
+          if (apsAfterCore && typeof apsAfterCore.targetingKeys === "function") {
+            const tamKeys = apsAfterCore.targetingKeys();
+            if (tamKeys && tamKeys[this.id]) {
+              Object.entries(tamKeys[this.id]).forEach(([k, v]) => {
+                this.slot.setTargeting(k, v);
               });
             }
-            settleOnce({ filled: false, event, stale: true });
-            return;
           }
 
-          const hasContent = !event.isEmpty;
-          const is1x1 =
-            event.size && event.size[0] === 1 && event.size[1] === 1;
-          const renderSize = this.resolveDisplayRenderSizeFromEvent(event, "display_initial_slotRenderEnded");
-          if (typeof window !== "undefined" && window.gexpIntextDebug === true) {
-            const isSentinel = this.isHouseLineItemSentinel(event);
-            const gamFilled = event.isEmpty !== true;
-            const realDisplayFilled = gamFilled && !isSentinel;
-            let isHouse = String(event.lineItemType || "").toLowerCase() === "house";
-            try { isHouse ||= this.manager?.gexp?.isHouse?.(event.campaignId, event.lineItemId, event.advertiserId) === true; } catch (e) { }
-            const metricData = {
-              node: this,
-              element: this.container?.getElement?.(),
-              source: "initial-render-handler",
-              trigger,
-              renderToken,
-              isEmpty: event.isEmpty === true,
-              gamFilled,
-              realDisplayFilled,
-              size: event.size,
-              lineItemId: event.lineItemId,
-              creativeId: event.creativeId,
-              campaignId: event.campaignId,
-              advertiserId: event.advertiserId,
-              lineItemType: event.lineItemType,
-            };
-            intextDebugCollector.recordMetric("display_slot_render_ended", metricData);
-            if (gamFilled) intextDebugCollector.recordMetric("display_gam_filled", metricData);
-            if (realDisplayFilled) intextDebugCollector.recordMetric("display_real_filled", metricData);
-            if (!gamFilled) intextDebugCollector.recordMetric("display_empty", metricData);
-            if (isHouse) intextDebugCollector.recordMetric("display_house", metricData);
-            if (isSentinel) intextDebugCollector.recordMetric("display_sentinel", metricData);
+          if (this.wa) {
+            this.wa.slot = this.slot;
+            this.wa.allowUpdate = true;
           }
+
+          try {
+            const targetMap = this.slot.getTargetingKeys().reduce((acc, key) => {
+              acc[key] = this.slot.getTargeting(key);
+              return acc;
+            }, {});
+            logIntext(`[Intext:Display:${this.id}] 📤 Launching GAM Display Request. Targeted keys:`, targetMap);
+          } catch (e) { }
+          // -----------------------------------------------
+
+          const isRefresh =
+            this._intextTelemetryCycle?.["gexp-intext-refresh"] === "true" ||
+            this.waterfall?._intextTelemetryCycle?.["gexp-intext-refresh"] === "true" ||
+            this.waterfall?.lastTrigger === "refresh";
+          const isFallback =
+            this._intextTelemetryCycle?.["gexp-intext-fallback"] === "true" ||
+            this.waterfall?._intextTelemetryCycle?.["gexp-intext-fallback"] === "true" ||
+            this.waterfall?.lastTrigger === "fallback";
           this.mergeIntextTelemetry({
-            "gexp-intext-load-end-distance-px": this.getIntextDistancePx(),
-            "gexp-intext-creative-size": this.getDisplayCreativeSizeFromEvent(event),
-            "gexp-intext-gam-event-size": this.getDisplayGamEventSize(event),
-            "gexp-intext-gam-line-item-type": event?.lineItemType,
-            ...this.getDisplayLayoutTelemetry(renderSize),
-            advertiserId: event?.advertiserId,
-            campaignId: event?.campaignId,
-            lineItemId: event?.lineItemId,
-            creativeId: event?.creativeId,
+            "gexp-intext-request-type": "display",
+            "gexp-intext": "true",
+            "gexp-intext-position": this.id,
+            "gexp-intext-display": "true",
+            "gexp-intext-is-refresh": isRefresh ? "true" : "false",
+            "gexp-intext-refresh": isRefresh ? "true" : "false",
+            "gexp-intext-is-fallback": isFallback ? "true" : "false",
+            "gexp-intext-fallback": isFallback ? "true" : "false",
           });
-          this.flushIntextTelemetryToCI();
-          logIntext(
-            `[Intext:Display:${this.id}] initial slotRenderEnded — isEmpty: ${event.isEmpty}, size: ${JSON.stringify(event.size)}, is1x1: ${is1x1}, hasContent: ${hasContent}`,
-          );
+          this.manager.gexp.request(this.slot);
+          this.ensureIntextCycleTelemetryIdentity();
+          this.applyIntextRandomSnapshotToSlot(this.slot);
+          this.assertIntextRandomSnapshotOnSlot(this.slot, "after-gexp-request");
+          const postCoreSlotTargeting = this.getSlotTargetingMapSafe(this.slot);
+          const finalDisplayTargeting = this.resolveDisplayRequestTargeting(postCoreSlotTargeting);
 
-          this.maybeIncrementFallbackBlankControl(event, {
-            trigger,
-            renderToken,
-            source: "display_initial_slotRenderEnded",
-          });
+          finalDisplayTargeting.targeting["gexp-intext"] = "true";
+          finalDisplayTargeting.targeting["gexp-intext-position"] = this.id;
+          finalDisplayTargeting.targeting["gexp-intext-display"] = "true";
+          finalDisplayTargeting.targeting["gexp-intext-is-refresh"] = isRefresh ? "true" : "false";
+          finalDisplayTargeting.targeting["gexp-intext-refresh"] = isRefresh ? "true" : "false";
+          finalDisplayTargeting.targeting["gexp-intext-is-fallback"] = isFallback ? "true" : "false";
+          finalDisplayTargeting.targeting["gexp-intext-fallback"] = isFallback ? "true" : "false";
 
-          if (this.isHouse1x1AutoRefreshCandidate(event)) {
-            this.handleHouse1x1AutoRefresh(event, renderToken);
-            settleOnce({ filled: false, event, is1x1, suppressed: true, retrying: true, sentinelLineItemId: event?.lineItemId });
-            return;
+          if (this.wa && this.wa.cI) {
+            this.wa.cI["gexp-intext"] = "true";
+            this.wa.cI["gexp-intext-position"] = this.id;
+            this.wa.cI["gexp-intext-display"] = "true";
+            this.wa.cI["gexp-intext-is-refresh"] = isRefresh ? "true" : "false";
+            this.wa.cI["gexp-intext-refresh"] = this.wa.cI["gexp-intext-is-refresh"];
+            this.wa.cI["gexp-intext-is-fallback"] = isFallback ? "true" : "false";
+            this.wa.cI["gexp-intext-fallback"] = this.wa.cI["gexp-intext-is-fallback"];
+            this.flushIntextTelemetryToCI();
           }
 
-          if (this.isHouse1x1AutoRefreshMaxReached(event)) {
-            this.handleHouse1x1MaxAttemptsReached(event);
-            settleOnce({ filled: false, event, is1x1, suppressed: true, retrying: false, maxAttemptsReached: true, sentinelLineItemId: event?.lineItemId });
-            return;
+          this.clearDisplayRequestTargeting(this.slot, "display_request_targeting_cleared_keys_post_core");
+          this.applyDisplayRequestTargeting(this.slot, finalDisplayTargeting.targeting);
+          this.applyDisplayBidTargeting(this.slot, bidResponse, this.waterfall?._lastCurrentBannerBids);
+          const aps = this.manager.resolveIntextApstagApi().api;
+          if (aps && typeof aps.targetingKeys === "function") {
+            const tamKeys = aps.targetingKeys();
+            if (tamKeys && tamKeys[this.id]) {
+              Object.entries(tamKeys[this.id]).forEach(([k, v]) => {
+                this.slot.setTargeting(k, v);
+              });
+            }
           }
+          this.applyIntextRandomSnapshotToSlot(this.slot);
+          this.assertIntextRandomSnapshotOnSlot(this.slot, "after-final-display-targeting");
 
-          settleOnce({ filled: hasContent, event, is1x1 });
-        };
-        this._initialDisplayRenderHandler = initialRenderHandler;
-        pubads.addEventListener("slotRenderEnded", initialRenderHandler);
-
-        if (!this._hasPersistentListener) {
-          this._hasPersistentListener = true;
-          this._persistentDisplayRenderHandler = (event) => {
+          const initialRenderHandler = (event) => {
             if (event.slot !== this.slot) return;
-            if (this.state !== "display") return;
-            const activeToken = this._activeRenderToken;
-            const slotDocForToken = document.getElementById(this.id);
-            const eventToken = parseInt(slotDocForToken?.dataset?.gexpIntextRenderToken, 10) || activeToken;
-            if (!this.isActiveRenderToken(eventToken, "display_persistent_slotRenderEnded", this.waterfall?.lastTrigger || "unknown")) return;
-            if (this.isHouseLineItemSentinel(event)) {
-              this.mergeIntextTelemetry(this.getHouseLineItemSentinelTelemetry(event));
-              this.flushIntextTelemetryToCI();
-              logIntext(`[Intext:Display:${this.id}] sentinel render ignored by persistent display telemetry`);
+            pubads.removeEventListener("slotRenderEnded", initialRenderHandler);
+            if (this._initialDisplayRenderHandler === initialRenderHandler) this._initialDisplayRenderHandler = null;
+            if (!this.isActiveRenderToken(renderToken, "display_initial_slotRenderEnded", trigger)) {
+              if (this.isHouseLineItemSentinel(event)) {
+                logIntext(`[Intext:Display:${this.id}] house_lineitem_sentinel_stale_callback_ignored`, {
+                  slotCode: this.id,
+                  oldToken: renderToken,
+                  activeToken: this._activeRenderToken,
+                  cycleId: this._intextTelemetryCycleId,
+                  lineItemId: event?.lineItemId,
+                });
+              }
+              settleOnce({ filled: false, event, stale: true });
               return;
             }
 
-            if (event.campaignId) {
-              this._lastRenderedCampaignId = String(event.campaignId);
-              if (this.wa && this.wa.cI) {
-                this.wa.cI.campaignId = String(event.campaignId);
-              }
-            }
-            if (event.advertiserId) {
-              this._lastRenderedAdvertiserId = String(event.advertiserId);
-              if (this.wa && this.wa.cI) {
-                this.wa.cI.advertiserId = String(event.advertiserId);
-              }
-            }
-
-            // Granular Type Telemetry
-            if (this.wa && this.wa.cI) {
-              const gexp = this.manager?.gexp;
-              const bid = this._lastDisplayBid;
-              const campaignId = this._lastRenderedCampaignId;
-              const advertiserId = this._lastRenderedAdvertiserId;
-              let type = event.lineItemType ? event.lineItemType.toLowerCase() : "adserver";
-
-              const tIds = this.config?.telemetryIds || {};
-              const prebidIds = tIds.prebid || [];
-              const amazonIds = tIds.amazon || [];
-              const adexIds = tIds.adex || [];
-
-              if (type === "ad_exchange" || adexIds.includes(campaignId) || gexp?.isAdex(campaignId, null, advertiserId)) type = "adex";
-              else if (prebidIds.includes(advertiserId)) type = "prebid";
-              else if (amazonIds.includes(advertiserId)) type = "amazon";
-              else if (gexp?.isHouse(null, null, advertiserId)) type = "house";
-              else if (gexp?.isReloadAllowed(campaignId, null, advertiserId)) type = "cpc";
-              else if (bid && (type === "price_priority" || type === "ad_exchange")) {
-                if (bid.source === "prebid") type = "prebid";
-                else if (bid.source === "amazon") type = "amazon";
-              }
-
-              this.wa.cI["gexp-intext-type"] = type;
-              const renderSize = this.resolveDisplayRenderSizeFromEvent(event, "display_slotRenderEnded_telemetry");
-              this.mergeIntextTelemetry({
-                "gexp-intext-load-end-distance-px": this.getIntextDistancePx(),
-                "gexp-intext-creative-size": this.getDisplayCreativeSizeFromEvent(event),
-                "gexp-intext-gam-event-size": this.getDisplayGamEventSize(event),
-                "gexp-intext-gam-line-item-type": event?.lineItemType,
-                ...this.getDisplayLayoutTelemetry(renderSize),
-                advertiserId: event?.advertiserId,
-                campaignId: event?.campaignId,
-                lineItemId: event?.lineItemId,
-                creativeId: event?.creativeId,
-              });
-              this.flushIntextTelemetryToCI();
-              logIntext(`[Intext:Display:${this.id}] Rendered type: ${type} (Adv:${advertiserId}, Camp:${campaignId})`);
-
-              // Explicitly register again to ensure statsG has the post-render metadata
-              if (this.manager?.gexp) {
-                this.commitIntextTelemetry("display-render-ended");
-                logIntext(`[Intext:Display:${this.id}] 📤 Post-render telemetry updated`);
-              }
-            }
-
-            const slotDoc = document.getElementById(this.id);
-            if (slotDoc && event.size) {
-              const renderSize = this.resolveDisplayRenderSizeFromEvent(event, "display_slotRenderEnded");
-              if (renderSize.actualHeight === 600) {
-                this.markDisplayHeightLock(600, slotDoc);
-              }
-              this.applyDisplayRenderLayout(slotDoc, {
-                gamWidth: renderSize.gamWidth,
-                gamHeight: renderSize.gamHeight,
-                actualHeight: renderSize.actualHeight,
-                reason: "display_slotRenderEnded",
-                renderToken: activeToken,
-              });
-            }
-          };
-          pubads.addEventListener("slotRenderEnded", this._persistentDisplayRenderHandler);
-        }
-
-        logIntext(
-          `[Intext:Display:${this.id}] Calling resolved GPT display + refresh`,
-        );
-
-        let slotEl = document.getElementById(this.id);
-        if (!slotEl) {
-          logIntext(
-            `[Intext:Display:${this.id}] ⚠️ DOM element missing, recreating wrapper...`,
-          );
-
-          slotEl = this.manager.createWrapperNode(
-            this.id,
-            "display",
-          );
-
-          const videoEl = document.getElementById(this.videoId);
-          const activeVideoBridge =
-            this._intextTransitionBridge?.active === true &&
-            this._intextTransitionBridge?.surface === "video" &&
-            String(this._intextTransitionBridge?.renderToken || "") === String(renderToken);
-          const preservedHeight = activeVideoBridge
-            ? this.resolveTransitionPreservedHeight(
-              videoEl,
-              this._intextTransitionBridge?.preservedHeight,
-              this.lockedHeight,
-            )
-            : this.getDisplayStandardContentHeight();
-          if (videoEl && videoEl.parentNode) {
-            videoEl.parentNode.insertBefore(slotEl, videoEl);
-          } else if (this.placement && this.placement.paragraph) {
-            this.placement.paragraph.parentNode.insertBefore(
-              slotEl,
-              this.placement.paragraph.nextSibling,
-            );
-          } else {
-            errorIntext(
-              `[Intext:Display:${this.id}] ❌ Could not find anchor to re-insert display wrapper.`,
-            );
-          }
-
-          if (
-            this.container &&
-            typeof this.container.setElement === "function"
-          ) {
-            this.container.setElement(slotEl);
-          }
-          if (activeVideoBridge) {
-            this.applyIntextWrapperDebugAttributes(slotEl, {
-              renderToken,
-              visualState: "transition_bridge_display_recreated",
-            });
-            this.applyDisplayWrapperHeight(slotEl, preservedHeight, {
-              logReason:
-                preservedHeight === 600 ? "display_300x600_visual_height_adjusted" : "",
-              source: "askDisplay_recreate_from_video_bridge",
-            });
-            this.ensureTransitionLoader(slotEl, {
-              source: "askDisplay_recreate_from_video_bridge",
-              renderToken,
-              text: "Recuperando anuncio",
-            });
-            slotEl.classList.add("is-open");
-            slotEl.style.display = "";
-            slotEl.style.opacity = "1";
-            slotEl.style.margin = "";
-            slotEl.style.padding = "";
-            slotEl.setAttribute("aria-hidden", "false");
-            slotEl.dataset.gexpIntextTransitionBridgeActive = "true";
-            slotEl.dataset.gexpIntextTransitionBridgeSurface = "display";
-            slotEl.dataset.gexpIntextTransitionBridgeHeight = String(preservedHeight);
-            this.container.isOpen = true;
-            this.mergeIntextTelemetry({
-              "gexp-intext-video-to-display-bridge-display-recreated": "true",
-              "gexp-intext-video-to-display-bridge-swap-complete": "true",
-              "gexp-intext-transition-bridge-surface": "display",
-              "gexp-intext-transition-bridge-height": String(preservedHeight),
-            });
-            logIntext(`[Intext:Display:${this.id}] video_to_display_bridge_display_recreated`, {
-              slotCode: this.id,
-              renderToken,
-              preservedHeight,
-              source: "askDisplay_recreate_from_video_bridge",
-            });
-            logIntext(`[Intext:Display:${this.id}] video_to_display_bridge_display_opened_before_video_hide`, {
-              slotCode: this.id,
-              renderToken,
-              preservedHeight,
-              displayConnected: Boolean(slotEl?.isConnected),
-              videoConnected: Boolean(videoEl?.isConnected),
-            });
-            if (videoEl?.isConnected) {
-              this.hideOppositeTransitionSurface(videoEl, "video", {
+            const hasContent = !event.isEmpty;
+            const is1x1 =
+              event.size && event.size[0] === 1 && event.size[1] === 1;
+            const renderSize = this.resolveDisplayRenderSizeFromEvent(event, "display_initial_slotRenderEnded");
+            if (typeof window !== "undefined" && window.gexpIntextDebug === true) {
+              const isSentinel = this.isHouseLineItemSentinel(event);
+              const gamFilled = event.isEmpty !== true;
+              const realDisplayFilled = gamFilled && !isSentinel;
+              let isHouse = String(event.lineItemType || "").toLowerCase() === "house";
+              try { isHouse ||= this.manager?.gexp?.isHouse?.(event.campaignId, event.lineItemId, event.advertiserId) === true; } catch (e) { }
+              const metricData = {
+                node: this,
+                element: this.container?.getElement?.(),
+                source: "initial-render-handler",
+                trigger,
                 renderToken,
+                isEmpty: event.isEmpty === true,
+                gamFilled,
+                realDisplayFilled,
+                size: event.size,
+                lineItemId: event.lineItemId,
+                creativeId: event.creativeId,
+                campaignId: event.campaignId,
+                advertiserId: event.advertiserId,
+                lineItemType: event.lineItemType,
+              };
+              intextDebugCollector.recordMetric("display_slot_render_ended", metricData);
+              if (gamFilled) intextDebugCollector.recordMetric("display_gam_filled", metricData);
+              if (realDisplayFilled) intextDebugCollector.recordMetric("display_real_filled", metricData);
+              if (!gamFilled) intextDebugCollector.recordMetric("display_empty", metricData);
+              if (isHouse) intextDebugCollector.recordMetric("display_house", metricData);
+              if (isSentinel) intextDebugCollector.recordMetric("display_sentinel", metricData);
+            }
+            this.mergeIntextTelemetry({
+              "gexp-intext-load-end-distance-px": this.getIntextDistancePx(),
+              "gexp-intext-creative-size": this.getDisplayCreativeSizeFromEvent(event),
+              "gexp-intext-gam-event-size": this.getDisplayGamEventSize(event),
+              "gexp-intext-gam-line-item-type": event?.lineItemType,
+              ...this.getDisplayLayoutTelemetry(renderSize),
+              advertiserId: event?.advertiserId,
+              campaignId: event?.campaignId,
+              lineItemId: event?.lineItemId,
+              creativeId: event?.creativeId,
+            });
+            this.flushIntextTelemetryToCI();
+            logIntext(
+              `[Intext:Display:${this.id}] initial slotRenderEnded — isEmpty: ${event.isEmpty}, size: ${JSON.stringify(event.size)}, is1x1: ${is1x1}, hasContent: ${hasContent}`,
+            );
+
+            this.maybeIncrementFallbackBlankControl(event, {
+              trigger,
+              renderToken,
+              source: "display_initial_slotRenderEnded",
+            });
+
+            if (this.isHouse1x1AutoRefreshCandidate(event)) {
+              this.handleHouse1x1AutoRefresh(event, renderToken);
+              settleOnce({ filled: false, event, is1x1, suppressed: true, retrying: true, sentinelLineItemId: event?.lineItemId });
+              return;
+            }
+
+            if (this.isHouse1x1AutoRefreshMaxReached(event)) {
+              this.handleHouse1x1MaxAttemptsReached(event);
+              settleOnce({ filled: false, event, is1x1, suppressed: true, retrying: false, maxAttemptsReached: true, sentinelLineItemId: event?.lineItemId });
+              return;
+            }
+
+            settleOnce({ filled: hasContent, event, is1x1 });
+          };
+          this._initialDisplayRenderHandler = initialRenderHandler;
+          pubads.addEventListener("slotRenderEnded", initialRenderHandler);
+
+          if (!this._hasPersistentListener) {
+            this._hasPersistentListener = true;
+            this._persistentDisplayRenderHandler = (event) => {
+              if (event.slot !== this.slot) return;
+              if (this.state !== "display") return;
+              const activeToken = this._activeRenderToken;
+              const slotDocForToken = document.getElementById(this.id);
+              const eventToken = parseInt(slotDocForToken?.dataset?.gexpIntextRenderToken, 10) || activeToken;
+              if (!this.isActiveRenderToken(eventToken, "display_persistent_slotRenderEnded", this.waterfall?.lastTrigger || "unknown")) return;
+              if (this.isHouseLineItemSentinel(event)) {
+                this.mergeIntextTelemetry(this.getHouseLineItemSentinelTelemetry(event));
+                this.flushIntextTelemetryToCI();
+                logIntext(`[Intext:Display:${this.id}] sentinel render ignored by persistent display telemetry`);
+                return;
+              }
+
+              if (event.campaignId) {
+                this._lastRenderedCampaignId = String(event.campaignId);
+                if (this.wa && this.wa.cI) {
+                  this.wa.cI.campaignId = String(event.campaignId);
+                }
+              }
+              if (event.advertiserId) {
+                this._lastRenderedAdvertiserId = String(event.advertiserId);
+                if (this.wa && this.wa.cI) {
+                  this.wa.cI.advertiserId = String(event.advertiserId);
+                }
+              }
+
+              // Granular Type Telemetry
+              if (this.wa && this.wa.cI) {
+                const gexp = this.manager?.gexp;
+                const bid = this._lastDisplayBid;
+                const campaignId = this._lastRenderedCampaignId;
+                const advertiserId = this._lastRenderedAdvertiserId;
+                let type = event.lineItemType ? event.lineItemType.toLowerCase() : "adserver";
+
+                const tIds = this.config?.telemetryIds || {};
+                const prebidIds = tIds.prebid || [];
+                const amazonIds = tIds.amazon || [];
+                const adexIds = tIds.adex || [];
+
+                if (type === "ad_exchange" || adexIds.includes(campaignId) || gexp?.isAdex(campaignId, null, advertiserId)) type = "adex";
+                else if (prebidIds.includes(advertiserId)) type = "prebid";
+                else if (amazonIds.includes(advertiserId)) type = "amazon";
+                else if (gexp?.isHouse(null, null, advertiserId)) type = "house";
+                else if (gexp?.isReloadAllowed(campaignId, null, advertiserId)) type = "cpc";
+                else if (bid && (type === "price_priority" || type === "ad_exchange")) {
+                  if (bid.source === "prebid") type = "prebid";
+                  else if (bid.source === "amazon") type = "amazon";
+                }
+
+                this.wa.cI["gexp-intext-type"] = type;
+                const renderSize = this.resolveDisplayRenderSizeFromEvent(event, "display_slotRenderEnded_telemetry");
+                this.mergeIntextTelemetry({
+                  "gexp-intext-load-end-distance-px": this.getIntextDistancePx(),
+                  "gexp-intext-creative-size": this.getDisplayCreativeSizeFromEvent(event),
+                  "gexp-intext-gam-event-size": this.getDisplayGamEventSize(event),
+                  "gexp-intext-gam-line-item-type": event?.lineItemType,
+                  ...this.getDisplayLayoutTelemetry(renderSize),
+                  advertiserId: event?.advertiserId,
+                  campaignId: event?.campaignId,
+                  lineItemId: event?.lineItemId,
+                  creativeId: event?.creativeId,
+                });
+                this.flushIntextTelemetryToCI();
+                logIntext(`[Intext:Display:${this.id}] Rendered type: ${type} (Adv:${advertiserId}, Camp:${campaignId})`);
+
+                // Explicitly register again to ensure statsG has the post-render metadata
+                if (this.manager?.gexp) {
+                  this.commitIntextTelemetry("display-render-ended");
+                  logIntext(`[Intext:Display:${this.id}] 📤 Post-render telemetry updated`);
+                }
+              }
+
+              const slotDoc = document.getElementById(this.id);
+              if (slotDoc && event.size) {
+                const renderSize = this.resolveDisplayRenderSizeFromEvent(event, "display_slotRenderEnded");
+                if (renderSize.actualHeight === 600) {
+                  this.markDisplayHeightLock(600, slotDoc);
+                }
+                this.applyDisplayRenderLayout(slotDoc, {
+                  gamWidth: renderSize.gamWidth,
+                  gamHeight: renderSize.gamHeight,
+                  actualHeight: renderSize.actualHeight,
+                  reason: "display_slotRenderEnded",
+                  renderToken: activeToken,
+                });
+              }
+            };
+            pubads.addEventListener("slotRenderEnded", this._persistentDisplayRenderHandler);
+          }
+
+          logIntext(
+            `[Intext:Display:${this.id}] Calling resolved GPT display + refresh`,
+          );
+
+          let slotEl = document.getElementById(this.id);
+          if (!slotEl) {
+            logIntext(
+              `[Intext:Display:${this.id}] ⚠️ DOM element missing, recreating wrapper...`,
+            );
+
+            slotEl = this.manager.createWrapperNode(
+              this.id,
+              "display",
+            );
+
+            const videoEl = document.getElementById(this.videoId);
+            const activeVideoBridge =
+              this._intextTransitionBridge?.active === true &&
+              this._intextTransitionBridge?.surface === "video" &&
+              String(this._intextTransitionBridge?.renderToken || "") === String(renderToken);
+            const preservedHeight = activeVideoBridge
+              ? this.resolveTransitionPreservedHeight(
+                videoEl,
+                this._intextTransitionBridge?.preservedHeight,
+                this.lockedHeight,
+              )
+              : this.getDisplayStandardContentHeight();
+            if (videoEl && videoEl.parentNode) {
+              videoEl.parentNode.insertBefore(slotEl, videoEl);
+            } else if (this.placement && this.placement.paragraph) {
+              this.placement.paragraph.parentNode.insertBefore(
+                slotEl,
+                this.placement.paragraph.nextSibling,
+              );
+            } else {
+              errorIntext(
+                `[Intext:Display:${this.id}] ❌ Could not find anchor to re-insert display wrapper.`,
+              );
+            }
+
+            if (
+              this.container &&
+              typeof this.container.setElement === "function"
+            ) {
+              this.container.setElement(slotEl);
+            }
+            if (activeVideoBridge) {
+              this.applyIntextWrapperDebugAttributes(slotEl, {
+                renderToken,
+                visualState: "transition_bridge_display_recreated",
+              });
+              this.applyDisplayWrapperHeight(slotEl, preservedHeight, {
+                logReason:
+                  preservedHeight === 600 ? "display_300x600_visual_height_adjusted" : "",
                 source: "askDisplay_recreate_from_video_bridge",
               });
-              logIntext(`[Intext:Display:${this.id}] video_to_display_bridge_video_hidden_after_recreate`, {
+              this.ensureTransitionLoader(slotEl, {
+                source: "askDisplay_recreate_from_video_bridge",
+                renderToken,
+                text: "Recuperando anuncio",
+              });
+              slotEl.classList.add("is-open");
+              slotEl.style.display = "";
+              slotEl.style.opacity = "1";
+              slotEl.style.margin = "";
+              slotEl.style.padding = "";
+              slotEl.setAttribute("aria-hidden", "false");
+              slotEl.dataset.gexpIntextTransitionBridgeActive = "true";
+              slotEl.dataset.gexpIntextTransitionBridgeSurface = "display";
+              slotEl.dataset.gexpIntextTransitionBridgeHeight = String(preservedHeight);
+              this.container.isOpen = true;
+              this.mergeIntextTelemetry({
+                "gexp-intext-video-to-display-bridge-display-recreated": "true",
+                "gexp-intext-video-to-display-bridge-swap-complete": "true",
+                "gexp-intext-transition-bridge-surface": "display",
+                "gexp-intext-transition-bridge-height": String(preservedHeight),
+              });
+              logIntext(`[Intext:Display:${this.id}] video_to_display_bridge_display_recreated`, {
+                slotCode: this.id,
+                renderToken,
+                preservedHeight,
+                source: "askDisplay_recreate_from_video_bridge",
+              });
+              logIntext(`[Intext:Display:${this.id}] video_to_display_bridge_display_opened_before_video_hide`, {
+                slotCode: this.id,
+                renderToken,
+                preservedHeight,
+                displayConnected: Boolean(slotEl?.isConnected),
+                videoConnected: Boolean(videoEl?.isConnected),
+              });
+              if (videoEl?.isConnected) {
+                this.hideOppositeTransitionSurface(videoEl, "video", {
+                  renderToken,
+                  source: "askDisplay_recreate_from_video_bridge",
+                });
+                logIntext(`[Intext:Display:${this.id}] video_to_display_bridge_video_hidden_after_recreate`, {
+                  slotCode: this.id,
+                  renderToken,
+                  preservedHeight,
+                });
+              }
+              this._intextTransitionBridge = {
+                active: true,
+                surface: "display",
+                renderToken,
+                source: "askDisplay_recreate_from_video_bridge",
+                preservedHeight,
+              };
+              logIntext(`[Intext:Display:${this.id}] video_to_display_bridge_swap_complete`, {
                 slotCode: this.id,
                 renderToken,
                 preservedHeight,
               });
+            } else {
+              slotEl.style.height = "0px";
+              slotEl.style.minHeight = "0px";
+              slotEl.style.opacity = "0";
+              slotEl.style.display = "none";
+              slotEl.style.margin = "0";
+              slotEl.style.padding = "0";
             }
-            this._intextTransitionBridge = {
-              active: true,
-              surface: "display",
-              renderToken,
-              source: "askDisplay_recreate_from_video_bridge",
-              preservedHeight,
-            };
-            logIntext(`[Intext:Display:${this.id}] video_to_display_bridge_swap_complete`, {
-              slotCode: this.id,
-              renderToken,
-              preservedHeight,
-            });
-          } else {
-            slotEl.style.height = "0px";
-            slotEl.style.minHeight = "0px";
-            slotEl.style.opacity = "0";
-            slotEl.style.display = "none";
-            slotEl.style.margin = "0";
-            slotEl.style.padding = "0";
           }
-        }
-        slotEl = this.ensureSingleIntextWrapper(slotEl, {
-          source: "askDisplay_before_display",
-          renderToken,
-          visualState: "asking_display",
-        }) || slotEl;
-        if (slotEl && this.container?.getElement?.() !== slotEl && typeof this.container.setElement === "function") {
-          this.container.setElement(slotEl);
-        }
+          slotEl = this.ensureSingleIntextWrapper(slotEl, {
+            source: "askDisplay_before_display",
+            renderToken,
+            visualState: "asking_display",
+          }) || slotEl;
+          if (slotEl && this.container?.getElement?.() !== slotEl && typeof this.container.setElement === "function") {
+            this.container.setElement(slotEl);
+          }
 
-        if (slotEl && !slotEl.hasAttribute("data-gpt-displayed")) {
-          this.preserveIntextAmazonTargetingForCurrentCycle(amazonTargetingForCycle, renderToken, "before-display");
-          gpt.display(this.id);
-          slotEl.setAttribute("data-gpt-displayed", "true");
-        }
+          if (slotEl && !slotEl.hasAttribute("data-gpt-displayed")) {
+            gpt.display(this.id);
+            slotEl.setAttribute("data-gpt-displayed", "true");
+          }
 
-        if (!this.isActiveRenderToken(renderToken, "askDisplay:before_refresh", trigger)) {
-          settleOnce({ filled: false, event: null, stale: true });
-          return;
-        }
-        this.assertIntextRandomSnapshotOnSlot(this.slot, "immediately-before-gpt-refresh");
-        this.preserveIntextAmazonTargetingForCurrentCycle(amazonTargetingForCycle, renderToken, "before-refresh");
+          const beforeRefreshTargeting = this.getDisplayGamRequestTargetingFinal(this.slot);
 
-        const allAmazonTargeting = this.getIntextAmazonTargeting(this.slot);
-        const rawAmznKeys = Object.keys(allAmazonTargeting);
-        const beforeRefreshTargeting = this.getDisplayGamRequestTargetingFinal(this.slot);
+          logIntext(
+            `[Intext:Display:${this.id}] display_before_refresh_targeting_snapshot`,
+            {
+              final: beforeRefreshTargeting,
+              allHbTargeting: this.pickHbTargeting(this.getSlotTargetingMapSafe(this.slot)),
+              rawRandom1: this.getSlotTargetingValueSafe(this.slot, "random1"),
+              rawRandom2: this.getSlotTargetingValueSafe(this.slot, "random2"),
+              rawRandom3: this.getSlotTargetingValueSafe(this.slot, "random3"),
+              rawRandom4: this.getSlotTargetingValueSafe(this.slot, "random4"),
+              rawHbPb: this.getSlotTargetingValueSafe(this.slot, "hb_pb"),
+              rawHbBidder: this.getSlotTargetingValueSafe(this.slot, "hb_bidder"),
+              rawHbFormat: this.getSlotTargetingValueSafe(this.slot, "hb_format"),
+              rawHbAdid: this.getSlotTargetingValueSafe(this.slot, "hb_adid"),
+            },
+          );
 
-        logIntext(
-          `[Intext:Display:${this.id}] display_before_refresh_targeting_snapshot`,
-          {
-            final: beforeRefreshTargeting,
-            allHbTargeting: this.pickHbTargeting(this.getSlotTargetingMapSafe(this.slot)),
-            allAmazonTargeting,
-            rawAmznKeys,
-            rawRandom1: this.getSlotTargetingValueSafe(this.slot, "random1"),
-            rawRandom2: this.getSlotTargetingValueSafe(this.slot, "random2"),
-            rawRandom3: this.getSlotTargetingValueSafe(this.slot, "random3"),
-            rawRandom4: this.getSlotTargetingValueSafe(this.slot, "random4"),
-            rawHbPb: this.getSlotTargetingValueSafe(this.slot, "hb_pb"),
-            rawHbBidder: this.getSlotTargetingValueSafe(this.slot, "hb_bidder"),
-            rawHbFormat: this.getSlotTargetingValueSafe(this.slot, "hb_format"),
-            rawHbAdid: this.getSlotTargetingValueSafe(this.slot, "hb_adid"),
-          },
-        );
-
-        logIntext(
-          `[Intext:Display:${this.id}] display_gam_request_targeting_final`,
-          { ...this.getDisplayGamRequestTargetingFinal(this.slot), allAmazonTargeting, rawAmznKeys },
-        );
-        pubads.refresh([this.slot]);
+          logIntext(
+            `[Intext:Display:${this.id}] display_gam_request_targeting_final`,
+            this.getDisplayGamRequestTargetingFinal(this.slot),
+          );
+          if (!this.isActiveRenderToken(renderToken, "askDisplay:before_refresh", trigger)) {
+            settleOnce({ filled: false, event: null, stale: true });
+            return;
+          }
+          this.assertIntextRandomSnapshotOnSlot(this.slot, "immediately-before-gpt-refresh");
+          pubads.refresh([this.slot]);
         } catch (error) {
           warnIntext(`[Intext:GPT:${this.id}] intext_gpt_command_failed`, {
             reason: "display-callback-exception",
@@ -9652,8 +9463,6 @@ class IntextNode {
         });
         settleOnce({ filled: false, event: null, gptError: "command-promise-rejected" });
       });
-    });
-
     });
   }
 
@@ -9900,6 +9709,23 @@ class IntextNode {
       }
     }
 
+    if (
+      displayResult?.filled === true &&
+      is1x1 !== true &&
+      this.isActiveRenderToken(
+        renderToken,
+        "showDisplay:first-open-animation",
+        trigger,
+      )
+    ) {
+      const creativeSurface =
+        this.findDisplayCreativeSurface(slotDoc);
+      this.playInitialOpenAnimation(
+        creativeSurface,
+        "display-first-fill",
+      );
+    }
+
     this.videoContainer.close({ destroy: true });
 
     this.completeVisualRender(renderToken, "display_completed");
@@ -10028,7 +9854,7 @@ class IntextNode {
 
     if (this.slot) {
       this.destroyIntextDisplaySlot(source);
-    }
+    };
 
     const newWrapper = this.manager.createWrapperNode(this.id, "display");
     this.applyIntextWrapperDebugAttributes(newWrapper, {
@@ -11526,13 +11352,7 @@ class IntextWaterfall {
       const resolution = this.node.manager.resolveIntextPrebidApi();
       lastSource = resolution.source;
       const pb = resolution.api;
-      return Boolean(
-        pb &&
-        typeof pb.requestBids === "function" &&
-        pb.que &&
-        typeof pb.que.push === "function" &&
-        (!aliasesRequired || typeof pb.aliasBidder === "function")
-      );
+      return Boolean(pb && typeof pb.requestBids === "function" && pb.que && typeof pb.que.push === "function" && (!aliasesRequired || typeof pb.aliasBidder === "function"));
     };
     if (isReady()) return Promise.resolve(true);
 
@@ -11723,10 +11543,7 @@ class IntextWaterfall {
               const targeting = this.node.slot?.getTargetingMap?.() || {};
               const expectedKeys = ["hb_pb", "hb_bidder", "hb_adid"];
               if (!expectedKeys.some((key) => Object.prototype.hasOwnProperty.call(targeting, key))) {
-                warnIntext(`[Intext:Prebid:${this.node.id}] intext_prebid_targeting_missing_after_bid`, {
-                  code: configuration.code,
-                  expectedKeys,
-                });
+                warnIntext(`[Intext:Prebid:${this.node.id}] intext_prebid_targeting_missing_after_bid`, { code: configuration.code, expectedKeys });
               }
             }
             resolve("prebid_done");
@@ -11809,10 +11626,7 @@ class IntextWaterfall {
         const resolution = this.node.manager.resolveIntextPrebidApi();
         const pb = resolution.api;
         if (!pb) {
-          logIntext(`[Intext:Prebid:${this.node.id}] prebid_pbjs_resolution_lost`, {
-            code: configuration.code,
-            source: resolution.source,
-          });
+          logIntext(`[Intext:Prebid:${this.node.id}] prebid_pbjs_resolution_lost`, { code: configuration.code, source: resolution.source });
           resolve(null);
           return;
         }
@@ -11836,56 +11650,13 @@ class IntextWaterfall {
     });
   }
 
-  executeAmazonTam(configuration, { format = "display", renderToken = null, expectedSlotId = null } = {}) {
+  executeAmazonTam(configuration) {
     return new Promise((resolve) => {
       let settled = false;
       let availabilityTimer = null;
-      const display = format === "display";
-      const slot = display ? this.node.slot : null;
-      const slotID = configuration?.slots?.[0]?.slotID;
-      if (display && (!slot || !slotID || slot.getSlotElementId?.() !== slotID || (expectedSlotId && expectedSlotId !== slotID))) {
-        warnIntext(`[Intext:APS:${this.node.id}] intext_apstag_display_slot_identity`, { slotID, identityMatches: false });
-        resolve(null);
-        return;
-      }
-      const request = {
-        tamRequestId: (this._tamRequestSequence = (this._tamRequestSequence || 0) + 1),
-        renderToken, cycleId: this.node._intextTelemetryCycleId, slotID,
-        slot, gpt: display ? this.node._slotGptApi : null,
-        pubads: display ? this.node._slotPubadsService : null, valid: true,
-      };
-      if (display) {
-        if (this.node._amazonDisplayRequest) this.node._amazonDisplayRequest.valid = false;
-        this.node._amazonDisplayRequest = request;
-        this.node._amazonTargetingForCycle = null;
-        this.node.clearIntextAmazonTargeting(slot);
-        this.node.mergeIntextTelemetry({ "gexp-intext-aps-display-targeting-source": "missing" });
-      } else {
-        this._amazonVideoRequest = request;
-      }
-      const current = () => display
-        ? this.node.isIntextAmazonDisplayRequestCurrent(request)
-        : this._amazonVideoRequest === request && request.valid && request.cycleId === this.node._intextTelemetryCycleId &&
-          (renderToken == null || this.node.isActiveRenderToken(renderToken, "aps-video-request", "tam"));
-      const details = (extra = {}) => ({ slotCode: this.node.id, slotID, tamRequestId: request.tamRequestId,
-        cycleId: request.cycleId, renderToken, ...extra });
-      const cleanupFailedDisplayRequest = (reason) => {
-        // A stale cycle/token may still own this slot, but a replaced request must never clear its successor.
-        if (this.node._amazonDisplayRequest === request && this.node.slot === slot &&
-            this.node._slotGptApi === request.gpt && this.node._slotPubadsService === request.pubads) {
-          this.node._amazonTargetingForCycle = null;
-          const removedKeys = this.node.clearIntextAmazonTargeting(slot);
-          logIntext(`[Intext:APS:${this.node.id}] intext_apstag_display_targeting_cleanup`, details({ reason, removedKeys }));
-        }
-        request.valid = false;
-      };
       const settleOnce = (value) => {
         if (settled) return;
         settled = true;
-        if (display && (value !== "tam_done" || this.node._amazonTargetingForCycle?.request !== request)) {
-          cleanupFailedDisplayRequest(value === "tam_done" ? "tam-no-valid-result" : String(value).replace("_", "-"));
-        }
-        if (value !== "tam_done") request.valid = false;
         clearTimeout(_tamSafetyTimer);
         if (availabilityTimer) clearTimeout(availabilityTimer);
         resolve(value);
@@ -11896,7 +11667,6 @@ class IntextWaterfall {
       }, 2000);
       const tryStart = () => {
         if (settled) return;
-        if (!current()) { settleOnce("tam_stale"); return; }
         const resolution = this.node.manager.resolveIntextApstagApi();
         const aps = resolution.api;
         if (!aps) {
@@ -11909,57 +11679,17 @@ class IntextWaterfall {
           return;
         }
         try {
-          if (display) logIntext(`[Intext:APS:${this.node.id}] intext_apstag_display_request_started`, details({
-            apsSource: resolution.source, pspDetected: resolution.pspDetected, gptSource: this.node._slotGptSource,
-            slotName: configuration.slots[0].slotName,
-          }));
           aps.fetchBids(configuration, (bids) => {
-            if (settled || !current()) {
-              if (display) logIntext(`[Intext:APS:${this.node.id}] intext_apstag_display_late_callback_ignored`, details());
-              if (!settled) settleOnce("tam_stale");
-              return;
-            }
+            if (settled) return;
             try {
-              // APS may omit slot metadata. Explicit metadata must match; otherwise the current single-slot callback owns the bid.
-              const hasBids = Array.isArray(bids) && (display
-                ? bids.some((bid) => bid && (bid.slotID == null || bid.slotID === request.slotID) &&
-                    (bid.slotName == null || bid.slotName === configuration.slots[0].slotName))
-                : bids.length > 0);
+              const hasBids = Array.isArray(bids) && bids.length > 0;
               logIntext(`[Intext:Slot:${this.node.id}]   TAM: ${hasBids ? `${bids.length} bid(s) received` : "no bids"}`);
-              if (display) {
-                logIntext(`[Intext:APS:${this.node.id}] intext_apstag_display_bid_received`, details({ bidCount: hasBids ? bids.length : 0 }));
-                if (hasBids) {
-                  aps.setDisplayBids();
-                  if (!current()) { settleOnce("tam_stale"); return; }
-                  let targeting = this.node.getIntextAmazonTargeting(slot);
-                  let targetingSource = Object.keys(targeting).length ? "setDisplayBids" : "missing";
-                  if (targetingSource === "missing" && typeof aps.targetingKeys === "function") {
-                    const fallback = this.node.normalizeIntextAmazonTargeting(aps.targetingKeys()?.[request.slotID]);
-                    // Ownership comes from this current fetchBids callback with a matching bid, never from changed KV values.
-                    if (Object.keys(fallback).length && hasBids && slotID === request.slotID && current()) {
-                      Object.entries(fallback).forEach(([key, values]) => slot.setTargeting(key, values));
-                      targeting = this.node.getIntextAmazonTargeting(slot);
-                      if (Object.keys(targeting).length) {
-                        targetingSource = "targetingKeys-fallback";
-                        logIntext(`[Intext:APS:${this.node.id}] intext_apstag_display_targeting_fallback_applied`, details({ amazonTargetingKeys: Object.keys(targeting) }));
-                      }
-                    }
-                  }
-                  if (!current()) { settleOnce("tam_stale"); return; }
-                  this.node.mergeIntextTelemetry({ "gexp-intext-aps-display-targeting-source": targetingSource });
-                  if (Object.keys(targeting).length) {
-                    this.node._amazonTargetingForCycle = { request, targeting };
-                    logIntext(`[Intext:APS:${this.node.id}] intext_apstag_display_targeting_applied`, details({ targetingSource, amazonTargetingKeys: Object.keys(targeting) }));
-                  } else {
-                    warnIntext(`[Intext:APS:${this.node.id}] intext_apstag_display_targeting_missing_after_bid`, details({ targetingSource }));
-                  }
+              aps.setDisplayBids();
+              if (hasBids && typeof window !== "undefined" && window.gexpIntextDebug === true) {
+                const targeting = this.node.slot?.getTargetingMap?.() || {};
+                if (!Object.keys(targeting).some((key) => key.startsWith("amzn"))) {
+                  warnIntext(`[Intext:APS:${this.node.id}] intext_apstag_targeting_missing_after_bid`, { code: this.node.id });
                 }
-              } else {
-                aps.setDisplayBids();
-                let videoTargeting = null;
-                try { if (typeof aps.targetingKeys === "function") videoTargeting = aps.targetingKeys()?.[this.node.videoId]; } catch (_) { /* Diagnostic only. */ }
-                const available = videoTargeting && Object.keys(videoTargeting).length > 0;
-                logIntext(`[Intext:APS:${this.node.id}] intext_apstag_video_targeting_${available ? "available" : "unavailable"}`, details({ amazonTargetingKeys: available ? Object.keys(videoTargeting).filter((key) => key.startsWith("amzn")) : [] }));
               }
               settleOnce("tam_done");
             } catch (err) {
@@ -12002,8 +11732,8 @@ class IntextWaterfall {
         `[Intext:Slot:${this.node.id}] ├─ Using CACHED bids only (${bannerBids.length} banner, ${videoBids.length} video, age: ${cached.ageMs}ms)`,
       );
     } else if (this.node.manager.resolveIntextPrebidApi().api) {
-      const currentAuctionId = this._currentAuctionId;
       const pb = this.node.manager.resolveIntextPrebidApi().api;
+      const currentAuctionId = this._currentAuctionId;
       const allBids = this.getPbjsBidsSafe(code, pb)
         .filter(b => currentAuctionId ? b.auctionId === currentAuctionId : true);
 
@@ -12349,19 +12079,12 @@ class IntextWaterfall {
         trigger: requestTrigger,
       });
     }
-    const preparation = await this.node.ensureIntextDisplayGptSlot(renderToken, requestTrigger);
-    if (!this.node.isActiveRenderToken(renderToken, "_requestDisplay:slot_prepared", requestTrigger)) return false;
-    if (!preparation?.ready) { this.node.discardDisplay(); return false; }
-    if (this.node._amazonDisplayRequest) this.node._amazonDisplayRequest.valid = false;
-    this.node._amazonTargetingForCycle = null;
-    this.node.clearIntextAmazonTargeting(this.node.slot);
     const tamConfig = this.getTAMConfiguration();
     if (tamConfig) {
       logIntext(
         `[Intext:Slot:${this.node.id}] ├─ TAM Display: requesting...`,
       );
-      const tamResult = await this.executeAmazonTam(tamConfig, { format: "display", renderToken, expectedSlotId: this.node.slot.getSlotElementId() });
-      if (tamResult === "tam_stale") return "closed";
+      await this.executeAmazonTam(tamConfig);
       logIntext(
         `[Intext:Slot:${this.node.id}] ├─ TAM Display: done`,
       );
@@ -12443,7 +12166,7 @@ class IntextWaterfall {
       logIntext(
         `[Intext:Slot:${this.node.id}] ├─ TAM Video: requesting...`,
       );
-      await this.executeAmazonTam(tamVideoConfig, { format: "video", renderToken });
+      await this.executeAmazonTam(tamVideoConfig);
       logIntext(
         `[Intext:Slot:${this.node.id}] ├─ TAM Video: done`,
       );
@@ -12579,7 +12302,7 @@ class IntextWaterfall {
       : (effectiveResolution?.value ?? this.node?.manager?.getIntextRandomValue?.(selectionKey));
     let resolvedSource = effectiveResolution?.qaCookieDefault === true
       ? "qa-cookie-default"
-      : (effectiveResolution?.source || (resolvedValue !== null ? (this.node?.manager?.intextRandomSnapshot?.source || "unresolved") : null));
+      : (effectiveResolution?.source || (resolvedValue !== null ? "gexp-slot-random-snapshot" : null));
     if (resolvedValue === null && !INTEXT_RANDOM_KEYS.includes(String(selectionKey))) {
       const candidateSources = [
         {
@@ -13145,29 +12868,20 @@ class IntextWaterfall {
 
   getTAMConfiguration() {
     if (this.config.tam?.enabled === false) return null;
-    const slot = this.node.slot;
-    const slotId = slot ? slot.getSlotElementId?.() : this.node.id;
-    const configuredSlotName = this.node.manager.resolveIntextDisplayAdUnitPath(this.node.scopedContext) || "";
+    const slotId = this.node.id;
+    const slotName = this.node.manager.resolveIntextDisplayAdUnitPath(this.node.scopedContext) || "";
+    const sizes = this.getDisplaySizes().filter(
+      (s) => s !== "fluid" && s[0] > 1,
+    );
     const networkId = this.node.manager.resolveIntextRequestNetworkId(this.node.scopedContext);
-    const slotName = slot ? slot.getAdUnitPath?.() : `/${networkId}/${configuredSlotName}`;
-    const rawSizes = slot ? slot.getSizes?.() : this.getDisplaySizes();
-    const sizes = (rawSizes || []).map((size) => Array.isArray(size) ? size : [size?.getWidth?.(), size?.getHeight?.()])
-      .map(([width, height]) => [Number(width), Number(height)])
-      .filter(([width, height]) => Number.isFinite(width) && Number.isFinite(height) && width > 1 && height > 1);
-    const resolution = this.node.manager.resolveIntextGptApi();
-    const identityMatches = Boolean(slot && slotId === slot.getSlotElementId?.() && slotName === slot.getAdUnitPath?.() &&
-      this.node._slotGptApi === resolution.api && this.node._slotPubadsService === resolution.api?.pubads?.());
-    logIntext(`[Intext:APS:${this.node.id}] intext_apstag_display_slot_identity`, {
-      slotID: slotId, slotName, sizes, gptSlotElementId: slot?.getSlotElementId?.(),
-      gptAdUnitPath: slot?.getAdUnitPath?.(), gptSource: resolution.source, identityMatches,
-    });
-    if (!slotId || !slotName || !sizes.length || (slot && !identityMatches) || (!slot && (!networkId || !configuredSlotName))) return null;
+
+    if (!slotId || !slotName || !sizes.length || !networkId) return null;
 
     return {
       slots: [
         {
           slotID: slotId,
-          slotName,
+          slotName: `/${networkId}/${slotName}`,
           sizes: sizes,
         },
       ],
@@ -14179,6 +13893,8 @@ class IntextVideoCreative {
     this._adMediaCleanup = null;
     this._adMediaDiscoveryTimers = [];
     this._lastAdDuration = null;
+    this._mutedOverrideRejectedLogged = false;
+    this._videoControlsMetricRenderToken = null;
   }
 
   async render() {
@@ -14263,6 +13979,66 @@ class IntextVideoCreative {
     );
   }
 
+  resolveVideoControlsConfig() {
+    const configured =
+      this.config?.video?.controls ||
+      {};
+
+    if (
+      this.config?.video?.mutedOnStart === false &&
+      this._mutedOverrideRejectedLogged !== true &&
+      typeof window !== "undefined" &&
+      window.gexpIntextDebug === true
+    ) {
+      this._mutedOverrideRejectedLogged = true;
+      intextDebugCollector.recordMetric(
+        "intext_video_muted_override_rejected",
+        {
+          node: this.node,
+          creative: this,
+          renderToken: this._renderToken,
+          configuredMutedOnStart: false,
+          mutedOnStart: true,
+        },
+      );
+    }
+
+    return {
+      enabled:
+        configured.enabled !== false,
+
+      playPause:
+        configured.playPause !== false,
+
+      muteToggle:
+        configured.muteToggle !== false,
+
+      volumeControl:
+        configured.volumeControl !== false,
+
+      progressControl:
+        configured.progressControl !== false,
+
+      timeDisplay:
+        configured.timeDisplay !== false,
+
+      fullscreen:
+        configured.fullscreen === true,
+
+      nativePictureInPicture:
+        configured
+          .nativePictureInPicture === true,
+
+      autoHide:
+        configured.autoHide === true,
+
+      showForJsAds:
+        configured.showForJsAds !== false,
+
+      mutedOnStart: true,
+    };
+  }
+
   createVideoElement() {
     const el = document.createElement("video");
     el.id = this.playerId;
@@ -14270,6 +14046,7 @@ class IntextVideoCreative {
     el.setAttribute("playsinline", "true");
     el.setAttribute("webkit-playsinline", "true");
     el.setAttribute("muted", "");
+    el.defaultMuted = true;
     el.muted = true;
     const sourceEl = document.createElement("source");
     sourceEl.src =
@@ -14288,16 +14065,139 @@ class IntextVideoCreative {
   initVideoJS() {
     if (typeof window.videojs === "undefined") return;
 
-    this.player = window.videojs(this.videoEl, {
-      controls: true,
-      autoplay: false,
-      muted: true,
-      fluid: false,
-      width: 640,
-      height: 360,
-      controlBar: { fullscreenToggle: false },
-      errorDisplay: false,
-    });
+    const controls =
+      this.resolveVideoControlsConfig();
+
+    const volumePanelChildren = [];
+
+    if (controls.muteToggle) {
+      volumePanelChildren.push(
+        "muteToggle",
+      );
+    }
+
+    if (controls.volumeControl) {
+      volumePanelChildren.push(
+        "volumeControl",
+      );
+    }
+
+    const volumePanel =
+      volumePanelChildren.length > 0
+        ? {
+          inline: false,
+          children:
+            volumePanelChildren,
+        }
+        : false;
+
+    this.player = window.videojs(
+      this.videoEl,
+      {
+        controls: controls.enabled,
+        autoplay: false,
+        muted: true,
+        fluid: false,
+        width: 640,
+        height: 360,
+
+        inactivityTimeout:
+          controls.autoHide
+            ? 2000
+            : 0,
+
+        controlBar:
+          controls.enabled
+            ? {
+              playToggle:
+                controls.playPause,
+
+              volumePanel,
+
+              progressControl:
+                controls
+                  .progressControl,
+
+              currentTimeDisplay:
+                controls.timeDisplay,
+
+              timeDivider:
+                controls.timeDisplay,
+
+              durationDisplay:
+                controls.timeDisplay,
+
+              remainingTimeDisplay:
+                false,
+
+              fullscreenToggle:
+                controls.fullscreen,
+
+              pictureInPictureToggle:
+                controls
+                  .nativePictureInPicture,
+            }
+            : false,
+
+        errorDisplay: false,
+      },
+    );
+
+    this.player.muted(true);
+    this.player.controls(
+      controls.enabled,
+    );
+
+    if (!controls.autoHide) {
+      this.player.userActive(true);
+    }
+
+    if (
+      typeof window !== "undefined" &&
+      window.gexpIntextDebug === true &&
+      this._videoControlsMetricRenderToken !==
+      this._renderToken
+    ) {
+      this._videoControlsMetricRenderToken =
+        this._renderToken;
+      intextDebugCollector.recordMetric(
+        "video_controls_config_effective",
+        {
+          node: this.node,
+          creative: this,
+          renderToken: this._renderToken,
+          controlsEnabled: controls.enabled,
+          playPauseEnabled: controls.playPause,
+          muteToggleEnabled: controls.muteToggle,
+          volumeControlEnabled:
+            controls.volumeControl,
+          progressControlEnabled:
+            controls.progressControl,
+          timeDisplayEnabled:
+            controls.timeDisplay,
+          fullscreenEnabled:
+            controls.fullscreen,
+          nativePictureInPictureEnabled:
+            controls.nativePictureInPicture,
+          autoHideEnabled: controls.autoHide,
+          showForJsAds: controls.showForJsAds,
+          mutedOnStart: true,
+        },
+      );
+    }
+
+    this.player.on(
+      "adstart",
+      () => {
+        this.player.controls(
+          controls.enabled,
+        );
+
+        if (!controls.autoHide) {
+          this.player.userActive(true);
+        }
+      },
+    );
 
     this.player.on("error", () => {
       this.node?.setIntextPipPlaybackActive?.(false, "videojs-error");
@@ -14577,6 +14477,7 @@ class IntextVideoCreative {
           this.node._intextPipPlayerRevealed = true;
           this.node.maybeEnterIntextPipFromLastIntersection?.();
         }
+        maybePlayInitialOpenAnimation();
         settle("resolve");
       };
 
@@ -14598,6 +14499,21 @@ class IntextVideoCreative {
         if (!mediaEl) return 0;
         const currentTime = Number(mediaEl.currentTime);
         return Number.isFinite(currentTime) ? currentTime : 0;
+      };
+      const maybePlayInitialOpenAnimation = () => {
+        if (
+          !firstFrameConfirmed ||
+          !playerRevealed ||
+          !this.isRenderTokenActive(
+            "IntextVideoCreative.firstOpenAnimation",
+          )
+        ) {
+          return false;
+        }
+        return this.node?.playInitialOpenAnimation?.(
+          this.player?.el?.(),
+          "video-first-frame",
+        ) === true;
       };
       const confirmIntextFirstFrame = (source, options = {}) => {
         if (
@@ -14628,6 +14544,7 @@ class IntextVideoCreative {
         });
         this.node._intextPipFirstFrameConfirmed = true;
         this.node.maybeEnterIntextPipFromLastIntersection?.();
+        maybePlayInitialOpenAnimation();
         this._adMediaFirstFrameCleanup?.();
         return true;
       };
@@ -15081,11 +14998,21 @@ class IntextVideoCreative {
             window.google.ima.settings.setVpaidMode(window.google.ima.ImaSdkSettings.VpaidMode.INSECURE);
           }
 
+          const controls =
+            this.resolveVideoControlsConfig();
+
           const options = {
             id: this.playerId,
             showCountdown: true,
-            vpaidMode: (window.google && window.google.ima && window.google.ima.ImaSdkSettings)
-              ? window.google.ima.ImaSdkSettings.VpaidMode.INSECURE
+            disableAdControls: false,
+            showControlsForJSAds:
+              controls.showForJsAds,
+            vpaidMode: window.google?.ima
+              ?.ImaSdkSettings
+              ? window.google.ima
+                .ImaSdkSettings
+                .VpaidMode
+                .INSECURE
               : "insecure",
             autoPlayAdBreaks: true,
             debug: true,

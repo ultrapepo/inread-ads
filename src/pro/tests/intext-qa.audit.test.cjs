@@ -78,6 +78,7 @@ function managerFixture(cookie = '', random1 = '13') {
   };
   manager.baseSiteConfig = manager.siteConfig;
   manager.intextRandomSnapshot = Object.freeze({
+    source: 'gexp-owner-random',
     random1: String(random1),
     random2: '2',
     random3: '3',
@@ -308,7 +309,7 @@ test('19. sin cookies QA el comportamiento permanece normal', () => {
   assert.equal(manager.isAllowedByInclusions(), false);
   const resolution = manager.getEffectiveIntextTargetingResolution('random1');
   assert.equal(resolution.value, '13');
-  assert.equal(resolution.source, 'gexp-slot-random-snapshot');
+  assert.equal(resolution.source, 'gexp-owner-random');
 });
 
 test('20. QA no activa PIP cuando está desactivado', () => {

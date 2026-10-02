@@ -1541,6 +1541,8 @@ class RandomStrategy extends WindowArray {
     }
 }
 
+const GEXP_INTEXT_VERSION = "2026.10.02-p0-random-slot";
+if (typeof window !== "undefined") window.__gexpIntextVersion = GEXP_INTEXT_VERSION;
 const INtext_STYLE_ID = "gexp-intext-styles";
 const INtext_BASE_STYLES = `
         .gexp-intext-slot {
@@ -2329,7 +2331,7 @@ const createIntextDebugCollector = (options = {}) => {
   const getPackage = () => {
     if (!active() || !ensureActive()) return null;
     const now = Date.now();
-    return { schemaVersion: "1.0.0", generatedAt: new Date(now).toISOString(), startedAt: new Date(intextDebugLogBuffer.startedAt).toISOString(), durationMs: now - intextDebugLogBuffer.startedAt, page: getPage(), debugger: { totalEntries: intextDebugLogBuffer.entries.length, droppedEntries: intextDebugLogBuffer.droppedEntries, approximateBytes: intextDebugLogBuffer.approximateBytes }, summary: getSummary(), logs: intextDebugLogBuffer.entries.slice() };
+    return { schemaVersion: "1.0.0", generatedAt: new Date(now).toISOString(), startedAt: new Date(intextDebugLogBuffer.startedAt).toISOString(), durationMs: now - intextDebugLogBuffer.startedAt, page: getPage(), runtime: manager?.getIntextRuntimeIdentity?.() || { gexpIntextVersion: window.__gexpIntextVersion || "2026.10.02-p0-random-slot", dualMode: false, pspDetected: Boolean(window?.googletag?.__ctrl) }, debugger: { suppressedDuplicateLogs: (manager?._intextSuppressedDuplicateLogs || 0) + intextSuppressedStateLogs, totalEntries: intextDebugLogBuffer.entries.length, droppedEntries: intextDebugLogBuffer.droppedEntries, approximateBytes: intextDebugLogBuffer.approximateBytes }, summary: getSummary(), logs: intextDebugLogBuffer.entries.slice() };
   };
   const download = (content, mime, extension) => {
     const page = getPage();
@@ -2368,7 +2370,37 @@ const createIntextDebugCollector = (options = {}) => {
 
 const intextDebugCollector = createIntextDebugCollector();
 intextDebugCollector.ensureActive();
-const logIntext = (...args) => { if (window.gexpIntextDebug) { intextDebugCollector.capture("log", args); console.log(...formatLog(args, badgeLog)); } };
+// Only repeated final layout/state observations are suppressed. Auction and
+// lifecycle events continue through the ordinary Intext logger unchanged.
+const intextStateLogFingerprints = new Map();
+let intextSuppressedStateLogs = 0;
+const INTEXT_STATE_LOG_EVENTS = new Set([
+  "display_wrapper_total_height_applied", "display_wrapper_height_applied",
+  "display_300x600_visual_height_adjusted", "display_height_lock_set_600",
+  "display_height_lock_restored_600", "display_layout_classified",
+  "display_1x1_special_layout_960x540_applied", "display_1x1_expanded_layout_300x600_applied",
+  "display_special_creative_layout_applied", "display_wide_tall_layout_applied",
+  "display_wide_standard_layout_applied", "display_960x540_centered",
+  "intext_node_reset_visual_state",
+]);
+const isDuplicateIntextStateLog = (args) => {
+  const message = String(args[0] || "");
+  const match = message.match(/^(\[Intext:[^\]]+\]) (\w+)(.*)$/);
+  if (!match || !INTEXT_STATE_LOG_EVENTS.has(match[2])) return false;
+  const suffix = match[3].replace(/,?\s*source=[^,]*/g, "");
+  const payload = args.slice(1).map((value) => value && typeof value === "object"
+    ? Object.fromEntries(Object.entries(value).filter(([key]) => !["source", "reason"].includes(key)))
+    : value);
+  const key = `${match[1]} ${match[2]}`;
+  const fingerprint = JSON.stringify([suffix, payload]);
+  if (intextStateLogFingerprints.get(key) === fingerprint) {
+    intextSuppressedStateLogs += 1;
+    return true;
+  }
+  intextStateLogFingerprints.set(key, fingerprint);
+  return false;
+};
+const logIntext = (...args) => { if (window.gexpIntextDebug && !isDuplicateIntextStateLog(args)) { intextDebugCollector.capture("log", args); console.log(...formatLog(args, badgeLog)); } };
 const warnIntext = (...args) => { if (window.gexpIntextDebug) { intextDebugCollector.capture("warn", args); console.warn(...formatLog(args, badgeWarn)); } };
 const warnIntextAlways = (...args) => { if (window.gexpIntextDebug) intextDebugCollector.capture("warn", args); console.warn(...formatLog(args, badgeWarn)); };
 const errorIntext = (...args) => { if (window.gexpIntextDebug) intextDebugCollector.capture("error", args); console.error(...formatLog(args, badgeErr)); };
@@ -2378,6 +2410,7 @@ const groupEndIntext = () => { if (window.gexpIntextDebug) { intextDebugCollecto
 const INTEXT_RANDOM_KEYS = Object.freeze(["random1", "random2", "random3", "random4"]);
 const intextPrebidAliasRegistry = new WeakMap();
 const INTEXT_TELEMETRY_STANDARD_FIELDS = Object.freeze([
+  "gexp-intext-version",
   "gexp-intext-telemetry-event-type",
   "gexp-intext-opportunity-id",
   "gexp-intext-manager-event-id",
@@ -2512,6 +2545,7 @@ const INTEXT_TELEMETRY_STANDARD_FIELDS = Object.freeze([
 ]);
 
 class IntextManager {
+  static VERSION = typeof GEXP_INTEXT_VERSION !== "undefined" ? GEXP_INTEXT_VERSION : "2026.10.02-p0-random-slot";
   static INTEXT_RULE_TARGETING_READY_MAX_WAIT_MS = 600;
   static INTEXT_RULE_TARGETING_READY_POLL_MS = 25;
   static INTEXT_OWN_SLOT_STABILITY_POLLS = 2;
@@ -2615,6 +2649,7 @@ class IntextManager {
     if (this.siteConfig?.debug === true) {
       window.gexpIntextDebug = true;
     }
+    this.recordIntextRuntimeIdentity();
 
     if (!this.gexp.isEnabled()) {
       if (this.intextQaCookieOverride?.enabled === true) {
@@ -2652,18 +2687,21 @@ class IntextManager {
         if (!this.isContentTypeAllowed(this.siteConfig, this.siteContext.contentType, "[IntextManager]")) {
           return;
         }
-        const snapshot = this.captureIntextRandomSnapshot();
+        const snapshot = this.requiresIntextNativeRandom()
+          ? await this.waitForIntextRandomSnapshotReady()
+          : this.captureIntextRandomSnapshot();
+        this.recordIntextRuntimeIdentity();
         if (!this.validateIntextRandomSnapshot(snapshot)) {
           this.registerIntextManagerDecision({
             navIndex: 0,
             scope: "initial",
             decision: "blocked",
-            reason: "random-snapshot-invalid",
+            reason: "random-snapshot-unresolved",
           });
           this.registerIntextDiagnosticEvent({
-            diagnosticKey: "random-snapshot-invalid",
+            diagnosticKey: "random-snapshot-unresolved",
             "gexp-intext-decision": "blocked",
-            "gexp-intext-decision-reason": "random-snapshot-invalid",
+            "gexp-intext-decision-reason": "random-snapshot-unresolved",
           });
           return;
         }
@@ -2750,14 +2788,15 @@ class IntextManager {
       hasController: Boolean(controller),
       hasBaseObject: Boolean(controller?.baseObject),
       hasInnerObject: Boolean(controller?.innerObject),
+      usable: Boolean(api),
       selectedApiReady: api?.apiReady,
       selectedPubadsReady: api?.pubadsReady,
       defineSlotType: typeof api?.defineSlot,
       pubadsType: typeof api?.pubads,
       displayType: typeof api?.display,
     };
-    logIntext(`[Intext:GPT] intext_gpt_runtime_resolved`, diagnostic);
-    if (pspDetected) logIntext(`[Intext:GPT] intext_gpt_proxy_detected`, diagnostic);
+    this.logIntextState(`[Intext:GPT] intext_gpt_runtime_resolved`, diagnostic);
+    if (pspDetected) this.logIntextState(`[Intext:GPT] intext_gpt_proxy_detected`, diagnostic);
     return { api, source, pspDetected, proxy, controller };
   }
 
@@ -2781,8 +2820,8 @@ class IntextManager {
       requestBidsType: typeof api?.requestBids, aliasBidderType: typeof api?.aliasBidder,
       addAdUnitsType: typeof api?.addAdUnits,
     };
-    logIntext(`[Intext:Prebid] intext_prebid_runtime_resolved`, diagnostic);
-    if (pspDetected) logIntext(`[Intext:Prebid] intext_prebid_proxy_detected`, diagnostic);
+    this.logIntextState(`[Intext:Prebid] intext_prebid_runtime_resolved`, diagnostic);
+    if (pspDetected) this.logIntextState(`[Intext:Prebid] intext_prebid_proxy_detected`, diagnostic);
     if (source === "psp-real-pbjs-unavailable") logIntext(`[Intext:Prebid] intext_prebid_real_api_unavailable`, diagnostic);
     return { api, source, pspDetected, proxy, controller };
   }
@@ -2807,8 +2846,8 @@ class IntextManager {
       setDisplayBidsType: typeof api?.setDisplayBids,
       targetingKeysType: typeof api?.targetingKeys,
     };
-    logIntext(`[Intext:APS] intext_apstag_runtime_resolved`, diagnostic);
-    if (pspDetected) logIntext(`[Intext:APS] intext_apstag_proxy_detected`, diagnostic);
+    this.logIntextState(`[Intext:APS] intext_apstag_runtime_resolved`, diagnostic);
+    if (pspDetected) this.logIntextState(`[Intext:APS] intext_apstag_proxy_detected`, diagnostic);
     if (source === "psp-real-apstag-unavailable") logIntext(`[Intext:APS] intext_apstag_real_api_unavailable`, diagnostic);
     return { api, source, pspDetected, proxy, controller };
   }
@@ -3046,15 +3085,152 @@ class IntextManager {
     return String(value);
   }
 
+  logIntextState(message, payload = {}) {
+    if (typeof window === "undefined" || window.gexpIntextDebug !== true) return false;
+    this._intextStateLogFingerprints ||= new Map();
+    const fingerprint = JSON.stringify(payload);
+    if (this._intextStateLogFingerprints.get(message) === fingerprint) {
+      this._intextSuppressedDuplicateLogs = (this._intextSuppressedDuplicateLogs || 0) + 1;
+      return false;
+    }
+    this._intextStateLogFingerprints.set(message, fingerprint);
+    logIntext(message, payload);
+    return true;
+  }
+
+  getIntextRuntimeIdentity() {
+    return {
+      gexpIntextVersion: IntextManager.VERSION,
+      dualMode: this.gexp?.dualMode === true,
+      pspDetected: this.resolveIntextGptApi().pspDetected,
+      randomSource: this.intextRandomSnapshot?.source || "unresolved",
+    };
+  }
+
+  recordIntextRuntimeIdentity() {
+    if (typeof window === "undefined") return;
+    const runtime = this.getIntextRuntimeIdentity();
+    window.__gexpIntextRuntime = runtime;
+    if (window.gexpIntextDebug === true) intextDebugCollector.attachManager(this);
+    if (window.__gexpIntextRuntimeIdentityLogged || window.gexpIntextDebug !== true) return;
+    window.__gexpIntextRuntimeIdentityLogged = true;
+    logIntext("[IntextManager] intext_runtime_identity", {
+      version: runtime.gexpIntextVersion,
+      dualMode: runtime.dualMode,
+      pspDetected: runtime.pspDetected,
+      randomSource: runtime.randomSource,
+    });
+  }
+
+  requiresIntextNativeRandom() {
+    return this.gexp?.dualMode === true || this.resolveIntextGptApi().pspDetected;
+  }
+
+  readIntextRandomQuartet(target) {
+    const values = {};
+    let present = false;
+    let invalid = false;
+    INTEXT_RANDOM_KEYS.forEach((key) => {
+      const raw = target?.getTargeting?.(key);
+      const entries = Array.isArray(raw) ? raw : (raw == null ? [] : [raw]);
+      if (!entries.length) { values[key] = null; return; }
+      present = true;
+      const valid = entries.every((value) => {
+        if (typeof value !== "string" && typeof value !== "number") return false;
+        const text = String(value).trim();
+        const number = Number(text);
+        return text !== "" && Number.isInteger(number) && number >= 1 && number <= 20;
+      });
+      const normalized = valid ? entries.map((value) => String(Number(value))) : [];
+      if (!valid || normalized.some((value) => value !== normalized[0])) invalid = true;
+      values[key] = valid ? normalized[0] : null;
+    });
+    return { values, present, invalid, complete: !invalid && INTEXT_RANDOM_KEYS.every((key) => values[key] !== null) };
+  }
+
+  resolveIntextNativeRandomObservation() {
+    const runtime = this.resolveIntextGptApi();
+    const empty = { candidate: null, conflict: false, usableSlots: false, fingerprint: null, referenceSlotIds: [] };
+    if (!runtime.api) return empty;
+    try {
+      const pubads = runtime.api.pubads();
+      const slots = this.filterIntextNativeGptSlots(pubads.getSlots(), null, true);
+      const observed = slots.map((slot) => ({
+        id: String(slot.getSlotElementId()),
+        ...this.readIntextRandomQuartet(slot),
+      })).sort((a, b) => a.id.localeCompare(b.id));
+      const complete = observed.filter((slot) => slot.complete);
+      const candidate = complete[0]?.values || null;
+      const conflict = observed.some((slot) => slot.invalid || (candidate && INTEXT_RANDOM_KEYS.some(
+        (key) => slot.values[key] !== null && slot.values[key] !== candidate[key],
+      )));
+      return {
+        candidate: conflict ? null : candidate,
+        conflict,
+        usableSlots: observed.some((slot) => slot.present),
+        // Logical slot identity and quartet, independent of getSlots() ordering.
+        fingerprint: JSON.stringify({ ids: observed.map((slot) => slot.id), quartet: candidate, conflict }),
+        observed,
+        referenceSlotIds: complete.map((slot) => slot.id),
+        pubads,
+      };
+    } catch (e) { return empty; }
+  }
+
+  waitForIntextRandomSnapshotReady(options = {}) {
+    if (this.intextRandomSnapshot) return Promise.resolve(this.intextRandomSnapshot);
+    if (this._intextRandomReadinessPromise) return this._intextRandomReadinessPromise;
+    this._intextRandomReadinessPromise = this.resolveIntextRandomSnapshotReady(options);
+    return this._intextRandomReadinessPromise;
+  }
+
+  async resolveIntextRandomSnapshotReady(options = {}) {
+    const now = options.now || (() => Date.now());
+    const wait = options.wait || ((ms) => new Promise((resolve) => setTimeout(resolve, ms)));
+    const startedAt = now();
+    let previous = null;
+    let observation;
+    while (true) {
+      observation = this.resolveIntextNativeRandomObservation();
+      if (observation.conflict) {
+        logIntext("[IntextManager] intext_random_native_slot_conflict", { observed: observation.observed });
+      }
+      if (observation.candidate && observation.fingerprint === previous) {
+        this.intextRandomReferenceSlotIds = Object.freeze(observation.referenceSlotIds.slice());
+        this.intextRandomSnapshot = Object.freeze({ ...observation.candidate, source: "gpt-native-slot-targeting" });
+        return this.intextRandomSnapshot;
+      }
+      previous = observation.candidate ? observation.fingerprint : null;
+      const elapsed = now() - startedAt;
+      if (elapsed >= IntextManager.INTEXT_RULE_TARGETING_READY_MAX_WAIT_MS) break;
+      await wait(Math.min(IntextManager.INTEXT_RULE_TARGETING_READY_POLL_MS,
+        IntextManager.INTEXT_RULE_TARGETING_READY_MAX_WAIT_MS - elapsed));
+    }
+    // Never let page targeting hide native targeting or a conflicting cohort.
+    if (!observation.usableSlots && !observation.conflict) {
+      try {
+        const page = this.readIntextRandomQuartet(observation.pubads);
+        if (page.complete) {
+          this.intextRandomSnapshot = Object.freeze({ ...page.values, source: "gpt-page-targeting-fallback" });
+          return this.intextRandomSnapshot;
+        }
+      } catch (e) { }
+    }
+    logIntext("[IntextManager] intext_random_snapshot_unresolved", { reason: "random-snapshot-unresolved" });
+    this.intextRandomSnapshot = Object.freeze({ random1: "", random2: "", random3: "", random4: "", source: "unresolved" });
+    return this.intextRandomSnapshot;
+  }
+
   captureIntextRandomSnapshot() {
     if (this.intextRandomSnapshot) return this.intextRandomSnapshot;
+    if (this.requiresIntextNativeRandom()) return null;
     try {
       this.intextRandomSnapshot = Object.freeze({
         random1: String(this.gexp.getRandom(1)),
         random2: String(this.gexp.getRandom(2)),
         random3: String(this.gexp.getRandom(3)),
         random4: String(this.gexp.getRandom(4)),
-        source: "gexp-slot-random-snapshot",
+        source: "gexp-owner-random",
       });
     } catch (e) {
       this.intextRandomSnapshot = Object.freeze({
@@ -3062,7 +3238,7 @@ class IntextManager {
         random2: "",
         random3: "",
         random4: "",
-        source: "gexp-slot-random-snapshot",
+        source: "unresolved",
       });
     }
     return this.intextRandomSnapshot;
@@ -3082,6 +3258,32 @@ class IntextManager {
   validateIntextRandomSnapshotStability(context = "runtime") {
     const snapshot = this.intextRandomSnapshot;
     if (!this.validateIntextRandomSnapshot(snapshot)) return false;
+    if (this.requiresIntextNativeRandom()) {
+      const observation = this.resolveIntextNativeRandomObservation();
+      let current = observation.candidate;
+      if (!observation.usableSlots && !observation.conflict && snapshot.source === "gpt-page-targeting-fallback") {
+        try {
+          const page = this.readIntextRandomQuartet(observation.pubads);
+          if (page.complete) current = page.values;
+        } catch (e) { }
+      }
+      if (!current && !observation.conflict) return false; // Not ready is not canonical drift.
+      const stable = !observation.conflict && INTEXT_RANDOM_KEYS.every((key) => current?.[key] === snapshot[key]);
+      if (!stable) {
+        const fingerprint = JSON.stringify({ current, observed: observation.observed });
+        this._intextCanonicalDriftFingerprints ||= new Set();
+        if (!this._intextCanonicalDriftFingerprints.has(fingerprint)) {
+          this._intextCanonicalDriftFingerprints.add(fingerprint);
+          logIntext("[IntextManager] intext_random_canonical_drift", { context, expected: snapshot, observed: observation.observed });
+          this.registerIntextDiagnosticEvent({
+            diagnosticKey: `intext_random_canonical_drift:${fingerprint}`,
+            "gexp-intext-random-expected": JSON.stringify(snapshot),
+            "gexp-intext-random-observed": fingerprint,
+          });
+        }
+      }
+      return stable;
+    }
     let current = null;
     try {
       current = {
@@ -3132,18 +3334,25 @@ class IntextManager {
     return Array.from(new Set(normalized));
   }
 
+  filterIntextNativeGptSlots(slots, rootElement = null, requireIdentity = false) {
+    if (!Array.isArray(slots)) return [];
+    return slots.filter((slot) => {
+      const id = String(slot?.getSlotElementId?.() || "");
+      if ((requireIdentity && !id) || /^gexp-intext(?:-|$)/i.test(id)) return false;
+      if (this.nodes?.some((node) => node.id === id || node.videoId === id)) return false;
+      const element = typeof document !== "undefined" ? document.getElementById?.(id) : null;
+      if (rootElement && !(element && rootElement.contains(element))) return false;
+      if (element?.classList?.contains("gexp-intext-slot")) return false;
+      const positions = [slot?.getTargeting?.("p"), slot?.getTargeting?.("position")].flat();
+      return !positions.some((value) => /^gexp-intext(?:-|$)/i.test(String(value)));
+    });
+  }
+
   getIntextNativeGptSlots(rootElement = null) {
     try {
       const pubads = this.resolveIntextGptApi().api?.pubads?.();
       const slots = pubads?.getSlots?.();
-      if (!Array.isArray(slots)) return [];
-      return slots.filter((slot) => {
-        const slotElementId = String(slot?.getSlotElementId?.() || "");
-        if (/^gexp-intext(?:-|$)/.test(slotElementId)) return false;
-        if (!rootElement) return true;
-        const element = slotElementId ? document.getElementById(slotElementId) : null;
-        return Boolean(element && rootElement.contains(element));
-      });
+      return this.filterIntextNativeGptSlots(slots, rootElement);
     } catch (e) { return []; }
   }
 
@@ -3668,7 +3877,7 @@ class IntextManager {
       });
     };
     if (INTEXT_RANDOM_KEYS.includes(normalizedKey)) {
-      add("gexp-slot-random-snapshot", this.getIntextRandomValue(normalizedKey));
+      add((this.intextRandomSnapshot?.source || "unresolved"), this.getIntextRandomValue(normalizedKey));
     } else {
       add("context.targeting", context?.targeting?.[normalizedKey]);
       add("data.customTargeting", typeof data !== "undefined" ? data?.customTargeting?.[normalizedKey] : undefined);
@@ -3703,6 +3912,7 @@ class IntextManager {
     // The gexp-intext-randomN-effective fields are the canonical Intext
     // analysis values. Bare randomN fields remain for compatibility only.
     return {
+      "gexp-intext-version": IntextManager.VERSION,
       "gexp-intext-random-source": String(snapshot.source || "unresolved"),
       "gexp-intext-random1-effective": String(snapshot.random1 || ""),
       "gexp-intext-random2-effective": String(snapshot.random2 || ""),
@@ -3922,6 +4132,16 @@ class IntextManager {
   }
 
   recordIntextNetworkDebug(metric, payload = {}) {
+    if (typeof window === "undefined" || window.gexpIntextDebug !== true) return;
+    if (metric !== "intext_network_force_invalid") {
+      this._intextNetworkLogFingerprints ||= new Map();
+      const fingerprint = JSON.stringify(payload);
+      if (this._intextNetworkLogFingerprints.get(metric) === fingerprint) {
+        this._intextSuppressedDuplicateLogs = (this._intextSuppressedDuplicateLogs || 0) + 1;
+        return;
+      }
+      this._intextNetworkLogFingerprints.set(metric, fingerprint);
+    }
     if (typeof window !== "undefined" && window.gexpIntextDebug === true) {
       intextDebugCollector.recordMetric(metric, {
         manager: this,
@@ -4041,7 +4261,7 @@ class IntextManager {
       detectedNetworkId,
       requestNetworkId,
     });
-    logIntext(`[IntextManager] ${debugMetric}`, {
+    this.logIntextState(`[IntextManager] ${debugMetric}`, {
       mode,
       source,
       configuredNetworkId,
@@ -4634,7 +4854,7 @@ class IntextManager {
     const snapshotValue = this.getIntextRandomValue(key);
     if (INTEXT_RANDOM_KEYS.includes(String(key))) {
       return snapshotValue !== null
-        ? { value: snapshotValue, source: "gexp-slot-random-snapshot" }
+        ? { value: snapshotValue, source: (this.intextRandomSnapshot?.source || "unresolved") }
         : { value: null, source: "random-snapshot-unresolved" };
     }
     const readFromMap = (map) => {
@@ -8581,11 +8801,9 @@ class IntextNode {
   filterIntextTelemetryForCI(payload = {}) {
     const mode = this.getIntextTelemetryMode();
     if (mode === "debug") {
-      logIntext(`[Intext:Telemetry:${this.id}] intext_telemetry_debug_passthrough`, {
-        keys: Object.keys(payload).length,
-      });
       return {
         ...payload,
+        "gexp-intext-version": IntextManager.VERSION,
         "gexp-intext-telemetry-mode": "debug",
         "gexp-intext-telemetry-filtered": "false",
       };
@@ -8597,6 +8815,7 @@ class IntextNode {
       if (allowlist.has(key)) filtered[key] = value;
     });
     const didFilter = Object.keys(filtered).length < Object.keys(payload).length;
+    filtered["gexp-intext-version"] = IntextManager.VERSION;
     filtered["gexp-intext-telemetry-mode"] = "standard";
     filtered["gexp-intext-telemetry-filtered"] = String(didFilter);
     logIntext(`[Intext:Telemetry:${this.id}] intext_telemetry_standard_filter_applied`, {
@@ -9249,7 +9468,7 @@ class IntextNode {
 
   readIntextPageKv(key) {
     if (INTEXT_RANDOM_KEYS.includes(String(key))) {
-      return { value: this.manager?.getIntextRandomValue?.(key), source: "gexp-slot-random-snapshot" };
+      return { value: this.manager?.getIntextRandomValue?.(key), source: (this.manager?.intextRandomSnapshot?.source || "unresolved") };
     }
     const readFromMap = (map) => {
       if (!map || typeof map !== "object") return null;
@@ -9569,7 +9788,7 @@ class IntextNode {
       const fallbackValue = fallbackTargeting[key];
       if (preferredValue !== undefined && preferredValue !== null && preferredValue !== "") {
         finalTargeting[key] = String(preferredValue);
-        if (snapshotValue !== null) sourceLabels.push(`${key}:gexp-slot-random-snapshot`);
+        if (snapshotValue !== null) sourceLabels.push(`${key}:${this.manager?.intextRandomSnapshot?.source || "unresolved"}`);
       } else if (fallbackValue !== undefined && fallbackValue !== null && fallbackValue !== "") {
         finalTargeting[key] = String(fallbackValue);
       }
@@ -9713,7 +9932,7 @@ class IntextNode {
       const fallbackValue = fallbackTargeting[key];
       if (preferredValue !== undefined && preferredValue !== null && preferredValue !== "") {
         finalTargeting[key] = String(preferredValue);
-        if (snapshotValue !== null) sourceLabels.push(`${key}:gexp-slot-random-snapshot`);
+        if (snapshotValue !== null) sourceLabels.push(`${key}:${this.manager?.intextRandomSnapshot?.source || "unresolved"}`);
       } else if (fallbackValue !== undefined && fallbackValue !== null && fallbackValue !== "") {
         finalTargeting[key] = String(fallbackValue);
       }
@@ -11022,6 +11241,13 @@ class IntextNode {
           slotEl.setAttribute("data-gpt-displayed", "true");
         }
 
+        if (!this.isActiveRenderToken(renderToken, "askDisplay:before_refresh", trigger)) {
+          settleOnce({ filled: false, event: null, stale: true });
+          return;
+        }
+        this.assertIntextRandomSnapshotOnSlot(this.slot, "immediately-before-gpt-refresh");
+        this.preserveIntextAmazonTargetingForCurrentCycle(amazonTargetingForCycle, renderToken, "before-refresh");
+
         const allAmazonTargeting = this.getIntextAmazonTargeting(this.slot);
         const rawAmznKeys = Object.keys(allAmazonTargeting);
         const beforeRefreshTargeting = this.getDisplayGamRequestTargetingFinal(this.slot);
@@ -11048,12 +11274,6 @@ class IntextNode {
           `[Intext:Display:${this.id}] display_gam_request_targeting_final`,
           { ...this.getDisplayGamRequestTargetingFinal(this.slot), allAmazonTargeting, rawAmznKeys },
         );
-        if (!this.isActiveRenderToken(renderToken, "askDisplay:before_refresh", trigger)) {
-          settleOnce({ filled: false, event: null, stale: true });
-          return;
-        }
-        this.assertIntextRandomSnapshotOnSlot(this.slot, "immediately-before-gpt-refresh");
-        this.preserveIntextAmazonTargetingForCurrentCycle(amazonTargetingForCycle, renderToken);
         pubads.refresh([this.slot]);
         } catch (error) {
           warnIntext(`[Intext:GPT:${this.id}] intext_gpt_command_failed`, {
@@ -14007,7 +14227,7 @@ class IntextWaterfall {
       : (effectiveResolution?.value ?? this.node?.manager?.getIntextRandomValue?.(selectionKey));
     let resolvedSource = effectiveResolution?.qaCookieDefault === true
       ? "qa-cookie-default"
-      : (effectiveResolution?.source || (resolvedValue !== null ? "gexp-slot-random-snapshot" : null));
+      : (effectiveResolution?.source || (resolvedValue !== null ? (this.node?.manager?.intextRandomSnapshot?.source || "unresolved") : null));
     if (resolvedValue === null && !INTEXT_RANDOM_KEYS.includes(String(selectionKey))) {
       const candidateSources = [
         {
