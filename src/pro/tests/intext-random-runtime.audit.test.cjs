@@ -73,6 +73,7 @@ function harness(file, options = {}) {
 }
 
 for (const file of ['IntextManager.js', '_gam_kv_.js']) {
+  const hardDeadline = file === '_gam_kv_.js' ? 2000 : 600;
   const check = (name, fn) => test(`${file}: ${name}`, fn);
   check('native=4 / GEXP=8 / Intext=4; immutable canonical reference, read only', async () => {
     const h = harness(file); const snapshot = await h.resolve();
@@ -113,7 +114,7 @@ for (const file of ['IntextManager.js', '_gam_kv_.js']) {
     assert.equal(manager.intextRandomSnapshot.random1, conflict ? '' : '4');
     assert.equal(h.calls.wrappers, inclusion === '4' && !conflict ? 1 : 0);
     if (conflict) {
-      assert.equal(h.elapsed(), 600);
+      assert.equal(h.elapsed(), hardDeadline);
       assert.ok(h.logs.some(args => args[0] === 'decision' && args[1].reason === 'random-snapshot-unresolved'));
     }
     for (const kind of ['prebid', 'aps', 'gpt', 'video', 'gexp', 'proxy']) assert.equal(h.calls[kind], 0, kind);
@@ -122,10 +123,12 @@ for (const file of ['IntextManager.js', '_gam_kv_.js']) {
     const h = harness(file, { slots: [slot('native-r', [])], tick: (time, slots) => { if (time === 75) slots[0].values = quartet; } });
     assert.equal((await h.resolve()).random1, '4'); assert.equal(h.elapsed(), 100); assert.equal(h.calls.gexp, 0);
   });
-  check('conflict waits 600ms and page fallback cannot mask it', async () => {
+  check(`conflict waits ${hardDeadline}ms and page fallback cannot mask it`, async () => {
     const h = harness(file, { slots: [slot('a'), slot('b', [8, 12, 16, 8])], page: quartet });
-    assert.equal((await h.resolve()).source, 'unresolved'); assert.equal(h.elapsed(), 600);
-    assert.ok(h.logs.filter(args => String(args[0]).includes('intext_random_native_slot_conflict')).length > 1);
+    assert.equal((await h.resolve()).source, 'unresolved'); assert.equal(h.elapsed(), hardDeadline);
+    const conflictLogs = h.logs.filter(args => String(args[0]).includes('intext_random_native_slot_conflict'));
+    if (file === '_gam_kv_.js') assert.equal(conflictLogs.length, 1);
+    else assert.ok(conflictLogs.length > 1);
     assert.equal(h.calls.gexp, 0);
   });
   check('conflict can stabilize inside readiness', async () => {
@@ -145,7 +148,7 @@ for (const file of ['IntextManager.js', '_gam_kv_.js']) {
   check('page fallback only after timeout with no usable native targeting', async () => {
     for (const slots of [[], [slot('empty', [])]]) {
       const h = harness(file, { slots, page: quartet });
-      assert.equal((await h.resolve()).source, 'gpt-page-targeting-fallback'); assert.equal(h.elapsed(), 600);
+      assert.equal((await h.resolve()).source, 'gpt-page-targeting-fallback'); assert.equal(h.elapsed(), hardDeadline);
       assert.equal(h.calls.gexp, 0);
     }
   });
@@ -246,6 +249,220 @@ for (const file of ['IntextManager.js', '_gam_kv_.js']) {
     assert.equal(h.logs.filter(args => String(args[0]).includes('intext_network_force_invalid')).length, 3);
   });
 }
+
+const conflictLogs = h => h.logs.filter(args => String(args[0]).includes('intext_random_native_slot_conflict'));
+const randomEvents = (h, name) => h.window.gexpIntextDebugTools.getLogs().filter(entry => entry.message === `[IntextManager] ${name}`).map(entry => entry.args[0]);
+
+test('random readiness PSP: production case resolves at 875ms after soft deadline', async () => {
+  const h = harness('_gam_kv_.js', {
+    slots: [slot('native-r', [])],
+    tick: (time, slots) => {
+      if (time === 600 || time === 800) {
+        assert.equal(h.manager.intextRandomSnapshot, undefined);
+        assert.equal(randomEvents(h, 'intext_random_snapshot_unresolved').length, 0);
+      }
+      if (time === 850) slots[0].values = quartet;
+    },
+  });
+  const pending = h.resolve();
+  assert.equal(h.resolve(), pending);
+  const snapshot = await pending;
+  assert.equal(snapshot.source, 'gpt-native-slot-targeting');
+  assert.equal(h.elapsed(), 875);
+  assert.equal(h.calls.gexp, 0);
+  const events = randomEvents(h, 'intext_random_readiness_completed');
+  assert.equal(events.length, 1);
+  assert.deepEqual(JSON.parse(JSON.stringify(events[0])), {
+    elapsedMs: 875, source: 'gpt-native-slot-targeting', nativeSlots: 1,
+    slotsWithAnyRandom: 1, completeSlots: 1, conflict: false, enteredGraceWindow: true,
+  });
+  assert.equal(randomEvents(h, 'intext_random_snapshot_unresolved').length, 0);
+  h.native[0].values = [8, 17, 3, 11];
+  await h.readiness.wait(2000);
+  assert.equal(await h.resolve(), snapshot);
+  assert.ok(Object.isFrozen(snapshot));
+  assert.equal(randomEvents(h, 'intext_random_readiness_completed').length, 1);
+});
+
+test('random readiness PSP: fast path resolves at 75ms without grace', async () => {
+  const h = harness('_gam_kv_.js', { slots: [slot('native-r', [])], tick: (time, slots) => {
+    if (time === 50) slots[0].values = quartet;
+  } });
+  assert.equal((await h.resolve()).source, 'gpt-native-slot-targeting');
+  assert.equal(h.elapsed(), 75);
+  assert.equal(randomEvents(h, 'intext_random_readiness_completed')[0].enteredGraceWindow, false);
+  assert.equal(h.calls.gexp, 0);
+});
+
+test('random readiness PSP: late stable quartet resolves immediately throughout grace', async () => {
+  for (const stableAt of [425, 975, 1650, 2000]) {
+    const h = harness('_gam_kv_.js', { slots: [slot('native-r', [])], tick: (time, slots) => {
+      if (time === stableAt - 25) slots[0].values = quartet;
+    } });
+    assert.equal((await h.resolve()).source, 'gpt-native-slot-targeting');
+    assert.equal(h.elapsed(), stableAt);
+    assert.equal(randomEvents(h, 'intext_random_readiness_completed')[0].enteredGraceWindow, stableAt >= 600);
+  }
+});
+
+test('random readiness PSP: hard timeout blocks real constructor and all downstream work', async () => {
+  const h = harness('_gam_kv_.js', { slots: [slot('native-r', [4, 12])], page: quartet });
+  const p = h.Manager.prototype;
+  p.getSiteContext = () => h.manager.siteContext;
+  p.resolveSiteConfig = () => h.manager.siteConfig;
+  p.extractStaticAdUnitPath = () => '/99071977/test/n';
+  p.resolveIntextRequestNetworkId = () => '99071977';
+  p.resolveAdUnit = () => true;
+  p.detectContentType = () => 'noticia';
+  p.resolveContentTypeProfile = config => config;
+  p.isContentTypeAllowed = () => true;
+  p.isBlockedByExclusionsAfterTargetingReady = async () => false;
+  p.shouldBlockIntextByFallbackBlankControl = () => false;
+  p.registerIntextManagerDecision = h.manager.registerIntextManagerDecision;
+  p.registerIntextDiagnosticEvent = h.manager.registerIntextDiagnosticEvent;
+  p.createIntextPositions = () => {
+    for (const kind of ['wrappers', 'prebid', 'aps', 'gpt', 'video']) h.calls[kind]++;
+    return { placed: 1 };
+  };
+  const originalWait = p.waitForIntextRandomSnapshotReady;
+  p.waitForIntextRandomSnapshotReady = function () { return originalWait.call(this, h.readiness); };
+  const manager = new h.Manager({}, h.manager.gexp);
+  await h.commands[0]();
+  assert.equal(h.elapsed(), 2000);
+  assert.equal(manager.intextRandomSnapshot.source, 'unresolved');
+  assert.ok(h.logs.some(args => args[0] === 'decision' && args[1].decision === 'blocked' && args[1].reason === 'random-snapshot-unresolved'));
+  for (const kind of ['wrappers', 'prebid', 'aps', 'gpt', 'video', 'gexp', 'proxy']) assert.equal(h.calls[kind], 0, kind);
+  const unresolved = randomEvents(h, 'intext_random_snapshot_unresolved');
+  assert.equal(unresolved.length, 1);
+  assert.deepEqual(JSON.parse(JSON.stringify(unresolved[0])), {
+    reason: 'random-snapshot-unresolved', elapsedMs: 2000, nativeSlots: 1,
+    slotsWithAnyRandom: 1, completeSlots: 0, conflict: false, enteredGraceWindow: true,
+    observedKeysBySlot: [{ slotId: 'native-r', keys: ['random1', 'random2'] }],
+  });
+  assert.equal(randomEvents(h, 'intext_random_readiness_completed').length, 0);
+});
+
+test('random readiness PSP: conflict fails closed at hard deadline with one conflict log', async () => {
+  const h = harness('_gam_kv_.js', { slots: [slot('a'), slot('b', [8, 12, 16, 8])], page: quartet });
+  assert.equal((await h.resolve()).source, 'unresolved');
+  assert.equal(h.elapsed(), 2000);
+  assert.equal(conflictLogs(h).length, 1);
+  const event = randomEvents(h, 'intext_random_snapshot_unresolved')[0];
+  assert.equal(event.conflict, true);
+  assert.equal(event.completeSlots, 2);
+  assert.equal(event.enteredGraceWindow, true);
+  assert.equal(randomEvents(h, 'intext_random_readiness_completed').length, 0);
+  assert.equal(h.calls.gexp, 0);
+});
+
+test('random readiness: legacy owner random remains synchronous without grace', () => {
+  const h = harness('_gam_kv_.js', { psp: false });
+  assert.equal(h.manager.requiresIntextNativeRandom(), false);
+  const snapshot = h.manager.captureIntextRandomSnapshot();
+  assert.equal(snapshot.source, 'gexp-owner-random');
+  assert.equal(h.elapsed(), 0);
+  assert.equal(h.calls.gexp, 4);
+  assert.equal(h.manager.captureIntextRandomSnapshot(), snapshot);
+  assert.equal(randomEvents(h, 'intext_random_readiness_completed').length, 0);
+});
+
+test('random readiness PSP: page fallback only at hard deadline without native random', async () => {
+  const h = harness('_gam_kv_.js', { slots: [slot('empty', [])], page: quartet });
+  assert.equal((await h.resolve()).source, 'gpt-page-targeting-fallback');
+  assert.equal(h.elapsed(), 2000);
+  const event = randomEvents(h, 'intext_random_readiness_completed')[0];
+  assert.equal(event.source, 'gpt-page-targeting-fallback');
+  assert.equal(event.nativeSlots, 1);
+  assert.equal(event.slotsWithAnyRandom, 0);
+  assert.equal(event.completeSlots, 0);
+  assert.equal(event.conflict, false);
+  assert.equal(event.enteredGraceWindow, true);
+});
+
+const layoutLogs = h => h.window.gexpIntextDebugTools.getLogs().filter(entry => entry.message.includes('display_wrapper_total_height_applied'));
+function emitLayout(h, details = {}) {
+  h.context.layoutDetails = { contentHeight: 250, totalHeight: 270, ...details };
+  vm.runInContext("logIntext('[Intext:Display:gexp-intext] display_wrapper_total_height_applied', layoutDetails)", h.context);
+}
+function attachLayoutNode(h) {
+  const node = { id: 'gexp-intext', _intextTelemetryCycleId: 1, _activeRenderToken: 1 };
+  h.manager.nodes.push(node);
+  h.manager.recordIntextRuntimeIdentity();
+  return node;
+}
+
+test('Intext diagnostics: identical random conflict across 20 polls logs once', async () => {
+  const h = harness('_gam_kv_.js', {
+    slots: [slot('a'), slot('b', [8, 12, 16, 8])],
+    tick: (time, slots) => { if (time === 500) slots[1].values = quartet; },
+  });
+  assert.equal((await h.resolve()).source, 'gpt-native-slot-targeting');
+  assert.equal(h.elapsed(), 525);
+  assert.equal(conflictLogs(h).length, 1);
+});
+
+test('Intext diagnostics: changed conflicting values or slot identity log again', async () => {
+  const h = harness('_gam_kv_.js', {
+    slots: [slot('a'), slot('b', [8, 12, 16, 8])],
+    tick: (time, slots) => {
+      slots.reverse();
+      const conflicting = slots.find(s => s.id !== 'a');
+      if (time === 250) conflicting.values = [9, 12, 16, 8];
+      if (time === 500) conflicting.id = 'c';
+    },
+  });
+  assert.equal((await h.resolve()).source, 'unresolved');
+  assert.equal(h.elapsed(), 2000);
+  assert.equal(conflictLogs(h).length, 3);
+});
+
+test('Intext diagnostics: runtime identity waits for definitive initial random', async () => {
+  const h = harness('_gam_kv_.js');
+  h.manager.recordIntextRuntimeIdentity();
+  assert.equal(h.window.__gexpIntextRuntime.randomSource, 'unresolved');
+  assert.equal(h.logs.filter(args => String(args[0]).includes('intext_runtime_identity')).length, 0);
+  await h.resolve();
+  h.manager.recordIntextRuntimeIdentity(); h.manager.recordIntextRuntimeIdentity();
+  const entries = h.window.gexpIntextDebugTools.getLogs().filter(entry => entry.message.includes('intext_runtime_identity'));
+  assert.equal(entries.length, 1);
+  assert.equal(entries[0].args[0].randomSource, 'gpt-native-slot-targeting');
+});
+
+test('Intext diagnostics: identical visual state in same explicit render dedupes guards', () => {
+  const h = harness('_gam_kv_.js');
+  for (const source of ['post_guard_300', 'post_guard_900', 'post_guard_1500']) {
+    emitLayout(h, { slotId: 'gexp-intext', cycleId: 1, renderToken: 1, source });
+  }
+  assert.equal(layoutLogs(h).length, 1);
+});
+
+test('Intext diagnostics: same layout in new node cycle or render logs again', () => {
+  const h = harness('_gam_kv_.js'); const node = attachLayoutNode(h);
+  emitLayout(h); emitLayout(h);
+  node._activeRenderToken = 2;
+  emitLayout(h); emitLayout(h);
+  node._intextTelemetryCycleId = 2;
+  emitLayout(h); emitLayout(h);
+  assert.equal(layoutLogs(h).length, 3);
+});
+
+test('Intext diagnostics: clear resets fingerprints and suppression counters', () => {
+  const h = harness('_gam_kv_.js'); attachLayoutNode(h);
+  emitLayout(h); emitLayout(h);
+  h.manager.logIntextState('[IntextManager] test_state', { ready: true });
+  h.manager.logIntextState('[IntextManager] test_state', { ready: true });
+  assert.equal(vm.runInContext('intextSuppressedStateLogs', h.context), 1);
+  assert.equal(h.manager._intextSuppressedDuplicateLogs, 1);
+  assert.equal(h.window.gexpIntextDebugTools.clear(), true);
+  assert.equal(vm.runInContext('intextStateLogFingerprints.size', h.context), 0);
+  assert.equal(vm.runInContext('intextSuppressedStateLogs', h.context), 0);
+  assert.equal(h.manager._intextStateLogFingerprints.size, 0);
+  assert.equal(h.manager._intextSuppressedDuplicateLogs, 0);
+  assert.equal(h.window.gexpIntextDebugTools.getLogs().length, 0);
+  emitLayout(h);
+  assert.equal(layoutLogs(h).length, 1);
+  assert.equal(h.manager.logIntextState('[IntextManager] test_state', { ready: true }), true);
+});
 
 test('bundle scope: exterior code matches the CURRENT baseline across checkout line endings', () => {
   const source = fs.readFileSync(path.join(root, '_gam_kv_.js'), 'utf8');
