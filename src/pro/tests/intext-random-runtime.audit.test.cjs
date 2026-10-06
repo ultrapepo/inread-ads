@@ -4,11 +4,12 @@ const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
 const crypto = require('node:crypto');
+const { execFileSync } = require('node:child_process');
 
 const root = path.resolve(__dirname, '..');
 const keys = ['random1', 'random2', 'random3', 'random4'];
 const quartet = [4, 12, 16, 8];
-const version = '2026.10.02-p0-random-slot';
+const version = '2026.10.05-p1-prebid-audit.2';
 function between(source, start, end) {
   const from = source.indexOf(start), to = source.indexOf(end, from);
   assert.ok(from >= 0 && to > from, `missing boundaries ${start}/${end}`);
@@ -253,6 +254,23 @@ for (const file of ['IntextManager.js', '_gam_kv_.js']) {
 const conflictLogs = h => h.logs.filter(args => String(args[0]).includes('intext_random_native_slot_conflict'));
 const randomEvents = (h, name) => h.window.gexpIntextDebugTools.getLogs().filter(entry => entry.message === `[IntextManager] ${name}`).map(entry => entry.args[0]);
 
+test('native Prebid audit export retains bidder targeting, scoped deals and GPT arrays', () => {
+  const h = harness('_gam_kv_.js');
+  const Waterfall = vm.runInContext(between(h.source, 'class IntextWaterfall', 'class IntextVideoCreative') + '; IntextWaterfall', h.context);
+  const targeting = { hb_pb: '0.27', hb_bidder: 'IX', hb_source: 's2s', hb_deal_IX: ['deal'] };
+  const waterfall = Object.create(Waterfall.prototype);
+  waterfall.node = { id: 'intext', _intextTelemetryCycleId: 7, _activeRenderToken: 1,
+    slot: { getTargetingMap: () => ({ hb_pb: ['0.27'], hb_deal_IX: ['deal'] }) } };
+  waterfall.recordIntextPrebidNativeTargetingAudit({ getAdserverTargetingForAdUnitCode: () => targeting },
+    { code: 'intext' }, 'auction', [{ cpm: 0.27, currency: 'USD', bidderCode: 'IX', adserverTargeting: targeting }], null);
+  const audit = h.window.gexpIntextDebugTools.getLogs().find(entry => entry.message.endsWith(' intext_prebid_native_targeting_after_set_audit')).args[0];
+  assert.equal(audit.winnerCandidate.adserverTargeting.hb_pb, '0.27');
+  assert.equal(audit.rawBannerBids[0].adserverTargeting.hb_pb, '0.27');
+  assert.equal(audit.rawBannerBids[0].adserverTargeting.hb_deal_IX[0], 'deal');
+  assert.equal(audit.pbjsTargeting.hb_deal_IX[0], 'deal');
+  assert.equal(audit.gptSlotTargeting.hb_deal_IX[0], 'deal');
+});
+
 test('random readiness PSP: production case resolves at 875ms after soft deadline', async () => {
   const h = harness('_gam_kv_.js', {
     slots: [slot('native-r', [])],
@@ -305,6 +323,31 @@ test('random readiness PSP: late stable quartet resolves immediately throughout 
   }
 });
 
+for (const file of ['_gam_kv_.js', 'IntextManager.js']) test(`${file}: eight complete slots with a changing fingerprint fail closed with stability evidence`, async () => {
+  const slots = Array.from({ length: 8 }, (_, index) => slot(`native-${index}`));
+  const h = harness(file, { slots, tick(time, native) {
+    for (const slot of native) slot.values = [time % 50 === 0 ? 4 : 5, 12, 16, 8];
+  } });
+  assert.equal((await h.resolve()).source, 'unresolved');
+  assert.equal(h.elapsed(), file === '_gam_kv_.js' ? 2000 : 600);
+  const audit = randomEvents(h, 'intext_random_snapshot_unresolved')[0];
+  assert.equal(audit.reasonDetail, 'candidate-not-stable-at-hard-timeout');
+  assert.equal(audit.nativeSlots, 8); assert.equal(audit.slotsWithAnyRandom, 8);
+  assert.equal(audit.completeSlots, 8); assert.equal(audit.conflict, false);
+  assert.notEqual(audit.currentFingerprint, audit.previousFingerprint);
+  assert.equal(audit.currentCandidate.random1, '4'); assert.equal(audit.previousCandidate.random1, '5');
+  assert.equal(audit.stableConsecutiveObservations, 1); assert.equal(audit.requiredStableObservations, 2);
+  assert.equal(audit.stabilityStatus, 'candidate-not-stable');
+  assert.equal(audit.referenceSlotIds.length, 8);
+  assert.equal(audit.quartetsBySlot.length, 8);
+  for (const entry of audit.quartetsBySlot) {
+    assert.deepEqual(keys.map(key => entry.quartet[key]), quartet.map(String));
+    assert.equal(entry.complete, true); assert.equal(entry.invalid, false);
+  }
+  assert.equal(h.calls.gexp, 0); assert.ok(h.native.every(slot => slot.writes === 0));
+  assert.equal(randomEvents(h, 'intext_random_readiness_completed').length, 0);
+});
+
 test('random readiness PSP: hard timeout blocks real constructor and all downstream work', async () => {
   const h = harness('_gam_kv_.js', { slots: [slot('native-r', [4, 12])], page: quartet });
   const p = h.Manager.prototype;
@@ -334,11 +377,15 @@ test('random readiness PSP: hard timeout blocks real constructor and all downstr
   for (const kind of ['wrappers', 'prebid', 'aps', 'gpt', 'video', 'gexp', 'proxy']) assert.equal(h.calls[kind], 0, kind);
   const unresolved = randomEvents(h, 'intext_random_snapshot_unresolved');
   assert.equal(unresolved.length, 1);
-  assert.deepEqual(JSON.parse(JSON.stringify(unresolved[0])), {
+  const compact = Object.fromEntries(['reason', 'elapsedMs', 'nativeSlots', 'slotsWithAnyRandom', 'completeSlots',
+    'conflict', 'enteredGraceWindow', 'observedKeysBySlot'].map(key => [key, JSON.parse(JSON.stringify(unresolved[0]))[key]]));
+  assert.deepEqual(compact, {
     reason: 'random-snapshot-unresolved', elapsedMs: 2000, nativeSlots: 1,
     slotsWithAnyRandom: 1, completeSlots: 0, conflict: false, enteredGraceWindow: true,
     observedKeysBySlot: [{ slotId: 'native-r', keys: ['random1', 'random2'] }],
   });
+  assert.equal(unresolved[0].reasonDetail, 'no-candidate-at-hard-timeout');
+  assert.equal(unresolved[0].stableConsecutiveObservations, 0);
   assert.equal(randomEvents(h, 'intext_random_readiness_completed').length, 0);
 });
 
@@ -349,6 +396,7 @@ test('random readiness PSP: conflict fails closed at hard deadline with one conf
   assert.equal(conflictLogs(h).length, 1);
   const event = randomEvents(h, 'intext_random_snapshot_unresolved')[0];
   assert.equal(event.conflict, true);
+  assert.equal(event.reasonDetail, 'conflict-at-hard-timeout');
   assert.equal(event.completeSlots, 2);
   assert.equal(event.enteredGraceWindow, true);
   assert.equal(randomEvents(h, 'intext_random_readiness_completed').length, 0);
@@ -466,9 +514,13 @@ test('Intext diagnostics: clear resets fingerprints and suppression counters', (
 
 test('bundle scope: exterior code matches the CURRENT baseline across checkout line endings', () => {
   const source = fs.readFileSync(path.join(root, '_gam_kv_.js'), 'utf8');
+  // Compare with the independent repository baseline, not obsolete exterior hash literals.
+  const baseline = process.env.INTEXT_FLOOR_AUDIT_BASELINE
+    ? fs.readFileSync(process.env.INTEXT_FLOOR_AUDIT_BASELINE, 'utf8')
+    : execFileSync('git', ['show', 'HEAD:src/pro/_gam_kv_.js'], { cwd: root, encoding: 'utf8', maxBuffer: 5e6 });
   const prefix = source.slice(0, source.indexOf('const GEXP_INTEXT_VERSION'));
   const suffix = source.slice(source.indexOf('class WPromise'));
   const hash = text => crypto.createHash('sha256').update(text.replace(/\r\n/g, '\n')).digest('hex');
-  assert.equal(hash(prefix), 'aecd4e7c4e9d2cd9b80115845ffa72435e666455c94264162bfdac4bd6537f5c');
-  assert.equal(hash(suffix), '1cde1c02edbc17f66be896943faa2e460aed3b61e32dfe21da74b90884fdad25');
+  assert.equal(hash(prefix), hash(baseline.slice(0, baseline.indexOf('const GEXP_INTEXT_VERSION'))));
+  assert.equal(hash(suffix), hash(baseline.slice(baseline.indexOf('class WPromise'))));
 });

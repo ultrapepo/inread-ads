@@ -1504,7 +1504,7 @@ class RandomStrategy extends WindowArray {
   }
 }
 
-const GEXP_INTEXT_VERSION = "2026.10.02-p0-random-slot.2";
+const GEXP_INTEXT_VERSION = "2026.10.05-p1-prebid-audit.2";
 if (typeof window !== "undefined") window.__gexpIntextVersion = GEXP_INTEXT_VERSION;
 const INtext_STYLE_ID = "gexp-intext-styles";
 const INtext_BASE_STYLES = `
@@ -1941,6 +1941,7 @@ const createIntextDebugCollector = (options = {}) => {
       groupDepth: intextDebugLogBuffer.groupDepth,
       message,
       args: (hasMessage ? values.slice(1) : values).map((item) => serializeIntextLogValue(item,
+        message.endsWith(" intext_prebid_native_targeting_after_set_audit") ? { maxDepth: 5 } :
         message === "[IntextManager] intext_random_snapshot_unresolved" ? { maxDepth: 4 } : {})),
     });
     if (kind === "group") intextDebugLogBuffer.groupDepth += 1;
@@ -2295,7 +2296,7 @@ const createIntextDebugCollector = (options = {}) => {
   const getPackage = () => {
     if (!active() || !ensureActive()) return null;
     const now = Date.now();
-    return { schemaVersion: "1.0.0", generatedAt: new Date(now).toISOString(), startedAt: new Date(intextDebugLogBuffer.startedAt).toISOString(), durationMs: now - intextDebugLogBuffer.startedAt, page: getPage(), runtime: manager?.getIntextRuntimeIdentity?.() || { gexpIntextVersion: window.__gexpIntextVersion || "2026.10.02-p0-random-slot2", dualMode: false, pspDetected: Boolean(window?.googletag?.__ctrl) }, debugger: { suppressedDuplicateLogs: (manager?._intextSuppressedDuplicateLogs || 0) + intextSuppressedStateLogs, totalEntries: intextDebugLogBuffer.entries.length, droppedEntries: intextDebugLogBuffer.droppedEntries, approximateBytes: intextDebugLogBuffer.approximateBytes }, summary: getSummary(), logs: intextDebugLogBuffer.entries.slice() };
+    return { schemaVersion: "1.0.0", generatedAt: new Date(now).toISOString(), startedAt: new Date(intextDebugLogBuffer.startedAt).toISOString(), durationMs: now - intextDebugLogBuffer.startedAt, page: getPage(), runtime: manager?.getIntextRuntimeIdentity?.() || { gexpIntextVersion: window.__gexpIntextVersion || "2026.10.05-p1-prebid-audit.2", dualMode: false, pspDetected: Boolean(window?.googletag?.__ctrl) }, debugger: { suppressedDuplicateLogs: (manager?._intextSuppressedDuplicateLogs || 0) + intextSuppressedStateLogs, totalEntries: intextDebugLogBuffer.entries.length, droppedEntries: intextDebugLogBuffer.droppedEntries, approximateBytes: intextDebugLogBuffer.approximateBytes }, summary: getSummary(), logs: intextDebugLogBuffer.entries.slice() };
   };
   const download = (content, mime, extension) => {
     const page = getPage();
@@ -2520,7 +2521,7 @@ const INTEXT_TELEMETRY_STANDARD_FIELDS = Object.freeze([
 ]);
 
 class IntextManager {
-  static VERSION = typeof GEXP_INTEXT_VERSION !== "undefined" ? GEXP_INTEXT_VERSION : "2026.10.02-p0-random-slot2";
+  static VERSION = typeof GEXP_INTEXT_VERSION !== "undefined" ? GEXP_INTEXT_VERSION : "2026.10.05-p1-prebid-audit.2";
   static INTEXT_RULE_TARGETING_READY_MAX_WAIT_MS = 600;
   static INTEXT_RANDOM_READY_SOFT_WAIT_MS = 600;
   static INTEXT_RANDOM_READY_HARD_WAIT_MS = 2000;
@@ -3171,6 +3172,8 @@ class IntextManager {
     let previous = null;
     let previousConflictFingerprint = null;
     let observation;
+    let previousCandidate = null, previousFingerprint = null;
+    let currentPreviousCandidate = null, stableConsecutiveObservations = 0;
     const readinessDiagnostics = () => ({
       elapsedMs: now() - startedAt,
       nativeSlots: observation.observed?.length || 0,
@@ -3188,6 +3191,11 @@ class IntextManager {
           logIntext("[IntextManager] intext_random_native_slot_conflict", { observed: observation.observed });
         }
       }
+      // Diagnostic counters retain the preceding observation before the existing update.
+      previousFingerprint = previous;
+      currentPreviousCandidate = previousCandidate;
+      stableConsecutiveObservations = observation.candidate
+        ? (observation.fingerprint === previous ? stableConsecutiveObservations + 1 : 1) : 0;
       if (observation.candidate && observation.fingerprint === previous) {
         this.intextRandomReferenceSlotIds = Object.freeze(observation.referenceSlotIds.slice());
         this.intextRandomSnapshot = Object.freeze({ ...observation.candidate, source: "gpt-native-slot-targeting" });
@@ -3196,6 +3204,7 @@ class IntextManager {
         });
         return this.intextRandomSnapshot;
       }
+      previousCandidate = observation.candidate ? { ...observation.candidate } : null;
       previous = observation.candidate ? observation.fingerprint : null;
       const elapsed = now() - startedAt;
       if (elapsed >= IntextManager.INTEXT_RANDOM_READY_HARD_WAIT_MS) break;
@@ -3217,6 +3226,15 @@ class IntextManager {
     }
     logIntext("[IntextManager] intext_random_snapshot_unresolved", {
       reason: "random-snapshot-unresolved",
+      reasonDetail: observation.conflict ? "conflict-at-hard-timeout"
+        : observation.candidate ? "candidate-not-stable-at-hard-timeout" : "no-candidate-at-hard-timeout",
+      currentCandidate: observation.candidate ?? null, currentFingerprint: observation.fingerprint ?? null,
+      previousFingerprint, previousCandidate: currentPreviousCandidate,
+      stableConsecutiveObservations, requiredStableObservations: 2,
+      stabilityStatus: observation.candidate ? "candidate-not-stable" : "no-candidate",
+      referenceSlotIds: observation.referenceSlotIds || [],
+      quartetsBySlot: (observation.observed || []).map(slot => ({ slotId: slot.id, quartet: { ...slot.values },
+        complete: slot.complete, invalid: slot.invalid, present: slot.present })),
       ...readinessDiagnostics(),
       observedKeysBySlot: (observation.observed || []).map((slot) => ({ slotId: slot.id, keys: slot.keys })),
     });
@@ -9959,6 +9977,138 @@ class IntextNode {
     };
   }
 
+  captureIntextGexpFloorRuntime(renderToken) {
+    const gexp = this.manager?.gexp;
+    const wa = this.wa || this.waterfall?.wa || gexp?.windows?.[this.id];
+    let gexpEnabled = null, gexpEnabledType = "unknown", gexpEnabledError = null;
+    try {
+      const value = gexp?.isEnabled?.();
+      gexpEnabled = value ?? null;
+      gexpEnabledType = typeof value;
+    } catch (e) { gexpEnabledType = "error"; gexpEnabledError = e?.message || String(e); }
+    // These GEXP predicates only read configuration and slot identity.
+    let gexpShouldHandleSlot = null, gexpShouldHandleSlotError = null;
+    try { gexpShouldHandleSlot = gexp?.shouldHandleSlot?.(this.slot) ?? null; }
+    catch (e) { gexpShouldHandleSlotError = e?.message || String(e); }
+    const targeting = this.getSlotTargetingMapSafe(this.slot);
+    const keys = Object.keys(targeting);
+    return {
+      slotId: this.id, cycleId: this._intextTelemetryCycleId ?? null, renderToken,
+      gexpEnabled, gexpEnabledType, gexpEnabledError, gexpIsEnabled: gexpEnabled,
+      gexpShouldHandleSlot, gexpShouldHandleSlotError,
+      gexpRuntimeEnabled: gexp?.enabled ?? null, gexpConfiguredEnabled: gexp?.cfg?.enabled ?? null,
+      gexpInitialized: gexp?.initialized ?? null, gexpErrored: gexp?.errored ?? null,
+      dualMode: gexp?.dualMode ?? null, gexpRandom1Observed: gexp?.random1 ?? null,
+      slotPosition: this.slot?.__position ?? targeting.p ?? null, windowPosition: wa?.position ?? null,
+      windowExists: Boolean(wa), effectivePrice: wa?.effectivePrice ?? null,
+      effectivePriceIndex: wa?.effectivePriceIndex ?? null, windowStart: wa?.state?.windowStart ?? null,
+      lastPrice: wa?.state?.lastPrice ?? null, lastPriceIndex: wa?.state?.lastPriceIndex ?? null,
+      nFloorChanges: wa?.state?.nFloorChanges ?? null,
+      slotGexpFloor: targeting.gexp_floor ?? null, slotRndp: targeting.rndp ?? null, slotSj: targeting.sj ?? null,
+      slotGexpError: targeting.gexp_error ?? null,
+      hasGexpFloor: targeting.gexp_floor !== undefined && targeting.gexp_floor !== null && targeting.gexp_floor !== "",
+      targetingKeys: keys.slice(0, 80), targetingKeyCount: keys.length, targetingKeysTruncated: keys.length > 80,
+    };
+  }
+
+  beginIntextGexpFloorAudit(renderToken) {
+    if (!window.gexpIntextDebug) return null;
+    try {
+      const prebid = this.waterfall?._intextPrebidFloorAudit;
+      const key = JSON.stringify([this.id, this._intextTelemetryCycleId, renderToken, prebid?.auditId]);
+      if (this._intextGexpFloorAuditLastKey === key) return null;
+      const before = this.captureIntextGexpFloorRuntime(renderToken);
+      const audit = { before, renderToken, prebidAuditId: prebid?.auditId ?? null,
+        prebidEffectiveFloor: prebid?.effectiveFloor ?? null };
+      this._intextGexpFloorAuditLastKey = key;
+      logIntext(`[Intext:Display:${this.id}] intext_gexp_floor_before_request`, {
+        ...before, prebidAuditId: audit.prebidAuditId, existingSlotGexpFloor: before.slotGexpFloor,
+      });
+      return audit;
+    } catch (e) { return null; }
+  }
+
+  recordIntextGexpFloorAuditStage(audit, stage, targeting = null) {
+    if (!audit || !window.gexpIntextDebug) return;
+    try {
+      if (stage === "afterRequest") {
+        audit.after = this.captureIntextGexpFloorRuntime(audit.renderToken);
+        audit.after.floorWriteObservation = !audit.after.hasGexpFloor ? "absent-after-request"
+          : !audit.before.hasGexpFloor ? "introduced-during-gexp-request"
+            : audit.before.slotGexpFloor === audit.after.slotGexpFloor ? "unchanged-value-write-unconfirmed" : "changed-during-gexp-request";
+        logIntext(`[Intext:Display:${this.id}] intext_gexp_floor_after_request`, {
+          ...audit.after, prebidAuditId: audit.prebidAuditId,
+        });
+      } else {
+        const map = targeting || this.getSlotTargetingMapSafe(this.slot);
+        audit[stage] = map.gexp_floor ?? null;
+      }
+    } catch (e) { audit.diagnosticError = true; }
+  }
+
+  finishIntextGexpFloorAudit(audit) {
+    if (!audit || !window.gexpIntextDebug || audit.finished) return {};
+    try {
+      audit.finished = true;
+      const beforeRefresh = this.getSlotTargetingMapSafe(this.slot).gexp_floor ?? null;
+      const after = audit.after;
+      const present = value => value !== null && value !== undefined && value !== "";
+      const number = value => {
+        if (typeof value === "number") return Number.isFinite(value) && value >= 0 ? value : null;
+        if (typeof value !== "string" || !/^(?:\d+(?:\.\d*)?|\.\d+)$/.test(value.trim())) return null;
+        return Number.isFinite(Number(value)) ? Number(value) : null;
+      };
+      let status = "unknown";
+      if (!audit.diagnosticError && after) {
+        if (!present(after.slotGexpFloor)) {
+          if (after.gexpRuntimeEnabled === false) status = "not-produced-gexp-runtime-disabled";
+          else if (after.gexpIsEnabled === false || after.gexpConfiguredEnabled === false) status = "not-produced-gexp-config-disabled";
+          else if (after.gexpShouldHandleSlot === false) status = "not-produced-slot-not-handled";
+          else if (String(after.gexpRandom1Observed) === "19") status = "not-produced-test-random-19";
+          else if (after.gexpErrored === true || [true, "true", 1, "1"].includes(after.slotGexpError)) status = "not-produced-gexp-error";
+          else if (after.windowExists === false) status = "not-produced-window-missing";
+          else status = "not-produced-unexpected";
+        } else if (![audit.resolvedFinalTargeting, audit.afterReapply, beforeRefresh].every(present)) {
+          status = "lost-during-intext-targeting-rebuild";
+        } else {
+          const values = [after.effectivePrice, after.slotGexpFloor, audit.resolvedFinalTargeting, audit.afterReapply, beforeRefresh];
+          const numbers = values.map(number);
+          if (numbers.every(value => value !== null)) status = numbers.every(value => value === numbers[0]) ? "propagated" : "value-mismatch";
+        }
+      }
+      const prebidNumber = number(audit.prebidEffectiveFloor);
+      const postGexpNumbers = [after?.effectivePrice, after?.slotGexpFloor].map(number);
+      const prebidVsPostGexpFloorRelation = prebidNumber === null || postGexpNumbers.some(value => value === null)
+        ? "unknown" : postGexpNumbers.every(value => value === prebidNumber) ? "same" : "different";
+      const payload = {
+        slotId: this.id, cycleId: audit.before.cycleId, renderToken: audit.renderToken,
+        prebidAuditId: audit.prebidAuditId, prebidEffectiveFloor: audit.prebidEffectiveFloor,
+        gexpEnabled: after?.gexpEnabled ?? audit.before.gexpEnabled,
+        gexpEnabledType: after?.gexpEnabledType ?? audit.before.gexpEnabledType,
+        gexpRuntimeEnabled: after?.gexpRuntimeEnabled ?? audit.before.gexpRuntimeEnabled,
+        gexpConfiguredEnabled: after?.gexpConfiguredEnabled ?? audit.before.gexpConfiguredEnabled,
+        gexpIsEnabled: after?.gexpIsEnabled ?? null, gexpShouldHandleSlot: after?.gexpShouldHandleSlot ?? null,
+        gexpShouldHandleSlotError: after?.gexpShouldHandleSlotError ?? null,
+        gexpRandom1Observed: after?.gexpRandom1Observed ?? null, gexpErrored: after?.gexpErrored ?? null,
+        slotGexpError: after?.slotGexpError ?? null, windowExists: after?.windowExists ?? null,
+        gexpFloorPropagationStatus: status, prebidVsPostGexpFloorRelation,
+        effectivePrice: after?.effectivePrice ?? null, effectivePriceIndex: after?.effectivePriceIndex ?? null,
+        floorWriteObservation: after?.floorWriteObservation ?? "unknown",
+        beforeRequest: audit.before.slotGexpFloor, afterGexpRequest: after?.slotGexpFloor ?? null,
+        resolvedFinalTargeting: audit.resolvedFinalTargeting ?? null, afterClear: audit.afterClear ?? null,
+        afterReapply: audit.afterReapply ?? null, beforeRefresh,
+        gexpFloorAfterGexpRequest: after?.slotGexpFloor ?? null,
+        gexpFloorInResolvedFinalTargeting: audit.resolvedFinalTargeting ?? null,
+        gexpFloorAfterClear: audit.afterClear ?? null, gexpFloorAfterReapply: audit.afterReapply ?? null,
+        gexpFloorImmediatelyBeforeRefresh: beforeRefresh, status,
+      };
+      logIntext(`[Intext:Display:${this.id}] intext_gexp_floor_propagation_audit`, payload);
+      return { prebidAuditId: audit.prebidAuditId, gexpFloorPropagation: payload, gexpEffectivePrice: payload.effectivePrice,
+        gexpEffectivePriceIndex: payload.effectivePriceIndex, slotGexpFloor: beforeRefresh,
+        prebidEffectiveFloor: audit.prebidEffectiveFloor, gexpFloorPropagationStatus: status, prebidVsPostGexpFloorRelation };
+    } catch (e) { return {}; }
+  }
+
   applyDisplayRequestTargeting(slot, targetingMap = {}) {
     if (!slot || typeof slot.setTargeting !== "function") return;
     Object.entries(targetingMap).forEach(([key, value]) => {
@@ -10059,6 +10209,7 @@ class IntextNode {
     }
 
     logIntext(`[Intext:Display:${this.id}] display_hb_targeting_built`, {
+      prebidAuditId: this.waterfall?.recordIntextPrebidWinnerTargetingAudit?.(bidResponse, hbTargeting) ?? null,
       winnerBidder: hbTargeting.hb_bidder || bidResponse.bidderCode || null,
       winnerPb: hbTargeting.hb_pb || null,
       biddersIncluded,
@@ -10892,12 +11043,15 @@ class IntextNode {
               "gexp-intext-is-fallback": isFallback ? "true" : "false",
               "gexp-intext-fallback": isFallback ? "true" : "false",
             });
+            const gexpFloorAudit = this.beginIntextGexpFloorAudit?.(renderToken);
             this.manager.gexp.request(this.slot);
+            this.recordIntextGexpFloorAuditStage?.(gexpFloorAudit, "afterRequest");
             this.ensureIntextCycleTelemetryIdentity();
             this.applyIntextRandomSnapshotToSlot(this.slot);
             this.assertIntextRandomSnapshotOnSlot(this.slot, "after-gexp-request");
             const postCoreSlotTargeting = this.getSlotTargetingMapSafe(this.slot);
             const finalDisplayTargeting = this.resolveDisplayRequestTargeting(postCoreSlotTargeting);
+            this.recordIntextGexpFloorAuditStage?.(gexpFloorAudit, "resolvedFinalTargeting", finalDisplayTargeting.targeting);
 
             finalDisplayTargeting.targeting["gexp-intext"] = "true";
             finalDisplayTargeting.targeting["gexp-intext-position"] = this.id;
@@ -10919,7 +11073,9 @@ class IntextNode {
             }
 
             this.clearDisplayRequestTargeting(this.slot, "display_request_targeting_cleared_keys_post_core");
+            this.recordIntextGexpFloorAuditStage?.(gexpFloorAudit, "afterClear");
             this.applyDisplayRequestTargeting(this.slot, finalDisplayTargeting.targeting);
+            this.recordIntextGexpFloorAuditStage?.(gexpFloorAudit, "afterReapply");
             this.applyDisplayBidTargeting(this.slot, bidResponse, this.waterfall?._lastCurrentBannerBids);
             this.applyIntextRandomSnapshotToSlot(this.slot);
             this.assertIntextRandomSnapshotOnSlot(this.slot, "after-final-display-targeting");
@@ -11275,7 +11431,9 @@ class IntextNode {
 
             logIntext(
               `[Intext:Display:${this.id}] display_gam_request_targeting_final`,
-              { ...this.getDisplayGamRequestTargetingFinal(this.slot), allAmazonTargeting, rawAmznKeys },
+              { ...this.getDisplayGamRequestTargetingFinal(this.slot), allAmazonTargeting, rawAmznKeys,
+                ...this.finishIntextGexpFloorAudit?.(gexpFloorAudit),
+                ...this.waterfall?.getIntextPrebidGamAudit?.(bidResponse) },
             );
             pubads.refresh([this.slot]);
           } catch (error) {
@@ -13281,11 +13439,354 @@ class IntextWaterfall {
     });
   }
 
+  // Diagnostic only: never call getFloor, convert currency, or change a bid/request.
+  intextAuditNumber(value) {
+    if (typeof value === "number") return Number.isFinite(value) && value >= 0 ? value : null;
+    if (typeof value !== "string" || !/^(?:\d+(?:\.\d*)?|\.\d+)$/.test(value.trim())) return null;
+    const number = Number(value);
+    return Number.isFinite(number) && number >= 0 ? number : null;
+  }
+
+  intextAuditCopy(value, depth = 0) {
+    if (value == null) return null;
+    if (typeof value === "number" && !Number.isFinite(value)) return { invalidNumber: String(value) };
+    if (["string", "number", "boolean"].includes(typeof value)) return value;
+    if (typeof value !== "object" || depth > 5) return "[unavailable]";
+    if (Array.isArray(value)) return value.slice(0, 40).map(v => this.intextAuditCopy(v, depth + 1));
+    return Object.fromEntries(Object.keys(value).slice(0, 40).map(key => [key, this.intextAuditCopy(value[key], depth + 1)]));
+  }
+
+  intextAuditFloorFields(value, depth = 0) {
+    if (!value || typeof value !== "object" || depth > 5) return {};
+    const result = {};
+    Object.keys(value).forEach(key => {
+      if (/floor/i.test(key) && typeof value[key] !== "function") result[key] = this.intextAuditCopy(value[key]);
+      else if (value[key] && typeof value[key] === "object") {
+        const nested = this.intextAuditFloorFields(value[key], depth + 1);
+        if (Object.keys(nested).length) result[key] = nested;
+      }
+    });
+    return result;
+  }
+
+  intextAuditFloorsSnapshot(floors, code) {
+    if (!floors) return null;
+    const data = floors.data;
+    const entries = Object.entries(data?.values || {}).filter(([key]) =>
+      key.split(data?.schema?.delimiter || "|").some(part => part === code || part === "*"));
+    return this.intextAuditCopy({
+      enabled: floors.enabled ?? null,
+      enforcement: Object.fromEntries(["enforceJS", "enforcePBS", "floorDeals", "bidAdjustment"]
+        .map(key => [key, floors.enforcement?.[key] ?? null])),
+      skipRate: floors.skipRate ?? data?.skipRate ?? null, floorMin: floors.floorMin ?? null,
+      endpointConfigured: Boolean(floors.endpoint),
+      currency: data?.currency ?? null, schema: data?.schema ?? null,
+      values: Object.fromEntries(entries.slice(0, 30)), relevantValueCount: entries.length,
+      valuesTruncated: entries.length > 30, modelVersion: data?.modelVersion ?? null,
+    });
+  }
+
+  emitIntextPrebidAudit(audit, event, payload) {
+    if (!audit || !window.gexpIntextDebug || audit.events.has(event)) return;
+    audit.events.add(event);
+    logIntext(`[Intext:Prebid:${audit.slotId}] ${event}`, {
+      auditId: audit.auditId, slotId: audit.slotId, cycleId: audit.cycleId,
+      renderToken: audit.renderToken, auctionId: audit.auctionId ?? null, ...payload,
+    });
+  }
+
+  startIntextPrebidFloorAudit(configuration, pb) {
+    this._intextPrebidFloorAudit = null;
+    if (!window.gexpIntextDebug || !configuration?.mediaTypes?.banner) return null;
+    try {
+      const write = this._intextPrebidFloorWriteAudit;
+      const config = this._intextPrebidFloorConfigAudit;
+      const registered = Array.isArray(pb.adUnits) ? pb.adUnits.find(unit => unit.code === configuration.code) : null;
+      const unit = registered || configuration;
+      const gexpFloor = this.node.slot?.getTargeting?.("gexp_floor") ?? null;
+      const audit = {
+        auditId: `${this.node.id}:prebid:${Date.now()}:${IntextWaterfall._intextPrebidAuditSeq = (IntextWaterfall._intextPrebidAuditSeq || 0) + 1}`,
+        slotId: this.node.id, cycleId: this.node._intextTelemetryCycleId ?? null,
+        renderToken: this.node._activeRenderToken ?? null, adUnitCode: configuration.code,
+        effectiveFloor: this.intextAuditNumber(write?.value), floorSource: write?.source || "missing",
+        floorCurrency: config?.sent?.currency ?? null,
+        floorEnforcementObserved: config?.observedAfterSet?.enforcement ?? null,
+        floorEnforcementSource: config?.observedAfterSet ? "pb.getConfig(floors)" : "unknown",
+        floorRuleComparable: JSON.stringify(config?.sent?.schema?.fields) === JSON.stringify(["adUnitCode", "mediaType"])
+          && (config?.sent?.schema?.delimiter || "|") === "|",
+        events: new Set(), bids: [], auctionId: null,
+      };
+      this._intextPrebidFloorAudit = audit;
+      this.emitIntextPrebidAudit(audit, "intext_prebid_floor_audit_start", {
+        gexpFloor: Array.isArray(gexpFloor) && gexpFloor.length === 1 ? gexpFloor[0] : this.intextAuditCopy(gexpFloor),
+        effectiveFloor: audit.effectiveFloor, floorSource: audit.floorSource, floorCurrency: audit.floorCurrency,
+        floorCandidates: this.intextAuditCopy({ effectivePrice: this.wa?.effectivePrice,
+          lastPrice: this.wa?.state?.lastPrice, windowStart: this.wa?.state?.windowStart,
+          windowStartPrice: this.wa?.array?.[this.wa?.state?.windowStart], selected: write }),
+        configuredFloor: unit.floors?.floorMin ?? unit.floors?.default ?? null,
+        adUnitCode: unit.code, sizes: this.intextAuditCopy(unit.mediaTypes?.banner?.sizes ?? unit.sizes),
+        mediaTypes: this.intextAuditCopy(unit.mediaTypes), auctionTimeout: this.getPrebidTimeout(),
+      });
+      this.emitIntextPrebidAudit(audit, "intext_prebid_floor_request_snapshot", {
+        adUnitCode: unit.code, snapshotSource: registered ? "pb.adUnits" : "addAdUnits(configuration)",
+        sizes: this.intextAuditCopy(unit.mediaTypes?.banner?.sizes ?? unit.sizes), mediaTypes: this.intextAuditCopy(unit.mediaTypes),
+        bidders: (unit.bids || []).map(bid => ({ bidder: bid.bidder, mediaTypes: this.intextAuditCopy(bid.mediaTypes),
+          floorFields: this.intextAuditFloorFields(bid), getFloorAvailable: typeof bid.getFloor === "function" })),
+        floorFields: this.intextAuditFloorFields(unit),
+        getFloorAvailable: typeof unit.getFloor === "function", getFloorCalledByAudit: false, getFloorResult: null,
+        floorsConfig: this.intextAuditCopy(config), floorsEnforcementConfirmed: null,
+      });
+      return audit;
+    } catch (e) { return null; }
+  }
+
+  intextPrebidBidAudit(bid, audit) {
+    const rawCpm = bid?.cpm ?? null;
+    const cpm = this.intextAuditNumber(rawCpm);
+    const floorData = this.intextAuditCopy(Object.fromEntries([
+      "floorValue", "floorCurrency", "floorRule", "floorRuleValue", "cpmAfterAdjustments", "enforcements", "matchedFields", "skipped",
+    ].filter(key => bid?.floorData?.[key] !== undefined).map(key => [key, bid.floorData[key]])));
+    const comparable = cpm !== null && audit?.effectiveFloor !== null && audit?.effectiveFloor !== undefined
+      && bid.mediaType === "banner" && audit.floorRuleComparable && typeof bid.currency === "string" && bid.currency === audit.floorCurrency;
+    const observedFloor = this.intextAuditNumber(floorData.floorValue);
+    const floorObserved = observedFloor;
+    const applicableFloorPresent = bid?.floorData?.floorValue !== undefined && bid?.floorData?.floorValue !== null;
+    const observedComparable = observedFloor !== null && cpm !== null && bid.mediaType === "banner"
+      && typeof bid.currency === "string" && bid.currency === floorData.floorCurrency;
+    const rawCpmAboveRequestedFloor = comparable ? cpm >= audit.effectiveFloor : null;
+    const rawCpmAboveApplicableFloor = observedComparable ? cpm >= observedFloor : null;
+    const comparisonComparable = applicableFloorPresent ? observedComparable : comparable;
+    const comparisonFloor = applicableFloorPresent ? observedFloor : audit?.effectiveFloor;
+    const requestedVsApplicableFloorRelation = observedFloor === null || audit?.effectiveFloor == null
+      || floorData.floorCurrency !== audit.floorCurrency ? "unknown"
+      : observedFloor === audit.effectiveFloor ? "same" : "different";
+    const buckets = Object.fromEntries(["pbMg", "pbAg", "pbLg", "pbDg", "pbCg", "pbHg"]
+      .filter(key => bid?.[key] !== undefined).map(key => [key, bid[key]]));
+    const targeting = bid?.adserverTargeting || {};
+    const diagnosticValue = value => {
+      if (Array.isArray(value)) {
+        for (const entry of value) { const resolved = diagnosticValue(entry); if (resolved !== null) return resolved; }
+        return null;
+      }
+      return (typeof value === "string" && value.trim()) || (typeof value === "number" && Number.isFinite(value)) ? value : null;
+    };
+    const hbDeal = diagnosticValue(targeting.hb_deal);
+    const scopedDeals = Object.entries(targeting).filter(([key, value]) => key.startsWith("hb_deal_") && diagnosticValue(value) !== null)
+      .map(([key, value]) => ({ key, value: diagnosticValue(value) }));
+    const dealId = diagnosticValue(bid?.dealId) ?? hbDeal ?? scopedDeals[0]?.value ?? null;
+    const hbSource = diagnosticValue(targeting.hb_source);
+    const isDeal = dealId !== null;
+    const observedBoolean = key => typeof floorData.enforcements?.[key] === "boolean" ? floorData.enforcements[key]
+      : typeof audit?.floorEnforcementObserved?.[key] === "boolean" ? audit.floorEnforcementObserved[key] : null;
+    const floorDealsObserved = observedBoolean("floorDeals");
+    const floorDealsObservedSource = typeof floorData.enforcements?.floorDeals === "boolean" ? "bid.floorData.enforcements.floorDeals"
+      : typeof audit?.floorEnforcementObserved?.floorDeals === "boolean" ? "pb.getConfig(floors).enforcement.floorDeals" : "unknown";
+    const enforceJS = observedBoolean("enforceJS"), enforcePBS = observedBoolean("enforcePBS");
+    const floorEnforcementStatus = floorData.skipped === true ? "skipped-observed"
+      : enforceJS === false && enforcePBS === false ? "disabled-observed"
+        : enforceJS === true || enforcePBS === true ? "enabled-observed" : "unknown";
+    let floorComparisonStatus = !comparisonComparable
+      ? (cpm !== null && comparisonFloor != null && bid.mediaType === "banner"
+        ? "currency-not-comparable" : "floor-not-comparable")
+      : cpm >= comparisonFloor ? "above-floor" : "below-floor";
+    if (floorComparisonStatus === "below-floor") {
+      if (isDeal && floorDealsObserved === false) floorComparisonStatus = "deal-exempt-observed";
+      else if (isDeal && floorDealsObserved !== true) floorComparisonStatus = "deal-enforcement-unknown";
+      else if (["disabled-observed", "skipped-observed"].includes(floorEnforcementStatus)) floorComparisonStatus = "floor-enforcement-unknown";
+    }
+    return {
+      bidder: bid?.bidderCode ?? bid?.bidder ?? null, adId: bid?.adId ?? null, auctionId: bid?.auctionId ?? null,
+      cpm: rawCpm, rawCpm, currency: bid?.currency ?? null, originalCpm: bid?.originalCpm ?? null, originalCurrency: bid?.originalCurrency ?? null,
+      width: bid?.width ?? null, height: bid?.height ?? null, mediaType: bid?.mediaType ?? null,
+      priceBucket: this.intextAuditCopy(buckets), pb: this.intextAuditCopy(buckets),
+      hbPb: this.intextAuditCopy(bid?.adserverTargeting?.hb_pb), adserverTargetingHbPb: this.intextAuditCopy(bid?.adserverTargeting?.hb_pb),
+      effectiveFloor: audit?.effectiveFloor ?? null, floorSource: audit?.floorSource || "missing",
+      requestedFloor: audit?.effectiveFloor ?? null, requestedFloorCurrency: audit?.floorCurrency ?? null,
+      requestedVsApplicableFloorRelation,
+      applicableFloorStatus: observedFloor !== null ? "observed" : "unknown",
+      floorObserved, floorObservedSource: observedFloor !== null ? "bid.floorData.floorValue" : "unknown",
+      applicableFloor: observedFloor, applicableFloorCurrency: floorData.floorCurrency ?? null, prebidFloorData: floorData,
+      aboveFloor: comparisonComparable ? cpm >= comparisonFloor : null,
+      rawCpmAboveFloor: rawCpmAboveRequestedFloor,
+      rawCpmAboveRequestedFloor, rawCpmAboveApplicableFloor,
+      comparisonFloor: comparisonFloor ?? null,
+      comparisonFloorSource: applicableFloorPresent ? "bid.floorData.floorValue" : "requested-floor-only:applicable-unknown",
+      comparisonFloorCurrency: applicableFloorPresent ? floorData.floorCurrency ?? null : audit?.floorCurrency ?? null,
+      comparisonReason: comparisonComparable ? "same-currency:banner" : "floor/currency/schema-unconfirmed",
+      dealId, hbDeal, hbSource, isDeal, scopedDeals,
+      floorDealsObserved, floorDealsObservedSource, floorEnforcementStatus, floorComparisonStatus,
+      floorEnforcementSource: floorData.enforcements ? "bid.floorData.enforcements" : audit?.floorEnforcementSource || "unknown",
+    };
+  }
+
+  recordIntextPrebidBidsAudit(audit, bids, auctionId, phase, timedOut, pb = null) {
+    if (!audit) return;
+    try {
+      audit.auctionId = auctionId || null;
+      audit.bids = bids.map(bid => this.intextPrebidBidAudit(bid, audit));
+      this._intextPrebidBidAuditOrigins ||= new WeakMap();
+      bids.filter(bid => bid.mediaType === "banner").forEach(bid => this._intextPrebidBidAuditOrigins.set(bid, audit));
+      let requestEvidence = null;
+      try {
+        if (auctionId && typeof pb?.getEvents === "function") {
+          requestEvidence = (pb.getEvents() || []).filter(event => event.eventType === "bidRequested"
+            && event.args?.auctionId === auctionId).flatMap(event => (event.args.bids || [])
+            .filter(bid => bid.adUnitCode === audit.adUnitCode).map(bid => ({
+              bidder: bid.bidder, auctionId, adUnitCode: bid.adUnitCode,
+              getFloorAvailable: typeof bid.getFloor === "function", getFloorCalledByAudit: false,
+              floorFields: this.intextAuditFloorFields({ floorData: Object.fromEntries([
+                "skipped", "skipRate", "location", "floorMin", "floorProvider", "fetchStatus", "modelVersion",
+              ].filter(key => event.args.floorData?.[key] !== undefined).map(key => [key, event.args.floorData[key]])),
+              ortb2Imp: bid.ortb2Imp, params: bid.params }),
+            })));
+        }
+      } catch (e) { /* Historical event API is optional and read only. */ }
+      this.emitIntextPrebidAudit(audit, "intext_prebid_floor_bids_audit", {
+        bidCount: audit.bids.length, bannerBidCount: bids.filter(bid => bid.mediaType === "banner").length, bids: audit.bids, phase, timedOut,
+        aboveFloorBidCount: audit.bids.filter(bid => bid.rawCpmAboveFloor === true).length,
+        belowFloorBidCount: audit.bids.filter(bid => bid.rawCpmAboveFloor === false).length,
+        unknownFloorBidCount: audit.bids.filter(bid => bid.rawCpmAboveFloor === null).length,
+        bidsSource: "getBidResponsesForAdUnitCode", auctionIdConfirmed: Boolean(auctionId),
+        requestEvidence, requestEvidenceSource: requestEvidence === null ? "unavailable" : "pb.getEvents:bidRequested",
+      });
+    } catch (e) { /* Diagnostics must not affect finalization. */ }
+  }
+
+  recordIntextPrebidWinnerAudit(bid, candidates) {
+    if (!window.gexpIntextDebug) return;
+    try {
+      const origin = this._intextPrebidBidAuditOrigins?.get(bid);
+      const audit = this._intextPrebidFloorAudit || origin;
+      this._intextPrebidWinnerFloorAudit = bid ? audit : null;
+      if (!audit) return;
+      if (!bid) {
+        this.emitIntextPrebidAudit(audit, "intext_prebid_no_winner_audit", {
+          bidCount: audit.bids.length, effectiveFloor: audit.effectiveFloor,
+          aboveFloorBidCount: audit.bids.filter(b => b.rawCpmAboveFloor === true).length,
+          belowFloorBidCount: audit.bids.filter(b => b.rawCpmAboveFloor === false).length,
+          unknownFloorBidCount: audit.bids.filter(b => b.rawCpmAboveFloor === null).length,
+        });
+        return;
+      }
+      const snapshot = this.intextPrebidBidAudit(bid, origin || (bid.source === "prebid_cached"
+        ? { ...audit, effectiveFloor: null, floorSource: "cached-origin-unavailable" } : audit));
+      const selectionSource = bid.source === "prebid_cached" ? "decideWinner:cached-bid" : "decideWinner:getBidResponsesForAdUnitCode:sort-cpm-desc";
+      this.emitIntextPrebidAudit(audit, "intext_prebid_winner_audit", {
+        ...snapshot, auctionId: audit.auctionId, bidAuctionId: snapshot.auctionId,
+        selectionSource, candidateCount: candidates.length, originAuditId: origin?.auditId ?? null,
+        requestedFloor: audit.effectiveFloor,
+        selectionCycleId: this.node._intextTelemetryCycleId ?? null, selectionRenderToken: this.node._activeRenderToken ?? null,
+      });
+      if (snapshot.floorComparisonStatus === "below-floor") this.emitIntextPrebidAudit(audit, "intext_prebid_floor_violation_candidate", {
+        bidder: snapshot.bidder, rawCpm: snapshot.rawCpm, effectiveFloor: snapshot.effectiveFloor,
+        difference: this.intextAuditNumber(snapshot.rawCpm) - snapshot.comparisonFloor, hbPb: snapshot.hbPb,
+        requestedFloor: snapshot.requestedFloor, applicableFloor: snapshot.applicableFloor,
+        requestedFloorCurrency: snapshot.requestedFloorCurrency, applicableFloorCurrency: snapshot.applicableFloorCurrency,
+        applicableFloorStatus: snapshot.applicableFloorStatus, requestedVsApplicableFloorRelation: snapshot.requestedVsApplicableFloorRelation,
+        rawCpmAboveRequestedFloor: snapshot.rawCpmAboveRequestedFloor, rawCpmAboveApplicableFloor: snapshot.rawCpmAboveApplicableFloor,
+        comparisonFloor: snapshot.comparisonFloor, comparisonFloorSource: snapshot.comparisonFloorSource,
+        comparisonFloorCurrency: snapshot.comparisonFloorCurrency,
+        floorSource: snapshot.floorSource, selectionSource, floorCurrency: (origin || audit).floorCurrency,
+        isDeal: snapshot.isDeal, dealId: snapshot.dealId, hbDeal: snapshot.hbDeal, hbSource: snapshot.hbSource,
+        floorDealsObserved: snapshot.floorDealsObserved, floorEnforcementStatus: snapshot.floorEnforcementStatus,
+        floorComparisonStatus: snapshot.floorComparisonStatus,
+      });
+    } catch (e) { /* Diagnostics must not affect selection. */ }
+  }
+
+  recordIntextPrebidWinnerTargetingAudit(bid, targeting) {
+    try {
+      const origin = this._intextPrebidBidAuditOrigins?.get(bid);
+      const audit = this._intextPrebidWinnerFloorAudit || origin;
+      if (!audit || !window.gexpIntextDebug) return null;
+      const snapshot = this.intextPrebidBidAudit(bid, origin || (bid.source === "prebid_cached"
+        ? { ...audit, effectiveFloor: null, floorSource: "cached-origin-unavailable" } : audit));
+      this.emitIntextPrebidAudit(audit, "intext_prebid_winner_targeting_audit", {
+        bidder: snapshot.bidder, rawCpm: snapshot.rawCpm, hbPb: snapshot.hbPb,
+        targetingSource: "collectHbTargetingFromCurrentBids/collectHbTargetingFromBid",
+        ...Object.fromEntries(["hb_bidder", "hb_pb", "hb_adid", "hb_size", "hb_format"].map(key => [key, targeting[key] ?? null])),
+        effectiveFloor: snapshot.effectiveFloor, floorSource: snapshot.floorSource, rawCpmAboveFloor: snapshot.rawCpmAboveFloor,
+        applicableFloor: snapshot.applicableFloor, applicableFloorStatus: snapshot.applicableFloorStatus,
+        requestedFloorCurrency: snapshot.requestedFloorCurrency, applicableFloorCurrency: snapshot.applicableFloorCurrency,
+        rawCpmAboveRequestedFloor: snapshot.rawCpmAboveRequestedFloor, rawCpmAboveApplicableFloor: snapshot.rawCpmAboveApplicableFloor,
+        requestedVsApplicableFloorRelation: snapshot.requestedVsApplicableFloorRelation,
+        comparisonFloor: snapshot.comparisonFloor, comparisonFloorSource: snapshot.comparisonFloorSource,
+        originAuditId: origin?.auditId ?? null, bidAuctionId: snapshot.auctionId, requestedFloor: audit.effectiveFloor,
+        isDeal: snapshot.isDeal, dealId: snapshot.dealId, hbDeal: snapshot.hbDeal, hbSource: snapshot.hbSource,
+        floorDealsObserved: snapshot.floorDealsObserved, floorEnforcementStatus: snapshot.floorEnforcementStatus,
+        floorComparisonStatus: snapshot.floorComparisonStatus,
+        targetingCycleId: this.node._intextTelemetryCycleId ?? null, targetingRenderToken: this.node._activeRenderToken ?? null,
+      });
+      return audit.auditId;
+    } catch (e) { return null; }
+  }
+
+  getIntextPrebidGamAudit(bid) {
+    if (!window.gexpIntextDebug || !bid) return {};
+    try {
+      const origin = this._intextPrebidBidAuditOrigins?.get(bid);
+      const audit = this._intextPrebidWinnerFloorAudit || origin;
+      if (!audit) return {};
+      const snapshot = this.intextPrebidBidAudit(bid, origin || (bid.source === "prebid_cached"
+        ? { ...audit, effectiveFloor: null, floorSource: "cached-origin-unavailable" } : audit));
+      return { prebidAuditId: audit.auditId, auctionId: audit.auctionId, bidAuctionId: snapshot.auctionId,
+        cycleId: this.node._intextTelemetryCycleId ?? null, renderToken: this.node._activeRenderToken ?? null,
+        winnerRawCpm: snapshot.rawCpm, winnerCurrency: snapshot.currency,
+        effectiveFloor: snapshot.effectiveFloor, rawCpmAboveFloor: snapshot.rawCpmAboveFloor, originAuditId: origin?.auditId ?? null,
+        requestedFloor: snapshot.requestedFloor, applicableFloor: snapshot.applicableFloor, applicableFloorStatus: snapshot.applicableFloorStatus,
+        requestedFloorCurrency: snapshot.requestedFloorCurrency, applicableFloorCurrency: snapshot.applicableFloorCurrency,
+        rawCpmAboveRequestedFloor: snapshot.rawCpmAboveRequestedFloor, rawCpmAboveApplicableFloor: snapshot.rawCpmAboveApplicableFloor,
+        requestedVsApplicableFloorRelation: snapshot.requestedVsApplicableFloorRelation,
+        comparisonFloor: snapshot.comparisonFloor, comparisonFloorSource: snapshot.comparisonFloorSource,
+        isDeal: snapshot.isDeal, dealId: snapshot.dealId, hbDeal: snapshot.hbDeal, hbSource: snapshot.hbSource,
+        floorComparisonStatus: snapshot.floorComparisonStatus,
+        selectionSource: bid.source === "prebid_cached" ? "decideWinner:cached-bid" : "decideWinner:getBidResponsesForAdUnitCode:sort-cpm-desc" };
+    } catch (e) { return {}; }
+  }
+
+  recordIntextPrebidNativeTargetingAudit(pb, configuration, auctionId, bannerBids, audit) {
+    if (!window.gexpIntextDebug) return;
+    try {
+      const subset = targeting => this.intextAuditCopy(Object.fromEntries(Object.entries(targeting || {})
+        .filter(([key]) => key.startsWith("hb_"))));
+      let pbjsTargeting = null, pbjsTargetingError = null;
+      const pbjsTargetingApiAvailable = typeof pb?.getAdserverTargetingForAdUnitCode === "function";
+      if (pbjsTargetingApiAvailable) {
+        try { pbjsTargeting = this.intextAuditCopy(pb.getAdserverTargetingForAdUnitCode(configuration.code)); }
+        catch (e) { pbjsTargetingError = e?.message || String(e); }
+      }
+      let gptSlotTargeting = null, gptSlotTargetingError = null;
+      const gptSlotTargetingApiAvailable = typeof this.node.slot?.getTargetingMap === "function";
+      if (gptSlotTargetingApiAvailable) {
+        try { gptSlotTargeting = subset(this.node.slot.getTargetingMap()); }
+        catch (e) { gptSlotTargetingError = e?.message || String(e); }
+      }
+      const rawBannerBids = bannerBids.map(bid => ({
+        bidder: bid.bidderCode ?? bid.bidder ?? null, rawCpm: bid.cpm ?? null, currency: bid.currency ?? null,
+        auctionId: bid.auctionId ?? null, adUnitCode: bid.adUnitCode ?? configuration.code, adId: bid.adId ?? null,
+        adserverTargeting: subset(bid.adserverTargeting),
+      }));
+      logIntext(`[Intext:Prebid:${this.node.id}] intext_prebid_native_targeting_after_set_audit`, {
+        slotId: this.node.id, adUnitCode: configuration.code, auctionId, prebidAuditId: audit?.auditId ?? null,
+        cycleId: this.node._intextTelemetryCycleId ?? null, renderToken: this.node._activeRenderToken ?? null,
+        targetingSource: "prebid-native:immediately-after-setTargetingForGPTAsync",
+        winnerCandidate: rawBannerBids[0] ? this.intextAuditCopy(rawBannerBids[0]) : null, rawBannerBids,
+        pbjsTargetingApiAvailable, pbjsTargeting, pbjsTargetingError,
+        gptSlotTargetingApiAvailable, gptSlotTargeting, gptSlotTargetingError,
+      });
+    } catch (e) { /* Read-only diagnostics must never block finalize. */ }
+  }
+
   executePrebid(configuration) {
     return new Promise((resolve) => {
       const runPrebid = (pb) => pb.que.push(() => {
         let restoreVideoCacheConfig = null;
+        let floorAudit = null;
         try {
+          this._intextPrebidFloorWriteAudit = null;
+          this._intextPrebidFloorConfigAudit = null;
+          this._intextPrebidFloorBaseAudit = null;
+          this._intextPrebidWinnerFloorAudit = null;
           this.registerPrebidAdUnit(configuration, pb);
           this.applyIntextDisplayFloorToPrebid(configuration, pb);
 
@@ -13329,6 +13830,7 @@ class IntextWaterfall {
               : allRaw;
             const bannerBids = allResponses.filter(b => b.mediaType === "banner");
             const videoBids = allResponses.filter(b => b.mediaType === "video");
+            this.recordIntextPrebidBidsAudit(floorAudit, allResponses, auctionId, phase, timedOut, pb);
 
             const phaseLabel = phase === "grace" ? " [after grace window]" : phase === "watchdog" ? " [watchdog]" : "";
             logIntext(
@@ -13376,11 +13878,14 @@ class IntextWaterfall {
             }
 
             pb.setTargetingForGPTAsync([configuration.code]);
+            this.recordIntextPrebidNativeTargetingAudit(pb, configuration, auctionId, bannerBids, floorAudit);
             if (allResponses.length > 0 && typeof window !== "undefined" && window.gexpIntextDebug === true) {
               const targeting = this.node.slot?.getTargetingMap?.() || {};
               const expectedKeys = ["hb_pb", "hb_bidder", "hb_adid"];
               if (!expectedKeys.some((key) => Object.prototype.hasOwnProperty.call(targeting, key))) {
-                warnIntext(`[Intext:Prebid:${this.node.id}] intext_prebid_targeting_missing_after_bid`, { code: configuration.code, expectedKeys });
+                warnIntext(`[Intext:Prebid:${this.node.id}] intext_prebid_targeting_missing_after_bid`, { code: configuration.code, expectedKeys,
+                  auctionId, prebidAuditId: floorAudit?.auditId ?? null, cycleId: this.node._intextTelemetryCycleId ?? null,
+                  renderToken: this.node._activeRenderToken ?? null });
               }
             }
             resolve("prebid_done");
@@ -13421,6 +13926,7 @@ class IntextWaterfall {
             restoreVideoCacheConfig = this.applyIntextVideoCacheOverride(videoCacheProfile, pb);
           }
 
+          floorAudit = this.startIntextPrebidFloorAudit(configuration, pb);
           pb.requestBids({
             timeout: this.getPrebidTimeout(),
             adUnitCodes: [configuration.code],
@@ -13737,6 +14243,7 @@ class IntextWaterfall {
     const priority = this.config.decision?.priorityBelowMin || "video";
 
     this._lastDisplayBid = displayBid;
+    this.recordIntextPrebidWinnerAudit(displayBid, currentBannerBids);
     this._lastVideoBid = videoBid;
     this._lastCurrentBannerBids = currentBannerBids;
     this._lastCurrentVideoBids = currentVideoBids;
@@ -15601,6 +16108,10 @@ class IntextWaterfall {
     logIntext(
       `[Intext:Prebid:${this.node.id}] display_prebid_floor_core_detected - source=${source}, data=${JSON.stringify(baseData)}`,
     );
+    if (window.gexpIntextDebug) {
+      try { this._intextPrebidFloorBaseAudit = { source, config: this.intextAuditFloorsSnapshot(baseFloors, this.getPrebidCode()) }; }
+      catch (e) { /* Diagnostics must not affect floors. */ }
+    }
 
     return {
       source,
@@ -15715,6 +16226,17 @@ class IntextWaterfall {
       `[Intext:Prebid:${this.node.id}] display_prebid_floor_config_after_set - key=${floorKey}, floor=${parsedFloorValue != null ? parsedFloorValue : "cleared"}, accepted=${acceptedState}, config=${JSON.stringify(floorsConfigAfter)}`,
     );
 
+    if (window.gexpIntextDebug) {
+      try {
+        this._intextPrebidFloorConfigAudit = {
+          beforeSet: this._intextPrebidFloorBaseAudit,
+          sent: this.intextAuditFloorsSnapshot(floorPayload.floors, this.getPrebidCode()),
+          observedAfterSet: this.intextAuditFloorsSnapshot(floorsConfigAfter, this.getPrebidCode()),
+          configuredValue: configuredValue ?? null, acceptedState,
+        };
+      } catch (e) { /* Diagnostics must not affect floors. */ }
+    }
+
     return floorPayload;
   }
 
@@ -15743,6 +16265,7 @@ class IntextWaterfall {
 
     const floorInfo = this.getIntextDisplayFloorInfo(floorKey);
     const floorValue = floorInfo.value;
+    if (window.gexpIntextDebug) this._intextPrebidFloorWriteAudit = { ...floorInfo, floorKey };
 
     if (!(floorValue > 0)) {
       this.setIntextDisplayFloorConfig(floorKey, null, pb);

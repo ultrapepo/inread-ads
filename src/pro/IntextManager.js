@@ -1,4 +1,4 @@
-const GEXP_INTEXT_VERSION = "2026.10.02-p0-random-slot";
+const GEXP_INTEXT_VERSION = "2026.10.05-p1-prebid-audit.2";
 if (typeof window !== "undefined") window.__gexpIntextVersion = GEXP_INTEXT_VERSION;
 const INtext_STYLE_ID = "gexp-intext-styles";
 const INtext_BASE_STYLES = `
@@ -394,7 +394,8 @@ const createIntextDebugCollector = (options = {}) => {
       level,
       groupDepth: intextDebugLogBuffer.groupDepth,
       message,
-      args: (hasMessage ? values.slice(1) : values).map((item) => serializeIntextLogValue(item)),
+      args: (hasMessage ? values.slice(1) : values).map((item) => serializeIntextLogValue(item,
+        message === "[IntextManager] intext_random_snapshot_unresolved" ? { maxDepth: 4 } : {})),
     });
     if (kind === "group") intextDebugLogBuffer.groupDepth += 1;
     return entry;
@@ -732,7 +733,7 @@ const createIntextDebugCollector = (options = {}) => {
   const getPackage = () => {
     if (!active() || !ensureActive()) return null;
     const now = Date.now();
-    return { schemaVersion: "1.0.0", generatedAt: new Date(now).toISOString(), startedAt: new Date(intextDebugLogBuffer.startedAt).toISOString(), durationMs: now - intextDebugLogBuffer.startedAt, page: getPage(), runtime: manager?.getIntextRuntimeIdentity?.() || { gexpIntextVersion: window.__gexpIntextVersion || "2026.10.02-p0-random-slot", dualMode: false, pspDetected: Boolean(window?.googletag?.__ctrl) }, debugger: { suppressedDuplicateLogs: (manager?._intextSuppressedDuplicateLogs || 0) + intextSuppressedStateLogs, totalEntries: intextDebugLogBuffer.entries.length, droppedEntries: intextDebugLogBuffer.droppedEntries, approximateBytes: intextDebugLogBuffer.approximateBytes }, summary: getSummary(), logs: intextDebugLogBuffer.entries.slice() };
+    return { schemaVersion: "1.0.0", generatedAt: new Date(now).toISOString(), startedAt: new Date(intextDebugLogBuffer.startedAt).toISOString(), durationMs: now - intextDebugLogBuffer.startedAt, page: getPage(), runtime: manager?.getIntextRuntimeIdentity?.() || { gexpIntextVersion: window.__gexpIntextVersion || "2026.10.05-p1-prebid-audit.2", dualMode: false, pspDetected: Boolean(window?.googletag?.__ctrl) }, debugger: { suppressedDuplicateLogs: (manager?._intextSuppressedDuplicateLogs || 0) + intextSuppressedStateLogs, totalEntries: intextDebugLogBuffer.entries.length, droppedEntries: intextDebugLogBuffer.droppedEntries, approximateBytes: intextDebugLogBuffer.approximateBytes }, summary: getSummary(), logs: intextDebugLogBuffer.entries.slice() };
   };
   const download = (content, mime, extension) => {
     const page = getPage();
@@ -946,7 +947,7 @@ const INTEXT_TELEMETRY_STANDARD_FIELDS = Object.freeze([
 ]);
 
 class IntextManager {
-  static VERSION = typeof GEXP_INTEXT_VERSION !== "undefined" ? GEXP_INTEXT_VERSION : "2026.10.02-p0-random-slot";
+  static VERSION = typeof GEXP_INTEXT_VERSION !== "undefined" ? GEXP_INTEXT_VERSION : "2026.10.05-p1-prebid-audit.2";
   static INTEXT_RULE_TARGETING_READY_MAX_WAIT_MS = 600;
   static INTEXT_RULE_TARGETING_READY_POLL_MS = 25;
   static INTEXT_OWN_SLOT_STABILITY_POLLS = 2;
@@ -1649,16 +1650,24 @@ class IntextManager {
     const startedAt = now();
     let previous = null;
     let observation;
+    let previousCandidate = null, previousFingerprint = null;
+    let currentPreviousCandidate = null, stableConsecutiveObservations = 0;
     while (true) {
       observation = this.resolveIntextNativeRandomObservation();
       if (observation.conflict) {
         logIntext("[IntextManager] intext_random_native_slot_conflict", { observed: observation.observed });
       }
+      // Diagnostic counters retain the preceding observation before the existing update.
+      previousFingerprint = previous;
+      currentPreviousCandidate = previousCandidate;
+      stableConsecutiveObservations = observation.candidate
+        ? (observation.fingerprint === previous ? stableConsecutiveObservations + 1 : 1) : 0;
       if (observation.candidate && observation.fingerprint === previous) {
         this.intextRandomReferenceSlotIds = Object.freeze(observation.referenceSlotIds.slice());
         this.intextRandomSnapshot = Object.freeze({ ...observation.candidate, source: "gpt-native-slot-targeting" });
         return this.intextRandomSnapshot;
       }
+      previousCandidate = observation.candidate ? { ...observation.candidate } : null;
       previous = observation.candidate ? observation.fingerprint : null;
       const elapsed = now() - startedAt;
       if (elapsed >= IntextManager.INTEXT_RULE_TARGETING_READY_MAX_WAIT_MS) break;
@@ -1675,7 +1684,20 @@ class IntextManager {
         }
       } catch (e) { }
     }
-    logIntext("[IntextManager] intext_random_snapshot_unresolved", { reason: "random-snapshot-unresolved" });
+    logIntext("[IntextManager] intext_random_snapshot_unresolved", { reason: "random-snapshot-unresolved",
+      reasonDetail: observation.conflict ? "conflict-at-hard-timeout"
+        : observation.candidate ? "candidate-not-stable-at-hard-timeout" : "no-candidate-at-hard-timeout",
+      currentCandidate: observation.candidate ?? null, currentFingerprint: observation.fingerprint ?? null,
+      previousFingerprint, previousCandidate: currentPreviousCandidate,
+      stableConsecutiveObservations, requiredStableObservations: 2,
+      stabilityStatus: observation.candidate ? "candidate-not-stable" : "no-candidate",
+      referenceSlotIds: observation.referenceSlotIds || [],
+      quartetsBySlot: (observation.observed || []).map(slot => ({ slotId: slot.id, quartet: { ...slot.values },
+        complete: slot.complete, invalid: slot.invalid, present: slot.present })),
+      elapsedMs: now() - startedAt, nativeSlots: observation.observed?.length || 0,
+      slotsWithAnyRandom: observation.observed?.filter(slot => slot.present).length || 0,
+      completeSlots: observation.observed?.filter(slot => slot.complete).length || 0, conflict: observation.conflict,
+    });
     this.intextRandomSnapshot = Object.freeze({ random1: "", random2: "", random3: "", random4: "", source: "unresolved" });
     return this.intextRandomSnapshot;
   }
