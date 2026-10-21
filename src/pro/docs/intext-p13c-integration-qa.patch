@@ -1,0 +1,286 @@
+diff --git a/tests/qa/intext-p13c-integration-probe.cjs b/tests/qa/intext-p13c-integration-probe.cjs
+new file mode 100644
+--- /dev/null
++++ b/tests/qa/intext-p13c-integration-probe.cjs
+@@ -0,0 +1,91 @@
++/* QA only: event subscriptions and read-only snapshots. No playback or SDK wrappers. */
++(function(root,factory){const api=factory(root);if(typeof module==='object'&&module.exports)module.exports=api;else root.IntextIntegrationQA=api;})(typeof window==='object'?window:globalThis,function(root){
++ 'use strict';
++ const logs=[],instances=new Set(),byCreative=new WeakMap(),byNode=new WeakMap(),ids=new WeakMap();let nextId=0,dropped=0;
++ const read=(fn,fallback=null)=>{try{return fn()??fallback;}catch{return fallback;}};
++ const identity=o=>o&&(typeof o==='object'||typeof o==='function')?(ids.has(o)?ids.get(o):(ids.set(o,++nextId),nextId)):null;
++ const source=value=>{if(!value)return null;const s=String(value);return s.startsWith('data:')?{kind:'data',mime:s.slice(5,s.indexOf(';')),length:s.length}:
++  s.startsWith('blob:')?{kind:'blob',value:s}: {kind:'url',value:s};};
++ const rect=el=>read(()=>{const r=el.getBoundingClientRect();return {top:r.top,bottom:r.bottom,left:r.left,right:r.right,width:r.width,height:r.height};});
++ function surface(el){return read(()=>{const style=root.getComputedStyle(el),r=rect(el);return {id:identity(el),connected:el.isConnected,rect:r,
++  display:style.display,visibility:style.visibility,opacity:style.opacity,hidden:el.hidden,
++  // Geometry/CSS snapshot only, not IMA/GAM viewability or proof of visible pixels.
++  hasBox:!!r&&r.width>0&&r.height>0};});}
++ function attach(creative){if(byCreative.has(creative))return byCreative.get(creative);const player=creative.player;if(!player)return null;
++  const node=creative.node,token=creative._renderToken,cycle=node?._intextTelemetryCycleId??null;
++  const cleanup=[],mediaCleanup=new Map();let closed=false,manager=null,managerOff=[],sequence=0,mutationQueued=false;
++  const emit=(event,detail={})=>{if(closed)return;try{const buildStart=read(()=>root.performance.now());
++   const base=creative.videoEl,current=creative._adMediaEl,tech=read(()=>player.el().querySelector('video.vjs-tech')),adState=read(()=>player.ads?._state);
++   const scalarState=typeof player.ads?.state==='string'?player.ads.state:null;
++   const media=[...new Set([base,current,...read(()=>Array.from(player.el().querySelectorAll('video')),[])].filter(Boolean))];
++   const snapshot={playerId:identity(player),managerId:identity(manager),baseMediaId:identity(base),techMediaId:identity(tech),observedAdMediaId:identity(current),
++    playerBuildStartedAt:creative._playerBuildStartedAt??null,
++    playerBuildElapsedMs:Number.isFinite(creative._playerBuildStartedAt)?Date.now()-creative._playerBuildStartedAt:null,
++    adState:{constructor:read(()=>adState.constructor.name),state:scalarState,inAdMode:read(()=>player.ads.isInAdMode()),
++     inAdBreak:read(()=>player.ads.inAdBreak()),snapshotPresent:!!player.ads?.snapshot,
++     snapshotCurrentSrc:source(read(()=>player.ads.snapshot.currentSrc)),snapshotEnded:read(()=>player.ads.snapshot.ended),
++     snapshotCurrentTime:read(()=>player.ads.snapshot.currentTime)},
++    media:media.map(el=>({id:identity(el),isBase:el===base,isVjsTech:el===tech,isCoreObservedAd:el===current,
++     insideImaContainer:!!read(()=>el.closest('.ima-ad-container,.vjs-ima-ad-container,.ima-video-container,.ima-html5-video-content'),false),
++     currentSrc:source(read(()=>el.currentSrc)),src:source(read(()=>el.getAttribute('src'))),
++     currentTime:read(()=>el.currentTime),duration:read(()=>Number.isFinite(el.duration)?el.duration:null),paused:read(()=>el.paused),ended:read(()=>el.ended),
++     readyState:read(()=>el.readyState),networkState:read(()=>el.networkState),videoWidth:read(()=>el.videoWidth),videoHeight:read(()=>el.videoHeight),
++     mediaError:el.error?{code:el.error.code,message:el.error.message}:null,rect:rect(el)})),
++    playerSource:source(read(()=>player.currentSrc())),playerSurface:surface(read(()=>player.el())),
++    videoSurface:surface(read(()=>node.videoContainer.getElement())),displaySurface:surface(read(()=>node.container.getElement())),
++    readiness:read(()=>node.getReadinessViewportState()),readinessAnchorRect:rect(read(()=>node.getIntextTelemetryElement())),documentVisibility:root.document?.visibilityState??'unknown',
++    revealed:creative._playerRevealed===true,destroyed:creative._destroyed===true};
++   if(logs.length>=5000){logs.shift();dropped++;}
++   logs.push({event,sequence:++sequence,timestamp:Date.now(),monotonicMs:read(()=>root.performance.now()),slotId:node?.id??null,
++    cycleId:cycle,renderToken:token,activeRenderToken:node?._activeRenderToken??null,
++    tokenMatches:node?._activeRenderToken===token,snapshot,...detail,
++    observerBuildMs:buildStart===null?null:read(()=>root.performance.now()-buildStart)});
++  }catch{/* Observation must not interrupt the original call stack. */}};
++  const later=fn=>{if(typeof root.queueMicrotask==='function')root.queueMicrotask(()=>{if(!closed)fn();});else Promise.resolve().then(()=>{if(!closed)fn();});};
++  const discover=()=>{
++   const all=[creative.videoEl,creative._adMediaEl,...read(()=>Array.from(player.el().querySelectorAll('video')),[])].filter(Boolean);
++   for(const el of [...mediaCleanup.keys()])if(!all.includes(el)){mediaCleanup.get(el)();mediaCleanup.delete(el);}
++   for(const el of new Set(all)){if(mediaCleanup.has(el))continue;const off=[];
++    for(const type of ['loadstart','loadedmetadata','loadeddata','canplay','play','playing','pause','seeking','seeked','ended','emptied','abort','error']){
++     const handler=()=>emit('media:'+type,{mediaId:identity(el)});el.addEventListener(type,handler);off.push(()=>el.removeEventListener(type,handler));
++    }mediaCleanup.set(el,()=>off.forEach(fn=>read(fn)));
++   }
++  };
++  const bindManager=event=>{
++   const next=event?.adsManager??read(()=>player.ima.getAdsManager());if(next===manager)return;
++   managerOff.forEach(fn=>read(fn));managerOff=[];manager=next??null;emit('manager:identity');if(!manager)return;
++   const owner=manager,types=root.google?.ima?.AdEvent?.Type??{},errors=root.google?.ima?.AdErrorEvent?.Type??{};
++   for(const [name,type]of [...['LOADED','STARTED','IMPRESSION','COMPLETE','ALL_ADS_COMPLETED','CONTENT_PAUSE_REQUESTED','CONTENT_RESUME_REQUESTED','PAUSED','RESUMED','SKIPPED']
++    .map(name=>[name,types[name]]),['AD_ERROR',errors.AD_ERROR]]){
++    if(!type){emit('manager:subscription-missing',{nativeEvent:name,reason:'enum-unavailable'});continue;}
++    if(typeof owner.addEventListener!=='function'||typeof owner.removeEventListener!=='function'){emit('manager:subscription-missing',{nativeEvent:name,reason:'removable-api-unavailable'});continue;}
++    const handler=()=>{if(closed||manager!==owner)return;discover();emit('ima:'+name);later(()=>emit('ima:'+name+':microtask'));};
++    try{owner.addEventListener(type,handler);managerOff.push(()=>owner.removeEventListener(type,handler));emit('manager:subscribed',{nativeEvent:name});}
++    catch(error){emit('manager:subscription-failed',{nativeEvent:name,error:String(error)});}
++   }
++  };
++  function close(reason='manual'){if(closed)return;emit('observer:closed',{reason});closed=true;cleanup.forEach(fn=>read(fn));managerOff.forEach(fn=>read(fn));
++   mediaCleanup.forEach(fn=>read(fn));mediaCleanup.clear();instances.delete(probe);byNode.delete(node);byCreative.delete(creative);}
++  const probe={record:(event,detail)=>{discover();emit(event,detail);},close};byCreative.set(creative,probe);if(node)byNode.set(node,probe);instances.add(probe);
++  for(const type of ['loadstart','play','playing','pause','ended','contentended','contentresumed','contentloadstart','contentloadedmetadata','contentcanplay',
++   'ads-request','ads-loader','ads-manager','adsready','readyforpreroll','adstart','ads-ad-started','adend','adended','adtimeout','nopreroll','adserror','alladscompleted','dispose']){
++   const handler=event=>{if(closed)return;discover();if(type==='ads-manager')bindManager(event);emit('player:'+type);
++    if(type==='dispose')close('player-dispose');else later(()=>{discover();emit('player:'+type+':microtask');});};
++   player.on(type,handler);cleanup.push(()=>player.off(type,handler));
++  }
++  const visibility=()=>emit('document:visibilitychange');root.document?.addEventListener('visibilitychange',visibility);
++  cleanup.push(()=>root.document?.removeEventListener('visibilitychange',visibility));
++  const pagehide=()=>close('pagehide');root.addEventListener?.('pagehide',pagehide);cleanup.push(()=>root.removeEventListener?.('pagehide',pagehide));
++  const wrapper=read(()=>node.videoContainer.getElement());
++  if(wrapper&&typeof root.MutationObserver==='function'){
++   const observer=new root.MutationObserver(()=>{if(closed||mutationQueued)return;mutationQueued=true;later(()=>{mutationQueued=false;discover();emit('surface:mutation');});});
++   observer.observe(wrapper,{subtree:true,childList:true,attributes:true,attributeFilter:['style','class','hidden','src']});cleanup.push(()=>observer.disconnect());
++  }
++  discover();emit('observer:attached');return probe;
++ }
++ return {attach,core:(creative,event)=>{try{byCreative.get(creative)?.record('core:'+event);}catch{}},
++  node:(node,event)=>{try{byNode.get(node)?.record('node:'+event);}catch{}},
++  close:(creative,reason)=>byCreative.get(creative)?.close(reason),
++  stop:()=>[...instances].forEach(p=>p.close('manual-stop')),
++  export:()=>({schema:'p13c-integration-observe-v1',qaOnly:true,enforce:false,wrappers:false,dropped,activeObservers:instances.size,logs:logs.slice()})};
++});
+diff --git a/tests/qa/intext-p13c-integration-build.cjs b/tests/qa/intext-p13c-integration-build.cjs
+new file mode 100644
+--- /dev/null
++++ b/tests/qa/intext-p13c-integration-build.cjs
+@@ -0,0 +1,33 @@
++'use strict';
++// Separate observe-only copies; neither production nor the accepted source-only variants are overwritten.
++const fs=require('node:fs'),path=require('node:path'),crypto=require('node:crypto'),vm=require('node:vm');
++const {build:replaceDummy,expected}=require('./intext-p13c-dummy-source-build.cjs');
++const sha=text=>crypto.createHash('sha256').update(text).digest('hex');
++function instrument(source,probe){let output=source;const edits=[];
++ const insert=(marker,addition)=>{if(output.split(marker).length!==2)throw Error('Ambiguous QA marker: '+marker);
++  output=output.replace(marker,marker+addition);edits.push({marker,addition});};
++ insert('    this.initVideoJS();','\n    try { window.IntextIntegrationQA?.attach(this); } catch (e) { /* QA observation only */ }');
++ insert('      const debugVideo = (event, data = {}) => {','\n        window.IntextIntegrationQA?.core(this, event);');
++ insert('  onVideoEnded(renderToken = this._activeRenderToken) {','\n    window.IntextIntegrationQA?.node(this, "video-ended-entry");');
++ // Record entry; close after dispose/removal (also when the original dispose throws).
++ const begin=output.indexOf('class IntextVideoCreative {'),end=output.indexOf('class WPromise {',begin);
++ const segment=output.slice(begin,end<0?undefined:end),marker='  destroy() {';
++ if(segment.split(marker).length!==2)throw Error('Creative destroy marker ambiguous');
++ const at=begin+segment.indexOf(marker)+marker.length,addition='\n    window.IntextIntegrationQA?.core(this, "destroy-entry");';
++ output=output.slice(0,at)+addition+output.slice(at);edits.push({marker:'IntextVideoCreative.destroy',addition});
++ insert('    this.videoEl?.remove?.();','\n    window.IntextIntegrationQA?.close(this, "creative-destroy");');
++ const banner='/* P1.3c integration QA OBSERVE ONLY. No budgets, enforce or playback wrappers. */\n';
++ const generated=banner+probe+'\n'+output;new vm.Script(generated);return {output:generated,edits};
++}
++function buildAll(){const root=path.resolve(__dirname,'../..'),directory=path.join(__dirname,'generated'),probe=fs.readFileSync(path.join(__dirname,'intext-p13c-integration-probe.cjs'),'utf8');
++ const variants=[];fs.mkdirSync(directory,{recursive:true});for(const [name,hash]of Object.entries(expected)){
++  const source=fs.readFileSync(path.join(root,name),'utf8');if(sha(source)!==hash)throw Error('Protected P1.3b changed: '+name);
++  for(const fixture of ['original','black']){const input=fixture==='black'?replaceDummy(source).output:source,{output,edits}=instrument(input,probe);
++   const file='intext-integration-'+fixture+'-'+(name==='_gam_kv_.js'?'gam':'manager')+'.qa.js';fs.writeFileSync(path.join(directory,file),output);
++   variants.push({source:name,fixture,file,inputSha256:sha(source),fixtureInputSha256:sha(input),outputSha256:sha(output),hooks:edits.map(e=>e.marker)});
++  }
++ }
++ const manifest={qaOnly:true,enforce:false,productionVersionUnchanged:true,probeSha256:sha(probe),variants};
++ fs.writeFileSync(path.join(root,'docs/intext-p13c-integration-build.json'),JSON.stringify(manifest,null,2)+'\n');return manifest;
++}
++module.exports={instrument,buildAll};if(require.main===module)console.log(JSON.stringify(buildAll(),null,2));
+diff --git a/tests/qa/intext-p13c-integration-analysis.cjs b/tests/qa/intext-p13c-integration-analysis.cjs
+new file mode 100644
+--- /dev/null
++++ b/tests/qa/intext-p13c-integration-analysis.cjs
+@@ -0,0 +1,76 @@
++'use strict';
++// Offline evidence only. Reads authorised captures; never executes HAR JavaScript.
++const fs=require('node:fs'),path=require('node:path'),os=require('node:os'),crypto=require('node:crypto');
++const pairs=[['original1','original1-gexp','www.marca.com-mobile original 1.har'],['original2','original2-gexp','www.marca.com-mobile original 2.har'],
++ ['black1','dummy-gexp','www.marca.com-mobile dummy.har'],['black2','dummy2-gexp','www.marca.com-mobile 2 dummy.har'],
++ ['black3','dummy3-gexp','www.marca.com-mobile 3 dummy.har'],['black4','dummy-4gexp','www.marca.com-mobile 4 dummy.har']];
++const sha=bytes=>crypto.createHash('sha256').update(bytes).digest('hex');
++function normalizeLogs(dump){return (dump.logs??[]).map(log=>{const data=log.args?.find(a=>a&&typeof a==='object'&&!Array.isArray(a))??{};
++ return {sequence:log.sequence,epochMs:typeof log.timestamp==='number'?log.timestamp:Date.parse(log.timestamp),elapsedMs:log.elapsedMs,
++  event:data.metric??data.event??/\]\s+((?:video_|display_)[a-z_]+|intext_winner_resolved)/.exec(log.message)?.[1]??null,message:log.message,data};});}
++function analyzeDebug(dump){const logs=normalizeLogs(dump);return {runtime:dump.runtime,startedAt:dump.startedAt,durationMs:dump.durationMs,
++ metrics:logs.filter(e=>e.event),videoMessages:logs.filter(e=>/Video:IMA|VideoPlayer|Video:|bridge|refresh/i.test(e.message)),
++ warnings:logs.filter(e=>/psp|prebid.*(missing|warning|error)|suppressedTracks|NotSupportedError|AbortError|DEMUXER_ERROR/i.test(e.message))};}
++function inspectHar(har,startedAt){return har.log.entries.flatMap((entry,index)=>{
++ const u=new URL(entry.request.url),isVast=u.pathname.includes('/gampad/ads')&&/vast/.test(u.searchParams.get('output'));
++ const isMedia=/\.mp4(?:$|\?)/i.test(u.href),isLibrary=/video|contrib-ads|ima3\.js/.test(u.pathname)&&/\.js$/.test(u.pathname);
++ if(!isVast&&!isMedia&&!isLibrary)return [];
++ const c=entry.response.content,body=c?.text?(c.encoding==='base64'?Buffer.from(c.text,'base64').toString('utf8'):c.text):null;
++ const needles=u.pathname.includes('contrib-ads')?['restorePlayerSnapshot','suppressedTracks','contentresumed','contentended','setTimeout','timeout:','timeout=']:
++  u.pathname.includes('videojs.ima')?['onContentEnded=function','onAdBreakEnd=function','onAdsManagerLoaded=function','restoreCustomPlaybackStateOnAdBreakComplete','endLinearAdMode','onContentAndAdsCompleted=function','autoPlayAdBreaks']:[];
++ return [{index,type:isVast?'VAST':isMedia?'MP4':'library',host:u.host,path:isMedia?'[media path omitted]':u.pathname,status:entry.response.status,
++  adUnit:isVast?u.searchParams.get('iu'):null,position:isVast?new URLSearchParams(u.searchParams.get('cust_params')??'').get('p'):null,
++  elapsedMs:Date.parse(entry.startedDateTime)-Date.parse(startedAt),totalMs:entry.time,timings:entry.timings,
++  bodyPresent:!!body,bodySha256:body?sha(body):null,bodyBytes:body?Buffer.byteLength(body):null,
++  snippets:body?needles.map(needle=>{const at=body.indexOf(needle);return {needle,at,source:at<0?null:body.slice(Math.max(0,at-80),at+1600)};}):[]}];
++ });}
++function parseHar(bytes){const text=bytes.toString('utf8');try{return {har:JSON.parse(text),complete:true};}catch(error){
++ // A truncated capture is not repaired: retain only independently complete entries.
++ const marker=/"entries"\s*:\s*\[/.exec(text);if(!marker)throw Error('HAR entries missing');
++ const entries=[];let start=-1,depth=0,quoted=false,escaped=false;
++ for(let i=marker.index+marker[0].length;i<text.length;i++){const c=text[i];
++  if(quoted){if(escaped)escaped=false;else if(c==='\\')escaped=true;else if(c==='"')quoted=false;continue;}
++  if(c==='"'){quoted=true;continue;}if(c==='{'){if(depth===0)start=i;depth++;}
++  else if(c==='}'){depth--;if(depth===0&&start>=0){entries.push(JSON.parse(text.slice(start,i+1)));start=-1;}}
++  else if(c===']'&&depth===0)break;
++ }
++ return {har:{log:{entries}},complete:false,warning:'Invalid/truncated HAR; only complete entry prefix retained',completeEntryCount:entries.length};
++}}
++function analyze(directory=path.join(os.homedir(),'Downloads')){
++ const names=fs.readdirSync(directory);return {schema:'p13c-integration-offline-v1',sessions:pairs.map(([id,prefix,harName])=>{
++  const name=names.find(n=>n.startsWith(prefix)&&n.includes('2026-10-20')&&n.endsWith('.json'));if(!name)throw Error('Missing capture '+prefix);
++  const bytes=fs.readFileSync(path.join(directory,name)),debug=JSON.parse(bytes),harBytes=fs.readFileSync(path.join(directory,harName));
++  const parsed=parseHar(harBytes);return {id,debugName:name,debugSha256:sha(bytes),harName,harSha256:sha(harBytes),harComplete:parsed.complete,harWarning:parsed.warning??null,
++   harCompleteEntryCount:parsed.har.log.entries.length,har:inspectHar(parsed.har,debug.startedAt),...analyzeDebug(debug)};
++ })};
++}
++function summarize(result){return {schema:result.schema,scope:'Read-only evidence from six 2026-10-20 sessions; no new browser execution',sessions:result.sessions.map(s=>{
++ const first=name=>s.metrics.find(e=>e.event===name&&e.data.slotId==='gexp-intext');
++ const names=['video_winner_resolved','video_dependency_prewarm_started','video_dependency_prewarm_ready','video_prepare_started','video_prepare_ready',
++  'video_activation_started','video_ima_request_sent','video_ads_manager_loaded','video_first_frame','video_player_revealed','video_complete','display_refresh_completed'];
++ const milestones=Object.fromEntries(names.map(n=>[n,first(n)?.elapsedMs??null]));
++ const diff=(a,b)=>milestones[a]!==null&&milestones[b]!==null?milestones[b]-milestones[a]:null;
++ const geo=name=>{const e=first(name);return e?{elapsedMs:e.elapsedMs,source:e.data.source??null,currentTime:e.data.currentTime??null,
++  readinessAnchorRect:e.data.readinessAnchorRect??null,wrapperRect:e.data.wrapperRect??null,wrapperIntersectionRatio:e.data.wrapperIntersectionRatio??null,
++  documentVisibility:e.data.documentVisibility??null,gptViewabilityAvailable:e.data.gptViewabilityAvailable??null}:null;};
++ return {id:s.id,debugName:s.debugName,debugSha256:s.debugSha256,harName:s.harName,harSha256:s.harSha256,
++  runtime:s.runtime,harComplete:s.harComplete,harWarning:s.harWarning,harCompleteEntryCount:s.harCompleteEntryCount,milestones,
++  durationsMs:{winnerToPrepared:diff('video_winner_resolved','video_prepare_ready'),prewarm:diff('video_dependency_prewarm_started','video_dependency_prewarm_ready'),
++   preparedToActivation:diff('video_prepare_ready','video_activation_started'),activationToProxy:diff('video_activation_started','video_ima_request_sent'),
++   proxyToManager:diff('video_ima_request_sent','video_ads_manager_loaded'),managerToFrame:diff('video_ads_manager_loaded','video_first_frame'),
++   activationToFrame:diff('video_activation_started','video_first_frame'),frameToReveal:diff('video_first_frame','video_player_revealed'),
++   completeMetricToDisplayRefreshCompleted:diff('video_complete','display_refresh_completed')},
++  geometry:{manager:geo('video_ads_manager_loaded'),frame:geo('video_first_frame'),reveal:geo('video_player_revealed'),complete:geo('video_complete')},
++  // Native COMPLETE is not uniquely identified by the current video_complete metric.
++  postAdend:s.videoMessages.filter(e=>/Ad playback ended|Video playback ended|video_to_display_bridge|video_to_display_video_loader|Scheduling Video Refresh|Visible time reached/.test(e.message))
++   .map(e=>({elapsedMs:e.elapsedMs,message:e.message})),
++  dependencyFailures:s.videoMessages.filter(e=>/dependency_script_timeout|Video build\/play failed/.test(e.message)).map(e=>({elapsedMs:e.elapsedMs,message:e.message,data:e.data})),
++  fallback:s.metrics.filter(e=>e.data.slotId==='gexp-intext'&&e.data.cycleId===2&&/fallback|display_(slot_requested|slot_render_ended|creative_ready|viewport_wait|wrapper_opened|opened|impression_viewable)/.test(e.event))
++   .map(e=>({elapsedMs:e.elapsedMs,event:e.event,cycleId:e.data.cycleId,renderToken:e.data.renderToken,source:e.data.source??null})),
++  nativeEventCoverage:s.videoMessages.filter(e=>/Native.*(COMPLETE|STARTED|RESUME)|native started|content-resume/.test(e.message)).map(e=>({elapsedMs:e.elapsedMs,message:e.message})),
++  har:s.har};
++ })};}
++module.exports={analyze,analyzeDebug,normalizeLogs,inspectHar,parseHar,summarize,pairs};
++if(require.main===module){const result=analyze(process.argv[2]||undefined);fs.writeFileSync(path.resolve(__dirname,'generated/integration-debug.json'),JSON.stringify(result,null,2)+'\n');
++ fs.writeFileSync(path.resolve(__dirname,'../../docs/intext-p13c-integration-evidence.json'),JSON.stringify(summarize(result),null,2)+'\n');
++ for(const s of result.sessions)console.log(JSON.stringify({id:s.id,runtime:s.runtime,metrics:s.metrics.filter(e=>/winner_resolved|prewarm|dependencies_ready|prepare_ready|prepare_started|activation_started|ima_request_sent|ads_manager_loaded|first_frame$|player_revealed|video_complete$|video_error$|content_resume|content_pause|bridge|timeout/.test(e.event??'')).map(e=>({t:e.elapsedMs,event:e.event,slot:e.data.slotId,cycle:e.data.cycleId,token:e.data.renderToken,source:e.data.source,distance:e.data.distancePx,eligible:e.data.eligible,currentTime:e.data.currentTime,elementRect:e.data.elementRect,anchor:e.data.readinessAnchorRect})),messages:s.videoMessages.filter(e=>/COMPLETE|complete|Ad playback ended|Playback ended|timeout|suppressedTracks|Snapshot|snapshot|Readyforpreroll|readyforpreroll|content-resume/i.test(e.message)).map(e=>({t:e.elapsedMs,message:e.message}))}));}
+diff --git a/tests/intext-p13c-integration.audit.test.cjs b/tests/intext-p13c-integration.audit.test.cjs
+new file mode 100644
+--- /dev/null
++++ b/tests/intext-p13c-integration.audit.test.cjs
+@@ -0,0 +1,66 @@
++'use strict';
++const {test}=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),vm=require('node:vm'),crypto=require('node:crypto');
++const {instrument}=require('./qa/intext-p13c-integration-build.cjs'),{expected,build}=require('./qa/intext-p13c-dummy-source-build.cjs');
++const {parseHar,inspectHar,normalizeLogs}=require('./qa/intext-p13c-integration-analysis.cjs');
++const probeSource=fs.readFileSync(path.join(__dirname,'qa/intext-p13c-integration-probe.cjs'),'utf8');
++class Events{constructor(){this.handlers=new Map();}on(type,fn){const set=this.handlers.get(type)??new Set();set.add(fn);this.handlers.set(type,set);}off(type,fn){this.handlers.get(type)?.delete(fn);}emit(type,data={}){for(const fn of [...this.handlers.get(type)??[]])fn(data);}addEventListener(t,f){this.on(t,f);}removeEventListener(t,f){this.off(t,f);}count(){return [...this.handlers.values()].reduce((n,s)=>n+s.size,0);}}
++function environment(){const document=new Events(),windowEvents=new Events(),microtasks=[],observers=[];document.visibilityState='visible';
++ const dom=()=>Object.assign(new Events(),{currentTime:0,paused:true,ended:false,readyState:4,networkState:1,videoWidth:64,videoHeight:64,currentSrc:'data:video/mp4;base64,AAAA',error:null,
++  getAttribute(){return this.currentSrc;},closest(){return null;},isConnected:true,getBoundingClientRect(){return {top:100,bottom:460,left:0,right:640,width:640,height:360};}});
++ const base=dom(),ad=dom();ad.currentSrc='https://example.invalid/ad.mp4';ad.closest=()=>({});const videos=[base,ad],surface=dom();surface.querySelectorAll=()=>videos;
++ const player=Object.assign(new Events(),{el:()=>surface,currentSrc:()=>base.currentSrc,ads:{snapshot:{currentSrc:base.currentSrc,currentTime:0,ended:false},isInAdMode:()=>true,inAdBreak:()=>true},ima:{getAdsManager:()=>null},
++  play(){throw Error('Probe must not play');},pause(){throw Error('Probe must not pause');},src(){throw Error('Probe must not change source');}});
++ const node={id:'gexp-intext-2',_intextTelemetryCycleId:3,_activeRenderToken:7,videoContainer:{getElement:()=>surface},container:{getElement:()=>surface},
++  getReadinessViewportState:()=>({eligible:true,intersectionRatio:1}),getIntextTelemetryElement:()=>surface};
++ const creative={node,_renderToken:7,player,videoEl:base,_adMediaEl:ad};
++ const Type=Object.fromEntries(['LOADED','STARTED','IMPRESSION','COMPLETE','ALL_ADS_COMPLETED','CONTENT_PAUSE_REQUESTED','CONTENT_RESUME_REQUESTED','PAUSED','RESUMED','SKIPPED'].map(t=>[t,t]));
++ const context={document,performance:{now:()=>10},google:{ima:{AdEvent:{Type},AdErrorEvent:{Type:{AD_ERROR:'AD_ERROR'}}}},
++  getComputedStyle:()=>({display:'block',visibility:'visible',opacity:'1'}),queueMicrotask:fn=>microtasks.push(fn),
++  addEventListener:(...a)=>windowEvents.on(...a),removeEventListener:(...a)=>windowEvents.off(...a),
++  MutationObserver:class{constructor(fn){this.fn=fn;this.disconnected=false;observers.push(this);}observe(){}disconnect(){this.disconnected=true;}},Date};
++ vm.runInNewContext(probeSource,context);return {api:context.IntextIntegrationQA,player,creative,node,base,ad,videos,observers,document,windowEvents,context,
++  flush(){while(microtasks.length)microtasks.shift()();},manager:()=>new Events()};
++}
++test('integration QA observes actual identities/sources without wrapping playback APIs',()=>{const e=environment(),play=e.player.play,pause=e.player.pause,src=e.player.src;
++ e.api.attach(e.creative);assert.equal(e.player.play,play);assert.equal(e.player.pause,pause);assert.equal(e.player.src,src);e.ad.emit('loadeddata');
++ const x=e.api.export(),last=x.logs.at(-1);assert.equal(last.event,'media:loadeddata');assert.equal(last.cycleId,3);assert.equal(last.renderToken,7);
++ assert.equal(last.snapshot.media.length,2);assert.equal(last.snapshot.media[0].isBase,true);assert.equal(last.snapshot.media[1].isCoreObservedAd,true);
++ assert.equal(last.snapshot.media[0].currentSrc.kind,'data');assert.equal(last.snapshot.media[1].insideImaContainer,true);
++ assert.equal(e.creative._playerRevealed,undefined);assert.equal(x.enforce,false);assert.equal(x.wrappers,false);assert.doesNotThrow(()=>JSON.stringify(x));e.api.stop();});
++test('integration QA keeps observing base restore/contentended after native COMPLETE',()=>{const e=environment(),m=e.manager();e.api.attach(e.creative);e.player.emit('ads-manager',{adsManager:m});
++ m.emit('COMPLETE');e.player.emit('adend');e.base.paused=false;e.base.emit('playing');e.player.emit('contentended');e.flush();
++ const events=e.api.export().logs.map(l=>l.event);for(const n of ['ima:COMPLETE','player:adend','media:playing','player:contentended','ima:COMPLETE:microtask'])assert(events.includes(n));
++ assert.equal(e.api.export().activeObservers,1);e.player.emit('dispose');assert.equal(e.api.export().activeObservers,0);assert.equal(m.count(),0);});
++test('integration QA does not infer first-frame from loadeddata or base content',()=>{const e=environment();e.api.attach(e.creative);e.base.currentTime=.8;e.base.emit('loadeddata');e.ad.emit('loadeddata');
++ assert(!e.api.export().logs.some(l=>/^video_first_frame|revealed$/.test(l.event)));assert.equal(e.node._intextPipFirstFrameConfirmed,undefined);e.api.stop();});
++test('integration QA tolerates absent FSM and records snapshot disappearance',()=>{const e=environment();e.api.attach(e.creative);e.player.ads.snapshot=null;e.player.emit('contentresumed');e.flush();
++ const state=e.api.export().logs.at(-1).snapshot.adState;assert.equal(state.snapshotPresent,false);assert.equal(state.constructor,null);assert.equal(state.inAdMode,true);e.api.stop();});
++test('integration QA removes replaced manager listeners and ignores an old late callback',()=>{const e=environment(),a=e.manager(),b=e.manager();e.api.attach(e.creative);e.player.emit('ads-manager',{adsManager:a});
++ const stale=[...a.handlers.get('IMPRESSION')][0];e.player.emit('ads-manager',{adsManager:b});assert.equal(a.count(),0);const before=e.api.export().logs.length;stale();assert.equal(e.api.export().logs.length,before);
++ b.emit('IMPRESSION');assert.equal(e.api.export().logs.filter(l=>l.event==='ima:IMPRESSION').length,1);e.api.stop();assert.equal(b.count(),0);});
++test('integration QA reports missing enums/subscription failure instead of inventing SDK events',()=>{const e=environment(),m=e.manager();delete e.context.google.ima.AdEvent.Type.IMPRESSION;
++ const add=m.addEventListener;m.addEventListener=function(t,f){if(t==='STARTED')throw Error('refused');return add.call(this,t,f);};e.api.attach(e.creative);e.player.emit('ads-manager',{adsManager:m});
++ const logs=e.api.export().logs;assert(logs.some(l=>l.event==='manager:subscription-missing'&&l.nativeEvent==='IMPRESSION'));
++ assert(logs.some(l=>l.event==='manager:subscription-failed'&&l.nativeEvent==='STARTED'));e.api.stop();});
++test('integration QA media replacement cleans old listeners; stale tokens are diagnostic only',()=>{const e=environment();e.api.attach(e.creative);const old=e.ad;e.videos.splice(1,1);e.creative._adMediaEl=null;
++ e.player.emit('contentloadstart');assert.equal(old.count(),0);e.node._activeRenderToken=8;e.base.emit('ended');assert.equal(e.api.export().logs.at(-1).tokenMatches,false);
++ assert.equal(e.node._activeRenderToken,8);assert.equal(e.creative._playerRevealed,undefined);e.api.stop();});
++test('integration QA cleanup removes observers/listeners and drops queued callbacks',()=>{const e=environment();e.api.attach(e.creative);e.api.attach(e.creative);assert.equal(e.api.export().activeObservers,1);
++ e.player.emit('adsready');e.api.close(e.creative,'destroy');const length=e.api.export().logs.length;e.flush();assert.equal(e.api.export().logs.length,length);
++ assert.equal(e.player.count(),0);assert.equal(e.document.count(),0);assert.equal(e.windowEvents.count(),0);assert.equal(e.base.count(),0);assert.equal(e.ad.count(),0);assert(e.observers.every(o=>o.disconnected));});
++test('integration QA leaves two slots independent and closes on pagehide',()=>{const e=environment(),second={...e.creative,node:{...e.node,id:'gexp-intext'},player:Object.assign(new Events(),{el:e.player.el,ads:{}})};
++ e.api.attach(e.creative);e.api.attach(second);assert.equal(e.api.export().activeObservers,2);e.api.close(e.creative);assert.equal(e.api.export().activeObservers,1);
++ e.windowEvents.emit('pagehide');assert.equal(e.api.export().activeObservers,0);});
++for(const name of Object.keys(expected))test('integration QA reversible hooks and protected source hash: '+name,()=>{const source=fs.readFileSync(path.join(__dirname,'..',name),'utf8');
++ assert.equal(crypto.createHash('sha256').update(source).digest('hex'),expected[name]);
++ for(const input of [source,build(source).output]){const {output,edits}=instrument(input,probeSource);let rest=output.slice(output.indexOf(probeSource)+probeSource.length+1);
++  for(const {addition}of edits)rest=rest.replace(addition,'');assert.equal(rest,input);new vm.Script(output);
++  assert(!output.includes('IntextP13C?.attach(this'));}
++});
++test('integration QA builder refuses ambiguous/missing hooks',()=>{assert.throws(()=>instrument('not a bundle',probeSource),/marker/);});
++test('offline integration HAR parser preserves complete entries and labels truncation',()=>{const e={request:{url:'https://example.invalid/gampad/ads?output=vast'},response:{status:200,content:{}},startedDateTime:'2026-10-20T00:00:00Z',time:240,timings:{blocked:5,wait:200}};
++ const valid=JSON.stringify({log:{entries:[e]}}),a=parseHar(Buffer.from(valid));assert.equal(a.complete,true);assert.equal(inspectHar(a.har,e.startedDateTime)[0].type,'VAST');
++ const b=parseHar(Buffer.from(valid.slice(0,-3)+',{"request":{"url":"unfinished'));assert.equal(b.complete,false);assert.equal(b.har.log.entries.length,1);
++ assert.deepEqual(b.har.log.entries[0],e);assert.equal(inspectHar(b.har,e.startedDateTime)[0].bodyPresent,false);});
++test('offline integration logs retain slot/token identity and distinguish timeout types',()=>{const rows=normalizeLogs({logs:[{timestamp:100,elapsedMs:10,message:'[IntextMetrics] video_prepare_failed',args:[{metric:'video_prepare_failed',slotId:'slot',renderToken:1,error:'video_dependency_load_timeout'}]}]});
++ assert.equal(rows[0].event,'video_prepare_failed');assert.equal(rows[0].data.error,'video_dependency_load_timeout');assert.equal(rows[0].data.renderToken,1);});

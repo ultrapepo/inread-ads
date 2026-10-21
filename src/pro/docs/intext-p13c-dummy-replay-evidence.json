@@ -1,0 +1,60 @@
+{
+  "qaOnly": true,
+  "protectedHashes": {
+    "_gam_kv_.js": "1cde1ccdc962c07d5833dc9691a3bfe31b7dd74b3e649e89153a240940a06690",
+    "IntextManager.js": "ba832dc0eb3c0f6e1070a515fac09dd31467e2c7a5a64a18ff4e4f4c063fead8",
+    "tests/qa/intext-p13c-probe.cjs": "7aa576c290bf7194e6f51a9c284df26585d1c51dbf2b5c6bbfdf0c079784a6f9",
+    "tests/qa/intext-p13c-manual-break.cjs": "7ac4cb94a9eb1ca1a5ce4740efd5642c789ee47158812e3377ccd0883d9fec22",
+    "tests/qa/intext-p13c-manual-build.cjs": "dcaf84a7e681302a1d933f9dd02b67f0d63aa157cf39afc62ac6782b667a2c64"
+  },
+  "candidate": {
+    "schema": "p13c-black-fixture-v1",
+    "origin": "Generated locally from source, not from GAM/HAR or a third-party clip",
+    "width": 64,
+    "height": 64,
+    "durationMs": 1000,
+    "frames": 1,
+    "audio": false,
+    "codec": "avc1.42C00A",
+    "profile": "Constrained Baseline",
+    "level": "1.0",
+    "pixelFormat": "YUV420 limited-range black",
+    "bytes": 6841,
+    "sha256": "16988373d3ea7d2d6c7a901b9511228626729ee45d46f6cbb218ad34ec5e21d8",
+    "validation": "Deterministic complete MP4/AVC I_PCM fixture. Decoder and target-browser validation recorded separately."
+  },
+  "decoder": {
+    "decoder": "Windows Media Foundation H264 to NV12",
+    "frames": 1,
+    "eos": true,
+    "width": 64,
+    "height": 64,
+    "decodedBytes": 6144,
+    "expectedBlackPixels": true
+  },
+  "decoderSourceSha256": "4f805073630e0cc3b9da95bb6b150f4599b23c122fa7b9f8a2e606c35285c167",
+  "httpSmoke": [
+    {
+      "route": "/",
+      "status": 200,
+      "bytes": 1631,
+      "sha256": "3e0c106da31b42013896b40330f8073ce906c602fdbb5bc891ca67376312a454",
+      "csp": "default-src 'none'; script-src 'self'; style-src 'unsafe-inline'; media-src 'self' data: blob:; connect-src 'none'; img-src data:; frame-src 'none'; base-uri 'none'; form-action 'none'"
+    },
+    {
+      "route": "/media/candidate.mp4",
+      "status": 200,
+      "bytes": 6841,
+      "sha256": "16988373d3ea7d2d6c7a901b9511228626729ee45d46f6cbb218ad34ec5e21d8",
+      "csp": "default-src 'none'; script-src 'self'; style-src 'unsafe-inline'; media-src 'self' data: blob:; connect-src 'none'; img-src data:; frame-src 'none'; base-uri 'none'; form-action 'none'"
+    }
+  ],
+  "suite": "✔ late-slot: request boundary permanece cerrado con pubadsReady true y slot ambiguo (4.5931ms)\nℹ tests 1220\nℹ suites 0\nℹ pass 1220\nℹ fail 0\nℹ cancelled 0\nℹ skipped 0\nℹ todo 0\nℹ duration_ms 19415.8324\n",
+  "browserNewHarness": {
+    "executed": false
+  },
+  "realIntextCandidate": {
+    "executed": false,
+    "approval": false
+  }
+}

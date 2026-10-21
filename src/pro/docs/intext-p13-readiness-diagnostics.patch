@@ -1,0 +1,44 @@
+diff --git a/_gam_kv_.js b/_gam_kv_.js
+index ec94db3..4637a0e 100644
+--- a/_gam_kv_.js
++++ b/_gam_kv_.js
+@@ -12715,11 +12715,16 @@ class IntextWaterfall {
+     const times = this._readinessTimes, now = Date.now();
+     times[metric] = now;
+     const duration = (from, to) => times[from] != null && times[to] != null ? times[to] - times[from] : null;
++    let readinessAnchorRect = null;
++    try {
++      const rect = this.getLoadingTargetElement?.()?.getBoundingClientRect?.();
++      if (rect) readinessAnchorRect = Object.fromEntries(["top", "left", "bottom", "right", "width", "height"].map(key => [key, rect[key]]));
++    } catch (e) { /* Diagnostic only; an unavailable anchor must not alter readiness. */ }
+     IntextVideoCreative.dependencyDiagnostic(metric, this.node, {
+       stage: metric, timestamp: now, device: this.node?.scopedContext?.device || window.ueDataLayer?.device_category || window.ueDataLayer?.be_page_site_version || this.node?.manager?.device || null,
+       decisionMode: this._effectiveMode || this.config?.decision?.mode || "auto",
+       winnerFormat: "video", distanceToViewportPx: state.distancePx ?? null,
+-      intersectionRatio: state.intersectionRatio ?? null,
++      readinessIntersectionRatio: state.intersectionRatio ?? null, readinessAnchorRect,
+       winnerToPreparedMs: duration("video_winner_resolved", "video_prepare_ready"),
+       preparedToEligibleMs: duration("video_prepare_ready", "video_activation_eligible"),
+       preparationMs: duration("video_prepare_started", "video_prepare_ready"),
+diff --git a/IntextManager.js b/IntextManager.js
+index ee47ba4..7a234ac 100644
+--- a/IntextManager.js
++++ b/IntextManager.js
+@@ -10916,11 +10916,16 @@ class IntextWaterfall {
+     const times = this._readinessTimes, now = Date.now();
+     times[metric] = now;
+     const duration = (from, to) => times[from] != null && times[to] != null ? times[to] - times[from] : null;
++    let readinessAnchorRect = null;
++    try {
++      const rect = this.getLoadingTargetElement?.()?.getBoundingClientRect?.();
++      if (rect) readinessAnchorRect = Object.fromEntries(["top", "left", "bottom", "right", "width", "height"].map(key => [key, rect[key]]));
++    } catch (e) { /* Diagnostic only; an unavailable anchor must not alter readiness. */ }
+     IntextVideoCreative.dependencyDiagnostic(metric, this.node, {
+       stage: metric, timestamp: now, device: this.node?.scopedContext?.device || window.ueDataLayer?.device_category || window.ueDataLayer?.be_page_site_version || this.node?.manager?.device || null,
+       decisionMode: this._effectiveMode || this.config?.decision?.mode || "auto",
+       winnerFormat: "video", distanceToViewportPx: state.distancePx ?? null,
+-      intersectionRatio: state.intersectionRatio ?? null,
++      readinessIntersectionRatio: state.intersectionRatio ?? null, readinessAnchorRect,
+       winnerToPreparedMs: duration("video_winner_resolved", "video_prepare_ready"),
+       preparedToEligibleMs: duration("video_prepare_ready", "video_activation_eligible"),
+       preparationMs: duration("video_prepare_started", "video_prepare_ready"),

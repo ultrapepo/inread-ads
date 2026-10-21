@@ -206,7 +206,7 @@ test('snapshot preserves request fields and observes runtime getFloor without in
   r.unit.bids[0].params = { bidfloor: 0.30, secret: 'not logged' };
   await r.auction();
   const start = r.events('intext_prebid_floor_audit_start')[0];
-  assert.equal(start.floorSource, 'effectivePrice'); assert.equal(start.gexpFloor, '0.30');
+  assert.equal(start.floorSource, 'gexp-effective-price'); assert.equal(start.gexpFloor, '0.30');
   assert.equal(start.cycleId, 7); assert.equal(start.renderToken, 1);
   const request = r.events('intext_prebid_floor_request_snapshot')[0];
   assert.equal(request.floorFields.ortb2Imp.bidfloor, 0.30);
@@ -268,10 +268,10 @@ test('pre-audit baseline and instrumented implementation preserve functional beh
 });
 
 for (const [expectedSource, wa] of [
-  ['effectivePrice', { effectivePrice: 0.30, state: { lastPrice: 0.50 } }],
-  ['lastPrice', { state: { lastPrice: 0.30, windowStart: 1 }, array: [0.1, 0.50] }],
-  ['windowStart', { state: { windowStart: 1 }, array: [0.1, 0.30] }],
-  ['initial', { pCfg: { p: 0 }, array: [0.1, 0.30] }],
+  ['gexp-effective-price', { effectivePrice: 0.30, state: { lastPrice: 0.50 } }],
+  ['gexp-last-price', { state: { lastPrice: 0.30, windowStart: 1 }, array: [0.1, 0.50] }],
+  ['gexp-window-start', { state: { windowStart: 1 }, array: [0.1, 0.30] }],
+  ['gexp-config-fallback', { pCfg: { p: 0 }, array: [0.1, 0.30] }],
 ]) test(`GEXP source ${expectedSource} is captured from the actual existing floor resolution`, async () => {
   const r = setup({ bids: [bid('A', 0.42, '0.40')] });
   r.waterfall.wa = wa;
@@ -509,7 +509,7 @@ test('GEXP propagation logs dedupe per request and reset with cycle/render conte
 });
 
 test('all current Intext version strings identify the P1 diagnostic build', () => {
-  const version = '2026.10.05-p1-prebid-audit.2';
+  const version = '2026.10.07-p1-ima-preload-first-frame';
   for (const implementation of [source.slice(source.indexOf('const GEXP_INTEXT_VERSION'), source.indexOf('class WPromise')),
     fs.readFileSync(path.join(root, 'IntextManager.js'), 'utf8')]) {
     assert.doesNotMatch(implementation, /2026\.10\.02-p0-random-slot/);

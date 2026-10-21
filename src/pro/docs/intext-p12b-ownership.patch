@@ -1,0 +1,160 @@
+diff --git a/_gam_kv_.js b/_gam_kv_.js
+index f5b16b5..ec94db3 100644
+--- a/_gam_kv_.js
++++ b/_gam_kv_.js
+@@ -16700,14 +16700,26 @@ class IntextVideoCreative {
+     const managerNow = () => { try { return this.player?.ima?.getAdsManager?.(); } catch (e) { return null; } };
+     const live = () => !this._destroyed && !this._aborted && this.isRenderTokenActive("video-eligibility");
+     const usableMedia = media => !!media && !media.ended && !media.error;
++    let lastPauseState = null;
++    const controlState = () => {
++      const media = this._adMediaEl, manager = managerNow();
++      return [media, manager, media?.pause, media?.play, manager?.pause, manager?.resume, media?.paused];
++    };
++    const stateChanged = (previous, next, controlsOnly = false) => !previous || next.some((value, index) =>
++      (!controlsOnly || index < next.length - 1) && value !== previous[index]);
+     const pause = () => {
+       const manager = managerNow(), media = this._adMediaEl;
+       const pauseMedia = () => {
++        const previousOwner = this._eligibilityPauseOwner;
++        const directlyOwned = !!media && previousOwner?.source === "ad-media" && previousOwner.media === media;
++        const wasPaused = media?.paused;
+         this._eligibilityPauseOwner = null;
+         if (!media || typeof media.pause !== "function") return;
+         try {
+           media.pause();
+-          if (this._adMediaEl === media && media.paused === true) this._eligibilityPauseOwner = { source: "ad-media", media };
++          if (this._adMediaEl === media && media.paused === true && (wasPaused === false || directlyOwned)) {
++            this._eligibilityPauseOwner = directlyOwned ? previousOwner : { source: "ad-media", media };
++          }
+         } catch (error) { record("video_recovery_control_unavailable", { source: "ad-media", reason: "pause-failed", error: error?.message }); }
+       };
+       if (media && this._eligibilityPauseOwner?.source === "ad-media" && this._eligibilityPauseOwner.media === media) {
+@@ -16756,21 +16768,26 @@ class IntextVideoCreative {
+       }
+       const state = node.getReadinessViewportState();
+       if (!state.eligible) {
+-        if (!this._pausedForEligibility || this._recoveryAttempt || !this._eligibilityPauseOwner) {
++        if (!this._pausedForEligibility || this._recoveryAttempt || stateChanged(lastPauseState, controlState())) {
+           if (!this._pausedForEligibility) record("video_missed_viewport", { reason: state.reason });
+           if (this._recoveryAttempt) record("video_recovery_cancelled", { source: this._recoveryAttempt.source, reason: state.reason });
+           this._recoveryAttempt = null;
+           this._recoveryEpoch = (this._recoveryEpoch || 0) + 1;
+           this._pausedForEligibility = true;
+           pause();
++          // Snapshot after our own pause, so its state change does not cause another attempt.
++          lastPauseState = controlState();
+         }
+         return;
+       }
++      lastPauseState = null;
+       if (!this._pausedForEligibility) { this._retryEligibleReveal?.(); return; }
+       if (this._recoveryAttempt && (this._recoveryAttempt.media !== this._adMediaEl
+-        || (this._recoveryAttempt.source !== "ad-media" && this._recoveryAttempt.manager !== managerNow()))) {
++        || (this._recoveryAttempt.source !== "ad-media" && this._recoveryAttempt.manager !== managerNow())
++        || (this._recoveryAttempt.source === "ad-media-observed" && stateChanged(this._recoveryAttempt.controlState, controlState(), true)))) {
+         record("video_recovery_cancelled", { source: this._recoveryAttempt.source,
+-          reason: this._recoveryAttempt.media !== this._adMediaEl ? "media-replaced" : "ads-manager-replaced" });
++          reason: this._recoveryAttempt.media !== this._adMediaEl ? "media-replaced"
++            : this._recoveryAttempt.manager !== managerNow() ? "ads-manager-replaced" : "recovery-api-changed" });
+         this._recoveryAttempt = null;
+         this._recoveryEpoch = (this._recoveryEpoch || 0) + 1;
+       }
+@@ -16794,7 +16811,8 @@ class IntextVideoCreative {
+         this._recoveryUnavailableLogged = true;
+         // If nothing was actually paused, an ensuing media playing/progress event can still prove recovery.
+       }
+-      const attempt = { media, manager, epoch: this._recoveryEpoch, source: source || "ad-media-observed", currentTime: Number(media?.currentTime) || 0 };
++      const attempt = { media, manager, epoch: this._recoveryEpoch, source: source || "ad-media-observed",
++        currentTime: Number(media?.currentTime) || 0, controlState: controlState() };
+       this._recoveryAttempt = attempt;
+       record("video_recovery_requested", { source: attempt.source, pauseOwner: owner?.source || "unknown",
+         reason: owner?.source === "ads-manager" && source === "ad-media" ? "ads-manager-unavailable" : "reentry",
+@@ -16832,6 +16850,7 @@ class IntextVideoCreative {
+       window.removeEventListener?.("scroll", check); window.removeEventListener?.("resize", check);
+       this._retryEligibleReveal = null; this._checkActivationEligibility = null; this._confirmEligibilityRecovery = null;
+       this._eligibilityCleanup = null; this._eligibilityPauseOwner = null;
++      lastPauseState = null;
+       this._recoveryAttempt = null; this._recoveryEpoch = (this._recoveryEpoch || 0) + 1;
+     };
+     this._checkActivationEligibility = check;
+diff --git a/IntextManager.js b/IntextManager.js
+index 13216da..ee47ba4 100644
+--- a/IntextManager.js
++++ b/IntextManager.js
+@@ -14541,14 +14541,26 @@ class IntextVideoCreative {
+     const managerNow = () => { try { return this.player?.ima?.getAdsManager?.(); } catch (e) { return null; } };
+     const live = () => !this._destroyed && !this._aborted && this.isRenderTokenActive("video-eligibility");
+     const usableMedia = media => !!media && !media.ended && !media.error;
++    let lastPauseState = null;
++    const controlState = () => {
++      const media = this._adMediaEl, manager = managerNow();
++      return [media, manager, media?.pause, media?.play, manager?.pause, manager?.resume, media?.paused];
++    };
++    const stateChanged = (previous, next, controlsOnly = false) => !previous || next.some((value, index) =>
++      (!controlsOnly || index < next.length - 1) && value !== previous[index]);
+     const pause = () => {
+       const manager = managerNow(), media = this._adMediaEl;
+       const pauseMedia = () => {
++        const previousOwner = this._eligibilityPauseOwner;
++        const directlyOwned = !!media && previousOwner?.source === "ad-media" && previousOwner.media === media;
++        const wasPaused = media?.paused;
+         this._eligibilityPauseOwner = null;
+         if (!media || typeof media.pause !== "function") return;
+         try {
+           media.pause();
+-          if (this._adMediaEl === media && media.paused === true) this._eligibilityPauseOwner = { source: "ad-media", media };
++          if (this._adMediaEl === media && media.paused === true && (wasPaused === false || directlyOwned)) {
++            this._eligibilityPauseOwner = directlyOwned ? previousOwner : { source: "ad-media", media };
++          }
+         } catch (error) { record("video_recovery_control_unavailable", { source: "ad-media", reason: "pause-failed", error: error?.message }); }
+       };
+       if (media && this._eligibilityPauseOwner?.source === "ad-media" && this._eligibilityPauseOwner.media === media) {
+@@ -14597,21 +14609,26 @@ class IntextVideoCreative {
+       }
+       const state = node.getReadinessViewportState();
+       if (!state.eligible) {
+-        if (!this._pausedForEligibility || this._recoveryAttempt || !this._eligibilityPauseOwner) {
++        if (!this._pausedForEligibility || this._recoveryAttempt || stateChanged(lastPauseState, controlState())) {
+           if (!this._pausedForEligibility) record("video_missed_viewport", { reason: state.reason });
+           if (this._recoveryAttempt) record("video_recovery_cancelled", { source: this._recoveryAttempt.source, reason: state.reason });
+           this._recoveryAttempt = null;
+           this._recoveryEpoch = (this._recoveryEpoch || 0) + 1;
+           this._pausedForEligibility = true;
+           pause();
++          // Snapshot after our own pause, so its state change does not cause another attempt.
++          lastPauseState = controlState();
+         }
+         return;
+       }
++      lastPauseState = null;
+       if (!this._pausedForEligibility) { this._retryEligibleReveal?.(); return; }
+       if (this._recoveryAttempt && (this._recoveryAttempt.media !== this._adMediaEl
+-        || (this._recoveryAttempt.source !== "ad-media" && this._recoveryAttempt.manager !== managerNow()))) {
++        || (this._recoveryAttempt.source !== "ad-media" && this._recoveryAttempt.manager !== managerNow())
++        || (this._recoveryAttempt.source === "ad-media-observed" && stateChanged(this._recoveryAttempt.controlState, controlState(), true)))) {
+         record("video_recovery_cancelled", { source: this._recoveryAttempt.source,
+-          reason: this._recoveryAttempt.media !== this._adMediaEl ? "media-replaced" : "ads-manager-replaced" });
++          reason: this._recoveryAttempt.media !== this._adMediaEl ? "media-replaced"
++            : this._recoveryAttempt.manager !== managerNow() ? "ads-manager-replaced" : "recovery-api-changed" });
+         this._recoveryAttempt = null;
+         this._recoveryEpoch = (this._recoveryEpoch || 0) + 1;
+       }
+@@ -14635,7 +14652,8 @@ class IntextVideoCreative {
+         this._recoveryUnavailableLogged = true;
+         // If nothing was actually paused, an ensuing media playing/progress event can still prove recovery.
+       }
+-      const attempt = { media, manager, epoch: this._recoveryEpoch, source: source || "ad-media-observed", currentTime: Number(media?.currentTime) || 0 };
++      const attempt = { media, manager, epoch: this._recoveryEpoch, source: source || "ad-media-observed",
++        currentTime: Number(media?.currentTime) || 0, controlState: controlState() };
+       this._recoveryAttempt = attempt;
+       record("video_recovery_requested", { source: attempt.source, pauseOwner: owner?.source || "unknown",
+         reason: owner?.source === "ads-manager" && source === "ad-media" ? "ads-manager-unavailable" : "reentry",
+@@ -14673,6 +14691,7 @@ class IntextVideoCreative {
+       window.removeEventListener?.("scroll", check); window.removeEventListener?.("resize", check);
+       this._retryEligibleReveal = null; this._checkActivationEligibility = null; this._confirmEligibilityRecovery = null;
+       this._eligibilityCleanup = null; this._eligibilityPauseOwner = null;
++      lastPauseState = null;
+       this._recoveryAttempt = null; this._recoveryEpoch = (this._recoveryEpoch || 0) + 1;
+     };
+     this._checkActivationEligibility = check;

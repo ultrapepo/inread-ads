@@ -1,0 +1,308 @@
+diff --git a/_gam_kv_.js b/_gam_kv_.js
+index 7616d02..a351634 100644
+--- a/_gam_kv_.js
++++ b/_gam_kv_.js
+@@ -16651,10 +16651,20 @@ class IntextVideoCreative {
+       dependencyPrewarmReady: this.node?._intextVideoDependencyPrewarm?.ready === true,
+       dependencyPrewarmMs: this.node?._intextVideoDependencyPrewarm?.durationMs ?? null,
+     });
+-    if (!this.preparationValid()) {
+-      throw new Error("stale_render_token");
+-    }
+-    this.createVideoElement();
++    if (!this.preparationValid()) {
++      throw new Error("stale_render_token");
++    }
++    // Standby only warms infrastructure. Video.js and IMA must initialize together.
++    this._prepared = true;
++    this.node?.waterfall?.recordReadiness?.("video_prepare_ready", {
++      durationMs: Date.now() - startedAt, preparationStage: "dependencies", playerCreated: false,
++    });
++  }
++
++  createPlayerForActivation() {
++    if (!this.preparationValid()) throw new Error("stale_render_token");
++    this._playerBuildStartedAt = Date.now();
++    this.createVideoElement();
+     this.initVideoJS();
+     const loader = this.container.getElement().querySelector(".gexp-intext-loader");
+     this.container.getElement().style.position = "relative";
+@@ -16669,11 +16679,9 @@ class IntextVideoCreative {
+       loader.style.zIndex = "999";
+       loader.style.pointerEvents = "auto";
+       loader.style.display = "flex";
+-    }
+-    this.attachPlayerEvents();
+-    this._prepared = true;
+-    this.node?.waterfall?.recordReadiness?.("video_prepare_ready", { durationMs: Date.now() - startedAt });
+-  }
++    }
++    this.attachPlayerEvents();
++  }
+ 
+   render() {
+     if (this._activationPromise) return this._activationPromise;
+@@ -16691,9 +16699,10 @@ class IntextVideoCreative {
+       if (state === "stale" || !this.preparationValid()) throw new Error("stale_render_token");
+     }
+     if (node?.getReadinessViewportState && !node.getReadinessViewportState().eligible) throw new Error("video_activation_ineligible");
+-    node?.waterfall?.recordReadiness?.("video_activation_eligible");
+-    node?.waterfall?.releasePreparedVideo?.(this);
+-    this.observeActivationEligibility();
++    node?.waterfall?.recordReadiness?.("video_activation_eligible");
++    node?.waterfall?.releasePreparedVideo?.(this);
++    this.createPlayerForActivation();
++    this.observeActivationEligibility();
+     node?.waterfall?.recordReadiness?.("video_activation_started");
+     return this.requestAds();
+   }
+@@ -18146,15 +18155,17 @@ class IntextVideoCreative {
+         ),
+       );
+ 
+-      this.player.ready(() => {
++      // Initialize the ad plugin in the same turn as Video.js, before native loadstart.
++      // Only AdDisplayContainer/play wait for player readiness below.
++      (() => {
+         if (!this.preparationValid() || (this.node?.getReadinessViewportState && !this.node.getReadinessViewportState().eligible)) {
+-          this.node?.waterfall?.recordReadiness?.("video_activation_cancelled", { reason: "ineligible-at-player-ready" });
++          this.node?.waterfall?.recordReadiness?.("video_activation_cancelled", { reason: "ineligible-at-plugin-init" });
+           settle("reject", new Error("video_activation_ineligible"));
+           return;
+         }
+         try {
+           logIntext(
+-            `[Intext:Video:IMA] 🔧 Player ready — initializing IMA plugin...`,
++            `[Intext:Video:IMA] 🔧 Initializing IMA immediately after Video.js...`,
+           );
+ 
+           if (window.google && window.google.ima && window.google.ima.settings) {
+@@ -18193,8 +18204,12 @@ class IntextVideoCreative {
+             adTagUrl: adTag
+           };
+ 
+-          this.player.ima(options);
+-          logIntext(`[Intext:Video:IMA] ✔ IMA plugin initialized`);
++          this.player.ima(options);
++          logIntext(`[Intext:Video:IMA] ✔ IMA plugin initialized`);
++          debugVideo("video-player-prepared", {
++            durationMs: this._playerBuildStartedAt == null ? null : Date.now() - this._playerBuildStartedAt,
++            source: "activation", preparationStage: "player-and-ima",
++          });
+ 
+           try {
+             const ima = window.google.ima;
+@@ -18321,20 +18336,32 @@ class IntextVideoCreative {
+             );
+           }
+ 
+-          this.player.ima.initializeAdDisplayContainer();
+-          logIntext(
+-            `[Intext:Video:IMA] ✔ AdDisplayContainer initialized`,
+-          );
+-          const playPromise = this.player.play();
+-          logIntext(`[Intext:Video:IMA] ▶ player.play() called`);
+-          if (playPromise !== undefined && playPromise.catch) {
+-            playPromise.catch((e) => {
+-              warnIntext(
+-                `[Intext:Video:IMA] ▶ player.play() rejected (may be expected as IMA intercepts):`,
+-                e,
+-              );
+-            });
+-          }
++          this.player.ready(() => {
++            try {
++              if (terminalHandled || !this.preparationValid() || (this.node?.getReadinessViewportState && !this.node.getReadinessViewportState().eligible)) {
++                this.node?.waterfall?.recordReadiness?.("video_activation_cancelled", { reason: "ineligible-at-player-ready" });
++                settle("reject", new Error("video_activation_ineligible"));
++                return;
++              }
++              this.player.ima.initializeAdDisplayContainer();
++              logIntext(
++                `[Intext:Video:IMA] ✔ AdDisplayContainer initialized`,
++              );
++              const playPromise = this.player.play();
++              logIntext(`[Intext:Video:IMA] ▶ player.play() called`);
++              if (playPromise !== undefined && playPromise.catch) {
++                playPromise.catch((e) => {
++                  warnIntext(
++                    `[Intext:Video:IMA] ▶ player.play() rejected (may be expected as IMA intercepts):`,
++                    e,
++                  );
++                });
++              }
++            } catch (error) {
++              errorIntext("[Intext:Video:IMA] Playback initialization error:", error);
++              settle("reject", error);
++            }
++          }, true);
+         } catch (err) {
+           errorIntext(
+             `[Intext:Video:IMA] 💥 IMA initialization error:`,
+@@ -18342,9 +18369,9 @@ class IntextVideoCreative {
+           );
+           settle("reject", err);
+         }
+-      });
+-    });
+-  }
++      })();
++    });
++  }
+ 
+   getVideoTagUrl() {
+     if (this.adTagUrl) return this.adTagUrl;
+diff --git a/IntextManager.js b/IntextManager.js
+index 9a9d91e..9fc9fa0 100644
+--- a/IntextManager.js
++++ b/IntextManager.js
+@@ -14492,10 +14492,20 @@ class IntextVideoCreative {
+       dependencyPrewarmReady: this.node?._intextVideoDependencyPrewarm?.ready === true,
+       dependencyPrewarmMs: this.node?._intextVideoDependencyPrewarm?.durationMs ?? null,
+     });
+-    if (!this.preparationValid()) {
+-      throw new Error("stale_render_token");
+-    }
+-    this.createVideoElement();
++    if (!this.preparationValid()) {
++      throw new Error("stale_render_token");
++    }
++    // Standby only warms infrastructure. Video.js and IMA must initialize together.
++    this._prepared = true;
++    this.node?.waterfall?.recordReadiness?.("video_prepare_ready", {
++      durationMs: Date.now() - startedAt, preparationStage: "dependencies", playerCreated: false,
++    });
++  }
++
++  createPlayerForActivation() {
++    if (!this.preparationValid()) throw new Error("stale_render_token");
++    this._playerBuildStartedAt = Date.now();
++    this.createVideoElement();
+     this.initVideoJS();
+     const loader = this.container.getElement().querySelector(".gexp-intext-loader");
+     this.container.getElement().style.position = "relative";
+@@ -14510,11 +14520,9 @@ class IntextVideoCreative {
+       loader.style.zIndex = "999";
+       loader.style.pointerEvents = "auto";
+       loader.style.display = "flex";
+-    }
+-    this.attachPlayerEvents();
+-    this._prepared = true;
+-    this.node?.waterfall?.recordReadiness?.("video_prepare_ready", { durationMs: Date.now() - startedAt });
+-  }
++    }
++    this.attachPlayerEvents();
++  }
+ 
+   render() {
+     if (this._activationPromise) return this._activationPromise;
+@@ -14532,9 +14540,10 @@ class IntextVideoCreative {
+       if (state === "stale" || !this.preparationValid()) throw new Error("stale_render_token");
+     }
+     if (node?.getReadinessViewportState && !node.getReadinessViewportState().eligible) throw new Error("video_activation_ineligible");
+-    node?.waterfall?.recordReadiness?.("video_activation_eligible");
+-    node?.waterfall?.releasePreparedVideo?.(this);
+-    this.observeActivationEligibility();
++    node?.waterfall?.recordReadiness?.("video_activation_eligible");
++    node?.waterfall?.releasePreparedVideo?.(this);
++    this.createPlayerForActivation();
++    this.observeActivationEligibility();
+     node?.waterfall?.recordReadiness?.("video_activation_started");
+     return this.requestAds();
+   }
+@@ -15786,15 +15795,17 @@ class IntextVideoCreative {
+         ),
+       );
+ 
+-      this.player.ready(() => {
++      // Initialize the ad plugin in the same turn as Video.js, before native loadstart.
++      // Only AdDisplayContainer/play wait for player readiness below.
++      (() => {
+         if (!this.preparationValid() || (this.node?.getReadinessViewportState && !this.node.getReadinessViewportState().eligible)) {
+-          this.node?.waterfall?.recordReadiness?.("video_activation_cancelled", { reason: "ineligible-at-player-ready" });
++          this.node?.waterfall?.recordReadiness?.("video_activation_cancelled", { reason: "ineligible-at-plugin-init" });
+           settle("reject", new Error("video_activation_ineligible"));
+           return;
+         }
+         try {
+           logIntext(
+-            `[Intext:Video:IMA] 🔧 Player ready — initializing IMA plugin...`,
++            `[Intext:Video:IMA] 🔧 Initializing IMA immediately after Video.js...`,
+           );
+ 
+           if (window.google && window.google.ima && window.google.ima.settings) {
+@@ -15823,8 +15834,12 @@ class IntextVideoCreative {
+             adTagUrl: adTag
+           };
+ 
+-          this.player.ima(options);
+-          logIntext(`[Intext:Video:IMA] ✔ IMA plugin initialized`);
++          this.player.ima(options);
++          logIntext(`[Intext:Video:IMA] ✔ IMA plugin initialized`);
++          debugVideo("video-player-prepared", {
++            durationMs: this._playerBuildStartedAt == null ? null : Date.now() - this._playerBuildStartedAt,
++            source: "activation", preparationStage: "player-and-ima",
++          });
+ 
+           try {
+             const ima = window.google.ima;
+@@ -15951,20 +15966,32 @@ class IntextVideoCreative {
+             );
+           }
+ 
+-          this.player.ima.initializeAdDisplayContainer();
+-          logIntext(
+-            `[Intext:Video:IMA] ✔ AdDisplayContainer initialized`,
+-          );
+-          const playPromise = this.player.play();
+-          logIntext(`[Intext:Video:IMA] ▶ player.play() called`);
+-          if (playPromise !== undefined && playPromise.catch) {
+-            playPromise.catch((e) => {
+-              warnIntext(
+-                `[Intext:Video:IMA] ▶ player.play() rejected (may be expected as IMA intercepts):`,
+-                e,
+-              );
+-            });
+-          }
++          this.player.ready(() => {
++            try {
++              if (terminalHandled || !this.preparationValid() || (this.node?.getReadinessViewportState && !this.node.getReadinessViewportState().eligible)) {
++                this.node?.waterfall?.recordReadiness?.("video_activation_cancelled", { reason: "ineligible-at-player-ready" });
++                settle("reject", new Error("video_activation_ineligible"));
++                return;
++              }
++              this.player.ima.initializeAdDisplayContainer();
++              logIntext(
++                `[Intext:Video:IMA] ✔ AdDisplayContainer initialized`,
++              );
++              const playPromise = this.player.play();
++              logIntext(`[Intext:Video:IMA] ▶ player.play() called`);
++              if (playPromise !== undefined && playPromise.catch) {
++                playPromise.catch((e) => {
++                  warnIntext(
++                    `[Intext:Video:IMA] ▶ player.play() rejected (may be expected as IMA intercepts):`,
++                    e,
++                  );
++                });
++              }
++            } catch (error) {
++              errorIntext("[Intext:Video:IMA] Playback initialization error:", error);
++              settle("reject", error);
++            }
++          }, true);
+         } catch (err) {
+           errorIntext(
+             `[Intext:Video:IMA] 💥 IMA initialization error:`,
+@@ -15972,9 +15999,9 @@ class IntextVideoCreative {
+           );
+           settle("reject", err);
+         }
+-      });
+-    });
+-  }
++      })();
++    });
++  }
+ 
+   getVideoTagUrl() {
+     if (this.adTagUrl) return this.adTagUrl;

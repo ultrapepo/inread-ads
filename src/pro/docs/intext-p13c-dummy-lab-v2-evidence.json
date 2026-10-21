@@ -1,0 +1,464 @@
+{
+  "input": {
+    "name": "intext-dummy-lab.json",
+    "sha256": "dd3202f5c82fb4065c82c1f73134483e3c79c03a5fc3f863f420d595cb358f9e",
+    "schema": "p13c-dummy-lab-result-v1",
+    "timestamp": "2026-10-19T16:46:03.812Z",
+    "controlValidated": false,
+    "cases": [
+      {
+        "engine": "native",
+        "source": "dummy",
+        "durationMs": 31850.800000190735,
+        "plays": [
+          {
+            "phase": 1,
+            "terminal": "lab-timeout-15000ms",
+            "snapshot": {
+              "currentTime": 0,
+              "duration": null,
+              "readyState": 0,
+              "networkState": 3,
+              "paused": false,
+              "ended": false,
+              "videoWidth": 0,
+              "videoHeight": 0,
+              "mediaError": null
+            },
+            "promise": "rejected",
+            "error": {
+              "name": "AbortError",
+              "message": "The play() request was interrupted by a call to pause(). https://goo.gl/LdLk22"
+            }
+          },
+          {
+            "phase": 2,
+            "terminal": "lab-timeout-15000ms",
+            "snapshot": {
+              "currentTime": 0,
+              "duration": null,
+              "readyState": 0,
+              "networkState": 3,
+              "paused": false,
+              "ended": false,
+              "videoWidth": 0,
+              "videoHeight": 0,
+              "mediaError": null
+            },
+            "promise": "rejected",
+            "error": {
+              "name": "AbortError",
+              "message": "The play() request was interrupted by a call to pause(). https://goo.gl/LdLk22"
+            }
+          }
+        ],
+        "events": [
+          {
+            "event": "loadstart",
+            "phase": 1,
+            "atMs": 6.400000095367432,
+            "currentTime": 0,
+            "duration": null,
+            "readyState": 0,
+            "networkState": 2,
+            "paused": false,
+            "ended": false,
+            "videoWidth": 0,
+            "videoHeight": 0,
+            "mediaError": null
+          }
+        ]
+      },
+      {
+        "engine": "native",
+        "source": "control",
+        "durationMs": 32023.299999952316,
+        "plays": [
+          {
+            "phase": 1,
+            "terminal": "lab-timeout-15000ms",
+            "snapshot": {
+              "currentTime": 0,
+              "duration": null,
+              "readyState": 0,
+              "networkState": 2,
+              "paused": false,
+              "ended": false,
+              "videoWidth": 0,
+              "videoHeight": 0,
+              "mediaError": null
+            },
+            "promise": "rejected",
+            "error": {
+              "name": "AbortError",
+              "message": "The play() request was interrupted by a call to pause(). https://goo.gl/LdLk22"
+            }
+          },
+          {
+            "phase": 2,
+            "terminal": "lab-timeout-15000ms",
+            "snapshot": {
+              "currentTime": 0,
+              "duration": null,
+              "readyState": 0,
+              "networkState": 2,
+              "paused": false,
+              "ended": false,
+              "videoWidth": 0,
+              "videoHeight": 0,
+              "mediaError": null
+            },
+            "promise": "rejected",
+            "error": {
+              "name": "AbortError",
+              "message": "The play() request was interrupted by a call to pause(). https://goo.gl/LdLk22"
+            }
+          }
+        ],
+        "events": [
+          {
+            "event": "loadstart",
+            "phase": 1,
+            "atMs": 16.59999990463257,
+            "currentTime": 0,
+            "duration": null,
+            "readyState": 0,
+            "networkState": 2,
+            "paused": false,
+            "ended": false,
+            "videoWidth": 0,
+            "videoHeight": 0,
+            "mediaError": null
+          },
+          {
+            "event": "stalled",
+            "phase": 1,
+            "atMs": 3317,
+            "currentTime": 0,
+            "duration": null,
+            "readyState": 0,
+            "networkState": 2,
+            "paused": false,
+            "ended": false,
+            "videoWidth": 0,
+            "videoHeight": 0,
+            "mediaError": null
+          }
+        ]
+      },
+      {
+        "engine": "videojs",
+        "source": "dummy",
+        "durationMs": 31979,
+        "plays": [
+          {
+            "phase": 1,
+            "terminal": "lab-timeout-15000ms",
+            "snapshot": {
+              "currentTime": 0,
+              "duration": null,
+              "readyState": 0,
+              "networkState": 1,
+              "paused": true,
+              "ended": false,
+              "videoWidth": 0,
+              "videoHeight": 0,
+              "mediaError": null
+            },
+            "promise": "rejected",
+            "error": {
+              "name": "AbortError",
+              "message": "The play() request was interrupted by a new load request. https://goo.gl/LdLk22"
+            }
+          },
+          {
+            "phase": 2,
+            "terminal": "lab-timeout-15000ms",
+            "snapshot": {
+              "currentTime": 0,
+              "duration": null,
+              "readyState": 0,
+              "networkState": 2,
+              "paused": false,
+              "ended": false,
+              "videoWidth": 0,
+              "videoHeight": 0,
+              "mediaError": null
+            },
+            "promise": "rejected",
+            "error": {
+              "name": "AbortError",
+              "message": "The play() request was interrupted by a new load request. https://goo.gl/LdLk22"
+            }
+          }
+        ],
+        "events": [
+          {
+            "event": "loadstart",
+            "phase": 1,
+            "atMs": 60.700000047683716,
+            "currentTime": 0,
+            "duration": null,
+            "readyState": 0,
+            "networkState": 1,
+            "paused": true,
+            "ended": false,
+            "videoWidth": 0,
+            "videoHeight": 0,
+            "mediaError": null
+          },
+          {
+            "event": "abort",
+            "phase": 1,
+            "atMs": 980.7000000476837,
+            "currentTime": 0,
+            "duration": null,
+            "readyState": 0,
+            "networkState": 3,
+            "paused": true,
+            "ended": false,
+            "videoWidth": 0,
+            "videoHeight": 0,
+            "mediaError": null
+          },
+          {
+            "event": "emptied",
+            "phase": 1,
+            "atMs": 981.2000000476837,
+            "currentTime": 0,
+            "duration": null,
+            "readyState": 0,
+            "networkState": 3,
+            "paused": true,
+            "ended": false,
+            "videoWidth": 0,
+            "videoHeight": 0,
+            "mediaError": null
+          },
+          {
+            "event": "loadstart",
+            "phase": 1,
+            "atMs": 981.5,
+            "currentTime": 0,
+            "duration": null,
+            "readyState": 0,
+            "networkState": 1,
+            "paused": true,
+            "ended": false,
+            "videoWidth": 0,
+            "videoHeight": 0,
+            "mediaError": null
+          },
+          {
+            "event": "stalled",
+            "phase": 2,
+            "atMs": 19218.200000047684,
+            "currentTime": 0,
+            "duration": null,
+            "readyState": 0,
+            "networkState": 2,
+            "paused": false,
+            "ended": false,
+            "videoWidth": 0,
+            "videoHeight": 0,
+            "mediaError": null
+          }
+        ]
+      },
+      {
+        "engine": "videojs",
+        "source": "control",
+        "durationMs": 37689.5,
+        "plays": [
+          {
+            "phase": 1,
+            "terminal": "lab-timeout-15000ms",
+            "snapshot": {
+              "currentTime": 0,
+              "duration": null,
+              "readyState": 0,
+              "networkState": 1,
+              "paused": true,
+              "ended": false,
+              "videoWidth": 0,
+              "videoHeight": 0,
+              "mediaError": null
+            },
+            "promise": "resolved"
+          },
+          {
+            "phase": 2,
+            "promise": "resolved",
+            "terminal": "ended",
+            "snapshot": {
+              "currentTime": 10.0078,
+              "duration": 10.0078,
+              "readyState": 4,
+              "networkState": 1,
+              "paused": true,
+              "ended": true,
+              "videoWidth": 444,
+              "videoHeight": 250,
+              "mediaError": null
+            }
+          }
+        ],
+        "events": [
+          {
+            "event": "loadstart",
+            "phase": 1,
+            "atMs": 30.200000047683716,
+            "currentTime": 0,
+            "duration": null,
+            "readyState": 0,
+            "networkState": 1,
+            "paused": true,
+            "ended": false,
+            "videoWidth": 0,
+            "videoHeight": 0,
+            "mediaError": null
+          },
+          {
+            "event": "abort",
+            "phase": 1,
+            "atMs": 8995.700000047684,
+            "currentTime": 0,
+            "duration": null,
+            "readyState": 0,
+            "networkState": 3,
+            "paused": true,
+            "ended": false,
+            "videoWidth": 0,
+            "videoHeight": 0,
+            "mediaError": null
+          },
+          {
+            "event": "emptied",
+            "phase": 1,
+            "atMs": 8996,
+            "currentTime": 0,
+            "duration": null,
+            "readyState": 0,
+            "networkState": 3,
+            "paused": true,
+            "ended": false,
+            "videoWidth": 0,
+            "videoHeight": 0,
+            "mediaError": null
+          },
+          {
+            "event": "loadstart",
+            "phase": 1,
+            "atMs": 8996.200000047684,
+            "currentTime": 0,
+            "duration": null,
+            "readyState": 0,
+            "networkState": 1,
+            "paused": true,
+            "ended": false,
+            "videoWidth": 0,
+            "videoHeight": 0,
+            "mediaError": null
+          },
+          {
+            "event": "loadedmetadata",
+            "phase": 2,
+            "atMs": 27400.299999952316,
+            "currentTime": 0,
+            "duration": 10.0078,
+            "readyState": 1,
+            "networkState": 2,
+            "paused": false,
+            "ended": false,
+            "videoWidth": 444,
+            "videoHeight": 250,
+            "mediaError": null
+          },
+          {
+            "event": "playing",
+            "phase": 2,
+            "atMs": 27621.299999952316,
+            "currentTime": 0.000509,
+            "duration": 10.0078,
+            "readyState": 4,
+            "networkState": 1,
+            "paused": false,
+            "ended": false,
+            "videoWidth": 444,
+            "videoHeight": 250,
+            "mediaError": null
+          },
+          {
+            "event": "ended",
+            "phase": 2,
+            "atMs": 37683.299999952316,
+            "currentTime": 10.0078,
+            "duration": 10.0078,
+            "readyState": 4,
+            "networkState": 1,
+            "paused": true,
+            "ended": true,
+            "videoWidth": 444,
+            "videoHeight": 250,
+            "mediaError": null
+          }
+        ]
+      }
+    ]
+  },
+  "httpSmoke": [
+    {
+      "url": "/",
+      "method": "GET",
+      "status": 200,
+      "bodyBytes": 1429,
+      "sha256": "2e0a1eb90a73c566e4d8f9f393370b5bbb3f7ed5a1b3ebdc20f5ff3009748a47",
+      "contentType": "text/html; charset=utf-8",
+      "contentRange": null,
+      "csp": "default-src 'none'; script-src 'self'; style-src 'unsafe-inline'; media-src 'self' data: blob:; connect-src 'none'; img-src data:; frame-src 'none'; base-uri 'none'; form-action 'none'"
+    },
+    {
+      "url": "/media/control.mp4",
+      "method": "GET",
+      "status": 200,
+      "bodyBytes": 498319,
+      "sha256": "2318ffdb44aa3c48b91ba4fb8c161b9ba8c25be6a6f7979499c6ff51aed0dc1e",
+      "contentType": "video/mp4",
+      "contentRange": null,
+      "csp": "default-src 'none'; script-src 'self'; style-src 'unsafe-inline'; media-src 'self' data: blob:; connect-src 'none'; img-src data:; frame-src 'none'; base-uri 'none'; form-action 'none'"
+    },
+    {
+      "url": "/media/control.mp4",
+      "method": "GET",
+      "status": 206,
+      "bodyBytes": 24,
+      "sha256": "ee64a737137653cae1c7a6e18a1cb9dfd46e2bf4761c68b6c183504e71765ec9",
+      "contentType": "video/mp4",
+      "contentRange": "bytes 40-63/498319",
+      "csp": "default-src 'none'; script-src 'self'; style-src 'unsafe-inline'; media-src 'self' data: blob:; connect-src 'none'; img-src data:; frame-src 'none'; base-uri 'none'; form-action 'none'"
+    },
+    {
+      "url": "/media/dummy.mp4",
+      "method": "HEAD",
+      "status": 200,
+      "bodyBytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "contentType": "video/mp4",
+      "contentRange": null,
+      "csp": "default-src 'none'; script-src 'self'; style-src 'unsafe-inline'; media-src 'self' data: blob:; connect-src 'none'; img-src data:; frame-src 'none'; base-uri 'none'; form-action 'none'"
+    }
+  ],
+  "protectedHashes": {
+    "_gam_kv_.js": "1cde1ccdc962c07d5833dc9691a3bfe31b7dd74b3e649e89153a240940a06690",
+    "IntextManager.js": "ba832dc0eb3c0f6e1070a515fac09dd31467e2c7a5a64a18ff4e4f4c063fead8",
+    "tests/qa/intext-p13c-probe.cjs": "7aa576c290bf7194e6f51a9c284df26585d1c51dbf2b5c6bbfdf0c079784a6f9",
+    "tests/qa/intext-p13c-build.cjs": "607415eb5f8b16f5080fcfea857e41db6eb0f02e030da834579e32d32b6b2ad3",
+    "tests/qa/intext-p13c-manual-break.cjs": "7ac4cb94a9eb1ca1a5ce4740efd5642c789ee47158812e3377ccd0883d9fec22",
+    "tests/qa/intext-p13c-manual-build.cjs": "dcaf84a7e681302a1d933f9dd02b67f0d63aa157cf39afc62ac6782b667a2c64"
+  },
+  "suite": "✔ late-slot: request boundary permanece cerrado con pubadsReady true y slot ambiguo (5.1343ms)\nℹ tests 1210\nℹ suites 0\nℹ pass 1210\nℹ fail 0\nℹ cancelled 0\nℹ skipped 0\nℹ todo 0\nℹ duration_ms 9891.7477\n",
+  "browserV2": {
+    "executed": false,
+    "reason": "Harness correction verified with mocks and HTTP; a new Chrome media run is required."
+  }
+}

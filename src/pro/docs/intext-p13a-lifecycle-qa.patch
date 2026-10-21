@@ -1,0 +1,409 @@
+diff --git a/tests/qa/intext-p13-app.js b/tests/qa/intext-p13-app.js
+index a92a583..f2abd4f 100644
+--- a/tests/qa/intext-p13-app.js
++++ b/tests/qa/intext-p13-app.js
+@@ -57,7 +57,7 @@ async function prepare() {
+   stop(); origin = performance.now(); logs.length = 0;
+   const variant = $('variant').value;
+   const tag = IntextP13Controls.variantTag(variant, $('tag').value.trim(), $('qa').checked);
+-  const response = await fetch('/source/' + $('bundle').value); if (!response.ok) throw new Error('Source unavailable');
++  const response = await fetch('source/' + $('bundle').value); if (!response.ok) throw new Error('Source unavailable');
+   const source = await response.text();
+   const cut = (start,end) => { const a = source.indexOf(start), b = source.indexOf(end,a+start.length); if(a < 0 || b < 0) throw new Error('Current architecture markers missing'); return source.slice(a,b); };
+   const classes = new Function('logIntext','warnIntext','errorIntext','intextDebugCollector',
+@@ -88,9 +88,18 @@ async function prepare() {
+     }) };
+   container.ownerNode = node;
+   const creating = new classes.Creative({ node, config: node.config, container, adTagUrl: tag }); creative = creating;
++  const lifecycle = $('lifecycle').value;
++  if (lifecycle !== 'A' && !$('experiment').checked) throw new Error('Enable the explicit QA lifecycle experiment first');
++  undo.push(IntextP13Lifecycle.install(creating, { variant:lifecycle, source, sdk:() => window.google.ima,
++    record, eligible:() => node.getReadinessViewportState().eligible }));
++  const createMedia = creating.createVideoElement;
++  creating.createVideoElement = function() { const result = createMedia.call(this); record('qa-media-created'); return result; };
+   const init = creating.initVideoJS;
+   creating.initVideoJS = function () { init.call(this); record('player-created');
+-    for (const name of ['loadstart','loadedmetadata','play','playing','pause','error','ads-request','ads-loader','ads-manager','adsready','readyforpreroll','ads-load','adstart','adplaying','adtimeout','nopreroll','adend','alladscompleted'])
++    const ima = this.player.ima;
++    this.player.ima = Object.assign(function(...args) { record('qa-ima-init-called');
++      const result = ima.apply(this,args); record('qa-ima-init-returned'); return result; },ima);
++    for (const name of ['loadstart','loadedmetadata','play','playing','pause','error','ads-request','ads-loader','ads-manager','adsready','readyforpreroll','ads-load','adstart','adplaying','adtimeout','nopreroll','adserror','adend','alladscompleted'])
+       this.player.on(name,event => { if (name === 'ads-manager') probeManager(event?.adsManager || this.player.ima.getAdsManager?.()); record('player-' + name); });
+     const play = this.player.play;
+     this.player.play = function (...args) { record('player-play-called'); const result = play.apply(this,args);
+@@ -99,10 +108,15 @@ async function prepare() {
+   // Captures base media loadstart even before Video.js/contrib-ads exists.
+   const mediaEvent = event => { if (surface.contains(event.target)) record('capture-' + event.type); };
+   for (const name of ['loadstart','loadedmetadata','playing','pause','abort','error']) { surface.addEventListener(name,mediaEvent,true); undo.push(() => surface.removeEventListener(name,mediaEvent,true)); }
+-  record('qa-prepare-start', { variant, closure: $('closure').value, bundle: $('bundle').value });
++  record('qa-prepare-start', { variant, lifecycle, closure: $('closure').value, bundle: $('bundle').value });
+   try { await creating.prepare(); record('qa-prepared'); } catch(error) { record('qa-prepare-failed',{name:error.name,message:error.message}); throw error; }
+ }
+-async function activate() { if (!creative) throw new Error('Prepare first'); record('qa-activation-called');
++async function activate() { if (!creative) throw new Error('Prepare first');
++  const prepared = logs.findLast(entry => entry.event === 'qa-prepared');
++  if (!prepared) throw new Error('Preparation must finish before activation');
++  const standbyMs = Date.now() - prepared.timestamp, minimum = Number($('standby').value) * 1000;
++  if (standbyMs < minimum) throw new Error('Standby pending: ' + Math.ceil((minimum - standbyMs)/1000) + ' seconds');
++  record('qa-activation-called',{standbyMs,standbyRequestedMs:minimum});
+   try { await creative.render(); record('qa-render-resolved'); } catch(error) { record('qa-render-rejected',{name:error.name,message:error.message}); } }
+ $('prepare').onclick = () => prepare().catch(error => record('qa-error',{message:error.message}));
+ $('activate').onclick = () => activate().catch(error => record('qa-error',{message:error.message}));
+@@ -110,4 +124,4 @@ $('stop').onclick = stop;
+ $('export').onclick = () => { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify({qaOnly:true,userAgent:navigator.userAgent,logs},null,2)],{type:'application/json'})); a.download = 'intext-p13-qa.json'; a.click(); URL.revokeObjectURL(a.href); };
+ $('har').onchange = async () => { const har = JSON.parse(await $('har').files[0].text()); record('qa-har-import',{responses:IntextP13Controls.harTimeline(har)}); };
+ window.p13 = { logs, prepare, activate, stop, snapshot };
+-if (new URLSearchParams(location.search).get('autorun') === '1') prepare().then(activate).catch(error => record('qa-error',{message:error.message}));
++// Activation remains explicit; a standby timer cannot authorize advertising or playback.
+diff --git a/tests/qa/intext-p13.html b/tests/qa/intext-p13.html
+index 18dbc66..6c4682c 100644
+--- a/tests/qa/intext-p13.html
++++ b/tests/qa/intext-p13.html
+@@ -6,10 +6,13 @@
+ <p>No se ejecuta Prebid/GPT/PSP/TAM. Una ejecución = un player y un tag. B/C requieren inventario QA autorizado; no se consulta el VAST por separado. Exporta el HAR con contenido desde DevTools para las respuestas de wrappers/iframes.</p>
+ <select id="variant"><option value="A">A: sample inline oficial</option><option value="B">B: GAM QA exacto</option><option value="C-with">C: GAM QA con HB</option><option value="C-without">C: GAM QA sin HB</option></select>
+ <select id="bundle"><option>_gam_kv_.js</option><option>IntextManager.js</option></select>
++<select id="lifecycle"><option value="A">Lifecycle A: P1 actual</option><option value="B">Lifecycle B: Video.js + IMA en activate</option><option value="C">Lifecycle C: IMA temprano con gate QA de request</option></select>
++<label><input id="experiment" type="checkbox">Habilitar experimento lifecycle B/C (solo QA aislado)</label>
++<label>Standby mínimo (segundos): <input id="standby" type="number" min="0" max="120" value="0"></label>
+ <select id="closure"><option value="collapsed">Colapsado + opacity 0 (control base)</option><option value="display-none">Display none (control geométrico)</option><option value="sized-hidden">640 × 360 + opacity 0 (solo control QA)</option></select>
+ <label><input id="qa" type="checkbox">El tag pertenece a inventario QA autorizado</label>
+ <textarea id="tag" placeholder="Tag GAM de QA. No pegar URLs privadas en informes compartidos."></textarea>
+ <button id="prepare">Preparar sin request/play</button><button id="activate">Activar (gesture control)</button><button id="stop">Destroy</button><button id="export">Exportar JSON</button>
+ <label>HAR offline: <input id="har" type="file" accept=".har,.json"></label>
+ <div class="spacer"></div><div id="anchor">Anchor estable</div><div id="surface"></div><div class="spacer"></div><pre id="log"></pre>
+-<script src="/controls.cjs"></script><script src="/app.js"></script></html>
++<script src="controls.cjs"></script><script src="lifecycle.cjs"></script><script src="app.js"></script></html>
+diff --git a/tests/qa/intext-p13-server.cjs b/tests/qa/intext-p13-server.cjs
+index b1be46b..040f07d 100644
+--- a/tests/qa/intext-p13-server.cjs
++++ b/tests/qa/intext-p13-server.cjs
+@@ -3,6 +3,7 @@ const http = require('node:http'), fs = require('node:fs'), path = require('node
+ const root = path.resolve(__dirname,'../..');
+ const files = new Map([['/', ['tests/qa/intext-p13.html','text/html']], ['/app.js',['tests/qa/intext-p13-app.js','text/javascript']],
+   ['/controls.cjs',['tests/qa/intext-p13-controls.cjs','text/javascript']],
++  ['/lifecycle.cjs',['tests/qa/intext-p13a-lifecycle.cjs','text/javascript']],
+   ['/source/_gam_kv_.js',['_gam_kv_.js','text/plain']], ['/source/IntextManager.js',['IntextManager.js','text/plain']]]);
+ const server = http.createServer((request,response) => {
+   const target = files.get(new URL(request.url,'http://127.0.0.1').pathname);
+diff --git a/tests/qa/intext-p13a-lifecycle.cjs b/tests/qa/intext-p13a-lifecycle.cjs
+new file mode 100644
+index 0000000..48d49fe
+--- /dev/null
++++ b/tests/qa/intext-p13a-lifecycle.cjs
+@@ -0,0 +1,76 @@
++/* QA-only lifecycle experiment. Never imported by either production distribution. */
++(function(scope) {
++  function optionsFromSource(source, creative) {
++    const begin = source.indexOf('          const options = {', source.indexOf('  requestAds() {'));
++    const end = source.indexOf('          this.player.ima(options);', begin);
++    if (begin < 0 || end < 0) throw new Error('Current IMA options markers unavailable');
++    return new Function('controls','preloadEnabled','adTag',source.slice(begin,end)+'return options;')
++      .call(creative,creative.resolveVideoControlsConfig(),creative.config?.video?.imaPreload?.enabled !== false,
++        creative.vastXml ? null : creative.getVideoTagUrl());
++  }
++  function install(creative, { variant, source, sdk, record, eligible }) {
++    if (!['A','B','C'].includes(variant)) throw new Error('Unknown lifecycle variant');
++    const originalPrepare = creative.preparePlayer, originalRequest = creative.requestAds;
++    const restore = []; let activated = false, initialized = false;
++    const pending = [];
++    function flush() { for (const operation of pending.splice(0)) operation(); }
++    if (variant === 'B') creative.preparePlayer = async function() {
++      await this.ensureDependencies();
++      if (!this.preparationValid()) throw new Error('stale_render_token');
++      this._prepared = true; record('qa-dependencies-only-prepared');
++    };
++    if (variant === 'C') creative.preparePlayer = async function() {
++      await originalPrepare.call(this);
++      if (!this.preparationValid()) throw new Error('stale_render_token');
++      const prototype = sdk().AdsLoader?.prototype, original = prototype?.requestAds;
++      if (typeof original !== 'function') throw new Error('QA C cannot safely gate AdsLoader.requestAds');
++      const gated = function(...args) {
++        if (!activated) { record('qa-sdk-request-deferred'); pending.push(() => original.apply(this,args)); return; }
++        return original.apply(this,args);
++      };
++      prototype.requestAds = gated;
++      if (prototype.requestAds !== gated) throw new Error('QA C SDK request gate unavailable');
++      restore.push(() => { if (prototype.requestAds === gated) prototype.requestAds = original; });
++      await new Promise(resolve => this.player.ready(resolve));
++      if (!this.preparationValid()) throw new Error('stale_render_token');
++      const player = this.player, trigger = player.trigger, play = player.play;
++      player.play = function(...args) {
++        if (!activated) throw new Error('QA C playback forbidden before activation');
++        return play.apply(this,args);
++      };
++      restore.push(() => { player.play = play; });
++      player.trigger = function(event,...args) {
++        if (!activated && (typeof event === 'string' ? event : event?.type) === 'ads-request') {
++          record('qa-plugin-request-event-deferred'); pending.push(() => trigger.call(this,event,...args)); return;
++        }
++        return trigger.call(this,event,...args);
++      };
++      restore.push(() => { player.trigger = trigger; });
++      sdk().settings?.setVpaidMode?.(sdk().ImaSdkSettings.VpaidMode.INSECURE);
++      const options = optionsFromSource(source,this);
++      this.player.ima(options); initialized = true;
++      const plugin = this.player.ima;
++      const reused = Object.assign(function(next) {
++        if (JSON.stringify(options) !== JSON.stringify(next)) throw new Error('QA C IMA options changed');
++        record('qa-ima-init-reused');
++      },plugin);
++      const initialize = plugin.initializeAdDisplayContainer;
++      reused.initializeAdDisplayContainer = function(...args) {
++        if (!eligible() || !creative.preparationValid()) throw new Error('QA activation ineligible');
++        const result = initialize.apply(plugin,args); activated = true; flush(); return result;
++      };
++      this.player.ima = reused;
++      record('qa-ima-prepared', { initializationCount:1, advertisingGateOpen:false });
++    };
++    creative.requestAds = async function() {
++      if (!eligible() || !this.preparationValid()) throw new Error('QA activation ineligible');
++      record('qa-lifecycle-activation', { variant, initialized });
++      if (variant === 'B') await originalPrepare.call(this);
++      return originalRequest.call(this);
++    };
++    return () => { pending.length = 0; for (const undo of restore.reverse()) undo();
++      creative.preparePlayer = originalPrepare; creative.requestAds = originalRequest; };
++  }
++  const api = {install,optionsFromSource};
++  if (typeof module !== 'undefined') module.exports = api; else scope.IntextP13Lifecycle = api;
++})(typeof window !== 'undefined' ? window : globalThis);
+diff --git a/tests/qa/intext-p13a-targeting.cjs b/tests/qa/intext-p13a-targeting.cjs
+new file mode 100644
+index 0000000..4d6efb8
+--- /dev/null
++++ b/tests/qa/intext-p13a-targeting.cjs
+@@ -0,0 +1,28 @@
++'use strict';
++// Offline HAR comparison only: no requests, auctions, targeting writes or random authority changes.
++const fs = require('node:fs');
++function videoRequests(har) {
++  return (har.log?.entries || []).filter(entry => {
++    try { const url=new URL(entry.request.url); return url.pathname==='/gampad/ads' && url.searchParams.get('env')==='vp'; }
++    catch { return false; }
++  }).map(entry => {
++    const url=new URL(entry.request.url), parameters=Object.fromEntries(url.searchParams);
++    delete parameters.correlator; // Only normalize this known volatile value; preserve random and commercial parameters.
++    const targeting=Object.fromEntries(new URLSearchParams(parameters.cust_params || ''));
++    delete parameters.cust_params;
++    return {startedAt:entry.startedDateTime,status:entry.response?.status,durationMs:entry.time,
++      parameters,targeting,response:entry.response?.content || null};
++  });
++}
++function differences(left,right) {
++  return [...new Set([...Object.keys(left),...Object.keys(right)])].sort().flatMap(key =>
++    JSON.stringify(left[key])===JSON.stringify(right[key]) ? [] : [{key,left:left[key]??null,right:right[key]??null}]);
++}
++module.exports={videoRequests,differences};
++if(require.main===module) {
++  const [left,right]=process.argv.slice(2);
++  if(!left || !right) throw new Error('Usage: node intext-p13a-targeting.cjs production.har fiddler.har');
++  const a=videoRequests(JSON.parse(fs.readFileSync(left,'utf8'))),b=videoRequests(JSON.parse(fs.readFileSync(right,'utf8')));
++  console.log(JSON.stringify({production:a,fiddler:b,note:'Select matching initial video requests before comparing; no creative equivalence inferred.',
++    firstRequestDifferences:a[0]&&b[0]?{parameters:differences(a[0].parameters,b[0].parameters),targeting:differences(a[0].targeting,b[0].targeting)}:null},null,2));
++}
+diff --git a/tests/intext-p13a-lifecycle.audit.test.cjs b/tests/intext-p13a-lifecycle.audit.test.cjs
+new file mode 100644
+index 0000000..dc267cc
+--- /dev/null
++++ b/tests/intext-p13a-lifecycle.audit.test.cjs
+@@ -0,0 +1,89 @@
++'use strict';
++const test = require('node:test'), assert = require('node:assert/strict'), fs = require('node:fs'), path = require('node:path');
++const {install,optionsFromSource} = require('./qa/intext-p13a-lifecycle.cjs');
++const {videoRequests,differences}=require('./qa/intext-p13a-targeting.cjs');
++function fixture(variant) {
++  const events = [], requests = [], calls = {create:0,init:0,play:0,request:0}, records=[];
++  let eligible = false, valid = true, now = 0;
++  class AdsLoader { requestAds(value) { requests.push(value); } }
++  const sdk = {AdsLoader,settings:{setVpaidMode(){}},ImaSdkSettings:{VpaidMode:{INSECURE:2}}};
++  const loader = new AdsLoader();
++  const source = '  requestAds() {\n          const options = { id:this.playerId, adTagUrl:adTag, adsRenderingSettings:{enablePreloading:preloadEnabled} };\n          this.player.ima(options);';
++  const creative = {playerId:'qa',config:{video:{}},preparationValid:()=>valid,ensureDependencies:async()=>{},
++    getVideoTagUrl:()=> 'https://example.test/exact-tag',resolveVideoControlsConfig:()=>({showForJsAds:true}),
++    async preparePlayer() { await this.ensureDependencies(); calls.create++;
++      const player = {ready:fn=>fn(),trigger:event=>events.push(event),play:()=>{calls.play++;return Promise.resolve();}};
++      player.ima = options => { calls.init++; player.ima.options=options;
++        player.trigger('ads-request'); loader.requestAds(options.adTagUrl); };
++      player.ima.initializeAdDisplayContainer=()=>{}; this.player=player;
++    },
++    requestAds() { calls.request++; const options=optionsFromSource(source,this); this.player.ima(options);
++      this.player.ima.initializeAdDisplayContainer(); return this.player.play(); }
++  };
++  const cleanup=install(creative,{variant,source,sdk:()=>sdk,eligible:()=>eligible,record:(event,data)=>records.push({event,at:now,...data})});
++  return {creative,calls,requests,events,records,cleanup,advance:ms=>now+=ms,setEligible:value=>eligible=value,setValid:value=>valid=value};
++}
++for (const variant of ['A','B','C']) {
++  for (const standbyMs of [0,6580,45000]) test('QA lifecycle '+variant+': '+standbyMs+'ms standby clock performs no effective ad request/play and activates once',async()=>{
++    const f=fixture(variant); await f.creative.preparePlayer();
++    f.advance(standbyMs); // No timer can open the experimental advertising gate.
++    assert.equal(f.requests.length,0); assert.equal(f.calls.play,0); assert.equal(f.events.length,0);
++    assert.equal(f.calls.create,variant==='B'?0:1); assert.equal(f.calls.init,variant==='C'?1:0);
++    await assert.rejects(f.creative.requestAds(),/ineligible/);
++    f.setEligible(true); await f.creative.requestAds();
++    assert.equal(f.records.find(entry=>entry.event==='qa-lifecycle-activation').at,standbyMs);
++    assert.equal(f.calls.create,1);assert.equal(f.calls.init,1);assert.equal(f.calls.play,1);
++    assert.deepEqual(f.requests,['https://example.test/exact-tag']);assert.deepEqual(f.events,['ads-request']);f.cleanup();
++  });
++  test('QA lifecycle '+variant+': stale cycle cannot activate',async()=>{
++    const f=fixture(variant);await f.creative.preparePlayer();f.setEligible(true);f.setValid(false);
++    await assert.rejects(f.creative.requestAds(),/ineligible/);assert.equal(f.requests.length,0);f.cleanup();
++  });
++}
++test('QA C prohibits early playback even if geometry is eligible',async()=>{
++  const f=fixture('C');f.setEligible(true);await f.creative.preparePlayer();
++  assert.throws(()=>f.creative.player.play(),/forbidden/);assert.equal(f.calls.play,0);f.cleanup();
++});
++test('QA C cleanup discards pending VAST and restores SDK prototype',async()=>{
++  const f=fixture('C');await f.creative.preparePlayer();f.cleanup();assert.equal(f.requests.length,0);
++  assert.equal(f.events.length,0);
++});
++test('QA C refuses unsupported SDK instead of requesting ads early',async()=>{
++  const f=fixture('A');f.cleanup();install(f.creative,{variant:'C',source:'',sdk:()=>({}),record(){},eligible:()=>true});
++  await assert.rejects(f.creative.preparePlayer(),/safely gate/);assert.equal(f.calls.init,0);
++});
++test('QA options extraction refuses unknown current architecture',()=>{
++  assert.throws(()=>optionsFromSource('',{}),/markers/);
++});
++for(const file of ['_gam_kv_.js','IntextManager.js']) {
++  test(file+': rule-discovered native tag/t do not become video targeting implicitly',()=>{
++    const source=fs.readFileSync(path.join(__dirname,'..',file),'utf8');
++    const begin=source.indexOf('  resolveVideoRequestTargeting() {'),end=source.indexOf('\n  }',begin)+6;
++    const Node=new Function('INTEXT_RANDOM_KEYS','logIntext','return class { '+source.slice(begin,end)+' };')(['random1','random2','random3','random4'],()=>{});
++    let ruleCalls=0;
++    const node=Object.assign(new Node(),{id:'gexp-intext',slot:null,scopedContext:null,getSlotTargetingMapSafe:()=>null,
++      manager:{getPageCustomTargeting:()=>({}),getIntextRandomValue:key=>key==='random1'?'8':null,
++        resolveIntextRuleTargeting:()=>{ruleCalls++;return {values:['native-tag']};}}});
++    const result=node.resolveVideoRequestTargeting().targeting;
++    assert.equal(result.random1,'8');assert.equal(result.tag,undefined);assert.equal(result.t,undefined);assert.equal(ruleCalls,0);
++    node.scopedContext={targeting:{tag:'scoped-tag',t:'scoped-t'}};
++    const scoped=node.resolveVideoRequestTargeting().targeting;assert.equal(scoped.tag,'scoped-tag');assert.equal(scoped.t,'scoped-t');
++  });
++  test(file+': QA options are taken from current source, unchanged for all variants',()=>{
++    const source=fs.readFileSync(path.join(__dirname,'..',file),'utf8');
++    global.window={google:{ima:{ImaSdkSettings:{VpaidMode:{INSECURE:2}}}}};
++    try {
++      const creative={playerId:'slot-2',config:{video:{}},resolveVideoControlsConfig:()=>({showForJsAds:true}),getVideoTagUrl:()=> 'https://example.test/tag?cust_params=tag%3Da%26t%3Db'};
++      const options=optionsFromSource(source,creative);
++      assert.equal(options.adTagUrl,creative.getVideoTagUrl());assert.equal(options.adsRenderingSettings.enablePreloading,true);
++      assert.equal(options.timeout,30000);assert.equal(options.prerollTimeout,30000);assert.equal(options.postrollTimeout,30000);
++      assert.equal(options.autoPlayAdBreaks,true);
++    } finally {delete global.window;}
++  });
++}
++test('offline HAR audit normalizes only correlator and retains random, tag/t and VAST body evidence',()=>{
++  const har={log:{entries:[{request:{url:'https://pubads.g.doubleclick.net/gampad/ads?env=vp&correlator=123&cust_params=random1%3D8%26tag%3Dqa%26t%3Dline'},response:{status:200,content:{text:'<VAST/>'}},time:30}]}};
++  const entry=videoRequests(har)[0];assert.equal(entry.parameters.correlator,undefined);
++  assert.equal(entry.targeting.random1,'8');assert.equal(entry.targeting.tag,'qa');assert.equal(entry.response.text,'<VAST/>');
++  assert.deepEqual(differences(entry.targeting,{random1:'10'}).map(value=>value.key),['random1','t','tag']);
++});
+diff --git a/docs/intext-p13a-lifecycle-qa.md b/docs/intext-p13a-lifecycle-qa.md
+new file mode 100644
+index 0000000..723b0cd
+--- /dev/null
++++ b/docs/intext-p13a-lifecycle-qa.md
+@@ -0,0 +1,104 @@
++# P1.3a: experimento QA de inicialización Video.js / IMA
++
++Versión productiva conservada: `2026.10.07-p1-ima-preload-first-frame`.
++Ningún cambio nuevo en `_gam_kv_.js` ni `IntextManager.js` en esta iteración.
++El harness carga las clases actuales sin ejecutar el bootstrap publicitario.
++
++## Evidencia y diagnóstico diferencial
++
++Los cuatro JSON originales y sus HAR no están disponibles en este workspace. Esta tabla recoge los tiempos aportados por el usuario, no una extracción independiente de los ficheros.
++
++| Captura | Resultado | Contexto |
++|---|---|---|
++| FIDDLER | Display ganador: no demuestra fallo de vídeo | versión nueva |
++| PRODUCCION | Vídeo reproducido | versión antigua |
++| FIDDLER-V2 | AdsManager sin readyforpreroll/adstart; timeout | PSP/dual; random1=8 |
++| PRODUCCION-V2 | Vídeo reproducido y completado | legacy; random1=10 |
++
++| Hito (s desde dump) | Fiddler V2 | Producción V2 |
++|---|---:|---:|
++| prepared | 7.737 | desconocido |
++| activation | 14.135 | desconocido |
++| IMA inicializado | 14.317 | 13.864 |
++| ads-request | 14.477 | 14.011 |
++| AdsManager | 17.468 | desconocido |
++| readyforpreroll | ausente | 17.253 |
++| adstart | ausente | 17.313 |
++| primer frame | ausente | 17.741 |
++| complete | ausente | 27.977 |
++| timeout | 39.150 | no |
++
++La revisión del HEAD `98106a0` (05oct26) confirma que `render()` hacía consecutivamente createVideoElement → initVideoJS → attachPlayerEvents → requestAds. La implementación actual traslada los tres primeros pasos a preparePlayer; requestAds sigue en activate. Es el cambio estructural candidato, no una demostración de causalidad. B conserva los fixes actuales y replica solo la proximidad entre inicializaciones; no vuelve al bundle antiguo completo.
++
++[contrib-ads exige inicialización en el mismo tick que Video.js](https://videojs.github.io/videojs-contrib-ads/integrator/getting-started.html) y describe el flujo play/adsready → readyforpreroll. Perder loadstart por inicialización tardía es una hipótesis discriminable mediante A/B, no una causa raíz demostrada. No atribuir el bloqueo a P1.2b sin observar una pausa anterior al punto de bloqueo.
++
++## Dos ejes independientes
++
++El selector **fuente VAST** conserva A (sample oficial Google), B (tag GAM exacto), C-with (GAM con HB), C-without (solo quita hb_* en QA). B/C requieren confirmar inventario autorizado. No se consulta el VAST por separado: lo pide exclusivamente IMA durante activación.
++
++El nuevo selector **lifecycle** tiene:
++
++- A, default: Video.js en prepare; IMA en activate. Sin opt-in experimental.
++- B, opt-in QA: prepare solo asegura dependencias. En activate se ejecuta preparePlayer original y después requestAds original. Una creación, una inicialización y un play; mismo tag y opciones.
++- C, opt-in QA: preparePlayer original seguido de player.ima con las opciones extraídas del requestAds actual. No llama player.ads por separado. Un gate QA sobre AdsLoader.requestAds retiene las invocaciones hasta activar; también retiene el evento ads-request del plugin. Un guard prohíbe play durante prepare. En activate se reutiliza esa única inicialización, se comprueba igualdad de opciones, se inicializa AdDisplayContainer y se liberan las operaciones pendientes; el play lo sigue haciendo el código original.
++
++**C es una intervención experimental sobre el SDK en una página aislada, no una API productiva propuesta.** Nunca cargar este módulo en una página con otros players activos: el gate es compartido por el SDK de esa página. Si no hay API interceptable o las opciones cambian, falla explícitamente. La prueba real debe verificar en HAR que antes de activar no hubo VAST, tracking ni impresión; en JSON no debe haber start/init de AdsManager, reproducción ni eventos nativos publicitarios. Si aparece alguna operación anticipada, detener C y conservar la captura: no darlo por seguro por haber pasado los mocks. No se ha podido consultar/verificar aquí el source exacto de videojs-ima 1.11.0; no se han actualizado librerías.
++
++## Ejecución local y Fiddler
++
++1. PowerShell en `src/pro`: `node tests/qa/intext-p13-server.cjs`.
++2. Abrir `http://127.0.0.1:8133/` con DevTools Network, Preserve log y exportación HAR **con contenido**. Fiddler captura HTTPS con autorización y conserva SAZ/HAR original. No mapear estos controles al bundle productivo.
++3. Si se necesita el origen Marca, usar una URL QA separada `https://www.marca.com/__intext_p13a_qa__/` en AutoResponder. Mapear exactamente esa URL al HTML, y `app.js`, `controls.cjs`, `lifecycle.cjs` bajo ese prefijo a sus ficheros locales. Mapear `source/_gam_kv_.js` y `source/IntextManager.js` bajo el mismo prefijo a las distribuciones actuales. Los paths del harness son relativos. No sustituir scripts PSP/GAMExp ni activar simultáneamente otro Intext en esta página QA.
++4. Mantener dispositivo, viewport, closure, bundle, fuente, tag, consentimiento y condiciones de gesto idénticos para A/B/C. Activar inventario real solo con autorización QA; el harness no implementa el CMP del site. La página QA aislada no replica por sí sola todo el entorno PSP o la noticia: esta limitación debe acompañar los resultados.
++5. Seleccionar lifecycle A y fuente A; Prepare, esperar a qa-prepared, Activate con anchor visible. Exportar JSON/HAR. Repetir B y C con opt-in. Cada ensayo en documento nuevo para evitar caché de player/plugin y contaminación del gate; conservar el mismo criterio de caché HTTP.
++6. Repetir con standby solicitado 0, 7, 20 y 45 segundos. No hay autoactivación: el botón rechaza activaciones anteriores al mínimo y registra standby efectivo; después exige el gate de viewport/documento del código actual. Registrar por separado las pruebas con gesto y las de autoplay, sin mezclar conclusiones.
++7. Repetir la matriz con fuente B/tag exacto de la campaña fija autorizada y las dos distribuciones. No cambiar random/tag/t para conseguir fill. El tag se conserva exactamente entre lifecycle A/B/C. C-without es otro experimento separado.
++8. Detener/Destroy y cerrar el documento después de cada caso. No reintentar play, start o request para esconder el bloqueo.
++
++## JSON, HAR y criterio discriminante
++
++Guardar `site-device-lifecycle-source-standby-bundle.json`, su HAR con cuerpos y, si se usa Fiddler, SAZ. Además conservar los cuatro dumps originales íntegros, versión/hash del bundle y los recursos reales Video.js 7.20.3, contrib-ads 6.9.0, videojs-ima 1.11.0 e ima3.js. No compartir cookies, consent strings o URLs privadas sin sanitizar una copia.
++
++JSON registra creación del medio y player, llamadas/retorno de IMA, loadstart capturado desde antes de crear Video.js, play, adsready, readyforpreroll, adtimeout/nopreroll/adserror, AdsManager y sus init/start/pause/resume, eventos SDK nativos, first-frame y reveal. Cada evento incluye estado contrib-ads, documentos, flags/estados multimedia y rects de anchor/wrapper/player/IMA. Las mediciones son DOM/readiness, no Active View.
++
++Comprobar request→AdsManager→adsready→readyforpreroll→init/start→STARTED→frame→reveal. Si A falla tras standby y B funciona con el mismo VAST/creatividad, la separación temporal gana evidencia. C permite comprobar si inicialización temprana cambia el resultado, con la limitación explícita de su gate QA. Ningún mock demuestra que el SDK real perdió loadstart.
++
++HAR debe contener la request GAM efectiva, status/body/tiempos de VAST inicial y wrappers, caché Prebid si aparece, MediaFiles, errores de red y tracking. AdsManager no significa anuncio listo. Un HTTP 200 no significa VAST válido. Misma adUnit no significa misma creatividad: comparar IDs de Ad/Creative, wrappers y selección real del SDK.
++
++Comparación offline, sin requests adicionales:
++
++`node tests/qa/intext-p13a-targeting.cjs PRODUCCION-V2.har FIDDLER-V2.har > comparacion-local.json`
++
++El CLI preserva todos los parámetros y targeting salvo correlator. Emite las requests de vídeo y los cuerpos capturados. La comparación inicial automática debe revisarse: seleccionar peticiones homólogas, no mezclar slot, refresh, fallback o múltiples anuncios. El resultado puede contener datos privados; conservarlo local.
++
++## Auditoría tag/t y autoridades
++
++resolveIntextRuleTargeting consulta contexto, datos de página, GPT de página y **slots GPT nativos**. getPageCustomTargeting devuelve la primera fuente de página disponible; no agrega esos slots nativos. resolveVideoRequestTargeting mezcla scopedContext, getPageCustomTargeting y el slot Display Intext, que puede no existir en la primera auction; no llama resolveIntextRuleTargeting. Por eso una regla puede descubrir tag sin que la petición de vídeo lo reciba. Las regresiones ejecutan el resolver real de ambas distribuciones y demuestran esta diferencia de rutas; no demuestran todavía la fuente exacta del tag en las capturas ausentes.
++
++Random procede de su snapshot autorizado; no se modifica. Las diferencias PSP/dual/randomSource/random1 y tag/t son factores de confusión. No se ha corregido targeting ni se ha equiparado el contexto de producción a PSP.
++
++## Límites y siguiente revisión
++
++No se ejecutó aquí un navegador con SDK real ni la campaña: el lanzamiento automatizado fue rechazado por policy en la auditoría previa y la descarga del SDK exacto no estuvo disponible. Las pruebas unitarias validan guards, gating, opciones y ausencia de duplicación con dobles; el operador debe realizar la matriz real anterior. No se afirma causa raíz, corrección productiva ni mejora de viewability. El timeout de 25 s, fallback, monetización y todas las autoridades siguen intactos.
++
++## Validación ejecutada
++
++Baseline real excluyendo el nuevo fichero: 1030/1030. Nuevas regresiones: 21/21 (lifecycle A/B/C con standby 0, 6580 y 45000 ms; token inválido; play prematuro; cleanup de request pendiente; SDK no interceptable; opciones exactas de ambas distribuciones; targeting real y comparación HAR offline).
++
++| Grupo | Resultado |
++|---|---:|
++| Video/preload/PiP/animación/predictive/debug/P1.3/P1.3a | 458/458 |
++| Floor Authority | 86/86 |
++| Prebid audit + aliases | 85/85 |
++| Random/runtime | 61/61 |
++| APS/TAM | 63/63 |
++| GPT/PSP | 17/17 |
++| Suite completa final | 1051/1051 |
++
++Sin omitidos, cancelados ni fallos. Ejecución Node con `--test --test-isolation=none`; para la suite y los grupos se empleó el adaptador de comprobaciones externas ya utilizado en el proyecto: `--require "$env:TEMP/intext-authority-test-command-cache.cjs"`. El sandbox rechaza spawn de Node (`EPERM`). El adaptador verifica hashes y reproduce únicamente git-root/git-diff-name y sintaxis realmente comprobados desde PowerShell; no sustituye tests, SDK ni HTTP. Baseline floor en `$env:INTEXT_FLOOR_AUDIT_BASELINE` apunta a la copia HEAD ya usada por el proyecto.
++
++Comandos: `node --test --test-isolation=none tests/intext-p13a-lifecycle.audit.test.cjs`; suite `node --require <adaptador> --test --test-isolation=none tests/*.test.cjs`. Grupos según los ficheros actuales intext-predictive-readiness, intext-ima-preload-first-frame, intext-pip, intext-initial-open-animation, intext-debugger, intext-p13-video-blocking, intext-p13a-lifecycle; floor-authority; prebid-floor/prebid-aliases; random-runtime; aps-display-slot/prebid-aps-psp; gpt-psp/gpt-controls.
++
++`node --check` pasó sobre ambas distribuciones, app, controles VAST, servidor, lifecycle, auditor offline y test nuevo. `git diff --check` pasó. Los hashes SHA256 de las distribuciones coinciden byte a byte con los capturados al empezar P1.3a: `_gam_kv_.js` = `4445C919CCE122BB29B65FEB8482EA64A1AD2A64FC2D85B99488333C36E51E08`; `IntextManager.js` = `0491ED2B41355460BD0849174AB2FEDD706E19375ABBFD14232A98A8A1A47766`. Los cambios productivos anteriores que ya estaban sin commit se conservan; esta iteración añade cero cambios productivos.
++
++CodeMemory consultado antes del trabajo y reindexado al finalizar sin crear artefacto persistente en el repo: 17918 nodos, 34146 edges. El índice no devuelve los nuevos helpers CJS QA por búsqueda de símbolo; no sustituye su lectura directa, los tests ni el diff. No commit ni push.

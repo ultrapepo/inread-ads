@@ -1,4 +1,4 @@
-const GEXP_INTEXT_VERSION = "2026.10.05-p1-prebid-audit.2";
+const GEXP_INTEXT_VERSION = "2026.10.07-p1-ima-preload-first-frame";
 if (typeof window !== "undefined") window.__gexpIntextVersion = GEXP_INTEXT_VERSION;
 const INtext_STYLE_ID = "gexp-intext-styles";
 const INtext_BASE_STYLES = `
@@ -637,7 +637,22 @@ const createIntextDebugCollector = (options = {}) => {
         imaLoadedToStartedMs: delta(t, "video_ima_loaded", "video_ima_started"),
         startedToFirstFrameMs: delta(t, "video_ima_started", "video_first_frame"),
         firstFrameToRevealMs: delta(t, "video_first_frame", "video_player_revealed"),
+        winnerToPreparedMs: group._data.video_activation_eligible?.winnerToPreparedMs ?? group._data.video_prepare_ready?.winnerToPreparedMs ?? delta(t, "video_winner_resolved", "video_prepare_ready"),
+        preparationMs: group._data.video_prepare_ready?.durationMs ?? group._data.video_activation_eligible?.preparationMs ?? null,
+        preparedToEligibleMs: group._data.video_activation_eligible?.preparedToEligibleMs ?? delta(t, "video_prepare_ready", "video_activation_eligible"),
+        activationToRequestMs: delta(t, "video_activation_started", "video_ima_request_sent"),
+        activationToFirstFrameMs: delta(t, "video_activation_started", "video_first_frame"),
+        imaRequestToLoadedMs: delta(t, "video_ima_request_sent", "video_ima_loaded"),
         startedToCompleteMs: delta(t, "video_ima_started", "video_complete"),
+        dependencyPrewarmStarted: has("video_dependency_prewarm_started") || group._data.video_dependencies_ready?.dependencyPrewarmStarted === true,
+        dependencyPrewarmReady: has("video_dependency_prewarm_ready") || group._data.video_dependencies_ready?.dependencyPrewarmReady === true,
+        dependencyPrewarmMs: group._data.video_dependency_prewarm_ready?.durationMs ?? group._data.video_dependencies_ready?.dependencyPrewarmMs ?? null,
+        dependenciesWaitMs: group._data.video_dependencies_ready?.dependenciesWaitMs ?? null,
+        imaPreloadingEnabled: group._data.video_ima_preload_config?.enabled ?? null,
+        firstFrameSource: group._data.video_first_frame?.source ?? null,
+        revealSource: group._data.video_player_revealed?.source ?? null,
+        firstFrameWaitSnapshots: (group._events.video_first_frame_wait_snapshot || []).length,
+        maxFirstFrameTimerDriftMs: (group._events.video_first_frame_wait_snapshot || []).reduce((max, event) => Math.max(max, Number(event.timerDriftMs) || 0), 0),
       });
       const pipEntries = group._events.video_pip_entered || [];
       const pipReturns = group._events.video_pip_returned_inline || [];
@@ -733,7 +748,7 @@ const createIntextDebugCollector = (options = {}) => {
   const getPackage = () => {
     if (!active() || !ensureActive()) return null;
     const now = Date.now();
-    return { schemaVersion: "1.0.0", generatedAt: new Date(now).toISOString(), startedAt: new Date(intextDebugLogBuffer.startedAt).toISOString(), durationMs: now - intextDebugLogBuffer.startedAt, page: getPage(), runtime: manager?.getIntextRuntimeIdentity?.() || { gexpIntextVersion: window.__gexpIntextVersion || "2026.10.05-p1-prebid-audit.2", dualMode: false, pspDetected: Boolean(window?.googletag?.__ctrl) }, debugger: { suppressedDuplicateLogs: (manager?._intextSuppressedDuplicateLogs || 0) + intextSuppressedStateLogs, totalEntries: intextDebugLogBuffer.entries.length, droppedEntries: intextDebugLogBuffer.droppedEntries, approximateBytes: intextDebugLogBuffer.approximateBytes }, summary: getSummary(), logs: intextDebugLogBuffer.entries.slice() };
+    return { schemaVersion: "1.0.0", generatedAt: new Date(now).toISOString(), startedAt: new Date(intextDebugLogBuffer.startedAt).toISOString(), durationMs: now - intextDebugLogBuffer.startedAt, page: getPage(), runtime: manager?.getIntextRuntimeIdentity?.() || { gexpIntextVersion: window.__gexpIntextVersion || "2026.10.07-p1-ima-preload-first-frame", dualMode: false, pspDetected: Boolean(window?.googletag?.__ctrl) }, debugger: { suppressedDuplicateLogs: (manager?._intextSuppressedDuplicateLogs || 0) + intextSuppressedStateLogs, totalEntries: intextDebugLogBuffer.entries.length, droppedEntries: intextDebugLogBuffer.droppedEntries, approximateBytes: intextDebugLogBuffer.approximateBytes }, summary: getSummary(), logs: intextDebugLogBuffer.entries.slice() };
   };
   const download = (content, mime, extension) => {
     const page = getPage();
@@ -947,7 +962,7 @@ const INTEXT_TELEMETRY_STANDARD_FIELDS = Object.freeze([
 ]);
 
 class IntextManager {
-  static VERSION = typeof GEXP_INTEXT_VERSION !== "undefined" ? GEXP_INTEXT_VERSION : "2026.10.05-p1-prebid-audit.2";
+  static VERSION = typeof GEXP_INTEXT_VERSION !== "undefined" ? GEXP_INTEXT_VERSION : "2026.10.07-p1-ima-preload-first-frame";
   static INTEXT_RULE_TARGETING_READY_MAX_WAIT_MS = 600;
   static INTEXT_RULE_TARGETING_READY_POLL_MS = 25;
   static INTEXT_OWN_SLOT_STABILITY_POLLS = 2;
@@ -5817,6 +5832,12 @@ class IntextNode {
   }
 
   beginVisualRender(source = "unknown", trigger = "unknown") {
+    this.cancelViewportWaits?.("stale");
+    if (source !== "render_started" || this.waterfall?._videoPreparation?.boundToken) this.waterfall?.cancelVideoPreparation?.("new-render-cycle");
+    if (this.activeCreative && !this.activeCreative._destroyed) {
+      this.activeCreative.abort?.();
+      this.activeCreative.destroy?.();
+    }
     if (Number(this._activeRenderToken) > 0) {
       this.cleanupIntextPip("stale-render-token");
     }
@@ -5861,6 +5882,7 @@ class IntextNode {
       visualState: this._visualState,
       slotCode: this.videoId || this.id,
     });
+    if (source === "render_started") this.waterfall?.claimVideoPreparation?.(this._activeRenderToken);
     return this._activeRenderToken;
   }
 
@@ -5878,6 +5900,8 @@ class IntextNode {
   }
 
   invalidateVisualCallbacks(source = "unknown") {
+    this.cancelViewportWaits?.("stale");
+    this.waterfall?.cancelVideoPreparation?.("callbacks-invalidated");
     this.cleanupIntextPip(source === "reset" ? "reset" : "stale-render-token");
     this._destroyedOrResetToken += 1;
     this._renderTokenSeq += 1;
@@ -9679,24 +9703,70 @@ class IntextNode {
     });
   }
 
-  waitForViewport(renderToken = this._activeRenderToken, source = "waitForViewport") {
-    return new Promise((resolve) => {
-      const el = this.container.getElement();
-      if (typeof IntersectionObserver === "undefined" || !el) {
-        return resolve();
+  getReadinessViewportState() {
+    const anchor = this.getIntextTelemetryElement();
+    if (!anchor || anchor.isConnected === false) return { eligible: false, reason: "anchor-missing", distancePx: null };
+    const rect = anchor.getBoundingClientRect?.();
+    if (!rect) return { eligible: false, reason: "geometry-unavailable", distancePx: null };
+    const height = window.innerHeight || document.documentElement?.clientHeight || 0;
+    const width = window.innerWidth || document.documentElement?.clientWidth || 0;
+    const bottom = Number.isFinite(rect.bottom) ? rect.bottom : rect.top + rect.height;
+    const right = Number.isFinite(rect.right) ? rect.right : rect.left + rect.width;
+    const hidden = document.hidden === true || document.visibilityState === "hidden";
+    const sized = [rect.top, rect.left, rect.width, rect.height, bottom, right].every(Number.isFinite)
+      && rect.width > 0 && rect.height > 0 && width > 0 && height > 0;
+    let rendered = !anchor.getClientRects || anchor.getClientRects().length > 0;
+    for (let el = anchor; rendered && el; el = el.parentElement) {
+      const css = window.getComputedStyle?.(el);
+      if (css && (css.display === "none" || /^(hidden|collapse)$/.test(css.visibility) || css.opacity === "0")) rendered = false;
+    }
+    const overlapX = sized ? Math.max(0, Math.min(right, width) - Math.max(rect.left, 0)) : 0;
+    const overlapY = sized ? Math.max(0, Math.min(bottom, height) - Math.max(rect.top, 0)) : 0;
+    const visible = sized && rendered && overlapX > 0 && overlapY > 0;
+    const reason = hidden ? "document-hidden" : !sized ? "anchor-zero-or-invalid-size" : !rendered ? "anchor-not-rendered"
+      : bottom <= 0 ? "passed" : rect.top >= height ? "below" : overlapX === 0 ? "outside-horizontal" : "visible";
+    return { eligible: !hidden && visible, reason, distancePx: Math.round(rect.top - height),
+      intersectionRatio: sized && rendered ? (overlapX * overlapY) / (rect.width * rect.height) : 0 };
+  }
+
+  cancelViewportWaits(reason = "stale", owner = null) {
+    for (const cancel of [...(this._viewportWaits || [])]) if (!owner || cancel.owner === owner) cancel(reason);
+  }
+
+  waitForViewport(renderToken = this._activeRenderToken, source = "waitForViewport", owner = null) {
+    const startedAt = Date.now();
+    const format = source.startsWith("showDisplay") ? "display" : "video";
+    this.waterfall?.recordReadiness?.(`${format}_viewport_wait_started`, { source, renderToken, winnerFormat: format });
+    return new Promise(resolve => {
+      let observer = null, settled = false;
+      const anchor = this.getIntextTelemetryElement();
+      const finish = result => {
+        if (settled) return;
+        settled = true; observer?.disconnect();
+        document.removeEventListener?.("visibilitychange", check);
+        window.removeEventListener?.("scroll", check);
+        window.removeEventListener?.("resize", check);
+        this._viewportWaits?.delete(finish);
+        this.waterfall?.recordReadiness?.(`${format}_viewport_wait_resolved`, { source, renderToken, winnerFormat: format, reason: result || "visible", durationMs: Date.now() - startedAt });
+        resolve(result);
+      };
+      const check = () => {
+        if (!this.isActiveRenderToken(renderToken, source)) return finish("stale");
+        const state = this.getReadinessViewportState();
+        if (state.reason === "anchor-missing") return finish("stale");
+        if (state.eligible) finish();
+      };
+      finish.owner = owner;
+      (this._viewportWaits ||= new Set()).add(finish);
+      document.addEventListener?.("visibilitychange", check);
+      if (typeof IntersectionObserver !== "undefined" && anchor) {
+        observer = new IntersectionObserver(check, { threshold: 0, rootMargin: "0px" });
+        observer.observe(anchor);
+      } else {
+        window.addEventListener?.("scroll", check, { passive: true });
+        window.addEventListener?.("resize", check);
       }
-      const observer = new IntersectionObserver((entries) => {
-        if (!this.isActiveRenderToken(renderToken, source)) {
-          observer.disconnect();
-          resolve("stale");
-          return;
-        }
-        if (entries[0].isIntersecting) {
-          observer.disconnect();
-          resolve();
-        }
-      }, { threshold: 0, rootMargin: "0px" });
-      observer.observe(el);
+      check();
     });
   }
 
@@ -9705,6 +9775,8 @@ class IntextNode {
     if (trigger === "fallback" || this._intextPipState === "floating") {
       this.cleanupIntextPip(trigger === "fallback" ? "video-fallback" : "container-close");
     }
+    const displayReadyAt = Date.now();
+    this.waterfall?.recordReadiness?.("display_creative_ready", { winnerFormat: "display", source: trigger });
     const viewportState = await this.waitForViewport(renderToken, "showDisplay:waitForViewport");
     if (viewportState === "stale" || !this.isActiveRenderToken(renderToken, "showDisplay:afterViewport", trigger)) return false;
 
@@ -9732,6 +9804,7 @@ class IntextNode {
       .querySelector(".gexp-intext-loader");
     if (videoLoader) videoLoader.style.display = "none";
     this.ensureSingleVisibleIntextSurface("display", renderToken, "showDisplay_before_open");
+    this.waterfall?.recordReadiness?.("display_reveal_eligible", { winnerFormat: "display", source: trigger, durationMs: Date.now() - displayReadyAt });
 
     const renderSize = this.resolveDisplayRenderSizeFromEvent(event, "display_showDisplay");
     const actualCreativeHeight = renderSize.actualHeight;
@@ -10105,8 +10178,14 @@ class IntextNode {
 
   async buildAndPlayVideo(gamVideoTagUrl, renderToken = this._activeRenderToken, trigger = "unknown") {
     if (!this.isActiveRenderToken(renderToken, "buildAndPlayVideo:start", trigger)) return false;
-    const viewportState = await this.waitForViewport(renderToken, "buildAndPlayVideo:waitForViewport");
-    if (viewportState === "stale" || !this.isActiveRenderToken(renderToken, "buildAndPlayVideo:afterViewport", trigger)) return false;
+    if (!this.waterfall?._videoPreparation) this.waterfall?.setupVideoPreparation?.({ winner: "video" }, renderToken);
+    let prepared = this.waterfall?.getPreparedVideo?.(renderToken);
+    if (!prepared) {
+      const eligibility = await this.waitForViewport(renderToken, "buildAndPlayVideo:capacity-or-legacy");
+      if (eligibility === "stale" || !this.isActiveRenderToken(renderToken, "buildAndPlayVideo:before_prepare", trigger)) return false;
+      prepared = this.waterfall?.getPreparedVideo?.(renderToken);
+      if (!prepared) this.waterfall?.cancelVideoPreparation?.("activated-without-standby");
+    }
 
     this.state = "video";
     this._visualState = "video";
@@ -10140,12 +10219,24 @@ class IntextNode {
       videoTiming: this._videoTiming,
     };
 
-    this.activeCreative = new IntextVideoCreative(creativeOpts);
+    const creative = prepared?.creative || new IntextVideoCreative(creativeOpts);
+    creative.adTagUrl = gamVideoTagUrl;
+    creative._renderToken = renderToken;
+    creative._videoTiming = this._videoTiming;
+    creative.onVideoEnded = creativeOpts.onVideoEnded;
+    creative._preparationGuard = null;
+    this.activeCreative = creative;
 
     try {
-      await this.activeCreative.render();
+      await creative.prepare();
+      const viewportState = await this.waitForViewport(renderToken, "buildAndPlayVideo:waitForViewport", creative);
+      if (viewportState === "stale" || !this.isActiveRenderToken(renderToken, "buildAndPlayVideo:afterViewport", trigger)) {
+        creative.destroy();
+        return false;
+      }
+      await creative.render();
       if (!this.isActiveRenderToken(renderToken, "buildAndPlayVideo:after_render", trigger)) {
-        this.activeCreative?.destroy?.();
+        creative.destroy();
         return false;
       }
 
@@ -10187,7 +10278,7 @@ class IntextNode {
           );
       const videoErrorMessage = videoErrorCode === "timeout" ? "video_ad_timeout" : videoErrorRawMessage;
       this.cleanupIntextPip(videoErrorCode === "timeout" ? "video-timeout" : "video-error");
-      this.activeCreative?.destroy?.();
+      creative.destroy();
       this.mergeIntextTelemetry({
         "gexp-intext-load-end-distance-px": this.getIntextDistancePx(),
         "gexp-intext-video-failed": "true",
@@ -10396,7 +10487,13 @@ class IntextNode {
       if (loader) loader.style.display = "none";
     }
 
-    if (displayInDom) {
+    const viewport = this.getReadinessViewportState?.();
+    const keepClosed = viewport && ["passed", "below", "document-hidden"].includes(viewport.reason)
+      && !this.container.isOpen && !this.videoContainer.isOpen;
+    if (keepClosed) {
+      for (const el of [displayEl, videoEl]) if (el?.isConnected) { el.style.display = "none"; el.style.opacity = "0"; }
+      this.waterfall?.recordReadiness?.("intext_no_fill_kept_closed", { reason: viewport.reason, winnerFormat: null });
+    } else if (displayInDom) {
       displayEl.classList.add("is-open");
       displayEl.style.display = "block";
       this.applyDisplayWrapperHeight(displayEl, this.lockedHeight || this.getDisplayStandardContentHeight(), {
@@ -10455,6 +10552,7 @@ class IntextNode {
   }
 
   resetNode() {
+    this.cancelViewportWaits?.("stale");
     logIntext(`[Intext:Display:${this.id}] intext_node_reset_visual_state`, {
       slotCode: this.id,
       activeToken: this._activeRenderToken,
@@ -10800,6 +10898,160 @@ class IntextWaterfall {
     return this.node?.getIntextTelemetryElement?.() || this.container.getElement();
   }
 
+  getVideoPreparationConfig() {
+    const cfg = this.loadingConfig?.videoPreparation || this.config?.loading?.videoPreparation || {};
+    return {
+      enabled: cfg.enabled !== false,
+      // One viewport of technical lead; independent from auction/render margins.
+      preparationRootMargin: typeof cfg.preparationRootMargin === "string" ? cfg.preparationRootMargin : `${Math.round(window.innerHeight || 600)}px 0px`,
+      maxPreparedPlayers: Number.isInteger(cfg.maxPreparedPlayers) && cfg.maxPreparedPlayers > 0 ? cfg.maxPreparedPlayers : 2,
+      preparedMaxAgeMs: Number.isFinite(cfg.preparedMaxAgeMs) && cfg.preparedMaxAgeMs > 0 ? cfg.preparedMaxAgeMs : 15000,
+    };
+  }
+
+  recordReadiness(metric, data = {}) {
+    const state = this.node?.getReadinessViewportState?.() || {};
+    const cycle = this.node?._intextTelemetryCycleId;
+    if (this._readinessTimingCycle !== cycle || !this._readinessTimes) { this._readinessTimingCycle = cycle; this._readinessTimes = {}; }
+    const times = this._readinessTimes, now = Date.now();
+    times[metric] = now;
+    const duration = (from, to) => times[from] != null && times[to] != null ? times[to] - times[from] : null;
+    let readinessAnchorRect = null;
+    try {
+      const rect = this.getLoadingTargetElement?.()?.getBoundingClientRect?.();
+      if (rect) readinessAnchorRect = Object.fromEntries(["top", "left", "bottom", "right", "width", "height"].map(key => [key, rect[key]]));
+    } catch (e) { /* Diagnostic only; an unavailable anchor must not alter readiness. */ }
+    IntextVideoCreative.dependencyDiagnostic(metric, this.node, {
+      stage: metric, timestamp: now, device: this.node?.scopedContext?.device || window.ueDataLayer?.device_category || window.ueDataLayer?.be_page_site_version || this.node?.manager?.device || null,
+      decisionMode: this._effectiveMode || this.config?.decision?.mode || "auto",
+      winnerFormat: "video", distanceToViewportPx: state.distancePx ?? null,
+      readinessIntersectionRatio: state.intersectionRatio ?? null, readinessAnchorRect,
+      winnerToPreparedMs: duration("video_winner_resolved", "video_prepare_ready"),
+      preparedToEligibleMs: duration("video_prepare_ready", "video_activation_eligible"),
+      preparationMs: duration("video_prepare_started", "video_prepare_ready"),
+      documentVisibility: document.visibilityState || "unknown", reason: state.reason || null, ...data,
+    });
+  }
+
+  setupVideoPreparation(auction, renderToken = null) {
+    this.cancelVideoPreparation("replacement");
+    const config = this.getVideoPreparationConfig(), anchor = this.getLoadingTargetElement();
+    if (!config.enabled || this.config?.decision?.mode === "display_only" || auction?.winner !== "video" || !anchor || typeof IntersectionObserver === "undefined") return;
+    const entry = { config, auction, createdAt: Date.now(), busy: false, inZone: false, generation: 0, boundToken: renderToken,
+      state: "STANDBY_UNBOUND" };
+    this._videoPreparation = entry;
+    const pool = IntextVideoCreative._preparationEntries ||= new Map();
+    if (!renderToken) pool.set(this, entry);
+    entry.valid = () => this._videoPreparation === entry && this.getVideoPreparationConfig().enabled && this.config?.decision?.mode !== "display_only" && (entry.boundToken
+      ? this.node.isActiveRenderToken(entry.boundToken, "video-preparation")
+      : this.pendingAuction === auction && auction.winner === "video") && anchor.isConnected !== false;
+    entry.eligible = () => ["visible", "below"].includes(this.node.getReadinessViewportState().reason);
+    entry.distance = () => Math.max(0, this.getLoadingDistancePx() ?? Infinity);
+    entry.release = reason => {
+      entry.generation++; clearTimeout(entry.leaseTimer); entry.leaseTimer = null;
+      entry.state = this._videoPreparation === entry ? "RELEASED" : "CANCELLED";
+      entry.creative?.destroy(); entry.creative = null; entry.promise = null; entry.busy = false;
+      // Re-arm only on a fresh proximity/visibility notification, not a retry loop.
+      entry.inZone = false;
+      this.recordReadiness("video_activation_cancelled", { reason, ownershipState: entry.state });
+    };
+    entry.start = () => {
+      if (entry.busy && entry.creative) return;
+      entry.busy = true;
+      entry.state = entry.boundToken ? "RENDER_OWNED" : "STANDBY_UNBOUND";
+      const generation = ++entry.generation;
+      this.recordReadiness("video_prepare_triggered", { source: "preparation-margin", preparationRootMargin: config.preparationRootMargin,
+        preparationTriggerDistancePx: entry.distance(), winnerAgeMs: auction.timestamp != null ? Date.now() - auction.timestamp : null });
+      const creative = new IntextVideoCreative({ container: this.node.videoContainer, node: this.node, config: this.node.config,
+        preparationGuard: () => entry.valid() && entry.generation === generation });
+      entry.creative = creative;
+      creative._preparationEntry = entry;
+      if (entry.boundToken) { creative._renderToken = entry.boundToken; creative._preparationGuard = null; }
+      entry.promise = creative.prepare().catch(error => {
+        if (entry.creative !== creative) return;
+        this.recordReadiness("video_prepare_failed", { reason: error?.message || String(error) });
+        entry.release("prepare-failed"); IntextVideoCreative.drainPreparations();
+      });
+      const ttl = this.loadingConfig?.maxFetchToRenderMs;
+      const lease = Number.isFinite(ttl) && ttl > 0 ? Math.min(config.preparedMaxAgeMs, ttl) : config.preparedMaxAgeMs;
+      if (entry.state === "STANDBY_UNBOUND") entry.leaseTimer = setTimeout(() => {
+        if (this._videoPreparation !== entry || entry.state !== "STANDBY_UNBOUND" || entry.boundToken) return;
+        this.recordReadiness("video_standby_expired", { ownershipState: entry.state, durationMs: lease });
+        this.cancelVideoPreparation("standby-lease-expired");
+      }, lease);
+    };
+    entry.check = entries => {
+      if (!entry.valid()) { this.cancelVideoPreparation("stale-auction"); return; }
+      if (entries?.[0]) entry.inZone = entries[0].isIntersecting === true;
+      if ((!entry.inZone || !entry.eligible()) && !entry.boundToken) entry.release("outside-preparation-zone");
+      else if (document.visibilityState !== "hidden") IntextVideoCreative.drainPreparations();
+    };
+    try {
+      entry.visibility = () => {
+        if (document.visibilityState !== "hidden" && entry.lastInZone) entry.inZone = true;
+        entry.check();
+      };
+      const check = entry.check;
+      entry.observer = new IntersectionObserver(entries => { entry.lastInZone = entries[0]?.isIntersecting === true; check(entries); }, { threshold: 0, rootMargin: config.preparationRootMargin });
+      entry.observer.observe(anchor);
+      document.addEventListener?.("visibilitychange", entry.visibility);
+    } catch (error) {
+      this.recordReadiness("video_prepare_failed", { reason: "invalid-preparation-margin" });
+      this.cancelVideoPreparation("observer-unavailable");
+    }
+    if (renderToken) this.claimVideoPreparation(renderToken);
+  }
+
+  claimVideoPreparation(renderToken) {
+    const entry = this._videoPreparation;
+    if (!entry || !this.node.isActiveRenderToken(renderToken, "video-ownership") || !entry.valid()) return null;
+    if (entry.boundToken && entry.boundToken !== renderToken) return null;
+    const transferred = entry.state !== "RENDER_OWNED";
+    // Synchronous handoff: a queued standby timer also checks state and identity.
+    entry.boundToken = renderToken; entry.state = "RENDER_OWNED";
+    if (entry.creative) { entry.creative._renderToken = renderToken; entry.creative._preparationGuard = null; }
+    clearTimeout(entry.leaseTimer); entry.leaseTimer = null;
+    entry.observer?.disconnect(); document.removeEventListener?.("visibilitychange", entry.visibility);
+    IntextVideoCreative._preparationEntries?.delete(this);
+    if (transferred) this.recordReadiness("video_preparation_ownership_transferred", { renderToken, ownershipState: entry.state });
+    IntextVideoCreative.drainPreparations();
+    return entry;
+  }
+
+  getPreparedVideo(renderToken) {
+    const entry = this._videoPreparation;
+    if (entry && !entry.valid()) { this.cancelVideoPreparation("stale-preparation"); return null; }
+    if (entry && !this.claimVideoPreparation(renderToken)) return null;
+    if (entry && !entry.creative && entry.valid()) {
+      const lead = /^(-?\d+(?:\.\d+)?)px(?:\s|$)/.exec(entry.config.preparationRootMargin);
+      if (lead && entry.eligible() && this.getLoadingDistancePx() <= Number(lead[1])) {
+        entry.inZone = true; entry.start();
+      }
+    }
+    if (!entry?.creative || entry.creative._destroyed) return null;
+    this.recordReadiness("video_activation_pending", { renderToken, ownershipState: entry.state });
+    return entry;
+  }
+
+  releasePreparedVideo(creative) {
+    const entry = this._videoPreparation;
+    if (!entry || entry.creative !== creative) return;
+    entry.state = "ACTIVATED";
+    clearTimeout(entry.leaseTimer); entry.observer?.disconnect();
+    document.removeEventListener?.("visibilitychange", entry.visibility);
+    this._videoPreparation = null; IntextVideoCreative._preparationEntries?.delete(this);
+    IntextVideoCreative.drainPreparations();
+  }
+
+  cancelVideoPreparation(reason = "cleanup") {
+    const entry = this._videoPreparation;
+    if (!entry) return;
+    this._videoPreparation = null;
+    IntextVideoCreative._preparationEntries?.delete(this);
+    entry.observer?.disconnect(); document.removeEventListener?.("visibilitychange", entry.visibility);
+    entry.release(reason); IntextVideoCreative.drainPreparations();
+  }
+
   getLoadingDistancePx() {
     try {
       const targetEl = this.getLoadingTargetElement();
@@ -10953,6 +11205,8 @@ class IntextWaterfall {
   }
 
   cleanup() {
+    this.cancelVideoPreparation?.("waterfall-cleanup");
+    this._fetchGeneration = (this._fetchGeneration || 0) + 1;
     this.disconnectFetchObserver();
     this.disconnectRenderObserver();
     clearTimeout(this.timer);
@@ -10992,6 +11246,7 @@ class IntextWaterfall {
 
   async startFetch(trigger) {
     if (this.fetchStarted) return;
+    const fetchGeneration = this._fetchGeneration = (this._fetchGeneration || 0) + 1;
     this.fetchStarted = true;
     this.fetchComplete = false;
     this.fetchTrigger = trigger;
@@ -11055,11 +11310,20 @@ class IntextWaterfall {
 
     try {
       await this.runPrebidPhase(trigger, effectiveMode);
+      if (this._fetchGeneration !== fetchGeneration || !this.fetchStarted) return;
       const decision = this.decideWinner({ commit: false });
       this.pendingAuction = {
         timestamp: Date.now(),
         ...decision,
       };
+      this.recordReadiness?.(decision?.winner === "video" ? "video_winner_resolved" : "intext_winner_resolved", { winnerFormat: decision?.winner || "none", durationMs: Date.now() - this.fetchStartAt });
+      this.setupVideoPreparation?.(this.pendingAuction);
+      if (decision?.winner === "video") {
+        // Infrastructure only: no player, IMA initialization or ad request during fetch.
+        Promise.resolve().then(() => IntextVideoCreative.prewarmDependencies({
+          node: this.node, trigger, winner: "video",
+        })).catch(() => { /* Prewarm failure is observed; render can retry. */ });
+      }
       this.fetchComplete = true;
       logIntext(`[Intext:Auction:${this.node.id}] loading_phase_fetch_waiting_for_render`, {
         slotCode: this.node.id,
@@ -11071,6 +11335,7 @@ class IntextWaterfall {
         this.startRender(waitingTrigger);
       }
     } catch (err) {
+      if (this._fetchGeneration !== fetchGeneration || !this.fetchStarted) return;
       this.fetchComplete = true;
       this.pendingAuction = null;
       warnIntext(`[Intext:Auction:${this.node.id}] loading_phase_fetch_error`, err);
@@ -11106,6 +11371,7 @@ class IntextWaterfall {
     this.lastTrigger = trigger;
     this.renderStartAt = Date.now();
     const renderToken = this.node.beginVisualRender("render_started", trigger);
+    this.claimVideoPreparation(renderToken);
     if (window.gexpIntextDebug) intextDebugCollector.recordTimeline("render-margin-entered", { node: this.node, slotId: this.node.id, trigger, renderToken });
     const renderWaitForFetchMs = this._renderWaitForFetchStartedAt
       ? Math.max(0, this.renderStartAt - this._renderWaitForFetchStartedAt)
@@ -11179,6 +11445,7 @@ class IntextWaterfall {
     });
 
     if (fetchExpired) {
+      this.cancelVideoPreparation?.("pending-auction-expired");
       logIntext(`[Intext:Auction:${this.node.id}] loading_phase_fetch_expired`, {
         slotCode: this.node.id,
         trigger,
@@ -13807,127 +14074,109 @@ class IntextWaterfall {
     return /^gexp-intext(?:-\d+)?\|banner$/.test(String(floorKey || ""));
   }
 
-  getIntextDisplayFloorInfo(floorKey) {
+  resolveIntextGexpDisplayFloor(adUnit = null) {
     const wa = this.wa;
-    if (!wa) return { value: null, source: "missing" };
-
-    const allowedSources = new Set(["effectivePrice", "lastPrice", "windowStart", "initial"]);
-    const logFloorCandidate = (candidate, source, mediaType) => {
-      logIntext(`[Intext:Prebid:${this.node.id}] display_prebid_floor_write_candidate`, {
-        code: this.getPrebidCode(),
-        floorKey,
-        candidate,
-        source,
-        mediaType,
-      });
+    const prices = Array.isArray(wa?.array) ? wa.array : [];
+    const validPrice = value => typeof value === "number" && Number.isFinite(value) && value > 0;
+    const validIndex = index => Number.isInteger(index) && index >= 0 && index < prices.length && validPrice(prices[index]);
+    // Pricing identity is available from IntextManager before the GPT slot exists.
+    const normalizeAdUnit = value => {
+      if (typeof value !== "string") return null;
+      const parts = value.split("/").map(part => part.trim()).filter(Boolean);
+      if (/^\d+$/.test(parts[0] || "")) parts.shift();
+      return parts[0] && !/^\d+$/.test(parts[0]) ? parts[0] : null;
     };
-    const logRejectedCandidate = (candidate, source, mediaType) => {
-      logIntext(`[Intext:Prebid:${this.node.id}] display_prebid_floor_write_rejected_non_banner`, {
-        code: this.getPrebidCode(),
-        floorKey,
-        candidate,
-        source,
-        mediaType,
-      });
+    let resolvedAdUnit = null;
+    let adUnitSource = "missing";
+    for (const [candidate, source] of [
+      [wa?.cI?.adUnit, "windowarray-impression"],
+      [adUnit, "explicit"],
+      [this.node?.manager?.adUnitPath, "intext-manager-adunit"],
+      [wa?.gexp?.cfg?.adUnit, "gexp-config"],
+    ]) {
+      resolvedAdUnit = normalizeAdUnit(candidate);
+      if (resolvedAdUnit) { adUnitSource = source; break; }
+    }
+    const configFallbackP = wa?.pCfg?.p ?? null;
+    const configFallbackIndex = Number.isInteger(configFallbackP) ? configFallbackP + 1 : null;
+    const provenance = {
+      position: wa?.position ?? null, adUnit: resolvedAdUnit, adUnitSource,
+      effectivePrice: wa?.effectivePrice ?? null, lastPrice: wa?.state?.lastPrice ?? null,
+      windowStart: wa?.state?.windowStart ?? null, overridePriceConfigured: wa?.pCfg?.overridePrice ?? null,
+      pivotIndex: null, pivotResult: null, pivotAttempted: false, pivotError: null,
+      minimumPriceIndexConfigured: wa?.pCfg?.mp ?? null, rawIndex: null, minimumApplied: false,
+      configFallbackP, configFallbackIndex, gexpRuntimeEnabled: wa?.gexp?.enabled ?? null,
     };
-    const commitCandidate = (candidate, source) => {
-      logFloorCandidate(candidate, source, "banner");
-      if (!allowedSources.has(source)) {
-        logRejectedCandidate(candidate, source, "banner");
-        return null;
+    const result = (value, index, source) => ({ ...provenance, value, index, effectiveIndex: index, source,
+      floorValue: value, floorIndex: index, floorSource: source });
+    const initialResult = (rawIndex, source) => {
+      const minimum = provenance.minimumPriceIndexConfigured;
+      const effectiveIndex = Number.isInteger(minimum) && minimum >= 0 ? Math.max(minimum, rawIndex) : rawIndex;
+      provenance.rawIndex = rawIndex;
+      provenance.minimumApplied = effectiveIndex > rawIndex;
+      // A configured minimum outside the usable array must fail open, never select a lower price.
+      if (!validIndex(effectiveIndex)) {
+        provenance.rejectedEffectiveIndex = effectiveIndex;
+        return result(null, null, "missing");
       }
-      if (!(candidate > 0)) return null;
-      return { value: parseFloat(candidate), source };
+      return result(prices[effectiveIndex], effectiveIndex, source);
+    };
+    const runtimeIndex = (value, observedIndex) => {
+      if (validIndex(observedIndex) && prices[observedIndex] === value) return observedIndex;
+      const index = prices.indexOf(value);
+      return validIndex(index) ? index : null;
     };
 
-    // 1) Si ya existe el effectivePrice calculado por GEXP, úsalo
-    if (typeof wa.effectivePrice === "number" && isFinite(wa.effectivePrice) && wa.effectivePrice > 0) {
-      const candidate = commitCandidate(wa.effectivePrice, "effectivePrice");
-      if (candidate) return candidate;
+    // Runtime pricing belongs to this WindowArray. Consume it without changing state.
+    if (validPrice(wa?.effectivePrice)) {
+      return result(wa.effectivePrice, runtimeIndex(wa.effectivePrice, wa.effectivePriceIndex), "gexp-effective-price");
+    }
+    if (validPrice(wa?.state?.lastPrice)) {
+      return result(wa.state.lastPrice, runtimeIndex(wa.state.lastPrice, wa.state.lastPriceIndex), "gexp-last-price");
+    }
+    if (validIndex(wa?.state?.windowStart)) {
+      return result(prices[wa.state.windowStart], wa.state.windowStart, "gexp-window-start");
     }
 
-    // 2) Si hay lastPrice persistido, úsalo
-    if (typeof wa.state?.lastPrice === "number" && isFinite(wa.state.lastPrice) && wa.state.lastPrice > 0) {
-      const candidate = commitCandidate(wa.state.lastPrice, "lastPrice");
-      if (candidate) return candidate;
-    }
-
-    // 3) Si hay windowStart válido, úsalo contra el array de precios
-    const idx = wa.state?.windowStart;
-    if (
-      typeof idx === "number" &&
-      idx >= 0 &&
-      Array.isArray(wa.array) &&
-      typeof wa.array[idx] === "number" &&
-      isFinite(wa.array[idx]) &&
-      wa.array[idx] > 0
-    ) {
-      const candidate = commitCandidate(wa.array[idx], "windowStart");
-      if (candidate) return candidate;
-    }
-
-    // 4) En primera subasta display, deriva un floor inicial estable desde el índice base
-    try {
-      const deriveInitialAdUnit = () => {
-        if (wa.cI?.adUnit) return wa.cI.adUnit;
-        try {
-          const slotAdUnitPath = wa.slot?.getAdUnitPath?.();
-          if (slotAdUnitPath) {
-            const slotParts = String(slotAdUnitPath).split("/").filter(Boolean);
-            if (slotParts.length >= 2) return slotParts[1];
-            if (slotParts.length >= 1) return slotParts[0];
-          }
-        } catch (e) {
-          /* ignore */
-        }
-
-        const cfgAdUnit = wa.gexp?.cfg?.adUnit;
-        if (cfgAdUnit) {
-          const cfgParts = String(cfgAdUnit).split("/").filter(Boolean);
-          if (cfgParts.length >= 1) return cfgParts[0];
-        }
-
-        return null;
-      };
-
-      const initialAdUnit = deriveInitialAdUnit();
-      let initialIdx = null;
-      if (initialAdUnit && typeof wa.gexp?.getPivotIndex === "function") {
-        initialIdx = wa.gexp.getPivotIndex(initialAdUnit, wa.position, 0, wa.offY);
+    // Before runtime initialization, only deterministic GEXP index authorities apply.
+    // Do not run initPrice(), getBasePrice(), random variation, or probe variation here.
+    const overrideIndex = wa?.pCfg?.overridePrice;
+    if (validIndex(overrideIndex)) return result(prices[overrideIndex], overrideIndex, "gexp-override-price");
+    if (resolvedAdUnit && typeof wa?.gexp?.getPivotIndex === "function") {
+      provenance.pivotAttempted = true;
+      try {
+        provenance.pivotResult = wa.gexp.getPivotIndex(resolvedAdUnit, wa.position, 0, wa.offY) ?? null;
+        provenance.pivotIndex = Number.isInteger(provenance.pivotResult) ? provenance.pivotResult : null;
+      } catch (e) { provenance.pivotError = e?.message || String(e); }
+      if (validIndex(provenance.pivotIndex)) {
+        return initialResult(provenance.pivotIndex, "gexp-pivot");
       }
-      if (initialIdx === null || typeof initialIdx === "undefined") {
-        initialIdx = typeof wa.pCfg?.p === "number" ? wa.pCfg.p + 1 : null;
-      }
-      if (
-        typeof initialIdx === "number" &&
-        initialIdx >= 0 &&
-        Array.isArray(wa.array) &&
-        typeof wa.array[initialIdx] === "number" &&
-        isFinite(wa.array[initialIdx]) &&
-        wa.array[initialIdx] > 0
-      ) {
-        const candidate = commitCandidate(wa.array[initialIdx], "initial");
-        if (candidate) return candidate;
-      }
-    } catch (e) {
-      /* ignore */
     }
+    // p + 1 is the configured GEXP fallback index; the price always comes from its array.
+    if (validIndex(configFallbackIndex)) {
+      return initialResult(configFallbackIndex, "gexp-config-fallback");
+    }
+    return result(null, null, "missing");
+  }
 
-    // 5) No reutilizar gexp_floor desde GAM targeting: puede venir contaminado por otros formatos.
-    try {
-      const slot = this.node?.slot;
-      if (slot && typeof slot.getTargeting === "function") {
-        const kv = slot.getTargeting("gexp_floor");
+  getIntextDisplayFloorInfo(floorKey) {
+    const floorInfo = this.resolveIntextGexpDisplayFloor();
+    logIntext(`[Intext:Prebid:${this.node.id}] display_prebid_floor_write_candidate`, {
+      code: this.getPrebidCode(), floorKey, candidate: floorInfo.value, mediaType: "banner", ...floorInfo,
+    });
+    // Slot gexp_floor is never a pricing authority; retain its rejected diagnostic observation.
+    if (floorInfo.source === "missing") {
+      try {
+        const kv = this.node?.slot?.getTargeting?.("gexp_floor");
         if (Array.isArray(kv) && kv[0] && !isNaN(parseFloat(kv[0]))) {
-          logFloorCandidate(parseFloat(kv[0]), "slot_targeting", "unknown");
-          logRejectedCandidate(parseFloat(kv[0]), "slot_targeting", "unknown");
+          const observation = { code: this.getPrebidCode(), floorKey, candidate: parseFloat(kv[0]),
+            source: "slot_targeting", mediaType: "unknown" };
+          logIntext(`[Intext:Prebid:${this.node.id}] display_prebid_floor_write_candidate`, observation);
+          logIntext(`[Intext:Prebid:${this.node.id}] display_prebid_floor_write_rejected_non_banner`, observation);
         }
-      }
-    } catch (e) {
-      /* ignore */
+      } catch (e) { /* Read-only observation must not affect the missing-floor result. */ }
     }
-
-    return { value: null, source: "missing" };
+    return floorInfo;
   }
 
   getCoreFloorsConfigData(pb = null) {
@@ -14123,13 +14372,15 @@ class IntextWaterfall {
 
     this.setIntextDisplayFloorConfig(floorKey, floorValue, pb);
 
-    if (floorInfo.source === "initial") {
+    if (["gexp-override-price", "gexp-pivot", "gexp-config-fallback"].includes(floorInfo.source)) {
       logIntext(
         `[Intext:Prebid:${this.node.id}] display_prebid_floor_initial_applied - key=${floorKey}, gexp_floor=${floorValue}`,
+        floorInfo,
       );
     } else {
       logIntext(
         `[Intext:Prebid:${this.node.id}] display_prebid_floor_applied - key=${floorKey}, gexp_floor=${floorValue}`,
+        floorInfo,
       );
     }
 
@@ -14180,7 +14431,7 @@ class IntextWaterfall {
 }
 
 class IntextVideoCreative {
-  constructor({ container, adTagUrl, bid, node, config, onVideoEnded, videoTiming }) {
+  constructor({ container, adTagUrl, bid, node, config, onVideoEnded, videoTiming, preparationGuard }) {
     this.container = container;
     this.adTagUrl = adTagUrl || null;
     this.bid = bid || null;
@@ -14200,17 +14451,60 @@ class IntextVideoCreative {
     this._adMediaFirstFrameCleanup = null;
     this._adMediaCleanup = null;
     this._adMediaDiscoveryTimers = [];
+    this._firstFrameWaitTimers = [];
+    this._adMediaStateSeen = new WeakMap();
+    this._destroyed = false;
     this._lastAdDuration = null;
+    this._preparationGuard = preparationGuard || null;
+    this._preparePromise = null;
+    this._prepared = false;
+    this._activationPromise = null;
   }
 
-  async render() {
-    if (!this.node?.isActiveRenderToken?.(this._renderToken, "IntextVideoCreative.render:start", this._videoTiming?.trigger || "unknown")) {
-      throw new Error("stale_render_token");
-    }
+  prepare() {
+    if (this._preparePromise) return this._preparePromise;
+    this._preparePromise = this.preparePlayer().catch(error => {
+      this._preparePromise = null;
+      throw error;
+    });
+    return this._preparePromise;
+  }
+
+  preparationValid() {
+    return !this._aborted && !this._destroyed && (this._preparationGuard
+      ? this._preparationGuard()
+      : this.node?.isActiveRenderToken?.(this._renderToken, "video-prepare", this._videoTiming?.trigger || "unknown"));
+  }
+
+  async preparePlayer() {
+    if (!this.preparationValid()) throw new Error("stale_render_token");
+    const startedAt = Date.now();
+    this.node?.waterfall?.recordReadiness?.("video_prepare_started", { startedAt });
+    const dependenciesWaitStartedAt = Date.now();
+    IntextVideoCreative.dependencyDiagnostic("video_dependencies_wait_started", this.node, {
+      renderToken: this._renderToken, trigger: this._videoTiming?.trigger || "unknown", startedAt: dependenciesWaitStartedAt,
+    });
     await this.ensureDependencies();
-    if (!this.node?.isActiveRenderToken?.(this._renderToken, "IntextVideoCreative.render:after_dependencies", this._videoTiming?.trigger || "unknown")) {
+    IntextVideoCreative.dependencyDiagnostic("video_dependencies_ready", this.node, {
+      renderToken: this._renderToken, trigger: this._videoTiming?.trigger || "unknown",
+      dependenciesWaitMs: Date.now() - dependenciesWaitStartedAt,
+      dependencyPrewarmStarted: !!this.node?._intextVideoDependencyPrewarm,
+      dependencyPrewarmReady: this.node?._intextVideoDependencyPrewarm?.ready === true,
+      dependencyPrewarmMs: this.node?._intextVideoDependencyPrewarm?.durationMs ?? null,
+    });
+    if (!this.preparationValid()) {
       throw new Error("stale_render_token");
     }
+    // Standby only warms infrastructure. Video.js and IMA must initialize together.
+    this._prepared = true;
+    this.node?.waterfall?.recordReadiness?.("video_prepare_ready", {
+      durationMs: Date.now() - startedAt, preparationStage: "dependencies", playerCreated: false,
+    });
+  }
+
+  createPlayerForActivation() {
+    if (!this.preparationValid()) throw new Error("stale_render_token");
+    this._playerBuildStartedAt = Date.now();
     this.createVideoElement();
     this.initVideoJS();
     const loader = this.container.getElement().querySelector(".gexp-intext-loader");
@@ -14228,61 +14522,357 @@ class IntextVideoCreative {
       loader.style.display = "flex";
     }
     this.attachPlayerEvents();
-    await this.requestAds();
   }
 
-  async ensureDependencies() {
-    const VideoAssetLoader = {
-      loadScript(src) {
-        return new Promise((resolve, reject) => {
-          if (document.querySelector(`script[src="${src}"]`)) {
-            resolve();
-            return;
-          }
-          const script = document.createElement("script");
-          script.src = src;
-          script.async = true;
-          script.onload = resolve;
-          script.onerror = reject;
-          document.head.appendChild(script);
-        });
-      },
-      loadCSS(href) {
-        if (document.querySelector(`link[href="${href}"]`)) return;
-        const link = document.createElement("link");
-        link.rel = "stylesheet";
-        link.href = href;
-        document.head.appendChild(link);
-      },
+  render() {
+    if (this._activationPromise) return this._activationPromise;
+    this._activationPromise = this.activate();
+    return this._activationPromise;
+  }
+
+  async activate() {
+    await this.prepare();
+    if (!this.preparationValid()) throw new Error("stale_render_token");
+    const node = this.node;
+    if (node?.waitForViewport) {
+      node.waterfall?.recordReadiness?.("video_activation_deferred", { reason: node.getReadinessViewportState().reason });
+      const state = await node.waitForViewport(this._renderToken, "video-activation", this);
+      if (state === "stale" || !this.preparationValid()) throw new Error("stale_render_token");
+    }
+    if (node?.getReadinessViewportState && !node.getReadinessViewportState().eligible) throw new Error("video_activation_ineligible");
+    node?.waterfall?.recordReadiness?.("video_activation_eligible");
+    node?.waterfall?.releasePreparedVideo?.(this);
+    this.createPlayerForActivation();
+    this.observeActivationEligibility();
+    node?.waterfall?.recordReadiness?.("video_activation_started");
+    return this.requestAds();
+  }
+
+  observeActivationEligibility() {
+    if (!this.node?.getReadinessViewportState || this._eligibilityCleanup) return;
+    const node = this.node, anchor = node.getIntextTelemetryElement?.();
+    const record = (metric, data = {}) => node.waterfall?.recordReadiness?.(metric, data);
+    const managerNow = () => { try { return this.player?.ima?.getAdsManager?.(); } catch (e) { return null; } };
+    const live = () => !this._destroyed && !this._aborted && this.isRenderTokenActive("video-eligibility");
+    const usableMedia = media => !!media && !media.ended && !media.error;
+    let lastPauseState = null;
+    const controlState = () => {
+      const media = this._adMediaEl, manager = managerNow();
+      return [media, manager, media?.pause, media?.play, manager?.pause, manager?.resume, media?.paused];
     };
+    const stateChanged = (previous, next, controlsOnly = false) => !previous || next.some((value, index) =>
+      (!controlsOnly || index < next.length - 1) && value !== previous[index]);
+    const pause = () => {
+      const manager = managerNow(), media = this._adMediaEl;
+      const pauseMedia = () => {
+        const previousOwner = this._eligibilityPauseOwner;
+        const directlyOwned = !!media && previousOwner?.source === "ad-media" && previousOwner.media === media;
+        const wasPaused = media?.paused;
+        this._eligibilityPauseOwner = null;
+        if (!media || typeof media.pause !== "function") return;
+        try {
+          media.pause();
+          if (this._adMediaEl === media && media.paused === true && (wasPaused === false || directlyOwned)) {
+            this._eligibilityPauseOwner = directlyOwned ? previousOwner : { source: "ad-media", media };
+          }
+        } catch (error) { record("video_recovery_control_unavailable", { source: "ad-media", reason: "pause-failed", error: error?.message }); }
+      };
+      if (media && this._eligibilityPauseOwner?.source === "ad-media" && this._eligibilityPauseOwner.media === media) {
+        // A new exit during a directly owned recovery must not switch to an unrelated IMA controller.
+        pauseMedia();
+        return;
+      }
+      // IMA owns its ad playback when it exposes both control operations. Do not also pause its media.
+      if (typeof manager?.pause === "function" && typeof manager?.resume === "function") {
+        try {
+          manager.pause();
+          this._eligibilityPauseOwner = { source: "ads-manager", manager, media };
+          return;
+        } catch (error) { record("video_recovery_control_unavailable", { source: "ads-manager", reason: "pause-failed", error: error?.message }); }
+      }
+      pauseMedia();
+    };
+    const current = attempt => this._recoveryAttempt === attempt && this._recoveryEpoch === attempt.epoch
+      && this._adMediaEl === attempt.media && (attempt.source !== "ads-manager" || managerNow() === attempt.manager)
+      && live() && node.getReadinessViewportState().eligible;
+    const failed = (attempt, error) => {
+      if (!current(attempt)) { if (!live()) this._eligibilityCleanup?.(); return; }
+      record("video_recovery_failed", { source: attempt.source, reason: error?.message || "recovery-failed" });
+      this._settle?.("reject", new Error("video_recovery_failed"));
+    };
+    const confirm = (signal, media = this._adMediaEl) => {
+      const attempt = this._recoveryAttempt;
+      if (!attempt || !current(attempt) || media !== attempt.media) return false;
+      if (media && (!usableMedia(media) || media.paused !== false)) return false;
+      if (signal === "media-timeupdate" && !(Number(media?.currentTime) > attempt.currentTime)) return false;
+      if (!media && (signal !== "ima-resumed" || attempt.source !== "ads-manager")) return false;
+      this._recoveryAttempt = null;
+      this._pausedForEligibility = false;
+      record("video_recovery_confirmed", { source: attempt.source, signal, mediaElementFound: !!media, paused: media?.paused ?? null });
+      // Compatibility metric now means observed recovery, never a void API return.
+      record("video_recovery_resumed", { source: attempt.source, signal });
+      this._retryEligibleReveal?.();
+      return true;
+    };
+    const check = () => {
+      if (!live()) { this._eligibilityCleanup?.(); return; }
+      if (this._playerRevealed) return; // Existing playback/PiP owns a legitimately revealed ad.
+      if (this._eligibilityPauseOwner?.source === "ad-media" && this._eligibilityPauseOwner.media !== this._adMediaEl) {
+        this._eligibilityPauseOwner = null;
+        record("video_recovery_ownership_invalidated", { source: "ad-media", reason: "media-replaced" });
+      }
+      const state = node.getReadinessViewportState();
+      if (!state.eligible) {
+        if (!this._pausedForEligibility || this._recoveryAttempt || stateChanged(lastPauseState, controlState())) {
+          if (!this._pausedForEligibility) record("video_missed_viewport", { reason: state.reason });
+          if (this._recoveryAttempt) record("video_recovery_cancelled", { source: this._recoveryAttempt.source, reason: state.reason });
+          this._recoveryAttempt = null;
+          this._recoveryEpoch = (this._recoveryEpoch || 0) + 1;
+          this._pausedForEligibility = true;
+          pause();
+          // Snapshot after our own pause, so its state change does not cause another attempt.
+          lastPauseState = controlState();
+        }
+        return;
+      }
+      lastPauseState = null;
+      if (!this._pausedForEligibility) { this._retryEligibleReveal?.(); return; }
+      if (this._recoveryAttempt && (this._recoveryAttempt.media !== this._adMediaEl
+        || (this._recoveryAttempt.source !== "ad-media" && this._recoveryAttempt.manager !== managerNow())
+        || (this._recoveryAttempt.source === "ad-media-observed" && stateChanged(this._recoveryAttempt.controlState, controlState(), true)))) {
+        record("video_recovery_cancelled", { source: this._recoveryAttempt.source,
+          reason: this._recoveryAttempt.media !== this._adMediaEl ? "media-replaced"
+            : this._recoveryAttempt.manager !== managerNow() ? "ads-manager-replaced" : "recovery-api-changed" });
+        this._recoveryAttempt = null;
+        this._recoveryEpoch = (this._recoveryEpoch || 0) + 1;
+      }
+      if (this._recoveryAttempt) return;
+      const media = this._adMediaEl, owner = this._eligibilityPauseOwner;
+      const manager = managerNow();
+      // Direct recovery is authorized only for the same effectively paused element.
+      const directlyOwned = !!media && owner?.source === "ad-media" && owner.media === media;
+      const managerControls = typeof manager?.pause === "function" && typeof manager?.resume === "function";
+      const sameMediaHandoff = !!media && owner?.source === "ads-manager" && owner.media === media && media.paused === true;
+      const source = directlyOwned && typeof media.play === "function" ? "ad-media" : managerControls ? "ads-manager"
+        : sameMediaHandoff && typeof media.play === "function" ? "ad-media" : null;
+      if (media && !usableMedia(media)) {
+        const attempt = { media, manager, epoch: this._recoveryEpoch, source: owner?.source || "ad-media" };
+        this._recoveryAttempt = attempt;
+        failed(attempt, new Error(media.ended ? "media-ended" : "media-error"));
+        return;
+      }
+      if (!source) {
+        if (!this._recoveryUnavailableLogged) record("video_recovery_unavailable", { reason: "no-resume-api", mediaElementFound: !!media });
+        this._recoveryUnavailableLogged = true;
+        // If nothing was actually paused, an ensuing media playing/progress event can still prove recovery.
+      }
+      const attempt = { media, manager, epoch: this._recoveryEpoch, source: source || "ad-media-observed",
+        currentTime: Number(media?.currentTime) || 0, controlState: controlState() };
+      this._recoveryAttempt = attempt;
+      record("video_recovery_requested", { source: attempt.source, pauseOwner: owner?.source || "unknown",
+        reason: owner?.source === "ads-manager" && source === "ad-media" ? "ads-manager-unavailable" : "reentry",
+        mediaElementFound: !!media, paused: media?.paused ?? null });
+      if (!source) return; // The existing advertising deadline bounds this wait.
+      record("video_recovery_api_called", { source, api: source === "ads-manager" ? "resume" : "play" });
+      try {
+        const result = source === "ads-manager" ? manager.resume() : media.play();
+        if (result && typeof result.then === "function") Promise.resolve(result).then(() => {
+          if (!live()) { this._eligibilityCleanup?.(); return; }
+          if (source === "ad-media") {
+            if (current(attempt)) confirm("media-play-resolved", media);
+            else if (live() && this._adMediaEl === media && !node.getReadinessViewportState().eligible
+              && this._eligibilityPauseOwner?.source === "ad-media" && this._eligibilityPauseOwner.media === media) {
+              // A cancelled play Promise may finish after exit. Keep directly owned media suspended.
+              try { media.pause?.(); } catch (e) { }
+            }
+          }
+        }, error => failed(attempt, error));
+        // AdsManager.resume() is void: only RESUMED or live media signals confirm playback.
+      } catch (error) { failed(attempt, error); }
+    };
+    const observer = typeof IntersectionObserver !== "undefined" && anchor
+      ? new IntersectionObserver(check, { threshold: 0, rootMargin: "0px" }) : null;
+    observer?.observe(anchor);
+    const styleCheck = event => { if (event.target === anchor || event.target?.contains?.(anchor)) check(); };
+    document.addEventListener?.("visibilitychange", check);
+    // IO does not report opacity-only changes. Recheck on bounded lifecycle/user/style events, without polling.
+    document.addEventListener?.("transitionend", styleCheck, true);
+    document.addEventListener?.("animationend", styleCheck, true);
+    window.addEventListener?.("scroll", check, { passive: true }); window.addEventListener?.("resize", check);
+    this._eligibilityCleanup = () => {
+      observer?.disconnect(); document.removeEventListener?.("visibilitychange", check);
+      document.removeEventListener?.("transitionend", styleCheck, true); document.removeEventListener?.("animationend", styleCheck, true);
+      window.removeEventListener?.("scroll", check); window.removeEventListener?.("resize", check);
+      this._retryEligibleReveal = null; this._checkActivationEligibility = null; this._confirmEligibilityRecovery = null;
+      this._eligibilityCleanup = null; this._eligibilityPauseOwner = null;
+      lastPauseState = null;
+      this._recoveryAttempt = null; this._recoveryEpoch = (this._recoveryEpoch || 0) + 1;
+    };
+    this._checkActivationEligibility = check;
+    this._confirmEligibilityRecovery = confirm;
+  }
 
-    VideoAssetLoader.loadCSS(
+  static dependencyDiagnostic(metric, node, data = {}) {
+    // An optimization/diagnostic must never affect auction or render settlement.
+    try {
+      logIntext("[Intext:Video:IMA] " + metric, { slotId: node?.id, cycleId: node?._intextTelemetryCycleId, renderToken: node?._activeRenderToken, ...data });
+      if (window.gexpIntextDebug === true) intextDebugCollector.recordMetric(metric, { node, ...data });
+    } catch (e) { /* Diagnostic only. */ }
+  }
+
+  static dependenciesAvailable() {
+    try {
+      return !!(window.videojs && window.google?.ima
+        && window.videojs.getPlugin?.("ads") && window.videojs.getPlugin?.("ima"));
+    } catch (e) { return false; }
+  }
+
+  // Infrastructure deadline only; unrelated to IMA/ad playback timeouts.
+  static DEPENDENCY_SCRIPT_TIMEOUT_MS = 10000;
+
+  static resolveDependencyUrl(value) {
+    try { return new URL(value, document.baseURI).href; } catch (e) { return null; }
+  }
+
+  static findDependencyElement(tag, attribute, effectiveUrl) {
+    return Array.from(document.querySelectorAll(tag + "[" + attribute + "]")).find(element =>
+      this.resolveDependencyUrl(element[attribute]) === effectiveUrl,
+    ) || null;
+  }
+
+  static loadDependencyScript(src, available) {
+    const effectiveSrc = this.resolveDependencyUrl(src);
+    if (!effectiveSrc) return Promise.reject(new Error("invalid_video_dependency_url"));
+    if (available()) return Promise.resolve();
+    let script = this.findDependencyElement("script", "src", effectiveSrc);
+    if (script?.__intextDependencyStatus === "failed") {
+      script.remove();
+      script = null;
+    }
+    if (script?.__intextDependencyStatus === "loaded" || /^(loaded|complete)$/.test(script?.readyState || "")) {
+      script.__intextDependencyStatus = "failed";
+      this.dependencyDiagnostic("video_dependency_loaded_but_unavailable", null, {
+        dependency: effectiveSrc.split("/").pop(), existingScript: true,
+      });
+      return Promise.reject(new Error("video_dependency_loaded_but_unavailable"));
+    }
+    // Adopt old/unbounded promises too, rather than trusting that their events are still forthcoming.
+    if (script?.__intextDependencyPromise && script.__intextDependencyTimer != null) {
+      return script.__intextDependencyPromise;
+    }
+    const previousPromise = script?.__intextDependencyPromise;
+    const existing = !!script;
+    if (!script) {
+      script = document.createElement("script");
+      script.src = effectiveSrc;
+      script.async = true;
+    }
+    const target = script;
+    target.__intextDependencyStatus = "loading";
+    target.__intextDependencyPromise = new Promise((resolve, reject) => {
+      let settled = false;
+      const startedAt = Date.now();
+      const cleanup = () => {
+        clearTimeout(target.__intextDependencyTimer);
+        target.__intextDependencyTimer = null;
+        target.removeEventListener("load", loaded);
+        target.removeEventListener("error", failed);
+      };
+      const loaded = () => {
+        if (settled) return;
+        let usable = false;
+        try { usable = available(); } catch (e) { /* Fail as unavailable below. */ }
+        if (!usable) {
+          this.dependencyDiagnostic("video_dependency_loaded_but_unavailable", null, {
+            dependency: effectiveSrc.split("/").pop(), existingScript: existing,
+          });
+          failed("video_dependency_loaded_but_unavailable");
+          return;
+        }
+        settled = true; cleanup(); target.__intextDependencyStatus = "loaded"; resolve();
+      };
+      const failed = (reason = "video_dependency_load_failed") => {
+        if (settled) return;
+        settled = true; cleanup(); target.__intextDependencyStatus = "failed";
+        reject(new Error(typeof reason === "string" ? reason : "video_dependency_load_failed"));
+      };
+      target.__intextDependencyTimer = setTimeout(() => {
+        if (settled) return;
+        try { if (available()) { loaded(); return; } } catch (e) { /* Reject below. */ }
+        this.dependencyDiagnostic("video_dependency_script_timeout", null, {
+          dependency: effectiveSrc.split("/").pop(), existingScript: existing,
+          timeoutMs: this.DEPENDENCY_SCRIPT_TIMEOUT_MS, elapsedMs: Date.now() - startedAt,
+        });
+        failed("video_dependency_load_timeout");
+      }, this.DEPENDENCY_SCRIPT_TIMEOUT_MS);
+      target.addEventListener("load", loaded);
+      target.addEventListener("error", failed);
+      if (previousPromise && typeof previousPromise.then === "function") {
+        Promise.resolve(previousPromise).then(loaded, failed);
+      }
+      if (!existing) {
+        try { document.head.appendChild(target); } catch (e) { failed(); }
+      }
+    });
+    return target.__intextDependencyPromise;
+  }
+
+  static loadDependencyStyles() {
+    for (const href of [
       "https://vjs.zencdn.net/7.20.3/video-js.css",
-    );
-    VideoAssetLoader.loadCSS(
       "https://cdnjs.cloudflare.com/ajax/libs/videojs-contrib-ads/6.9.0/videojs-contrib-ads.css",
-    );
-    VideoAssetLoader.loadCSS(
       "https://cdnjs.cloudflare.com/ajax/libs/videojs-ima/1.11.0/videojs.ima.css",
-    );
+    ]) {
+      if (this.findDependencyElement("link", "href", this.resolveDependencyUrl(href))) continue;
+      const link = document.createElement("link"); link.rel = "stylesheet"; link.href = href;
+      document.head.appendChild(link);
+    }
+  }
 
-    if (!window.videojs) {
-      await VideoAssetLoader.loadScript(
-        "https://vjs.zencdn.net/7.20.3/video.min.js",
-      );
-    }
-    await VideoAssetLoader.loadScript(
-      "https://cdnjs.cloudflare.com/ajax/libs/videojs-contrib-ads/6.9.0/videojs-contrib-ads.min.js",
-    );
-    // IMA SDK is a prerequisite for videojs-ima
-    if (!window.google?.ima) {
-      await VideoAssetLoader.loadScript(
-        "https://imasdk.googleapis.com/js/sdkloader/ima3.js",
-      );
-    }
-    await VideoAssetLoader.loadScript(
-      "https://cdnjs.cloudflare.com/ajax/libs/videojs-ima/1.11.0/videojs.ima.min.js",
-    );
+  static async loadDependencies() {
+    const pluginAvailable = name => {
+      try { return !!window.videojs?.getPlugin?.(name); } catch (e) { return false; }
+    };
+    await this.loadDependencyScript("https://vjs.zencdn.net/7.20.3/video.min.js", () => !!window.videojs);
+    await this.loadDependencyScript("https://cdnjs.cloudflare.com/ajax/libs/videojs-contrib-ads/6.9.0/videojs-contrib-ads.min.js", () => pluginAvailable("ads"));
+    await this.loadDependencyScript("https://imasdk.googleapis.com/js/sdkloader/ima3.js", () => !!window.google?.ima);
+    await this.loadDependencyScript("https://cdnjs.cloudflare.com/ajax/libs/videojs-ima/1.11.0/videojs.ima.min.js", () => pluginAvailable("ima"));
+    if (!this.dependenciesAvailable()) throw new Error("video_dependencies_unavailable_after_load");
+  }
+
+  static ensureSharedDependencies() {
+    this.loadDependencyStyles();
+    if (this.dependenciesAvailable()) return Promise.resolve();
+    if (this._dependenciesPromise) return this._dependenciesPromise;
+    const promise = this.loadDependencies().catch(error => {
+      if (this._dependenciesPromise === promise) this._dependenciesPromise = null;
+      throw error;
+    });
+    this._dependenciesPromise = promise;
+    return promise;
+  }
+
+  static prewarmDependencies({ node, trigger = "fetch", winner = "video" } = {}) {
+    const startedAt = Date.now();
+    const alreadyReady = this.dependenciesAvailable();
+    const reusedPromise = !alreadyReady && !!this._dependenciesPromise;
+    const data = { startedAt, durationMs: 0, trigger, winner, reusedPromise, alreadyReady, error: null };
+    const diagnostic = node ? (node._intextVideoDependencyPrewarm = { ...data }) : { ...data };
+    this.dependencyDiagnostic("video_dependency_prewarm_started", node, data);
+    let dependencies;
+    try { dependencies = this.ensureSharedDependencies(); } catch (error) { dependencies = Promise.reject(error); }
+    return dependencies.then(() => {
+      Object.assign(diagnostic, { ready: true, durationMs: Date.now() - startedAt });
+      this.dependencyDiagnostic("video_dependency_prewarm_ready", node, diagnostic);
+    }, error => {
+      Object.assign(diagnostic, { ready: false, durationMs: Date.now() - startedAt, error: error?.message || String(error) });
+      this.dependencyDiagnostic("video_dependency_prewarm_failed", node, diagnostic);
+      throw error;
+    });
+  }
+
+  ensureDependencies() {
+    return IntextVideoCreative.ensureSharedDependencies();
   }
 
   createVideoElement() {
@@ -14292,6 +14882,7 @@ class IntextVideoCreative {
     el.setAttribute("playsinline", "true");
     el.setAttribute("webkit-playsinline", "true");
     el.setAttribute("muted", "");
+    el.setAttribute("preload", "none");
     el.muted = true;
     const sourceEl = document.createElement("source");
     sourceEl.src =
@@ -14313,6 +14904,7 @@ class IntextVideoCreative {
     this.player = window.videojs(this.videoEl, {
       controls: true,
       autoplay: false,
+      preload: "none",
       muted: true,
       fluid: false,
       width: 640,
@@ -14402,7 +14994,13 @@ class IntextVideoCreative {
     return null;
   }
 
-  cleanupAdMediaObservation() {
+  clearFirstFrameWaitTimers() {
+    this._firstFrameWaitTimers?.forEach(timer => clearTimeout(timer));
+    this._firstFrameWaitTimers = [];
+  }
+
+  cleanupAdMediaObservation({ keepFirstFrameWait = false } = {}) {
+    if (!keepFirstFrameWait) this.clearFirstFrameWaitTimers();
     if (this._adMediaDiscoveryTimers?.length) {
       this._adMediaDiscoveryTimers.forEach((timerId) => clearTimeout(timerId));
       this._adMediaDiscoveryTimers = [];
@@ -14482,7 +15080,6 @@ class IntextVideoCreative {
       let adStarted = false;
       let playerRevealed = false;
       let firstFrameConfirmed = false;
-      let mediaFrameCallbackRequested = false;
       let terminalEvent = null;
       let terminalHandled = false;
       let adTimeout = null;
@@ -14492,6 +15089,7 @@ class IntextVideoCreative {
       let mediaReadyConfirmTimer = null;
       let mediaTimeupdateLogged = false;
       let mediaElementFound = false;
+      let imaStartedAt = null;
 
       const clearAdTimeout = () => {
         if (!adTimeout) return;
@@ -14525,6 +15123,7 @@ class IntextVideoCreative {
           );
         if (!keepMediaObservation) {
           this.cleanupAdMediaObservation();
+          this._eligibilityCleanup?.();
         } else if (firstFrameConfirmed) {
           this._adMediaFirstFrameCleanup?.();
         }
@@ -14539,6 +15138,7 @@ class IntextVideoCreative {
         clearNativeStartedFallbackTimer();
         clearMediaReadyConfirmTimer();
         this.cleanupAdMediaObservation();
+        this._eligibilityCleanup?.();
         return true;
       };
       this._settle = settle;
@@ -14546,6 +15146,7 @@ class IntextVideoCreative {
       adTimeout = setTimeout(() => {
         terminalHandled = true;
         terminalEvent = "video_ad_timeout";
+        this.node?.waterfall?.recordReadiness?.("video_advertising_timeout", { reason: terminalEvent, durationMs: 25000, pausedForEligibility: this._pausedForEligibility === true });
         debugVideo("timeout", {
           imaErrorCode: "timeout",
           imaErrorMessage: "video_ad_timeout",
@@ -14557,7 +15158,7 @@ class IntextVideoCreative {
       }, 25000);
 
       const revealPlayer = (source = "unknown") => {
-        if (!this.isRenderTokenActive(`IntextVideoCreative.revealPlayer:${source}`)) return;
+        if (this._aborted || this._destroyed || !this.isRenderTokenActive(`IntextVideoCreative.revealPlayer:${source}`)) return;
         if (terminalEvent || terminalHandled) {
           logIntext(
             `[Intext:Video:IMA] reveal_blocked_by_terminal - source=${source} terminal=${terminalEvent || "unknown"}`,
@@ -14565,6 +15166,18 @@ class IntextVideoCreative {
           return;
         }
         if (playerRevealed) return;
+        if (this.node?.getReadinessViewportState && !this.node.getReadinessViewportState().eligible) {
+          if (!this._retryEligibleReveal) this.node.waterfall?.recordReadiness?.("video_reveal_blocked_outside_viewport", { source });
+          this._retryEligibleReveal = () => revealPlayer(source);
+          this._checkActivationEligibility?.();
+          return;
+        }
+        if (this._pausedForEligibility || this._adMediaEl?.paused === true || this._adMediaEl?.ended || this._adMediaEl?.error) {
+          this._retryEligibleReveal = () => revealPlayer(source);
+          return;
+        }
+        if (this.node?.waterfall?.getVideoPreparationConfig?.().enabled && !firstFrameConfirmed) return;
+        this._retryEligibleReveal = null;
         playerRevealed = true;
         this._playerRevealed = true;
         if (adstartAt) {
@@ -14574,6 +15187,8 @@ class IntextVideoCreative {
         }
         if (source === "native_started") {
           logIntext(`[Intext:Video:IMA] reveal_from_native_started`);
+        } else if (source === "request_video_frame_callback") {
+          logIntext(`[Intext:Video:IMA] reveal_from_request_video_frame_callback`);
         } else if (source === "media_playing") {
           logIntext(`[Intext:Video:IMA] reveal_from_media_playing`);
         } else if (source === "media_timeupdate") {
@@ -14591,7 +15206,8 @@ class IntextVideoCreative {
           el.style.opacity = "1";
         }
         debugVideo("revealed", {
-          source,
+          source, mediaElementFound, firstFrameConfirmed,
+          elapsedFromStartedMs: imaStartedAt !== null ? Date.now() - imaStartedAt : null,
           mediaElement: this._adMediaEl,
           element: el,
         });
@@ -14613,7 +15229,7 @@ class IntextVideoCreative {
       };
 
       const isRevealBlocked = () =>
-        playerRevealed || terminalEvent || terminalHandled || this._aborted || !this.player || !this.isRenderTokenActive("IntextVideoCreative.isRevealBlocked");
+        playerRevealed || terminalEvent || terminalHandled || this._aborted || this._destroyed || !this.player || !this.isRenderTokenActive("IntextVideoCreative.isRevealBlocked");
 
       const getMediaCurrentTime = () => {
         const mediaEl = this._adMediaEl;
@@ -14627,6 +15243,7 @@ class IntextVideoCreative {
           terminalEvent ||
           terminalHandled ||
           this._aborted ||
+          this._destroyed ||
           !this._adMediaEl
         ) return false;
         if (!this.isRenderTokenActive(`IntextVideoCreative.firstFrame:${source}`)) {
@@ -14641,6 +15258,7 @@ class IntextVideoCreative {
           options.frameCallbackConfirmed === true;
         if (!hasAdvancedTime && !frameCallbackConfirmed) return false;
         firstFrameConfirmed = true;
+        this.clearFirstFrameWaitTimers();
         debugVideo("first-frame", {
           source,
           currentTime: Number.isFinite(currentTime)
@@ -14652,6 +15270,48 @@ class IntextVideoCreative {
         this.node.maybeEnterIntextPipFromLastIntersection?.();
         this._adMediaFirstFrameCleanup?.();
         return true;
+      };
+
+      const mediaStateSnapshot = () => {
+        const media = this._adMediaEl;
+        let bufferedRanges = null;
+        let bufferedEnd = null;
+        try {
+          bufferedRanges = media?.buffered?.length ?? null;
+          if (bufferedRanges > 0) bufferedEnd = media.buffered.end(bufferedRanges - 1);
+        } catch (e) { /* TimeRanges may change during inspection. */ }
+        return {
+          mediaElementFound: !!media, currentTime: media?.currentTime ?? null,
+          readyState: media?.readyState ?? null, networkState: media?.networkState ?? null,
+          paused: media?.paused ?? null, ended: media?.ended ?? null,
+          videoWidth: media?.videoWidth ?? null, videoHeight: media?.videoHeight ?? null,
+          bufferedRanges, bufferedEnd, firstFrameConfirmed, playerRevealed,
+          documentVisibility: document.visibilityState || "unknown",
+          distancePx: this.node?.waterfall?.getLoadingDistancePx?.() ?? null,
+        };
+      };
+      const startFirstFrameWaitSnapshots = () => {
+        if (imaStartedAt !== null) return;
+        this._checkActivationEligibility?.();
+        imaStartedAt = Date.now();
+        if (firstFrameConfirmed) return;
+        [250, 500, 1000, 2000, 5000].forEach(checkpointMs => {
+          const timer = setTimeout(() => {
+            this._firstFrameWaitTimers = this._firstFrameWaitTimers.filter(id => id !== timer);
+            if (this._aborted || this._destroyed || terminalEvent || terminalHandled || firstFrameConfirmed
+              || !this.isRenderTokenActive("IntextVideoCreative.firstFrameWait")) {
+              this.cleanupAdMediaObservation();
+              return;
+            }
+            const actualElapsedMs = Date.now() - imaStartedAt;
+            IntextVideoCreative.dependencyDiagnostic("video_first_frame_wait_snapshot", this.node, {
+              renderToken: this._renderToken, trigger: this._videoTiming?.trigger || "unknown",
+              checkpointMs, actualElapsedMs, timerDriftMs: actualElapsedMs - checkpointMs,
+              ...mediaStateSnapshot(),
+            });
+          }, checkpointMs);
+          this._firstFrameWaitTimers.push(timer);
+        });
       };
 
       const scheduleMediaReadyConfirmation = (source) => {
@@ -14682,7 +15342,7 @@ class IntextVideoCreative {
         if (!mediaEl) return;
         if (this._adMediaEl === mediaEl && this._adMediaCleanup) return;
 
-        this.cleanupAdMediaObservation();
+        this.cleanupAdMediaObservation({ keepFirstFrameWait: true });
         this._adMediaEl = mediaEl;
         mediaElementFound = true;
 
@@ -14695,12 +15355,16 @@ class IntextVideoCreative {
           scheduleMediaReadyConfirmation("canplay");
         };
         const onPlaying = () => {
+          this._checkActivationEligibility?.();
+          this._confirmEligibilityRecovery?.("media-playing", mediaEl);
           logIntext(`[Intext:Video:IMA] ad_media_playing`);
           this.node?.setIntextPipPlaybackActive?.(true, "ima-media-playing");
-          confirmIntextFirstFrame("media-playing");
-          revealPlayer("media_playing");
+          const confirmed = confirmIntextFirstFrame("media-playing");
+          if (confirmed) revealPlayer("media_playing");
         };
         const onTimeUpdate = () => {
+          this._checkActivationEligibility?.();
+          this._confirmEligibilityRecovery?.("media-timeupdate", mediaEl);
           if (getMediaCurrentTime() > 0) {
             this.node?.setIntextPipPlaybackActive?.(true, "ima-media-timeupdate");
             if (!mediaTimeupdateLogged) {
@@ -14721,6 +15385,12 @@ class IntextVideoCreative {
         };
         const onAbort = () => {
           logIntext(`[Intext:Video:IMA] ad_media_abort`);
+          this.node?.waterfall?.recordReadiness?.("video_media_abort_observed", {
+            source: "media-abort", currentTime: mediaEl.currentTime, readyState: mediaEl.readyState,
+            networkState: mediaEl.networkState, paused: mediaEl.paused, ended: mediaEl.ended,
+            mediaErrorCode: mediaEl.error?.code ?? null, pausedForEligibility: this._pausedForEligibility === true,
+            destroyed: this._destroyed, firstFrameConfirmed, playerRevealed,
+          });
           this.cleanupAdMediaObservation();
         };
 
@@ -14732,11 +15402,32 @@ class IntextVideoCreative {
         mediaEl.addEventListener("stalled", onStalled);
         mediaEl.addEventListener("abort", onAbort);
 
+        const mediaStateEvents = new Map();
+        const mediaStateSeen = this._adMediaStateSeen.get(mediaEl) || new Set();
+        this._adMediaStateSeen.set(mediaEl, mediaStateSeen);
+        for (const eventType of ["loadstart", "loadedmetadata", "waiting", "suspend", "progress", "canplaythrough"]) {
+          const handler = () => {
+            if (mediaStateSeen.has(eventType)) return;
+            if (this._aborted || this._destroyed || terminalEvent || terminalHandled
+              || !this.isRenderTokenActive("IntextVideoCreative.mediaState")) {
+              this.cleanupAdMediaObservation(); return;
+            }
+            mediaStateSeen.add(eventType);
+            IntextVideoCreative.dependencyDiagnostic("video_media_state_event", this.node, {
+              renderToken: this._renderToken, trigger: this._videoTiming?.trigger || "unknown",
+              eventType, ...mediaStateSnapshot(),
+            });
+          };
+          mediaStateEvents.set(eventType, handler);
+          mediaEl.addEventListener(eventType, handler);
+        }
+
         let firstFrameListenersCleaned = false;
         let frameCallbackId = null;
         const cleanupFirstFrameListeners = () => {
           if (firstFrameListenersCleaned) return;
           firstFrameListenersCleaned = true;
+          mediaStateEvents.forEach((handler, eventType) => mediaEl.removeEventListener(eventType, handler));
           mediaEl.removeEventListener("loadeddata", onLoadedData);
           mediaEl.removeEventListener("canplay", onCanPlay);
           mediaEl.removeEventListener("timeupdate", onTimeUpdate);
@@ -14767,16 +15458,16 @@ class IntextVideoCreative {
         };
 
         if (
-          !mediaFrameCallbackRequested &&
           typeof mediaEl.requestVideoFrameCallback === "function"
         ) {
-          mediaFrameCallbackRequested = true;
           frameCallbackId = mediaEl.requestVideoFrameCallback(() => {
             frameCallbackId = null;
-            confirmIntextFirstFrame(
+            if (this._adMediaEl !== mediaEl || firstFrameListenersCleaned) return;
+            const confirmed = confirmIntextFirstFrame(
               "request-video-frame-callback",
               { frameCallbackConfirmed: true },
             );
+            if (confirmed) revealPlayer("request_video_frame_callback");
           });
         }
 
@@ -14791,7 +15482,14 @@ class IntextVideoCreative {
       };
 
       const startAdMediaObservation = () => {
-        if (this._adMediaEl || this._adMediaCleanup || this._adMediaDiscoveryTimers.length) return;
+        if (isRevealBlocked()) return;
+        if (this._adMediaEl || this._adMediaCleanup) {
+          // Existing player/IMA signals can expose a replacement before its first frame.
+          const mediaEl = this.findAdMediaElement();
+          if (mediaEl && mediaEl !== this._adMediaEl) attachAdMediaListeners(mediaEl);
+          return;
+        }
+        if (this._adMediaDiscoveryTimers.length) return;
 
         [0, 60, 180, 400].forEach((delayMs) => {
           const timerId = setTimeout(() => {
@@ -14997,9 +15695,13 @@ class IntextVideoCreative {
       });
 
       this.player.on("ads-request", () => {
+        this.node?.waterfall?.recordReadiness?.("video_ima_request_sent", { source: "player-ads-request" });
         logIntext(
           `[Intext:Video:IMA] 📤 ads-request — IMA processing ad request`,
         );
+      });
+      this.player.on("ads-manager", () => {
+        this.node?.waterfall?.recordReadiness?.("video_ads_manager_loaded", { source: "player-ads-manager" });
       });
       this.player.on("ads-load", (evt) => {
         debugVideo("player-ads-load", {
@@ -15093,17 +15795,32 @@ class IntextVideoCreative {
         ),
       );
 
-      this.player.ready(() => {
+      // Initialize the ad plugin in the same turn as Video.js, before native loadstart.
+      // Only AdDisplayContainer/play wait for player readiness below.
+      (() => {
+        if (!this.preparationValid() || (this.node?.getReadinessViewportState && !this.node.getReadinessViewportState().eligible)) {
+          this.node?.waterfall?.recordReadiness?.("video_activation_cancelled", { reason: "ineligible-at-plugin-init" });
+          settle("reject", new Error("video_activation_ineligible"));
+          return;
+        }
         try {
           logIntext(
-            `[Intext:Video:IMA] 🔧 Player ready — initializing IMA plugin...`,
+            `[Intext:Video:IMA] 🔧 Initializing IMA immediately after Video.js...`,
           );
 
           if (window.google && window.google.ima && window.google.ima.settings) {
             window.google.ima.settings.setVpaidMode(window.google.ima.ImaSdkSettings.VpaidMode.INSECURE);
           }
 
+          const preloadConfigured = this.config?.video?.imaPreload?.enabled;
+          const preloadEnabled = preloadConfigured !== false;
+          IntextVideoCreative.dependencyDiagnostic("video_ima_preload_config", this.node, {
+            enabled: preloadEnabled, source: preloadConfigured === undefined ? "default" : "config",
+            videojsImaAvailable: typeof this.player?.ima === "function", imaSdkAvailable: !!window.google?.ima,
+            renderToken: this._renderToken, trigger: this._videoTiming?.trigger || "unknown",
+          });
           const options = {
+            adsRenderingSettings: { enablePreloading: preloadEnabled },
             id: this.playerId,
             showCountdown: true,
             vpaidMode: (window.google && window.google.ima && window.google.ima.ImaSdkSettings)
@@ -15119,6 +15836,10 @@ class IntextVideoCreative {
 
           this.player.ima(options);
           logIntext(`[Intext:Video:IMA] ✔ IMA plugin initialized`);
+          debugVideo("video-player-prepared", {
+            durationMs: this._playerBuildStartedAt == null ? null : Date.now() - this._playerBuildStartedAt,
+            source: "activation", preparationStage: "player-and-ima",
+          });
 
           try {
             const ima = window.google.ima;
@@ -15179,6 +15900,9 @@ class IntextVideoCreative {
                   logIntext(
                     `[Intext:Video:IMA:Native] native started - STARTED event fired`,
                   );
+                  if (this._aborted || this._destroyed || terminalHandled || terminalEvent
+                    || !this.isRenderTokenActive("IntextVideoCreative.nativeStarted")) return;
+                  startFirstFrameWaitSnapshots();
                   startAdMediaObservation();
                   clearNativeStartedFallbackTimer();
                   nativeStartedFallbackTimer = setTimeout(() => {
@@ -15227,7 +15951,9 @@ class IntextVideoCreative {
                   if (debugEvent === "paused") {
                     this.node?.setIntextPipPlaybackActive?.(false, "ima-paused");
                   } else if (debugEvent === "resumed") {
-                    this.node?.setIntextPipPlaybackActive?.(true, "ima-resumed");
+                    this._checkActivationEligibility?.();
+                    this._confirmEligibilityRecovery?.("ima-resumed");
+                    if (!this._pausedForEligibility && this._adMediaEl?.paused !== true) this.node?.setIntextPipPlaybackActive?.(true, "ima-resumed");
                   }
                   debugVideo(debugEvent);
                 });
@@ -15240,20 +15966,32 @@ class IntextVideoCreative {
             );
           }
 
-          this.player.ima.initializeAdDisplayContainer();
-          logIntext(
-            `[Intext:Video:IMA] ✔ AdDisplayContainer initialized`,
-          );
-          const playPromise = this.player.play();
-          logIntext(`[Intext:Video:IMA] ▶ player.play() called`);
-          if (playPromise !== undefined && playPromise.catch) {
-            playPromise.catch((e) => {
-              warnIntext(
-                `[Intext:Video:IMA] ▶ player.play() rejected (may be expected as IMA intercepts):`,
-                e,
+          this.player.ready(() => {
+            try {
+              if (terminalHandled || !this.preparationValid() || (this.node?.getReadinessViewportState && !this.node.getReadinessViewportState().eligible)) {
+                this.node?.waterfall?.recordReadiness?.("video_activation_cancelled", { reason: "ineligible-at-player-ready" });
+                settle("reject", new Error("video_activation_ineligible"));
+                return;
+              }
+              this.player.ima.initializeAdDisplayContainer();
+              logIntext(
+                `[Intext:Video:IMA] ✔ AdDisplayContainer initialized`,
               );
-            });
-          }
+              const playPromise = this.player.play();
+              logIntext(`[Intext:Video:IMA] ▶ player.play() called`);
+              if (playPromise !== undefined && playPromise.catch) {
+                playPromise.catch((e) => {
+                  warnIntext(
+                    `[Intext:Video:IMA] ▶ player.play() rejected (may be expected as IMA intercepts):`,
+                    e,
+                  );
+                });
+              }
+            } catch (error) {
+              errorIntext("[Intext:Video:IMA] Playback initialization error:", error);
+              settle("reject", error);
+            }
+          }, true);
         } catch (err) {
           errorIntext(
             `[Intext:Video:IMA] 💥 IMA initialization error:`,
@@ -15261,7 +15999,7 @@ class IntextVideoCreative {
           );
           settle("reject", err);
         }
-      });
+      })();
     });
   }
 
@@ -15283,6 +16021,8 @@ class IntextVideoCreative {
 
   abort() {
     this._aborted = true;
+    this.node?.cancelViewportWaits?.("stale", this);
+    this._eligibilityCleanup?.();
     this.cleanupAdMediaObservation();
     logIntext(
       `[Intext:Video:IMA] 🛑 abort() — display won, cancelling video path`,
@@ -15291,11 +16031,39 @@ class IntextVideoCreative {
   }
 
   destroy() {
+    if (this._destroyed) return;
+    this._destroyed = true;
+    if (this._preparationEntry?.state === "ACTIVATED") this._preparationEntry.state = "RELEASED";
+    this.node?.cancelViewportWaits?.("stale", this);
+    this._eligibilityCleanup?.();
+    this._settle?.("reject", new Error("video_destroyed"));
     this.cleanupAdMediaObservation();
     try {
       this.player?.dispose?.();
     } catch (err) {
       // ignore
+    }
+    this.videoEl?.remove?.();
+  }
+
+  // One small page-local ledger. Players retain individual lifecycle ownership.
+  static drainPreparations() {
+    const entries = [...(this._preparationEntries?.values() || [])];
+    for (const entry of entries) if (entry.busy && !entry.boundToken && (!entry.valid() || !entry.eligible())) entry.release("ineligible-standby");
+    const waiting = entries.filter(e => !e.busy && e.inZone && e.valid() && e.eligible())
+      .sort((a, b) => a.distance() - b.distance() || a.createdAt - b.createdAt);
+    for (const entry of waiting) {
+      const running = [...this._preparationEntries.values()].filter(e => e.busy);
+      const limit = Math.min(entry.config.maxPreparedPlayers, ...running.map(e => e.config.maxPreparedPlayers));
+      if (running.length >= limit) {
+        const farthest = running.filter(e => !e.boundToken).sort((a, b) => b.distance() - a.distance())[0];
+        if (!farthest || farthest.distance() <= entry.distance()) continue;
+        farthest.release("closer-position");
+      }
+      if ([...this._preparationEntries.values()].filter(e => e.busy).length >= limit) continue;
+      if (!entry.valid() || !entry.inZone) continue;
+      entry.busy = true;
+      entry.start();
     }
   }
 }

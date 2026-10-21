@@ -1,0 +1,11 @@
+{
+  "enabled": true,
+  "captureErrors": true,
+  "console": false,
+  "mode": "shadow",
+  "mobile": true,
+  "totalMs": 10000,
+  "managerMs": null,
+  "cancelPassed": false,
+  "qaConfirmed": false
+}

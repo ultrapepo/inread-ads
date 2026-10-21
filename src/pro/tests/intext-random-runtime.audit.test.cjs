@@ -9,7 +9,7 @@ const { execFileSync } = require('node:child_process');
 const root = path.resolve(__dirname, '..');
 const keys = ['random1', 'random2', 'random3', 'random4'];
 const quartet = [4, 12, 16, 8];
-const version = '2026.10.05-p1-prebid-audit.2';
+const version = '2026.10.07-p1-ima-preload-first-frame';
 function between(source, start, end) {
   const from = source.indexOf(start), to = source.indexOf(end, from);
   assert.ok(from >= 0 && to > from, `missing boundaries ${start}/${end}`);

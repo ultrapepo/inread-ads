@@ -1,0 +1,61 @@
+{
+  "qaOnly": true,
+  "version": "2026.10.07-p1-ima-preload-first-frame",
+  "production": [
+    {
+      "file": "_gam_kv_.js",
+      "expectedHash": "1cde1ccdc962c07d5833dc9691a3bfe31b7dd74b3e649e89153a240940a06690",
+      "actualHash": "1cde1ccdc962c07d5833dc9691a3bfe31b7dd74b3e649e89153a240940a06690",
+      "unchanged": true
+    },
+    {
+      "file": "IntextManager.js",
+      "expectedHash": "ba832dc0eb3c0f6e1070a515fac09dd31467e2c7a5a64a18ff4e4f4c063fead8",
+      "actualHash": "ba832dc0eb3c0f6e1070a515fac09dd31467e2c7a5a64a18ff4e4f4c063fead8",
+      "unchanged": true
+    }
+  ],
+  "variants": [
+    {
+      "file": "intext-integration-original-gam.qa.js",
+      "hash": "93b7b1623db29b1e509121ff72f48fc9d33b2073abc4d1ebda35143e3b5e3545",
+      "matchesManifest": true
+    },
+    {
+      "file": "intext-integration-black-gam.qa.js",
+      "hash": "bd348bb34f2ba57f48d56f2d7aa57c05db1653e1b1b86e08eee8d29f033d9ed5",
+      "matchesManifest": true
+    },
+    {
+      "file": "intext-integration-original-manager.qa.js",
+      "hash": "0469a96a549010080f22d6e57c0cdb2d9533c9ad35b2a2338a8f6928cc5de5b8",
+      "matchesManifest": true
+    },
+    {
+      "file": "intext-integration-black-manager.qa.js",
+      "hash": "79ba1223802a3921fa58f84ea56b147278960b46ad589dc53f76bb51f71639cb",
+      "matchesManifest": true
+    }
+  ],
+  "externallyVerifiedHeadMatchesTestBaseline": true,
+  "codeMemory": {
+    "reindexed": true,
+    "mode": "fast",
+    "persistence": false,
+    "graphCurrentQAHelpersFound": false,
+    "note": "Index completed; graph/search still omit these QA CJS helpers. Workspace/tests are authoritative."
+  },
+  "tests": {
+    "new": 14,
+    "affected": 47,
+    "full": 1240,
+    "skipped": 0
+  },
+  "newFiles": [
+    "tests/qa/intext-p13c-integration-probe.cjs",
+    "tests/qa/intext-p13c-integration-build.cjs",
+    "tests/qa/intext-p13c-integration-analysis.cjs",
+    "tests/intext-p13c-integration.audit.test.cjs"
+  ],
+  "patchSha256": "a10cff0259c3de8053feba93187f4145b9f13d8f3cab3c8dfd6cc382ea1307e2"
+}

@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="es"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Intext P1.3 — QA local</title>
+<style>body{font:16px system-ui;margin:20px}textarea{width:95%;height:65px}#anchor{height:24px;width:90%;background:#eee}#surface{height:0;opacity:0;overflow:hidden;position:relative;width:100%;max-width:640px}#log{white-space:pre-wrap;overflow-wrap:anywhere;max-height:350px;overflow:auto}.spacer{height:60vh}button,select{margin:6px}</style>
+<h1>QA local: player actual / Google IMA</h1>
+<p>No se ejecuta Prebid/GPT/PSP/TAM. Una ejecución = un player y un tag. B/C requieren inventario QA autorizado; no se consulta el VAST por separado. Exporta el HAR con contenido desde DevTools para las respuestas de wrappers/iframes.</p>
+<select id="variant"><option value="A">A: sample inline oficial</option><option value="B">B: GAM QA exacto</option><option value="C-with">C: GAM QA con HB</option><option value="C-without">C: GAM QA sin HB</option></select>
+<select id="bundle"><option>_gam_kv_.js</option><option>IntextManager.js</option></select>
+<select id="lifecycle"><option value="A">Lifecycle A: P1 actual</option><option value="B">Lifecycle B: Video.js + IMA en activate</option><option value="C">Lifecycle C: IMA temprano con gate QA de request</option></select>
+<label><input id="experiment" type="checkbox">Habilitar experimento lifecycle B/C (solo QA aislado)</label>
+<label>Standby mínimo (segundos): <input id="standby" type="number" min="0" max="120" value="0"></label>
+<select id="closure"><option value="collapsed">Colapsado + opacity 0 (control base)</option><option value="display-none">Display none (control geométrico)</option><option value="sized-hidden">640 × 360 + opacity 0 (solo control QA)</option></select>
+<label><input id="qa" type="checkbox">El tag pertenece a inventario QA autorizado</label>
+<textarea id="tag" placeholder="Tag GAM de QA. No pegar URLs privadas en informes compartidos."></textarea>
+<button id="prepare">Preparar sin request/play</button><button id="activate">Activar (gesture control)</button><button id="stop">Destroy</button><button id="export">Exportar JSON</button>
+<label>HAR offline: <input id="har" type="file" accept=".har,.json"></label>
+<div class="spacer"></div><div id="anchor">Anchor estable</div><div id="surface"></div><div class="spacer"></div><pre id="log"></pre>
+<script src="controls.cjs"></script><script src="lifecycle.cjs"></script><script src="app.js"></script></html>

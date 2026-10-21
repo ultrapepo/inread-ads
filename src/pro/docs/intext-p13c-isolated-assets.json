@@ -1,0 +1,166 @@
+{
+  "protectedHashes": {
+    "_gam_kv_.js": "1cde1ccdc962c07d5833dc9691a3bfe31b7dd74b3e649e89153a240940a06690",
+    "IntextManager.js": "ba832dc0eb3c0f6e1070a515fac09dd31467e2c7a5a64a18ff4e4f4c063fead8"
+  },
+  "sessions": [
+    {
+      "id": "desktop-observe",
+      "dualMode": [
+        false
+      ],
+      "pspDetected": [
+        false
+      ],
+      "randomSource": [
+        "gexp-owner-random"
+      ]
+    },
+    {
+      "id": "mobile-observe-1",
+      "dualMode": [
+        false
+      ],
+      "pspDetected": [
+        false
+      ],
+      "randomSource": [
+        "gexp-owner-random"
+      ]
+    },
+    {
+      "id": "mobile-observe-2",
+      "dualMode": [
+        false
+      ],
+      "pspDetected": [
+        false
+      ],
+      "randomSource": [
+        "gexp-owner-random"
+      ]
+    },
+    {
+      "id": "desktop-shadow",
+      "dualMode": [
+        false
+      ],
+      "pspDetected": [
+        false
+      ],
+      "randomSource": [
+        "gexp-owner-random"
+      ]
+    },
+    {
+      "id": "mobile-shadow-1",
+      "dualMode": [
+        false
+      ],
+      "pspDetected": [
+        false
+      ],
+      "randomSource": [
+        "gexp-owner-random"
+      ]
+    },
+    {
+      "id": "mobile-shadow-2",
+      "dualMode": [
+        false
+      ],
+      "pspDetected": [
+        false
+      ],
+      "randomSource": [
+        "gexp-owner-random"
+      ]
+    },
+    {
+      "id": "mobile-shadow-3",
+      "dualMode": [
+        false
+      ],
+      "pspDetected": [
+        false
+      ],
+      "randomSource": [
+        "gexp-owner-random"
+      ]
+    }
+  ],
+  "httpSmoke": [
+    {
+      "route": "/",
+      "status": 200,
+      "bytes": 868,
+      "csp": "default-src 'none'; script-src 'self'; style-src 'unsafe-inline'; media-src data: blob:; connect-src 'none'; img-src data:; frame-src 'none'; base-uri 'none'; form-action 'none'"
+    },
+    {
+      "route": "/lab.js",
+      "status": 200,
+      "bytes": 5038,
+      "csp": "default-src 'none'; script-src 'self'; style-src 'unsafe-inline'; media-src data: blob:; connect-src 'none'; img-src data:; frame-src 'none'; base-uri 'none'; form-action 'none'"
+    },
+    {
+      "route": "/fixtures.js",
+      "status": 200,
+      "bytes": 666561,
+      "csp": "default-src 'none'; script-src 'self'; style-src 'unsafe-inline'; media-src data: blob:; connect-src 'none'; img-src data:; frame-src 'none'; base-uri 'none'; form-action 'none'"
+    },
+    {
+      "route": "/video.min.js",
+      "status": 200,
+      "bytes": 583743,
+      "csp": "default-src 'none'; script-src 'self'; style-src 'unsafe-inline'; media-src data: blob:; connect-src 'none'; img-src data:; frame-src 'none'; base-uri 'none'; form-action 'none'"
+    }
+  ],
+  "labAssets": {
+    "schema": "p13c-dummy-lab-assets-v1",
+    "sourceHar": "www.marca.com-observe.har",
+    "sourceHarSha256": "24c4a0dfa176cf6d806458340150869a90594d6ce9765abb1682217d0ed88b4f",
+    "dummy": {
+      "bytes": 807,
+      "sha256": "6231a292d2b2202abe7ef00697d2172b1c2b67e26c231b3bb4e529e983cdb52b"
+    },
+    "control": {
+      "bytes": 498319,
+      "sha256": "2318ffdb44aa3c48b91ba4fb8c161b9ba8c25be6a6f7979499c6ff51aed0dc1e",
+      "sourceEntry": 387,
+      "contentRange": "bytes 0-498318/498319",
+      "structure": [
+        {
+          "type": "ftyp",
+          "offset": 0,
+          "size": 24
+        },
+        {
+          "type": "moov",
+          "offset": 24,
+          "size": 4248
+        },
+        {
+          "type": "mdat",
+          "offset": 4272,
+          "size": 494047
+        }
+      ],
+      "validation": "Complete HTTP byte range, exact decoded length and MP4 box bounds/track/mdat checked. Browser playback validation is separate."
+    },
+    "videojs": {
+      "version": "7.20.3",
+      "sha256": "46763816babdcf547c1cbedf9a54a7295648cbc1ae648f5620c8e11264b01fcc"
+    },
+    "browserCandidates": [
+      "C:/Program Files/Google/Chrome/Application/chrome.exe",
+      "C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe"
+    ]
+  },
+  "browserExecution": {
+    "status": "blocked-before-page-load",
+    "attempt": "Chrome headless",
+    "error": "mojo platform_channel.cc:112 Access denied (0x5); crashpad CreateFile access denied",
+    "casesExecuted": 0,
+    "controlPlaybackValidated": false
+  }
+}

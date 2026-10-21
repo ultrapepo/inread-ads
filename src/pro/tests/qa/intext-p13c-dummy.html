@@ -1,0 +1,17 @@
+<!doctype html>
+<html lang="es"><meta charset="utf-8"><title>Intext: laboratorio local de media</title>
+<style>body{font:16px system-ui;max-width:960px;margin:24px auto;padding:0 16px}video{width:444px;height:250px;background:#111}pre{white-space:pre-wrap;word-break:break-word}button{padding:12px}#surface{min-height:260px}</style>
+<h1>Dummy MP4 — laboratorio sin anuncios</h1>
+<p>QA v3: solo HTMLVideoElement y Video.js 7.20.3. Sin IMA, GAM, VAST ni tracking. Cada botón crea un elemento nuevo. Empieza por native/control HTTP local y mantén la pestaña visible. El replay espera ended/seeked y un estado estable. El candidato negro es un fixture propio, separado del control publicitario.</p>
+<p>Revisión candidate-timeline-v2: candidato de 25 fotogramas, 1 segundo. Su validación exige reproducción activa y progreso temporal observable en ambos ciclos; duration y ended por sí solos no bastan.</p>
+<label>Transporte <select id="transport"><option value="http">HTTP local (baseline)</option><option value="data">data URL</option><option value="blob">blob URL local</option></select></label>
+<p><button data-engine="native" data-source="control">1. Native / control</button>
+<button data-engine="videojs" data-source="control">2. Video.js / control</button>
+<button data-engine="native" data-source="dummy">3. Native / dummy</button>
+<button data-engine="videojs" data-source="dummy">4. Video.js / dummy</button></p>
+<p><button data-engine="native" data-source="candidate">5. Native / candidato negro</button>
+<button data-engine="videojs" data-source="candidate">6. Video.js / candidato negro</button></p>
+<button id="download" disabled>Guardar JSON</button>
+<div id="surface"></div><pre id="status">Preparado.</pre>
+<script src="/fixtures.js"></script><script src="/video.min.js"></script><script src="/lab.js"></script>
+</html>

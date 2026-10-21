@@ -1,0 +1,581 @@
+diff --git a/tests/qa/intext-p13c-probe.cjs b/tests/qa/intext-p13c-probe.cjs
+index 9d56e13..97b66c2 100644
+--- a/tests/qa/intext-p13c-probe.cjs
++++ b/tests/qa/intext-p13c-probe.cjs
+@@ -7,27 +7,53 @@
+       code:safe(()=>error.getErrorCode?.()),type:safe(()=>error.getType?.()),vastCode:safe(()=>error.getVastErrorCode?.()),
+       stack:error.stack??null,inner:depth<2?errorInfo(safe(()=>error.getInnerError?.()),depth+1):null};
+   }
++  // QA classification only. Never write the core's device/configuration authorities.
++  function resolveDevice(node,environment=scope) {
++    const classify=value=>{if(Array.isArray(value)&&value.length===1)value=value[0];
++      return typeof value==='string'?({mobile:'mobile',desktop:'desktop',web:'desktop'}[value.trim().toLowerCase()]??null):null;};
++    const scoped=node?.scopedContext;
++    const tiers=[['scopedContext',scoped],['scopedContext.targeting',scoped?.targeting],
++      ['ueDataLayer',environment.ueDataLayer],['utag_data',environment.utag_data]];
++    for(const [source,data]of tiers) {
++      const signals=['device','device_category','be_page_site_version'].map(key=>({source:source+'.'+key,value:classify(data?.[key])})).filter(signal=>signal.value);
++      if(signals.length) {
++        if(new Set(signals.map(signal=>signal.value)).size>1)return {deviceEffective:'unknown',deviceSource:source+'.conflict'};
++        return {deviceEffective:signals[0].value,deviceSource:signals[0].source};
++      }
++    }
++    const mobile=safe(()=>node.manager.gexp.isMobileDevice());
++    return {deviceEffective:typeof mobile==='boolean'?(mobile?'mobile':'desktop'):'unknown',
++      deviceSource:typeof mobile==='boolean'?'gexp.isMobileDevice':'missing'};
++  }
+   function budget({config={},now=()=>performance.now(),setTimer=setTimeout,clearTimer=clearTimeout,
+     live=()=>true,canCancel=()=>false,cancel=()=>{},record=()=>{}}={}) {
+     const mode=config.mode??'observe';
+     if(!['observe','shadow','enforce'].includes(mode)) throw Error('Unknown QA budget mode');
+     for(const key of ['totalMs','managerMs']) if(config[key]!=null && (!Number.isFinite(config[key])||config[key]<=0)) throw Error('Invalid QA '+key);
+     const timers=new Map(),milestones={};let finished=false,frame=false,started=false,impression=false,cancelled=false;
++    const policy=()=>({mode,qaConfirmed:config.qaConfirmed===true,mobileBudgetActive:config.mobile===true,
++      deviceEffective:config.deviceEffective??'unknown',deviceSource:config.deviceSource??'missing',budgetArmed:timers.size>0});
+     const clear=()=>{for(const id of timers.values())clearTimer(id);timers.clear();};
+     const drop=key=>{if(timers.has(key)){clearTimer(timers.get(key));timers.delete(key);}};
+     const expire=(reason,scheduledAt,delay)=>{
+       if(!live()){finished=true;clear();return;}if(finished||frame){clear();return;}
+       const actualElapsedMs=now()-scheduledAt;
+-      record('qa_budget_expired',{reason,mode,actualElapsedMs,timerDriftMs:actualElapsedMs-delay,
++      const authorization=canCancel(),conditions=typeof authorization==='object'&&authorization!==null?authorization:{ownershipProven:authorization===true};
++      const cancelBlockedReason=mode!=='enforce'?'mode-'+mode:config.mobile!==true?'mobile-budget-inactive':config.qaConfirmed!==true?'qa-not-confirmed':
++        started?'playback-started':impression?'impression-observed':Object.keys(conditions).find(key=>conditions[key]!==true)??null;
++      record('qa_budget_expired',{...policy(),budgetArmed:reason!=='anchor-passed'||timers.size>0,reason,deadlineAt:scheduledAt+delay,expiration:now(),cancelBlockedReason,cancelConditions:conditions,actualElapsedMs,timerDriftMs:actualElapsedMs-delay,
+         clockSource:milestones.clockSource??null,startedObserved:started,impressionObserved:impression});
+-      if(mode!=='enforce'||config.mobile!==true||config.qaConfirmed!==true) return;
+-      if(started||impression||!canCancel()) {record('qa_budget_cancel_blocked',{reason:'playback-started-or-pre-impression-ownership-unproven'});return;}
++      if(cancelBlockedReason) {record('qa_budget_cancel_blocked',{...policy(),reason,cancelBlockedReason,cancelConditions:conditions});return;}
+       if(cancelled)return;cancelled=true;finished=true;clear();
+-      record('qa_budget_cancelled',{reason});cancel(reason);
++      record('qa_budget_cancelled',{...policy(),reason,cancelBlockedReason:null,cancelConditions:conditions});cancel(reason);
+     };
+     const arm=(key,at,delay)=>{
+-      if(mode==='observe'||config.mobile!==true||!delay)return;
++      if(mode==='observe'||config.mobile!==true||!delay) {
++        record('qa_budget_not_armed',{...policy(),reason:key,deadlineAt:null,expiration:null,
++          cancelBlockedReason:mode==='observe'?'mode-observe':config.mobile!==true?'mobile-budget-inactive':'deadline-not-configured'});return;
++      }
+       timers.set(key,setTimer(()=>{timers.delete(key);expire(key,at,delay);},Math.max(0,at+delay-now())));
++      record('qa_budget_armed',{...policy(),reason:key,deadlineAt:at+delay,expiration:null,cancelBlockedReason:null});
+     };
+     return {note(event,data={}) {
+       if(!live()){finished=true;clear();return;}if(finished){clear();return;}
+@@ -62,64 +88,100 @@
+     if(!config.enabled)return null;
+     if(attached.has(creative))return attached.get(creative);
+     const node=creative.node,token=creative._renderToken,cycle=node?._intextTelemetryCycleId??null,cleanup=[];
+-    let player=null,manager=null,closed=false,armed=false,coverage=false;
++    let player=null,manager=null,closed=false,armed=false,coverage=false,managerEpoch=0,managerAmbiguous=false,managerCleanup=[],pluginCleanup=[],loaderCleanup=[];
++    const managerIds=new WeakMap();let nextManagerId=0;
++    const managerId=value=>value&&(typeof value==='object'||typeof value==='function')?(managerIds.has(value)?managerIds.get(value):(managerIds.set(value,++nextManagerId),nextManagerId)):null;
++    const currentManager=()=>safe(()=>player.ima.getAdsManager());
++    const device=resolveDevice(node);
++    const adsSnapshot=()=>({adsState:safe(()=>player?.ads?.state),
++      adsFsmState:safe(()=>player?.ads?._state?.name??player?.ads?._state?.constructor?.name),
++      isInAdMode:safe(()=>player?.ads?.isInAdMode?.())});
+     if(config.captureErrors===true)captureErrors();
+     const live=()=>!closed&&!creative._aborted&&!creative._destroyed&&safe(()=>node.isActiveRenderToken(token),false);
+     const rect=element=>safe(()=>{const r=element.getBoundingClientRect();return Object.fromEntries(['top','left','bottom','right','width','height'].map(k=>[k,r[k]]));});
+     const snapshot=()=>({anchorRect:rect(node?.getIntextTelemetryElement?.()),wrapperRect:rect(creative.container?.getElement?.()),
+       playerRect:rect(player?.el?.()),imaContainerRect:rect(safe(()=>player.el().querySelector('.ima-ad-container, .vjs-ima-ad-container'))),
+       readiness:safe(()=>node.getReadinessViewportState()),documentVisibility:scope.document?.visibilityState??null,
+-      adsState:safe(()=>player.ads._state.constructor.name??player.ads.state),snapshotPresent:player?.ads?.snapshot!=null,
++      ...adsSnapshot(),snapshotPresent:player?.ads?.snapshot!=null,
+       pausedForEligibility:creative._pausedForEligibility===true,playerDisposed:safe(()=>player.isDisposed?.()),
+       media:safe(()=>{const m=creative._adMediaEl??creative.videoEl;return m?{currentTime:m.currentTime,readyState:m.readyState,
+         networkState:m.networkState,paused:m.paused,ended:m.ended,videoWidth:m.videoWidth,videoHeight:m.videoHeight,error:errorInfo(m.error),currentSrc:m.currentSrc?.startsWith('data:')?'data:dummy':m.currentSrc??null}:null;})});
+     const record=(event,data={})=>{
+       const started=performance.now();
+-      const entry={event,qaOnly:true,timestamp:Date.now(),monotonicMs:started,slotId:node?.id??null,cycleId:cycle,renderToken:token,...data,snapshot:safe(snapshot,{unavailable:true})};
++      const entry={event,qaOnly:true,timestamp:Date.now(),monotonicMs:started,slotId:node?.id??null,cycleId:cycle,renderToken:token,
++        ...device,mode:config.mode??'observe',qaConfirmed:config.qaConfirmed===true,
++        impressionTypeAvailable:!!scope.google?.ima?.AdEvent?.Type?.IMPRESSION,managerId:managerId(manager),managerEpoch,
++        impressionSubscribed:coverage,managerOwnershipAmbiguous:managerAmbiguous,...data,snapshot:safe(snapshot,{unavailable:true})};
+       entry.observerBuildMs=performance.now()-started;
+       boundedPush(entry);safe(()=>config.record?.(entry));
+       if(config.console!==false)safe(()=>console.debug('[IntextP13C QA]',entry));
+     };
+-    const mobileBudgetActive=config.mobile===true&&node?.manager?.device==='mobile';
+-    const clock=budget({config:{...config,mobile:mobileBudgetActive},live,record,canCancel:()=>armed&&coverage&&typeof creative._settle==='function'&&!creative._playerRevealed
+-      &&safe(()=>player.ads.isInAdMode())===false&&!(creative._adMediaEl?.currentTime>0),
++    const mobileBudgetActive=config.mobile===true&&device.deviceEffective==='mobile';
++    const clock=budget({config:{...config,...device,mobile:mobileBudgetActive},live,record,canCancel:()=>({
++      deviceMobile:resolveDevice(node).deviceEffective==='mobile',listenerInstalledBeforeIma:armed,
++      managerPresent:manager!=null,managerIdentityCurrent:manager!=null&&currentManager()===manager,
++      impressionSubscribed:coverage,managerOwnershipUnambiguous:!managerAmbiguous,
++      settlementAvailable:typeof creative._settle==='function',notRevealed:!creative._playerRevealed,
++      outsideAdMode:safe(()=>player.ads.isInAdMode())===false,noMediaProgress:!(creative._adMediaEl?.currentTime>0)}),
+       cancel:reason=>{creative._aborted=true;try{creative._settle('reject',new Error('p13c_qa_'+reason));}finally{creative.destroy();}}});
+-    const listen=(target,event,handler,native=false)=>{
+-      if(!target||!event)return;
+-      if(native){target.addEventListener?.(event,handler);cleanup.push(()=>target.removeEventListener?.(event,handler));}
+-      else {target.on?.(event,handler);cleanup.push(()=>target.off?.(event,handler));}
++    const listen=(target,event,handler,native=false,removers=cleanup)=>{
++      if(!target||!event)return false;
++      const add=native?'addEventListener':'on',remove=native?'removeEventListener':'off';
++      if(typeof target[add]!=='function'||typeof target[remove]!=='function')return false;
++      try{target[add](event,handler);removers.push(()=>target[remove](event,handler));return true;}
++      catch(error){safe(()=>target[remove](event,handler));record('qa_listener_failed',{eventType:event,error:errorInfo(error)});return false;}
+     };
+     const note=(event,data={})=>{if(!live())return;record(event,data);clock.note(event,data);};
++    const wrap=(target,name,observe,removers)=>{
++      const original=target[name],descriptor=Object.getOwnPropertyDescriptor(target,name);if(typeof original!=='function')return;
++      const wrapper=function(...args){safe(()=>observe(args));return original.apply(this,args);};
++      safe(()=>{target[name]=wrapper;});removers.push(()=>{if(target[name]!==wrapper)return;
++        if(descriptor)Object.defineProperty(target,name,descriptor);else delete target[name];});
++    };
++    const unbindManager=()=>{coverage=false;for(const remove of [...managerCleanup.splice(0),...pluginCleanup.splice(0),...loaderCleanup.splice(0)].reverse())safe(remove);};
+     const bindManager=value=>{
+-      if(!value){coverage=false;record('qa_manager_identity_unavailable');return;}if(manager===value)return;
+-      if(manager){record('qa_manager_replaced');coverage=false;}
+-      manager=value;const ima=scope.google?.ima;
+-      coverage=!!ima?.AdEvent?.Type?.IMPRESSION&&typeof value.addEventListener==='function';
++      if(!live())return;
++      if(value&&currentManager()!==value){managerAmbiguous=true;record('qa_manager_identity_mismatch',{eventManagerId:managerId(value)});return;}
++      if(manager===value&&value)return;
++      if(manager){managerAmbiguous=true;record('qa_manager_replaced',{previousManagerId:managerId(manager),nextManagerId:managerId(value)});}
++      unbindManager();manager=value??null;const epoch=++managerEpoch,ima=scope.google?.ima;
++      if(!value){record('qa_manager_identity_unavailable');return;}
++      const owned=()=>{
++        if(!live()||manager!==value||managerEpoch!==epoch)return false;
++        if(currentManager()===value)return true;
++        managerAmbiguous=true;managerEpoch++;unbindManager();record('qa_manager_identity_changed_without_event');return false;
++      };
+       for(const key of ['LOADED','STARTED','IMPRESSION','PAUSED','RESUMED','COMPLETE','SKIPPED','ALL_ADS_COMPLETED']) {
+-        listen(value,ima?.AdEvent?.Type?.[key],()=>{note('native-'+key);if(key==='COMPLETE'||key==='SKIPPED')clock.note(key.toLowerCase());},true);
++        const subscribed=listen(value,ima?.AdEvent?.Type?.[key],()=>{if(!owned())return;note('native-'+key);if(key==='COMPLETE'||key==='SKIPPED')clock.note(key.toLowerCase());},true,managerCleanup);
++        if(key==='IMPRESSION')coverage=subscribed;
+       }
+-      listen(value,ima?.AdErrorEvent?.Type?.AD_ERROR,event=>{note('ima-error',{error:errorInfo(safe(()=>event.getError()))});clock.note('error');},true);
+-      // Instance delegation only: observe original control calls, never initiate them.
++      listen(value,ima?.AdErrorEvent?.Type?.AD_ERROR,event=>{if(!owned())return;note('ima-error',{error:errorInfo(safe(()=>event.getError()))});clock.note('error');},true,managerCleanup);
++      record('qa_manager_subscription',{managerIdentityCurrent:currentManager()===value});
++      // These instance wrappers are interventions, not strictly passive observation.
++      // Preserve receiver, return value, synchronous throws and Promise identity.
+       for(const name of ['init','start','pause','resume']) {
+-        const original=value[name];if(typeof original!=='function')continue;
+-        const wrapper=function(...args){note('manager-api',{api:name,stack:new Error('QA callsite').stack});return original.apply(this,args);};
+-        safe(()=>{value[name]=wrapper;});cleanup.push(()=>{if(value[name]===wrapper)value[name]=original;});
++        wrap(value,name,()=>{if(owned())note('manager-api',{api:name,stack:new Error('QA callsite').stack});},managerCleanup);
+       }
+     };
+     const controller={identity:{slotId:node?.id??null,cycleId:cycle,renderToken:token},record,afterIma() {
+       note('ima-init-returned');
+       const type=scope.google?.ima?.AdErrorEvent?.Type?.AD_ERROR;
+       if(type&&typeof player?.ima?.addEventListener==='function') {
+-        const handler=event=>{note('ima-plugin-error',{error:errorInfo(safe(()=>event.getError()))});clock.note('error');};
+-        try{player.ima.addEventListener(type,handler);cleanup.push(()=>player.ima?.removeEventListener?.(type,handler));}
+-        catch(error){record('qa_plugin_error_listener_unavailable',{error:errorInfo(error)});}
++        const boundManager=currentManager(),epoch=managerEpoch,plugin=player.ima;
++        if(!boundManager||boundManager!==manager||typeof plugin.removeEventListener!=='function') {
++          record('qa_plugin_error_listener_unavailable',{reason:'manager-ownership-or-removal-unproven'});return;
++        }
++        const handler=event=>{const target=event?.target;if(!live()||!manager||manager!==boundManager||epoch!==managerEpoch||currentManager()!==manager||(target&&target!==manager))return;
++          note('ima-plugin-error',{error:errorInfo(safe(()=>event.getError()))});clock.note('error');};
++        try{plugin.addEventListener(type,handler);pluginCleanup.push(()=>plugin.removeEventListener?.(type,handler));}
++        catch(error){safe(()=>plugin.removeEventListener(type,handler));record('qa_plugin_error_listener_unavailable',{error:errorInfo(error)});}
+       }
+     },noteCore(event,data={}) {
+       if(event==='first-frame')note('first-frame',{source:data.source??null});
+       else if(event==='revealed')note('revealed',{source:data.source??null});
+       else if(['error','timeout','complete','skipped'].includes(event)){note('core-'+event,data);clock.note(event==='timeout'?'error':event);}
+     },attachPlayer(value,{beforeIma=false}={}) {
+-      if(player||!value)return;player=value;armed=beforeIma;coverage=!!scope.google?.ima?.AdEvent?.Type?.IMPRESSION;
++      if(player||!value)return;player=value;armed=beforeIma;
+       note('player-created');
+       for(const event of ['loadstart','play','playing','pause','ads-request','adsready','readyforpreroll','adstart','ads-load','adplaying','adtimeout','nopreroll','adserror','adend','alladscompleted','contentchanged','contentresumed']) {
+         listen(value,event,eventObject=>{note(event,{observationPhase:'listener',error:event==='adserror'?errorInfo(eventObject?.data?.AdError??eventObject?.error??null):null});
+@@ -128,17 +190,20 @@
+       }
+       listen(value,'ads-manager',event=>{bindManager(event?.adsManager??safe(()=>value.ima.getAdsManager?.()));note('ads-manager');});
+       listen(value,'ads-loader',event=>{
++        if(!live())return;
++        for(const remove of loaderCleanup.splice(0).reverse())safe(remove);
+         note('ads-loader');const loader=event?.adsLoader,type=scope.google?.ima?.AdErrorEvent?.Type?.AD_ERROR;
+-        listen(loader,type,errorEvent=>{note('ima-loader-error',{error:errorInfo(safe(()=>errorEvent.getError()))});clock.note('error');},true);
++        const epoch=managerEpoch;
++        listen(loader,type,errorEvent=>{if(!live()||managerEpoch!==epoch)return;
++          note('ima-loader-error',{error:errorInfo(safe(()=>errorEvent.getError()))});clock.note('error');},true,loaderCleanup);
+       });
+       for(const name of ['play','pause','src']) {
+-        const original=value[name];if(typeof original!=='function')continue;
+-        const wrapper=function(...args){if(name==='src'&&!args.length)return original.apply(this,args);note('player-api',{api:name,stack:new Error('QA callsite').stack});
+-          const result=original.apply(this,args);return result;};
+-        safe(()=>{value[name]=wrapper;});cleanup.push(()=>{if(value[name]===wrapper)value[name]=original;});
++        wrap(value,name,args=>{if(name!=='src'||args.length)note('player-api',{api:name,stack:new Error('QA callsite').stack});},cleanup);
+       }
+       listen(value,'dispose',()=>controller.dispose());
+-    },dispose(){if(closed)return;record('qa_probe_disposed');closed=true;clock.dispose();for(const remove of cleanup.splice(0).reverse())safe(remove);controllers.delete(controller);},state:clock.state};
++    },dispose(){if(closed)return;record('qa_probe_disposed');closed=true;clock.dispose();unbindManager();for(const remove of cleanup.splice(0).reverse())safe(remove);controllers.delete(controller);},
++      state:()=>({...clock.state(),...device,mode:config.mode??'observe',qaConfirmed:config.qaConfirmed===true,
++        budgetArmed:clock.state().pendingTimers>0,managerId:managerId(manager),managerEpoch,impressionSubscribed:coverage,managerOwnershipAmbiguous:managerAmbiguous})};
+     const surface=creative.container?.getElement?.();
+     for(const event of ['loadstart','loadedmetadata','abort','error','emptied']) {
+       const handler=e=>note('native-media-'+event,{mediaIdentity:e.target===creative.videoEl?'base':e.target===creative._adMediaEl?'ad':'other',error:errorInfo(e.target?.error)});
+@@ -149,11 +214,9 @@
+       const r=rect(node?.getIntextTelemetryElement?.());clock.checkPassed(r&&r.width>0&&r.height>0&&r.bottom<=0);
+     };
+     if(config.cancelPassed){scope.addEventListener?.('scroll',check,{passive:true});cleanup.push(()=>scope.removeEventListener?.('scroll',check));}
+-    const originalDestroy=creative.destroy;
+-    creative.destroy=function(...args){controller.dispose();return originalDestroy.apply(this,args);};
+-    cleanup.push(()=>{creative.destroy=originalDestroy;});
++    wrap(creative,'destroy',()=>controller.dispose(),cleanup);
+     controllers.add(controller);attached.set(creative,controller);creative._p13cProbe=controller;
+-    note('qa_probe_attached',{deviceObserved:node?.manager?.device??null,mobileBudgetActive,mode:config.mode??'observe'});return controller;
++    note('qa_probe_attached',{mobileBudgetActive});return controller;
+   }
+   const emitNode=(node,event,data={})=>{
+     if(!scope.__INTEXT_P13C_QA__?.enabled)return;
+@@ -201,7 +264,7 @@
+     displayCleanups.add(stop);visibleObservers.set(node,stop);check();
+   }
+   const guarded=fn=>(...args)=>{try{return fn(...args);}catch(error){boundedPush({event:'qa_probe_internal_error',qaOnly:true,timestamp:Date.now(),error:errorInfo(error)});return null;}};
+-  const api={budget,errorInfo,attach:guarded(attach),entries,prebidSnapshot:guarded(prebidSnapshot),markFallback:guarded(markFallback),markDisplayOpened:guarded(markDisplayOpened),
++  const api={budget,errorInfo,resolveDevice,attach:guarded(attach),entries,prebidSnapshot:guarded(prebidSnapshot),markFallback:guarded(markFallback),markDisplayOpened:guarded(markDisplayOpened),
+     stats:()=>({droppedEntries,activeCreatives:controllers.size,displayObservers:displayCleanups.size}),
+     dispose(){for(const controller of [...controllers])controller.dispose();for(const stop of [...displayCleanups])stop();globalErrorCleanup?.();}};
+   if(typeof module!=='undefined')module.exports=api;else scope.IntextP13C=api;
+diff --git a/tests/intext-p13c-latency.audit.test.cjs b/tests/intext-p13c-latency.audit.test.cjs
+index 5bbdc7d..3edec49 100644
+--- a/tests/intext-p13c-latency.audit.test.cjs
++++ b/tests/intext-p13c-latency.audit.test.cjs
+@@ -4,6 +4,43 @@ const probeApi=require('./qa/intext-p13c-probe.cjs'),{budget,errorInfo}=probeApi
+ const {instrument}=require('./qa/intext-p13c-build.cjs');
+ const {normalize,summarize,harRequests}=require('./qa/intext-p13c-timelines.cjs');
+ const vm=require('node:vm');
++// Real, unmodified manager constructor from each distribution; only browser/SDK
++// services are simulated. No manager.device property or prototype substitutions.
++function browserProbe(file='_gam_kv_.js',options={}) {
++  let now=0,next=0,current=null;const timers=new Map(),logs=[];
++  function emitter() {
++    const listeners=new Map();return {listeners,
++      addEventListener(event,fn){if(this.failEvent===event)throw Error('listener failed');const set=listeners.get(event)??new Set();set.add(fn);listeners.set(event,set);},
++      removeEventListener(event,fn){listeners.get(event)?.delete(fn);if(!listeners.get(event)?.size)listeners.delete(event);},
++      on(event,fn){this.addEventListener(event,fn);},off(event,fn){this.removeEventListener(event,fn);},
++      emit(event,value={}){for(const fn of [...listeners.get(event)??[]])fn(value);}};
++  }
++  const document={cookie:'',readyState:'loading',visibilityState:'visible',querySelector:()=>null,querySelectorAll:()=>[],addEventListener(){}};
++  const window={document,location:{hostname:'www.marca.com',href:'https://www.marca.com/test',pathname:'/test',origin:'https://www.marca.com'},
++    ueDataLayer:options.dl,utag_data:options.utag,
++    google:{ima:{AdEvent:{Type:Object.fromEntries(['LOADED','STARTED','IMPRESSION','PAUSED','RESUMED','COMPLETE','SKIPPED','ALL_ADS_COMPLETED'].map(key=>[key,key.toLowerCase()]))},AdErrorEvent:{Type:{AD_ERROR:'ima-error'}}}}};
++  const context=vm.createContext({window,document,console,URL,URLSearchParams,performance:{now:()=>now},
++    setTimeout(fn,ms){const id=++next;timers.set(id,{fn,at:now+ms});return id;},clearTimeout:id=>timers.delete(id),
++    ensureBaseStyles(){},logIntext(){},warnIntext(){},warnIntextAlways(){},errorIntext(){},intextDebugCollector:{attachManager(){}}});
++  const source=fs.readFileSync(path.join(__dirname,'..',file),'utf8');
++  vm.runInContext(source.slice(source.indexOf('class IntextManager {'),source.indexOf('class IntextPlacementEngine'))+';this.Manager=IntextManager;',context);
++  const gexp={};if(options.gexp!==undefined)gexp.isMobileDevice=()=>options.gexp;
++  const manager=new context.Manager({},gexp);
++  assert.ok(manager instanceof context.Manager);assert.equal('device' in manager,false);
++  const node={id:options.slot??'gexp-intext',manager,scopedContext:options.scoped,_activeRenderToken:1,
++    isActiveRenderToken(token){return token===this._activeRenderToken;}};
++  const originalDestroy=function(){if(options.destroyThrows)throw Error('destroy error');};
++  const creative={node,_renderToken:1,destroy:originalDestroy,_settle(){throw Error('unexpected cancellation');}};
++  const player=Object.assign(emitter(),{ads:{state:'content-set',isInAdMode:()=>false},ima:{getAdsManager:()=>current},play(){return options.playResult;},pause(){},src(){return 'source';}});
++  vm.runInContext(fs.readFileSync(path.join(__dirname,'qa/intext-p13c-probe.cjs'),'utf8'),context);
++  const api=window.IntextP13C,controller=api.attach(creative,{enabled:true,console:false,mode:'shadow',mobile:true,totalMs:10000,...options.config,record:entry=>logs.push(entry)});
++  controller.attachPlayer(player,{beforeIma:true});
++  return {window,context,manager,node,creative,player,controller,api,logs,timers,emitter,originalDestroy,
++    bind(value){current=value;player.emit('ads-manager',{adsManager:value});},
++    setCurrent(value){current=value;},
++    tick(ms){now+=ms;for(const [id,timer]of [...timers])if(timer.at<=now){timers.delete(id);timer.fn();}},
++    dispose(){api.dispose();}};
++}
+ function clock(config={}) {
+   let now=0,id=0,valid=true,allowed=true;const timers=new Map(),logs=[],cancelled=[];
+   const b=budget({config,now:()=>now,setTimer:(fn,ms)=>{const key=++id;timers.set(key,{fn,at:now+ms});return key;},clearTimer:key=>timers.delete(key),
+@@ -39,7 +76,7 @@ test('passed anchor opt-in and started guards preserve safe cancellation',()=>{
+   const f=clock({...enforcement,cancelPassed:true});f.b.checkPassed(false);assert.equal(f.cancelled.length,0);f.b.checkPassed(true);assert.deepEqual(f.cancelled,['anchor-passed']);
+   const active=clock({...enforcement,cancelPassed:true});active.b.note('native-STARTED');active.b.checkPassed(true);assert.equal(active.cancelled.length,0);
+ });
+-test('late callback records event-loop drift without treating it as network latency',()=>{const f=clock(enforcement);f.b.note('ads-request');f.tick(10000,900);assert.equal(f.logs[0].timerDriftMs,900);assert.equal(f.logs[0].clockSource,'plugin-ads-request-proxy-NOT-HTTP');});
++test('late callback records event-loop drift without treating it as network latency',()=>{const f=clock(enforcement);f.b.note('ads-request');f.tick(10000,900);const expired=f.logs.find(log=>log.event==='qa_budget_expired');assert.equal(expired.timerDriftMs,900);assert.equal(expired.clockSource,'plugin-ads-request-proxy-NOT-HTTP');});
+ test('invalid policy is rejected without inventing defaults',()=>{assert.throws(()=>clock({mode:'other'}),/Unknown/);assert.throws(()=>clock({totalMs:-1}),/Invalid/);});
+ test('IMA error payload preserves SDK type, inner error and stack including 1005',()=>{
+   const inner=new Error('network detail'),error=Object.assign(new Error('request failed'),{getErrorCode:()=>1005,getType:()=> 'adLoadError',getInnerError:()=>inner,getVastErrorCode:()=>900});
+@@ -60,8 +97,8 @@ test('QA API wrappers preserve this, original return identity and never subscrib
+   const p=probeApi.attach(creative,{enabled:true,console:false});p.attachPlayer(player,{beforeIma:true});
+   assert.equal(player.play(),result);assert.equal(calls,1);assert.equal(subscriptions,0);p.dispose();
+ });
+-for(const device of ['desktop',undefined])test('QA denies mobile budgets when actual manager device is '+device,()=>{
+-  const callbacks=new Map(),creative={node:{id:'guard',manager:{device},isActiveRenderToken:()=>true},_renderToken:1,destroy(){}};
++for(const device of [false,undefined])test('QA denies mobile budgets with desktop/unknown GEXP signal '+device,()=>{
++  const callbacks=new Map(),creative={node:{id:'guard',manager:{gexp:{isMobileDevice:()=>device}},isActiveRenderToken:()=>true},_renderToken:1,destroy(){}};
+   const player={on:(event,fn)=>callbacks.set(event,fn),off:event=>callbacks.delete(event)};
+   const p=probeApi.attach(creative,{enabled:true,...enforcement,console:false});p.attachPlayer(player,{beforeIma:true});
+   callbacks.get('ads-request')();assert.equal(p.state().pendingTimers,0);p.dispose();
+@@ -83,6 +120,137 @@ test('HAR blocked remains separate from wait and absent XML body stays unknown',
+   const result=harRequests({log:{entries:[{startedDateTime:'2026-10-19T10:00:00Z',request:{url:'https://pubads.g.doubleclick.net/gampad/ads'},response:{status:200,content:{}},time:4209,timings:{blocked:4073,wait:92}}]}})[0];
+   assert.equal(result.blockedMs,4073);assert.equal(result.waitMs,92);assert.equal(result.bodyAvailable,false);
+ });
++for(const file of ['_gam_kv_.js','IntextManager.js']) {
++  for(const [label,options,effective,source]of [
++    ['DataLayer mobile',{dl:{device_category:'mobile'}},'mobile','ueDataLayer.device_category'],
++    ['site version mobile',{dl:{be_page_site_version:'mobile'}},'mobile','ueDataLayer.be_page_site_version'],
++    ['utag mobile',{utag:{device_category:'mobile'}},'mobile','utag_data.device_category'],
++    ['scoped mobile',{scoped:{targeting:{device_category:'mobile'}},dl:{device_category:'desktop'}},'mobile','scopedContext.targeting.device_category'],
++    ['scoped GPT value',{scoped:{targeting:{device_category:['mobile']}}},'mobile','scopedContext.targeting.device_category'],
++    ['GEXP mobile',{gexp:true},'mobile','gexp.isMobileDevice'],
++    ['GEXP desktop',{gexp:false},'desktop','gexp.isMobileDevice'],
++    ['desktop',{dl:{device_category:'desktop'}},'desktop','ueDataLayer.device_category'],
++    ['unknown',{},'unknown','missing'],
++    ['conflicting classification',{dl:{device_category:'desktop',be_page_site_version:'mobile'}},'unknown','ueDataLayer.conflict'],
++  ])test(file+': real manager without device property / '+label,()=>{
++    const f=browserProbe(file,options);try{
++      assert.equal(f.controller.state().deviceEffective,effective);assert.equal(f.controller.state().deviceSource,source);
++      f.player.emit('ads-request');assert.equal(f.timers.size,effective==='mobile'?1:0);
++      f.tick(10000);
++      const expired=f.logs.find(log=>log.event==='qa_budget_expired');
++      assert.equal(!!expired,effective==='mobile');
++      if(expired){assert.equal(expired.mode,'shadow');assert.equal(expired.qaConfirmed,false);assert.equal(expired.deadlineAt,10000);assert.equal(expired.expiration,10000);assert.equal(expired.cancelBlockedReason,'mode-shadow');}
++      assert.equal(f.creative._aborted,undefined);
++    }finally{f.dispose();}
++  });
++  for(const scenario of ['absent','listener-failed','enum-missing','getter-mismatch','replaced'])test(file+': fail-closed impression coverage / '+scenario,()=>{
++    const f=browserProbe(file,{gexp:true,config:{...enforcement,totalMs:1000}});
++    try{
++      const manager=f.emitter();if(scenario==='listener-failed')manager.failEvent='impression';
++      if(scenario==='enum-missing')delete f.window.google.ima.AdEvent.Type.IMPRESSION;
++      if(scenario!=='absent')f.bind(manager);
++      if(scenario==='getter-mismatch')f.setCurrent(f.emitter());
++      if(scenario==='replaced')f.bind(f.emitter());
++      f.player.emit('ads-request');f.tick(1000);
++      const blocked=f.logs.find(log=>log.event==='qa_budget_expired');
++      assert.equal(f.creative._aborted,undefined);assert.ok(blocked.cancelBlockedReason);assert.ok(Object.values(blocked.cancelConditions).some(value=>value===false));
++      if(['absent','listener-failed','enum-missing'].includes(scenario))assert.equal(f.controller.state().impressionSubscribed,false);
++    }finally{f.dispose();}
++  });
++  test(file+': successful actual registration and manager identity are distinct from enum availability',()=>{
++    const f=browserProbe(file,{gexp:true});try{
++      const before=f.logs.find(log=>log.event==='player-created');assert.equal(before.impressionTypeAvailable,true);assert.equal(before.impressionSubscribed,false);assert.equal(before.managerId,null);
++      const manager=f.emitter();f.bind(manager);assert.equal(f.controller.state().impressionSubscribed,true);
++      assert.equal(manager.listeners.get('impression').size,1);manager.emit('impression');assert.equal(f.controller.state().impression,true);
++    }finally{f.dispose();}
++  });
++  test(file+': replacement retires old listeners/wrappers and rejects late STARTED/IMPRESSION/error',()=>{
++    const f=browserProbe(file,{gexp:true});try{
++      const first=Object.assign(f.emitter(),{init(){},start(){},pause(){},resume(){}}),original=first.resume;
++      f.bind(first);const late=Object.fromEntries(['started','impression','ima-error'].map(type=>[type,[...first.listeners.get(type)][0]]));
++      const second=f.emitter();f.bind(second);assert.equal(first.listeners.size,0);assert.equal(first.resume,original);
++      f.player.emit('ads-request');for(const type of Object.keys(late))late[type]({getError:()=>Error('old manager')});
++      assert.equal(f.controller.state().started,false);assert.equal(f.controller.state().impression,false);assert.equal(f.controller.state().pendingTimers,1);
++      assert.equal(f.logs.some(log=>['native-STARTED','native-IMPRESSION','ima-error'].includes(log.event)),false);
++      second.emit('impression');assert.equal(f.controller.state().impression,true);
++    }finally{f.dispose();}
++  });
++  test(file+': getter replacement without ads-manager event cannot admit callbacks from previous owner',()=>{
++    const f=browserProbe(file,{gexp:true});try{
++      const manager=f.emitter();f.bind(manager);f.setCurrent(f.emitter());manager.emit('impression');manager.emit('started');
++      assert.equal(f.controller.state().impression,false);assert.equal(f.controller.state().started,false);
++    }finally{f.dispose();}
++  });
++  test(file+': manager replacement also retires plugin/loader errors already queued',()=>{
++    const f=browserProbe(file,{gexp:true});try{
++      const plugin=f.emitter();f.player.ima.addEventListener=plugin.addEventListener.bind(plugin);f.player.ima.removeEventListener=plugin.removeEventListener.bind(plugin);
++      f.bind(f.emitter());
++      f.controller.afterIma();const latePlugin=[...plugin.listeners.get('ima-error')][0];
++      const loader=f.emitter();f.player.emit('ads-loader',{adsLoader:loader});const lateLoader=[...loader.listeners.get('ima-error')][0];
++      f.bind(f.emitter());assert.equal(loader.listeners.size,0);assert.equal(plugin.listeners.size,0);
++      f.player.emit('ads-request');lateLoader({getError:()=>Error('old loader')});latePlugin({getError:()=>Error('old plugin binding')});
++      assert.equal(f.controller.state().pendingTimers,1);assert.equal(f.logs.some(log=>['ima-loader-error','ima-plugin-error'].includes(log.event)),false);
++    }finally{f.dispose();}
++  });
++  for(const options of [{},{gexp:false},{dl:{device_category:'desktop',be_page_site_version:'mobile'}}])test(file+': actual manager unknown/desktop never arms even with enforce config '+JSON.stringify(options),()=>{
++    const f=browserProbe(file,{...options,config:enforcement});try{
++      f.bind(f.emitter());f.player.emit('ads-request');assert.equal(f.timers.size,0);f.tick(10000);assert.equal(f.creative._aborted,undefined);
++      const notArmed=f.logs.find(log=>log.event==='qa_budget_not_armed');assert.equal(notArmed.cancelBlockedReason,'mobile-budget-inactive');
++    }finally{f.dispose();}
++  });
++  test(file+': synchronous API errors propagate unchanged and cleanup restores originals',()=>{
++    const f=browserProbe(file,{gexp:true});try{
++      const error=new Error('native call failed');let calls=0;
++      const manager=Object.assign(f.emitter(),{init(){assert.equal(this,manager);calls++;throw error;}}),original=manager.init;
++      f.bind(manager);assert.throws(()=>manager.init(),value=>value===error);assert.equal(calls,1);
++      f.player.emit('dispose');assert.equal(manager.init,original);assert.equal(manager.listeners.size,0);assert.equal(f.player.listeners.size,0);
++    }finally{f.dispose();}
++  });
++  test(file+': stale token and disposal suppress queued player microtasks and manager attachment',async()=>{
++    const f=browserProbe(file,{gexp:true});try{
++      f.player.emit('play');f.player.emit('adsready');f.node._activeRenderToken++;
++      f.bind(f.emitter());await Promise.resolve();await Promise.resolve();
++      assert.equal(f.controller.state().managerId,null);assert.equal(f.logs.some(log=>log.event.endsWith('-after-dispatch')),false);
++    }finally{f.dispose();}
++  });
++  test(file+': FSM absent remains safe; state and dispatch/microtask observations remain separate',async()=>{
++    const f=browserProbe(file,{gexp:true});try{
++      for(const type of ['loadstart','play','adsready','readyforpreroll'])f.player.emit(type);
++      await Promise.resolve();await Promise.resolve();
++      for(const type of ['loadstart','play','adsready','readyforpreroll']){
++        const during=f.logs.find(log=>log.event===type),after=f.logs.find(log=>log.event===type+'-after-dispatch');
++        assert.equal(during.snapshot.adsState,'content-set');assert.equal(during.snapshot.adsFsmState,null);assert.equal(during.snapshot.isInAdMode,false);
++        assert.equal(during.observationPhase,'listener');assert.equal(after.observationPhase,'microtask');
++      }
++      f.player.ads._state={name:'PrerollState'};f.player.emit('adsready');assert.equal(f.logs.filter(log=>log.event==='adsready').at(-1).snapshot.adsFsmState,'PrerollState');
++    }finally{f.dispose();}
++  });
++  for(const destroyThrows of [false,true])test(file+': destroy restores exact player and manager methods / throws '+destroyThrows,()=>{
++    const f=browserProbe(file,{gexp:true,destroyThrows});
++    const manager=Object.assign(f.emitter(),{init(){},start(){},pause(){},resume(){}}),managerOriginals=Object.fromEntries(['init','start','pause','resume'].map(key=>[key,Object.getOwnPropertyDescriptor(manager,key)]));
++    // Player wrappers already installed: dispose and use a second creative to capture exact originals.
++    f.controller.dispose();
++    const original=Object.fromEntries(['play','pause','src'].map(key=>[key,Object.getOwnPropertyDescriptor(f.player,key)]));
++    const p=f.api.attach({...f.creative}, {enabled:true,console:false});p.attachPlayer(f.player,{beforeIma:true});f.bind(manager);
++    for(const key of Object.keys(managerOriginals))assert.notEqual(manager[key],managerOriginals[key].value);
++    const target=[...f.api.entries].find(log=>log.event==='qa_probe_attached');assert.ok(target);
++    // The real destroy wrapper is exercised separately below; dispose remains idempotent.
++    p.dispose();p.dispose();
++    for(const key of Object.keys(original))assert.deepEqual(Object.getOwnPropertyDescriptor(f.player,key),original[key]);
++    for(const key of Object.keys(managerOriginals))assert.deepEqual(Object.getOwnPropertyDescriptor(manager,key),managerOriginals[key]);
++    assert.equal(manager.listeners.size,0);f.dispose();
++    const fresh=browserProbe(file,{gexp:true,destroyThrows});const oldPlay=fresh.player.play;
++    if(destroyThrows)assert.throws(()=>fresh.creative.destroy(),/destroy error/);else fresh.creative.destroy();
++    assert.equal(fresh.creative.destroy,fresh.originalDestroy);assert.notEqual(fresh.player.play,oldPlay);assert.equal(fresh.timers.size,0);assert.equal(fresh.player.listeners.size,0);fresh.dispose();
++  });
++}
++
++test('shadow budget emits complete policy/authorization and drift without cancelling after expiry',()=>{
++  const f=clock({mode:'shadow',mobile:true,totalMs:10000,deviceEffective:'mobile',deviceSource:'ueDataLayer.device_category'});
++  f.b.note('ads-request');const armed=f.logs.find(log=>log.event==='qa_budget_armed');assert.equal(armed.budgetArmed,true);assert.equal(armed.deadlineAt,10000);
++  f.tick(10000,321);const expired=f.logs.find(log=>log.event==='qa_budget_expired');
++  assert.equal(expired.deviceEffective,'mobile');assert.equal(expired.deviceSource,'ueDataLayer.device_category');assert.equal(expired.expiration,10321);assert.equal(expired.timerDriftMs,321);assert.equal(expired.cancelBlockedReason,'mode-shadow');assert.equal(f.cancelled.length,0);
++});
+ for(const file of ['_gam_kv_.js','IntextManager.js'])for(const allowed of [true,false])test(file+': real core settlement/cleanup preserves fallback authorization '+allowed,async()=>{
+   const text=fs.readFileSync(path.join(__dirname,'intext-ima-preload-first-frame.audit.test.cjs'),'utf8'),context={require,__dirname,URL,URLSearchParams};
+   vm.runInNewContext(text.slice(0,text.indexOf("for (const file of"))+'\nthis.fixture=fixture;',context);
+@@ -91,7 +259,13 @@ for(const file of ['_gam_kv_.js','IntextManager.js'])for(const allowed of [true,
+   f.window.google.ima.AdEvent.Type.IMPRESSION='impression';
+   vm.runInContext(fs.readFileSync(path.join(__dirname,'qa/intext-p13c-probe.cjs'),'utf8'),f.context);
+   const probe=f.window.IntextP13C,creative=new f.Creative({node:r.node,container:r.container,config:{},adTagUrl:'test-vast'});
+-  r.node.manager={device:'mobile'};creative.player=r.player;r.player.ads={isInAdMode:()=>false};let disposals=0;r.player.dispose=()=>{disposals++;};
++  r.node.manager={gexp:{isMobileDevice:()=>true}};creative.player=r.player;r.player.ads={isInAdMode:()=>false};let disposals=0;r.player.dispose=()=>{disposals++;};
++  // This legacy core fixture exposes only `on`. Model Video.js's `off` with a
++  // removable forwarding listener, rather than inventing an active subscription.
++  const originalOn=r.player.on,subscriptions=new Map();
++  r.player.on=(event,handler)=>{const handlers=subscriptions.get(event)??new Set();handlers.add(handler);subscriptions.set(event,handlers);
++    originalOn(event,(...args)=>{if(handlers.has(handler))handler(...args);});};
++  r.player.off=(event,handler)=>subscriptions.get(event)?.delete(handler);
+   const manager=f.element();r.player.ima.getAdsManager=()=>manager;
+   const observer=probe.attach(creative,{enabled:true,mode:'enforce',mobile:true,qaConfirmed:true,managerMs:1000,console:false});observer.attachPlayer(r.player,{beforeIma:true});
+   const result=creative.requestAds().catch(error=>error);r.adsManagerLoaded();
+diff --git a/docs/intext-p13c-diagnostico.md b/docs/intext-p13c-diagnostico.md
+index 0d1c819..dccb572 100644
+--- a/docs/intext-p13c-diagnostico.md
++++ b/docs/intext-p13c-diagnostico.md
+@@ -89,7 +89,9 @@ Instrumentación por creative/cycle/token:
+ - Wrapper y anchor separados, visibilidad documental y estado observado de media. Historial acotado a 2000 entradas y contador de descartes; console=false en el ejemplo. observerBuildMs permite estimar el coste de construir cada snapshot, sin confundirlo con blocked HTTP.
+ - Puente explícito parentRenderToken/parentCycleId para el nuevo fallback, y observación DOM/CSS finita tras apertura Display. No es Active View ni prueba de píxel; los eventos GPT del debugger original se conservan aparte.
+ 
+-Modos: **observe** por defecto en el builder (sin deadlines); **shadow** en el ejemplo explícito (solo mide vencimientos); **enforce** exclusivamente para QA autorizado y mobile=true/qaConfirmed=true. Además se exige que el manager real declare device=mobile: desktop o dispositivo desconocido no arman presupuestos aunque se copie por error un perfil móvil. No hay umbral nuevo productivo. totalMs se configura explícitamente a 10000 o 12000 para comparar; managerMs es opcional y por defecto null. El watchdog manager→preroll se desarma con readyforpreroll. La confirmación de frame elimina ambos timers. Se registra timerDriftMs.
++Revisión **P1.3c-R1**: ver [correcciones del probe y validación actual](intext-p13c-r1-review.md). El diagnóstico y las cronologías de este documento se conservan; la validación 1119/1119 al final es histórica. El parche original intext-p13c-qa.patch es histórico: usar el probe actual y el diff R1 para generar las copias QA.
++
++Modos autorizados para las próximas pruebas: **observe** por defecto en el builder (sin deadlines) y **shadow** en el ejemplo explícito (solo mide vencimientos). El manager no tiene una propiedad device. R1 resuelve dispositivo/fuente desde contexto scoped, DataLayer y, como fallback, gexp.isMobileDevice(); desktop/unknown no arman budgets móviles. Enforce permanece sin autorización de ejecución. No hay umbral nuevo productivo. totalMs se configura explícitamente a 10000 o 12000 para comparar; managerMs es opcional y por defecto null. El watchdog manager→preroll se desarma con readyforpreroll. La confirmación de frame elimina ambos timers. Se registra timerDriftMs.
+ 
+ El reloj online empieza en ads-request del plugin, etiquetado **proxy-NOT-HTTP**. No garantiza 10 s exactos desde la salida HTTP: cuantificar el offset/blocked en HAR antes de adoptar ese presupuesto. Los plazos reales desde VAST se evalúan con la request HTTP inequívocamente correlacionada; el analizador no asigna por cercanía de timestamp ni mezcla clocks de exports.
+ 
+@@ -125,7 +127,7 @@ node tests/qa/intext-p13c-build.cjs _gam_kv_.js tests/qa/intext-p13c-config.exam
+ node tests/qa/intext-p13c-build.cjs IntextManager.js tests/qa/intext-p13c-config.example.json
+ ```
+ 
+-Los ficheros locales son tests/qa/generated/intext-p13c-gam.qa.js y intext-p13c-manager.qa.js. Son copias derivadas ignoradas por Git, no nuevos bundles productivos. `node --check` sobre ambos antes de cargar. Para 12 s, copiar el ejemplo a un fichero QA y cambiar únicamente totalMs; para watchdog, añadir el managerMs elegido en shadow. Enforce exige edición explícita mode=enforce y qaConfirmed=true, exclusivamente con campaña/inventario QA autorizado. No activar cancelPassed inicialmente: medirlo en brazo separado.
++Los ficheros locales son tests/qa/generated/intext-p13c-gam.qa.js y intext-p13c-manager.qa.js. Son copias derivadas ignoradas por Git, no nuevos bundles productivos. `node --check` sobre ambos antes de cargar. Para 12 s, copiar el ejemplo a un fichero QA y cambiar únicamente totalMs; para watchdog, añadir el managerMs elegido en shadow. No ejecutar enforce en esta revisión. No activar cancelPassed inicialmente: medirlo en brazo separado.
+ 
+ En AutoResponder reemplazar **solo la URL exacta del bundle Intext efectivamente cargado** por la copia correspondiente, una sola distribución/instancia. No sustituir migrate/PSP/GAMExp/GPT/Prebid/APS ni VAST/MP4. Nuevo documento, comprobar cuerpo rotulado QA y hash, evitar caché/304. Comparar runtime, dual/PSP, randomSource/random1–4, networkId/adUnit/tag/t/HB/mode con el control; si cambian, no se aísla este experimento.
+ 
+diff --git a/docs/intext-p13c-r1-review.md b/docs/intext-p13c-r1-review.md
+new file mode 100644
+index 0000000..dff0efa
+--- /dev/null
++++ b/docs/intext-p13c-r1-review.md
+@@ -0,0 +1,92 @@
++# P1.3c-R1 — Correcciones del probe QA
++
++Estado: preparado para revisión y nuevas pruebas **observe/shadow**, sin aprobación productiva. No se ejecuta enforce en navegador. Las pruebas unitarias de sus guards siguen siendo simuladas. Versión Intext conservada: `2026.10.07-p1-ima-preload-first-frame`.
++
++## Hallazgos y correcciones
++
++1. **Dispositivo.** `manager.device` no existe en el constructor actual de ninguna distribución. El nuevo resolver QA devuelve `deviceEffective: mobile|desktop|unknown` y `deviceSource`. Precedencia: contexto scoped explícito; su targeting; ueDataLayer; utag_data; finalmente el resultado booleano de `manager.gexp.isMobileDevice()`. Reconoce device/device_category/be_page_site_version y valores GPT de un solo elemento; web se clasifica desktop. Señales contradictorias dentro de una fuente producen unknown, sin adivinar. No usa user-agent ni escribe autoridad alguna. Los tests construyen `new IntextManager({}, gexp)` desde cada fichero real, sin sustituir su constructor/prototipo ni crear device. Servicios DOM/SDK son mocks. Desktop/unknown no arman budgets móviles; una clasificación móvil debe continuar vigente para autorizar una eventual cancelación.
++
++2. **IMPRESSION y ownership.** El enum solo alimenta `impressionTypeAvailable`. `impressionSubscribed` se establece después de llamar con éxito a addEventListener sobre un AdsManager concreto con API de retirada disponible. `managerId` es local al creative y se correlaciona con slot/cycle/token; `managerEpoch` cambia al sustituir el manager. La autorización exige identidad igual a getAdsManager(), suscripción aceptada, instrumentación instalada antes de IMA y ausencia de ambigüedad. Un reemplazo hace la cancelación fail-closed durante el resto del ciclo: no se presume cobertura continua durante el cambio. Ausencia del manager, enum, API de retirada, excepción de suscripción o identidad discordante bloquean la cancelación. Registro aceptado no demuestra entrega infalible de eventos por parte del SDK: queda por validar en Chrome/IMA real.
++
++3. **contrib-ads.** Se capturan separadamente `snapshot.adsState`, `adsFsmState` (nombre observado o constructor) e `isInAdMode`. Accesos opcionales/throwing se protegen individualmente. Un nombre de clase es diagnóstico, no una interpretación autoritativa de la FSM. Se conserva la observación listener y microtask posterior de loadstart, play dispatch, adsready y readyforpreroll. La llamada player.play permanece diferenciada del evento play. No se modifica la FSM ni se sintetizan eventos.
++
++4. **Reemplazos y limpieza.** Antes de instalar listeners sobre otro manager se retiran los anteriores, incluidos errores de plugin/loader asociados; callbacks ya encolados exigen identidad, epoch y token vigentes. Si el getter cambia sin ads-manager, los handlers antiguos no se aceptan y se retiran al detectar el cambio. La escucha de errores del plugin se omite con diagnóstico cuando no se puede demostrar ownership o retirada; las rutas directas de AdsManager/AdsLoader siguen disponibles. Se restauran descriptores originales de play/pause/src e init/start/pause/resume, incluso métodos heredados; destroy/dispose limpia antes de delegar al destructor original y conserva su excepción. Los wrappers preservan this, argumentos, retorno, throw síncrono e identidad de Promise; no añaden handlers a la Promise de play.
++
++5. **Budgets visibles.** Los eventos `qa_budget_armed`, `qa_budget_not_armed`, `qa_budget_expired` y `qa_budget_cancel_blocked` exponen deviceEffective/deviceSource, mode, qaConfirmed, budgetArmed, deadlineAt, expiration y cancelBlockedReason, según la etapa. Expiration es performance.now(), con deadline en el mismo reloj del documento. El vencimiento añade todas las `cancelConditions`, señales started/impression y drift. `budgetArmed` en el vencimiento indica que ese deadline estuvo armado, aunque su callback ya se haya retirado del Map. Shadow arma y registra, pero siempre bloquea cancelación con mode-shadow. Observe no arma. El inicio continúa siendo ads-request proxy, no el instante HTTP.
++
++Ejemplo **probado con reloj simulado y constructor real**, no captura Chrome: ueDataLayer.device_category=mobile, mode=shadow, qaConfirmed=false, ads-request en 0 ms → armado con deadlineAt=10000 → expiración=10000, cancelBlockedReason=mode-shadow; el creative sigue vivo. Con callback a 10321 ms, timerDriftMs=321. Los tests también conservan first-frame posterior al vencimiento shadow.
++
++## Alcance y evidencia conservada
++
++Solo cambian el probe QA, su test existente y la documentación R1. El builder y su configuración no cambian; las dos copias ignoradas generated se regeneran desde las mismas fuentes productivas.
++
++SHA256 productivos, iguales al inicio de R1/P1.3b:
++
++| Fichero | SHA256 |
++|---|---|
++| _gam_kv_.js | 1CDE1CCDC962C07D5833DC9691A3BFE31B7DD74B3E649E89153A240940A06690 |
++| IntextManager.js | BA832DC0EB3C0F6E1070A515FAC09DD31467E2C7A5A64A18FF4E4F4C063FEAD8 |
++
++Por identidad byte a byte no hay cambios nuevos de timeout 25 s, GAMExp, WindowArray, floors, targeting, PSP, Prebid/APS, random, first-frame/reveal, PiP, animación, Display/fallback ni waterfall. El diff contra HEAD contiene trabajo previo sin commit; el diff R1 se calcula contra copias tomadas al iniciar esta revisión.
++
++Las siete capturas originales se vuelven a procesar: el resultado es byte a byte igual a `intext-p13c-real-evidence.json`. El informe Prebid/PSP coincide con el incluido en el parche histórico (SHA256 1C90AD00682D8C282E8C80E2E00FA8BCB589E54ADC2D882C6CF8AF8EAD6E222E). No se cambia ninguna cronología ni se cierra la causa residual 10:29. El parche original P1.3c se conserva como histórico; aplicar el diff incremental R1 o usar directamente el workspace actual.
++
++## Validación automatizada
++
++Baseline real de entrada: **1119/1119**. Test existente ampliado de 38 a **93**, con **55 regresiones nuevas**. Cobertura nueva: dispositivos con manager real, unknown/conflicto, suscripción efectiva/fallida, enum sin manager, identidad discordante, reemplazo, callbacks viejos STARTED/IMPRESSION/error/plugin/loader, FSM ausente, listener/microtask, restauración y errores de APIs/destructor. Los tests previos de settle/fallback usan métodos actuales del core y SDK simulado.
++
++| Grupo | Resultado |
++|---|---:|
++| P1.3c específico | 93/93 |
++| Vídeo/preload/PiP/animación/predictive/debug | 581/581 |
++| Floor Authority | 86/86 |
++| Prebid audit + aliases | 85/85 |
++| Random/runtime | 61/61 |
++| APS/TAM | 63/63 |
++| GPT/PSP | 17/17 |
++| Suite completa | 1174/1174 |
++
++Ningún test omitido, cancelado o fallido en la validación final. Los grupos se solapan con la suite completa; no sumarlos para obtener el total. Stdout completo: `intext-p13c-r1-validation.txt`.
++
++Comandos base:
++
++```powershell
++node --test --test-isolation=none tests/intext-p13c-latency.audit.test.cjs
++$env:INTEXT_FLOOR_AUDIT_BASELINE = Join-Path $env:TEMP 'intext-authority-head.js'
++$adapter = Join-Path $env:TEMP 'intext-authority-test-command-cache.cjs'
++node --require $adapter --test --test-isolation=none tests/*.test.cjs
++node --check _gam_kv_.js
++node --check IntextManager.js
++node --check tests/qa/intext-p13c-probe.cjs
++node --check tests/intext-p13c-latency.audit.test.cjs
++git diff --check
++```
++
++Se utiliza el adaptador externo ya establecido porque el sandbox bloquea subprocesses iniciados por Node. Reproduce solo git-root/git-diff-name y node --check previamente ejecutados externamente; verifica hashes de fuentes. No sustituye tests, SDK ni navegador. No se solicita elevar permisos. No hay manifest/package.json ni configuración de lint/seguridad independiente en este workspace; se ejecutan sintaxis y todos los audits disponibles.
++
++## Próximas pruebas Fiddler: solo observe y shadow
++
++Primero control con **P1.3b sin probe**, después observe y finalmente shadow, manteniendo la campaña, noticia, dispositivo, PSP/random/targeting y red reales. Los wrappers de instancia **no son estrictamente pasivos**: cambian identidad de funciones y agregan lectura de estado, snapshots y stacks. Aunque delegan exactamente una vez, su coste o interacción con otros hooks pueden afectar el resultado. `observerBuildMs` mide construcción de snapshot, no todo el coste del probe. Comparar counts/orden de APIs y HTTP, latencias y errores entre control e instrumentado; no atribuir diferencias a IMA sin esta comparación.
++
++```powershell
++# Observe: cero budgets; guardar copia antes de generar el siguiente brazo.
++node tests/qa/intext-p13c-build.cjs _gam_kv_.js
++node tests/qa/intext-p13c-build.cjs IntextManager.js
++# Shadow mobile 10 s, qaConfirmed=false; nunca cancela.
++node tests/qa/intext-p13c-build.cjs _gam_kv_.js tests/qa/intext-p13c-config.example.json
++node tests/qa/intext-p13c-build.cjs IntextManager.js tests/qa/intext-p13c-config.example.json
++node --check tests/qa/generated/intext-p13c-gam.qa.js
++node --check tests/qa/generated/intext-p13c-manager.qa.js
++```
++
++AutoResponder debe sustituir solo el bundle efectivamente cargado por la copia correspondiente, una distribución por página. No interceptar GPT/Prebid/APS/PSP, tags VAST ni MP4. No se ejecuta enforce ni se modifica qaConfirmed en esta revisión. Las copias entregadas generated usan shadow del ejemplo.
++
++En cada móvil shadow exigir `qa_probe_attached.deviceEffective=mobile`, fuente observable real, `qa_budget_armed.deadlineAt`, y, si no hubo frame/terminal antes del plazo, `qa_budget_expired` con mode-shadow y bloqueo explícito. Unknown/no-arm no es una prueba shadow móvil válida: guardar la fuente y corregir el contexto de QA antes de comparar. Un vídeo que obtiene frame antes del deadline desarma normalmente; no debe forzarse un vencimiento fabricando bloqueos. En una reproducción real suficientemente lenta comprobar continuidad después de expirar, sin abort/destrucción, peticiones adicionales o fallback provocado por el probe.
++
++Guardar JSON original del debugger, JSON del probe (`copy(JSON.stringify({stats:IntextP13C.stats(),logs:IntextP13C.entries},null,2))`), consola completa con stacks y HAR/SAZ con cuerpos XML VAST/wrappers y MP4. Cubrir el bloqueo manager-sin-preroll, éxito rápido/lento, cambios de manager, salida/reentrada, hidden/visible, refresh, navegación y destroy. Los errores cross-origin opacos pueden requerir DevTools Pause on exceptions. Al terminar guardar datos y llamar IntextP13C.dispose().
++
++## Límites y pendientes
++
++No se ha realizado una nueva prueba Chrome/IMA con R1: este entorno no ofrece navegador conectado. Por tanto, el armado/vencimiento shadow está demostrado con el **manager real y reloj/SDK simulados**, pero sigue pendiente de confirmación en mobile real. No se afirma reproducción equivalente, mejora de viewability ni ausencia real de tracking tardío. El bloqueo 10:29, errores 1005 y suppressedTracks continúan abiertos. No hay autorización productiva, commit, push ni avance de roadmap.
++
++CodeMemory se consulta y reindexa sin persistir artefactos en el repo; el código actual, las pruebas, hashes y diff son la fuente de verdad. El grafo se verifica después de la reindexación para los helpers QA nuevos.

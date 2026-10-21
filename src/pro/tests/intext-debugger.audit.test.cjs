@@ -164,6 +164,21 @@ function nodeFixture() {
   };
 }
 
+test('P1.1: summary separates winner-to-prepared from activation-to-first-frame using observed timestamps', () => {
+  const h = createHarness(true), node = nodeFixture();
+  let now = 10000;
+  h.context.Date = class extends Date { static now() { return now; } };
+  h.intextDebugCollector.recordMetric('video_winner_resolved', { node });
+  now += 200; h.intextDebugCollector.recordMetric('video_prepare_ready', { node, durationMs: 100 });
+  now += 2000; h.intextDebugCollector.recordMetric('video_activation_started', { node });
+  now += 600; h.intextDebugCollector.recordMetric('video_first_frame', { node });
+  const video = h.window.gexpIntextDebugTools.getSummary().slotsAndCycles[0].video;
+  assert.equal(video.winnerToPreparedMs, 200); assert.equal(video.preparationMs, 100);
+  assert.equal(video.activationToFirstFrameMs, 600);
+  const missing = createHarness(true); missing.intextDebugCollector.recordMetric('video_prepare_ready', { node });
+  assert.equal(missing.window.gexpIntextDebugTools.getSummary().slotsAndCycles[0].video.activationToFirstFrameMs, null);
+});
+
 test('1. debug desactivado no crea buffer ni API', () => {
   const h = createHarness(false);
   h.logIntext('disabled', { value: 1 });
@@ -493,7 +508,9 @@ test('revisión 3-4: LOADED nativo es la única fuente de video_ima_loaded y ads
   assert.equal((source.match(/debugVideo\("loaded"/g) || []).length, 1);
   assert.match(source, /ima\.AdEvent\.Type\.LOADED,[\s\S]*debugVideo\("loaded",\s*\{[\s\S]*source:\s*"native-ima-loaded"/);
   assert.match(source, /ima\.AdEvent\.Type\.STARTED,[\s\S]*debugVideo\("started",\s*\{[\s\S]*source:\s*"native-ima-started"/);
-  assert.doesNotMatch(source, /video_ads_manager_loaded/);
+  assert.doesNotMatch(adsLoadBlock, /video_ads_manager_loaded/);
+  const observedManager = between(source, 'this.player.on("ads-manager"', 'this.player.on("ads-load"');
+  assert.match(observedManager, /video_ads_manager_loaded[\s\S]*source:\s*"player-ads-manager"/);
 });
 
 test('revisión 4b: métricas de vídeo se deduplican por ciclo, token, métrica y source', () => {

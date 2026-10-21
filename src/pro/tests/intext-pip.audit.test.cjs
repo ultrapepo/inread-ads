@@ -1039,6 +1039,8 @@ function mediaLifecycleFixture({
   controlsConfig,
 } = {}) {
   const fixture = nodeFixture();
+  fixture.node.telemetryAnchor = elementFixture({ id: 'stable-insertion-anchor', height: 20 });
+  fixture.node.telemetryAnchor.style.display = 'block';
   const initialOpenAnimationCalls = [];
   fixture.node.playInitialOpenAnimation = (surface, source) => {
     initialOpenAnimationCalls.push({ surface, source });
@@ -1162,17 +1164,16 @@ async function waitForMediaObservation(fixture) {
   assert.fail('IMA media element observation was not attached');
 }
 
-test('151-158. playing en cero revela y timeupdate confirma el frame sin nuevo scroll', async () => {
+test('151-158. playing en cero permanece oculto y timeupdate confirma y revela sin nuevo scroll', async () => {
   windowFixture.gexpIntextDebug = true;
   debugVideoEvents.length = 0;
   const fixture = mediaLifecycleFixture();
   await waitForMediaObservation(fixture);
 
   fixture.emitMedia('playing');
-  await fixture.requestPromise;
 
-  assert.equal(fixture.creative._playerRevealed, true);
-  assert.equal(fixture.node._intextPipPlayerRevealed, true);
+  assert.equal(fixture.creative._playerRevealed, false);
+  assert.equal(fixture.node._intextPipPlayerRevealed, false);
   assert.equal(fixture.node._intextPipFirstFrameConfirmed, false);
   assert.equal(fixture.node._intextPipState, 'inline');
   assert.equal(fixture.mediaListeners.has('timeupdate'), true);
@@ -1180,7 +1181,9 @@ test('151-158. playing en cero revela y timeupdate confirma el frame sin nuevo s
 
   fixture.media.currentTime = 0.1;
   fixture.emitMedia('timeupdate');
+  await fixture.requestPromise;
 
+  assert.equal(fixture.creative._playerRevealed, true);
   assert.equal(fixture.node._intextPipFirstFrameConfirmed, true);
   assert.equal(fixture.node._intextPipState, 'floating');
   assert.equal(
@@ -1200,7 +1203,11 @@ test('159-163. requestVideoFrameCallback confirma una sola vez y playing puede c
   await waitForMediaObservation(callbackFixture);
   callbackFixture.fireVideoFrame();
   assert.equal(callbackFixture.node._intextPipFirstFrameConfirmed, true);
-  assert.equal(callbackFixture.creative._playerRevealed, false);
+  assert.equal(callbackFixture.creative._playerRevealed, true);
+  assert.equal(
+    debugVideoEvents.find(({ event }) => event === 'revealed').payload.source,
+    'request_video_frame_callback',
+  );
   callbackFixture.emitMedia('playing');
   await callbackFixture.requestPromise;
   callbackFixture.media.currentTime = 0.2;
@@ -1233,7 +1240,7 @@ test('164-168. terminal, destroy y token stale limpian o impiden first frame tar
   assert.equal(terminal.creative._adMediaEl, null);
   assert.equal(terminal.mediaListeners.size, 0);
 
-  const complete = mediaLifecycleFixture();
+  const complete = mediaLifecycleFixture({ currentTime: 0.1 });
   await waitForMediaObservation(complete);
   complete.emitMedia('playing');
   await complete.requestPromise;
@@ -1248,7 +1255,7 @@ test('164-168. terminal, destroy y token stale limpian o impiden first frame tar
   assert.equal(destroyed.creative._adMediaEl, null);
   assert.equal(destroyed.mediaListeners.size, 0);
   destroyed.creative.abort();
-  assert.match(String(await destroyedResult), /display_won_abort/);
+  assert.match(String(await destroyedResult), /video_destroyed/);
 
   windowFixture.gexpIntextDebug = true;
   debugVideoEvents.length = 0;
@@ -1327,13 +1334,13 @@ test('179-184. animación vídeo espera simultáneamente reveal y first frame', 
   assert.equal(delayedFrame.initialOpenAnimationCalls.length, 0);
 
   delayedFrame.emitMedia('playing');
-  await delayedFrame.requestPromise;
-  assert.equal(delayedFrame.creative._playerRevealed, true);
+  assert.equal(delayedFrame.creative._playerRevealed, false);
   assert.equal(delayedFrame.node._intextPipFirstFrameConfirmed, false);
   assert.equal(delayedFrame.initialOpenAnimationCalls.length, 0);
 
   delayedFrame.media.currentTime = 0.1;
   delayedFrame.emitMedia('timeupdate');
+  await delayedFrame.requestPromise;
   assert.equal(delayedFrame.initialOpenAnimationCalls.length, 1);
   assert.equal(
     delayedFrame.initialOpenAnimationCalls[0].surface,

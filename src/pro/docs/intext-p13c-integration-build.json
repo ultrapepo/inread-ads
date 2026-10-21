@@ -1,0 +1,68 @@
+{
+  "qaOnly": true,
+  "enforce": false,
+  "productionVersionUnchanged": true,
+  "probeSha256": "52f1525a2d7b6ff1cf275a6168f9dd2ceca42e5d817f74eeaa0c10eb2f0f13a5",
+  "variants": [
+    {
+      "source": "_gam_kv_.js",
+      "fixture": "original",
+      "file": "intext-integration-original-gam.qa.js",
+      "inputSha256": "1cde1ccdc962c07d5833dc9691a3bfe31b7dd74b3e649e89153a240940a06690",
+      "fixtureInputSha256": "1cde1ccdc962c07d5833dc9691a3bfe31b7dd74b3e649e89153a240940a06690",
+      "outputSha256": "93b7b1623db29b1e509121ff72f48fc9d33b2073abc4d1ebda35143e3b5e3545",
+      "hooks": [
+        "    this.initVideoJS();",
+        "      const debugVideo = (event, data = {}) => {",
+        "  onVideoEnded(renderToken = this._activeRenderToken) {",
+        "IntextVideoCreative.destroy",
+        "    this.videoEl?.remove?.();"
+      ]
+    },
+    {
+      "source": "_gam_kv_.js",
+      "fixture": "black",
+      "file": "intext-integration-black-gam.qa.js",
+      "inputSha256": "1cde1ccdc962c07d5833dc9691a3bfe31b7dd74b3e649e89153a240940a06690",
+      "fixtureInputSha256": "64a21cf4beb13e4492d706151fc5370e9048605fa7ae671560b3cf544aeea000",
+      "outputSha256": "bd348bb34f2ba57f48d56f2d7aa57c05db1653e1b1b86e08eee8d29f033d9ed5",
+      "hooks": [
+        "    this.initVideoJS();",
+        "      const debugVideo = (event, data = {}) => {",
+        "  onVideoEnded(renderToken = this._activeRenderToken) {",
+        "IntextVideoCreative.destroy",
+        "    this.videoEl?.remove?.();"
+      ]
+    },
+    {
+      "source": "IntextManager.js",
+      "fixture": "original",
+      "file": "intext-integration-original-manager.qa.js",
+      "inputSha256": "ba832dc0eb3c0f6e1070a515fac09dd31467e2c7a5a64a18ff4e4f4c063fead8",
+      "fixtureInputSha256": "ba832dc0eb3c0f6e1070a515fac09dd31467e2c7a5a64a18ff4e4f4c063fead8",
+      "outputSha256": "0469a96a549010080f22d6e57c0cdb2d9533c9ad35b2a2338a8f6928cc5de5b8",
+      "hooks": [
+        "    this.initVideoJS();",
+        "      const debugVideo = (event, data = {}) => {",
+        "  onVideoEnded(renderToken = this._activeRenderToken) {",
+        "IntextVideoCreative.destroy",
+        "    this.videoEl?.remove?.();"
+      ]
+    },
+    {
+      "source": "IntextManager.js",
+      "fixture": "black",
+      "file": "intext-integration-black-manager.qa.js",
+      "inputSha256": "ba832dc0eb3c0f6e1070a515fac09dd31467e2c7a5a64a18ff4e4f4c063fead8",
+      "fixtureInputSha256": "8177b076f68531addd08386f49c16ad504cd29df4f07752edb36093ac67b6537",
+      "outputSha256": "79ba1223802a3921fa58f84ea56b147278960b46ad589dc53f76bb51f71639cb",
+      "hooks": [
+        "    this.initVideoJS();",
+        "      const debugVideo = (event, data = {}) => {",
+        "  onVideoEnded(renderToken = this._activeRenderToken) {",
+        "IntextVideoCreative.destroy",
+        "    this.videoEl?.remove?.();"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,706 @@
+diff --git a/tests/qa/intext-p13c-probe.cjs b/tests/qa/intext-p13c-probe.cjs
+new file mode 100644
+index 0000000..9d56e13
+--- /dev/null
++++ b/tests/qa/intext-p13c-probe.cjs
+@@ -0,0 +1,208 @@
++/* QA ONLY. Never loaded by the production bundles. No SDK/global playback patches. */
++(function(scope) {
++  const safe=(fn,fallback=null)=>{try{return fn()??fallback;}catch{return fallback;}};
++  function errorInfo(error,depth=0) {
++    if(!error) return null;
++    return {name:error.name??null,message:safe(()=>error.getMessage?.()??error.message??String(error)),
++      code:safe(()=>error.getErrorCode?.()),type:safe(()=>error.getType?.()),vastCode:safe(()=>error.getVastErrorCode?.()),
++      stack:error.stack??null,inner:depth<2?errorInfo(safe(()=>error.getInnerError?.()),depth+1):null};
++  }
++  function budget({config={},now=()=>performance.now(),setTimer=setTimeout,clearTimer=clearTimeout,
++    live=()=>true,canCancel=()=>false,cancel=()=>{},record=()=>{}}={}) {
++    const mode=config.mode??'observe';
++    if(!['observe','shadow','enforce'].includes(mode)) throw Error('Unknown QA budget mode');
++    for(const key of ['totalMs','managerMs']) if(config[key]!=null && (!Number.isFinite(config[key])||config[key]<=0)) throw Error('Invalid QA '+key);
++    const timers=new Map(),milestones={};let finished=false,frame=false,started=false,impression=false,cancelled=false;
++    const clear=()=>{for(const id of timers.values())clearTimer(id);timers.clear();};
++    const drop=key=>{if(timers.has(key)){clearTimer(timers.get(key));timers.delete(key);}};
++    const expire=(reason,scheduledAt,delay)=>{
++      if(!live()){finished=true;clear();return;}if(finished||frame){clear();return;}
++      const actualElapsedMs=now()-scheduledAt;
++      record('qa_budget_expired',{reason,mode,actualElapsedMs,timerDriftMs:actualElapsedMs-delay,
++        clockSource:milestones.clockSource??null,startedObserved:started,impressionObserved:impression});
++      if(mode!=='enforce'||config.mobile!==true||config.qaConfirmed!==true) return;
++      if(started||impression||!canCancel()) {record('qa_budget_cancel_blocked',{reason:'playback-started-or-pre-impression-ownership-unproven'});return;}
++      if(cancelled)return;cancelled=true;finished=true;clear();
++      record('qa_budget_cancelled',{reason});cancel(reason);
++    };
++    const arm=(key,at,delay)=>{
++      if(mode==='observe'||config.mobile!==true||!delay)return;
++      timers.set(key,setTimer(()=>{timers.delete(key);expire(key,at,delay);},Math.max(0,at+delay-now())));
++    };
++    return {note(event,data={}) {
++      if(!live()){finished=true;clear();return;}if(finished){clear();return;}
++      const first=milestones[event]==null;milestones[event]??=now();
++      if(event==='ads-request'&&milestones.clockSource==null) {
++        milestones.clockSource=data.clockSource??'plugin-ads-request-proxy-NOT-HTTP';arm('request-to-frame',milestones[event],config.totalMs);
++      }
++      if(event==='ads-manager'&&first&&milestones.readyforpreroll==null)arm('manager-to-preroll',milestones[event],config.managerMs);
++      if(event==='readyforpreroll')drop('manager-to-preroll');
++      if(event==='adstart'||event==='native-STARTED')started=true;
++      if(event==='native-IMPRESSION')impression=true;
++      if(event==='first-frame'){frame=true;clear();}
++      if(['error','complete','skipped','destroy','abort'].includes(event)){finished=true;clear();}
++    },checkPassed(passed) {
++      if(passed===true&&config.cancelPassed===true)expire('anchor-passed',now(),0);
++    },dispose(){finished=true;clear();},state:()=>({milestones:{...milestones},frame,started,impression,cancelled,pendingTimers:timers.size})};
++  }
++  const attached=new WeakMap(),entries=[],controllers=new Set(),displayCleanups=new Set();let globalErrorCleanup=null,droppedEntries=0;
++  const boundedPush=entry=>{entries.push(entry);if(entries.length>2000){entries.shift();droppedEntries++;}};
++  function captureErrors() {
++    if(globalErrorCleanup||!scope.addEventListener)return;
++    const handler=event=>{
++      const entry={event:event.type==='unhandledrejection'?'qa_unhandled_rejection':'qa_global_error',qaOnly:true,timestamp:Date.now(),slotId:null,cycleId:null,renderToken:null,
++        message:event.message??null,filename:event.filename??null,line:event.lineno??null,column:event.colno??null,error:errorInfo(event.error??event.reason),
++        attribution:'unknown-global-SDK-error',contexts:[...controllers].map(controller=>controller.identity)};
++      boundedPush(entry);if(scope.__INTEXT_P13C_QA__?.console!==false)safe(()=>console.debug('[IntextP13C QA]',entry));
++    };
++    scope.addEventListener('error',handler);scope.addEventListener('unhandledrejection',handler);
++    globalErrorCleanup=()=>{scope.removeEventListener('error',handler);scope.removeEventListener('unhandledrejection',handler);globalErrorCleanup=null;};
++  }
++  function attach(creative,config={}) {
++    if(!config.enabled)return null;
++    if(attached.has(creative))return attached.get(creative);
++    const node=creative.node,token=creative._renderToken,cycle=node?._intextTelemetryCycleId??null,cleanup=[];
++    let player=null,manager=null,closed=false,armed=false,coverage=false;
++    if(config.captureErrors===true)captureErrors();
++    const live=()=>!closed&&!creative._aborted&&!creative._destroyed&&safe(()=>node.isActiveRenderToken(token),false);
++    const rect=element=>safe(()=>{const r=element.getBoundingClientRect();return Object.fromEntries(['top','left','bottom','right','width','height'].map(k=>[k,r[k]]));});
++    const snapshot=()=>({anchorRect:rect(node?.getIntextTelemetryElement?.()),wrapperRect:rect(creative.container?.getElement?.()),
++      playerRect:rect(player?.el?.()),imaContainerRect:rect(safe(()=>player.el().querySelector('.ima-ad-container, .vjs-ima-ad-container'))),
++      readiness:safe(()=>node.getReadinessViewportState()),documentVisibility:scope.document?.visibilityState??null,
++      adsState:safe(()=>player.ads._state.constructor.name??player.ads.state),snapshotPresent:player?.ads?.snapshot!=null,
++      pausedForEligibility:creative._pausedForEligibility===true,playerDisposed:safe(()=>player.isDisposed?.()),
++      media:safe(()=>{const m=creative._adMediaEl??creative.videoEl;return m?{currentTime:m.currentTime,readyState:m.readyState,
++        networkState:m.networkState,paused:m.paused,ended:m.ended,videoWidth:m.videoWidth,videoHeight:m.videoHeight,error:errorInfo(m.error),currentSrc:m.currentSrc?.startsWith('data:')?'data:dummy':m.currentSrc??null}:null;})});
++    const record=(event,data={})=>{
++      const started=performance.now();
++      const entry={event,qaOnly:true,timestamp:Date.now(),monotonicMs:started,slotId:node?.id??null,cycleId:cycle,renderToken:token,...data,snapshot:safe(snapshot,{unavailable:true})};
++      entry.observerBuildMs=performance.now()-started;
++      boundedPush(entry);safe(()=>config.record?.(entry));
++      if(config.console!==false)safe(()=>console.debug('[IntextP13C QA]',entry));
++    };
++    const mobileBudgetActive=config.mobile===true&&node?.manager?.device==='mobile';
++    const clock=budget({config:{...config,mobile:mobileBudgetActive},live,record,canCancel:()=>armed&&coverage&&typeof creative._settle==='function'&&!creative._playerRevealed
++      &&safe(()=>player.ads.isInAdMode())===false&&!(creative._adMediaEl?.currentTime>0),
++      cancel:reason=>{creative._aborted=true;try{creative._settle('reject',new Error('p13c_qa_'+reason));}finally{creative.destroy();}}});
++    const listen=(target,event,handler,native=false)=>{
++      if(!target||!event)return;
++      if(native){target.addEventListener?.(event,handler);cleanup.push(()=>target.removeEventListener?.(event,handler));}
++      else {target.on?.(event,handler);cleanup.push(()=>target.off?.(event,handler));}
++    };
++    const note=(event,data={})=>{if(!live())return;record(event,data);clock.note(event,data);};
++    const bindManager=value=>{
++      if(!value){coverage=false;record('qa_manager_identity_unavailable');return;}if(manager===value)return;
++      if(manager){record('qa_manager_replaced');coverage=false;}
++      manager=value;const ima=scope.google?.ima;
++      coverage=!!ima?.AdEvent?.Type?.IMPRESSION&&typeof value.addEventListener==='function';
++      for(const key of ['LOADED','STARTED','IMPRESSION','PAUSED','RESUMED','COMPLETE','SKIPPED','ALL_ADS_COMPLETED']) {
++        listen(value,ima?.AdEvent?.Type?.[key],()=>{note('native-'+key);if(key==='COMPLETE'||key==='SKIPPED')clock.note(key.toLowerCase());},true);
++      }
++      listen(value,ima?.AdErrorEvent?.Type?.AD_ERROR,event=>{note('ima-error',{error:errorInfo(safe(()=>event.getError()))});clock.note('error');},true);
++      // Instance delegation only: observe original control calls, never initiate them.
++      for(const name of ['init','start','pause','resume']) {
++        const original=value[name];if(typeof original!=='function')continue;
++        const wrapper=function(...args){note('manager-api',{api:name,stack:new Error('QA callsite').stack});return original.apply(this,args);};
++        safe(()=>{value[name]=wrapper;});cleanup.push(()=>{if(value[name]===wrapper)value[name]=original;});
++      }
++    };
++    const controller={identity:{slotId:node?.id??null,cycleId:cycle,renderToken:token},record,afterIma() {
++      note('ima-init-returned');
++      const type=scope.google?.ima?.AdErrorEvent?.Type?.AD_ERROR;
++      if(type&&typeof player?.ima?.addEventListener==='function') {
++        const handler=event=>{note('ima-plugin-error',{error:errorInfo(safe(()=>event.getError()))});clock.note('error');};
++        try{player.ima.addEventListener(type,handler);cleanup.push(()=>player.ima?.removeEventListener?.(type,handler));}
++        catch(error){record('qa_plugin_error_listener_unavailable',{error:errorInfo(error)});}
++      }
++    },noteCore(event,data={}) {
++      if(event==='first-frame')note('first-frame',{source:data.source??null});
++      else if(event==='revealed')note('revealed',{source:data.source??null});
++      else if(['error','timeout','complete','skipped'].includes(event)){note('core-'+event,data);clock.note(event==='timeout'?'error':event);}
++    },attachPlayer(value,{beforeIma=false}={}) {
++      if(player||!value)return;player=value;armed=beforeIma;coverage=!!scope.google?.ima?.AdEvent?.Type?.IMPRESSION;
++      note('player-created');
++      for(const event of ['loadstart','play','playing','pause','ads-request','adsready','readyforpreroll','adstart','ads-load','adplaying','adtimeout','nopreroll','adserror','adend','alladscompleted','contentchanged','contentresumed']) {
++        listen(value,event,eventObject=>{note(event,{observationPhase:'listener',error:event==='adserror'?errorInfo(eventObject?.data?.AdError??eventObject?.error??null):null});
++          if(['loadstart','play','adsready','readyforpreroll'].includes(event))Promise.resolve().then(()=>note(event+'-after-dispatch',{observationPhase:'microtask'}));
++          if(['adserror','adtimeout','adend','alladscompleted'].includes(event))clock.note(event==='adend'||event==='alladscompleted'?'complete':'error');});
++      }
++      listen(value,'ads-manager',event=>{bindManager(event?.adsManager??safe(()=>value.ima.getAdsManager?.()));note('ads-manager');});
++      listen(value,'ads-loader',event=>{
++        note('ads-loader');const loader=event?.adsLoader,type=scope.google?.ima?.AdErrorEvent?.Type?.AD_ERROR;
++        listen(loader,type,errorEvent=>{note('ima-loader-error',{error:errorInfo(safe(()=>errorEvent.getError()))});clock.note('error');},true);
++      });
++      for(const name of ['play','pause','src']) {
++        const original=value[name];if(typeof original!=='function')continue;
++        const wrapper=function(...args){if(name==='src'&&!args.length)return original.apply(this,args);note('player-api',{api:name,stack:new Error('QA callsite').stack});
++          const result=original.apply(this,args);return result;};
++        safe(()=>{value[name]=wrapper;});cleanup.push(()=>{if(value[name]===wrapper)value[name]=original;});
++      }
++      listen(value,'dispose',()=>controller.dispose());
++    },dispose(){if(closed)return;record('qa_probe_disposed');closed=true;clock.dispose();for(const remove of cleanup.splice(0).reverse())safe(remove);controllers.delete(controller);},state:clock.state};
++    const surface=creative.container?.getElement?.();
++    for(const event of ['loadstart','loadedmetadata','abort','error','emptied']) {
++      const handler=e=>note('native-media-'+event,{mediaIdentity:e.target===creative.videoEl?'base':e.target===creative._adMediaEl?'ad':'other',error:errorInfo(e.target?.error)});
++      surface?.addEventListener?.(event,handler,true);cleanup.push(()=>surface?.removeEventListener?.(event,handler,true));
++    }
++    const check=()=>{
++      if(!live()){controller.dispose();return;}
++      const r=rect(node?.getIntextTelemetryElement?.());clock.checkPassed(r&&r.width>0&&r.height>0&&r.bottom<=0);
++    };
++    if(config.cancelPassed){scope.addEventListener?.('scroll',check,{passive:true});cleanup.push(()=>scope.removeEventListener?.('scroll',check));}
++    const originalDestroy=creative.destroy;
++    creative.destroy=function(...args){controller.dispose();return originalDestroy.apply(this,args);};
++    cleanup.push(()=>{creative.destroy=originalDestroy;});
++    controllers.add(controller);attached.set(creative,controller);creative._p13cProbe=controller;
++    note('qa_probe_attached',{deviceObserved:node?.manager?.device??null,mobileBudgetActive,mode:config.mode??'observe'});return controller;
++  }
++  const emitNode=(node,event,data={})=>{
++    if(!scope.__INTEXT_P13C_QA__?.enabled)return;
++    const entry={event,qaOnly:true,timestamp:Date.now(),slotId:node.id,cycleId:node._intextTelemetryCycleId??null,renderToken:node._activeRenderToken??null,...data};
++    boundedPush(entry);if(scope.__INTEXT_P13C_QA__?.console!==false)safe(()=>console.debug('[IntextP13C QA]',entry));
++  };
++  function prebidSnapshot(node,pb,configuration,auctionId,responses,stage) {
++    if(!scope.__INTEXT_P13C_QA__?.enabled)return;
++    const hb=value=>Object.fromEntries(Object.entries(value??{}).filter(([key])=>key.startsWith('hb_')));
++    const slot=node.slot,native=slot?.__ctrl?.innerObject??null;
++    emitNode(node,'qa_prebid_targeting_snapshot',{stage,auctionId,adUnitCode:configuration.code,
++      slotExists:!!slot,slotElementId:safe(()=>slot.getSlotElementId()),nativeProxySameObject:native?native===slot:null,
++      pbjsTargeting:safe(()=>pb.getAdserverTargetingForAdUnitCode(configuration.code)),
++      slotTargeting:safe(()=>hb(slot.getTargetingMap())),nativeTargeting:native?safe(()=>hb(native.getTargetingMap())):null,
++      bids:responses.map(bid=>({auctionId:bid.auctionId??null,adUnitCode:bid.adUnitCode??null,mediaType:bid.mediaType??null,
++        bidder:bid.bidderCode??bid.bidder??null,adId:bid.adId??null,rawCpm:bid.cpm??null,adserverTargeting:hb(bid.adserverTargeting)}))});
++  }
++  function markFallback(node,parentRenderToken) {
++    const candidates=entries.filter(entry=>entry.slotId===node.id&&entry.renderToken===parentRenderToken);
++    const cycles=[...new Set(candidates.map(entry=>entry.cycleId).filter(value=>value!=null))];
++    emitNode(node,'qa_fallback_bridge',{parentRenderToken,parentCycleId:cycles.length===1?cycles[0]:null});
++  }
++  const visibleObservers=new WeakMap();
++  function markDisplayOpened(node) {
++    if(!scope.__INTEXT_P13C_QA__?.enabled)return;
++    visibleObservers.get(node)?.();
++    const element=node.container?.getElement?.(),token=node._activeRenderToken,removers=[];let done=false,raf=null,timer=null;
++    const stop=()=>{if(done)return;done=true;for(const fn of removers)fn();if(timer!=null)clearTimeout(timer);if(raf!=null)scope.cancelAnimationFrame?.(raf);visibleObservers.delete(node);displayCleanups.delete(stop);};
++    const check=()=>{
++      if(!node.isActiveRenderToken(token)){stop();return;}
++      const r=safe(()=>element.getBoundingClientRect()),readiness=safe(()=>node.getReadinessViewportState());
++      let cssVisible=true;for(let el=element,depth=0;el&&depth<12;el=el.parentElement,depth++) {
++        const css=safe(()=>scope.getComputedStyle(el));if(css&&(css.display==='none'||css.visibility==='hidden'||Number(css.opacity)===0))cssVisible=false;
++      }
++      const overlap=!!r&&r.width>0&&r.height>0&&r.bottom>0&&r.top<scope.innerHeight&&r.right>0&&r.left<scope.innerWidth;
++      const visible=cssVisible&&overlap&&scope.document.visibilityState==='visible';
++      emitNode(node,'qa_display_dom_visibility',{visibleDomProxy:visible,wrapperRect:r?{top:r.top,bottom:r.bottom,left:r.left,right:r.right,width:r.width,height:r.height}:null,
++        readinessEligible:readiness?.eligible??null,source:'DOM-CSS-geometry-NOT-pixel-or-ActiveView'});
++      if(visible)stop();
++    };
++    for(const name of ['transitionend','animationend']){element?.addEventListener?.(name,check);removers.push(()=>element?.removeEventListener?.(name,check));}
++    scope.addEventListener?.('scroll',check,{passive:true});removers.push(()=>scope.removeEventListener?.('scroll',check));
++    scope.document?.addEventListener?.('visibilitychange',check);removers.push(()=>scope.document?.removeEventListener?.('visibilitychange',check));
++    timer=setTimeout(stop,5000);if(scope.requestAnimationFrame)raf=scope.requestAnimationFrame(check);
++    displayCleanups.add(stop);visibleObservers.set(node,stop);check();
++  }
++  const guarded=fn=>(...args)=>{try{return fn(...args);}catch(error){boundedPush({event:'qa_probe_internal_error',qaOnly:true,timestamp:Date.now(),error:errorInfo(error)});return null;}};
++  const api={budget,errorInfo,attach:guarded(attach),entries,prebidSnapshot:guarded(prebidSnapshot),markFallback:guarded(markFallback),markDisplayOpened:guarded(markDisplayOpened),
++    stats:()=>({droppedEntries,activeCreatives:controllers.size,displayObservers:displayCleanups.size}),
++    dispose(){for(const controller of [...controllers])controller.dispose();for(const stop of [...displayCleanups])stop();globalErrorCleanup?.();}};
++  if(typeof module!=='undefined')module.exports=api;else scope.IntextP13C=api;
++})(typeof window!=='undefined'?window:globalThis);
+diff --git a/tests/qa/intext-p13c-build.cjs b/tests/qa/intext-p13c-build.cjs
+new file mode 100644
+index 0000000..35e683c
+--- /dev/null
++++ b/tests/qa/intext-p13c-build.cjs
+@@ -0,0 +1,35 @@
++'use strict';
++// Generates an explicitly labelled QA copy. Never writes either production distribution.
++const fs=require('node:fs'),path=require('node:path');
++function instrument(source,probe,config={enabled:true,mode:'observe',console:false,captureErrors:true}) {
++  const start=source.indexOf('class IntextVideoCreative {');
++  if(start<0)throw Error('Missing current creative');
++  let end=source.indexOf('class WPromise {',start);if(end<0)end=source.length;
++  let core=source.slice(start,end);
++  const insert=(marker,replacement)=>{if(core.split(marker).length!==2)throw Error('QA marker must match exactly once: '+marker);core=core.replace(marker,replacement);};
++  insert('  createVideoElement() {','  createVideoElement() {\n    window.IntextP13C?.attach(this, window.__INTEXT_P13C_QA__ || {});');
++  insert('    this.initVideoJS();','    this._p13cProbe?.record("videojs-init-called");\n    this.initVideoJS();\n    this._p13cProbe?.attachPlayer(this.player,{beforeIma:true});');
++  insert('      const debugVideo = (event, data = {}) => {','      const debugVideo = (event, data = {}) => {\n        this._p13cProbe?.noteCore(event, data);');
++  insert('          this.player.ima(options);','          this.player.ima(options);\n          this._p13cProbe?.afterIma();');
++  let result=source.slice(0,start)+core+source.slice(end);
++  const hook=(marker,replacement)=>{if(result.split(marker).length!==2)throw Error('QA boundary must match once: '+marker);result=result.replace(marker,replacement);};
++  hook('            pb.setTargetingForGPTAsync([configuration.code]);',
++    '            window.IntextP13C?.prebidSnapshot(this.node,pb,configuration,auctionId,allResponses,"before-set");\n'+
++    '            pb.setTargetingForGPTAsync([configuration.code]);\n'+
++    '            window.IntextP13C?.prebidSnapshot(this.node,pb,configuration,auctionId,allResponses,"after-set");');
++  hook('    const fallbackRenderToken = this.node._activeRenderToken;',
++    '    const fallbackRenderToken = this.node._activeRenderToken;\n    window.IntextP13C?.markFallback(this.node,renderToken);');
++  hook('      this.markIntextRealRenderTelemetry("display-open", trigger);',
++    '      this.markIntextRealRenderTelemetry("display-open", trigger);\n      window.IntextP13C?.markDisplayOpened(this);');
++  return '/* P1.3c QA INSTRUMENTED COPY — NOT FOR PRODUCTION */\n'+probe+'\nwindow.__INTEXT_P13C_QA__ = '+JSON.stringify(config).replace(/</g,'\\u003c')+';\n'+result;
++}
++module.exports={instrument};
++if(require.main===module) {
++  const root=path.resolve(__dirname,'../..'),name=process.argv[2]??'_gam_kv_.js';
++  if(!['_gam_kv_.js','IntextManager.js'].includes(name))throw Error('Choose an existing Intext distribution');
++  const output=path.join(__dirname,'generated',name==='IntextManager.js'?'intext-p13c-manager.qa.js':'intext-p13c-gam.qa.js');
++  fs.mkdirSync(path.dirname(output),{recursive:true});
++  const config=process.argv[3]?JSON.parse(fs.readFileSync(process.argv[3],'utf8')):{enabled:true,mode:'observe',console:false,captureErrors:true};
++  fs.writeFileSync(output,instrument(fs.readFileSync(path.join(root,name),'utf8'),fs.readFileSync(path.join(__dirname,'intext-p13c-probe.cjs'),'utf8'),config));
++  console.log(output);
++}
+diff --git a/tests/qa/intext-p13c-timelines.cjs b/tests/qa/intext-p13c-timelines.cjs
+new file mode 100644
+index 0000000..893d5fe
+--- /dev/null
++++ b/tests/qa/intext-p13c-timelines.cjs
+@@ -0,0 +1,56 @@
++'use strict';
++const fs=require('node:fs'),path=require('node:path');
++function logArray(input) {
++  if(Array.isArray(input))return input;
++  for(const value of [input.entries,input.logs,input.logs?.entries,input.debug?.entries,input.logBuffer?.entries,input.buffer?.entries])if(Array.isArray(value))return value;
++  throw Error('Unknown dump schema: expected explicit logs/entries array');
++}
++function normalize(input) {
++  return logArray(input).map(entry=>{
++    const arg=entry.args?.find?.(value=>value&&typeof value==='object'&&!Array.isArray(value))||{};
++    const data={...entry,...arg,...entry.data};
++    const message=String(entry.message??'');
++    const event=String(data.metric??entry.event??message.match(/\[IntextMetrics\]\s+(\S+)/)?.[1]??message);
++    let timestamp=data.timestamp;
++    if(typeof timestamp==='string')timestamp=Date.parse(timestamp);
++    const relative=entry.elapsedMs;
++    return {event,data,message,timestamp:Number.isFinite(timestamp)?timestamp:Number.isFinite(relative)?relative:null,
++      timebase:Number.isFinite(timestamp)?'timestamp':'relative',slotId:data.slotId??null,cycleId:data.cycleId??null,renderToken:data.renderToken??null};
++  });
++}
++const aliases={request:['video_ima_request_sent','video_ads_request','ads-request','player-ads-request'],manager:['video_ads_manager_loaded','ads-manager','player-ads-manager'],
++  adsready:['adsready','player-adsready'],preroll:['readyforpreroll','player-readyforpreroll'],start:['video_ima_started','video_adstart','adstart','native-STARTED','player-adstart'],
++  frame:['video_first_frame','first-frame'],reveal:['video_player_revealed','revealed'],
++  error:['video_error','ima-error','ima-plugin-error','core-error'],timeout:['video_timeout','video_advertising_timeout','core-timeout'],
++  fallback:['display_fallback_started','video_fallback_started','qa_fallback_bridge'],gptRequest:['display_slot_requested','display_request_started'],
++  render:['display_slot_render_ended'],open:['display_wrapper_opened'],visible:['qa_display_dom_visibility'],activeView:['display_impression_viewable']};
++function summarize(input,name='dump') {
++  const rows=normalize(input),groups=new Map();
++  for(const row of rows){const key=JSON.stringify([row.slotId,row.cycleId,row.renderToken]);if(!groups.has(key))groups.set(key,[]);groups.get(key).push(row);}
++  return {name,entryCount:rows.length,cycles:[...groups.values()].map(events=>{
++    const first=events[0],timeline={};
++    for(const [stage,names] of Object.entries(aliases)){const match=events.find(row=>names.includes(row.event));timeline[stage]=match?{at:match.timestamp,timebase:match.timebase,event:match.event}:null;}
++    const delta=(a,b)=>timeline[a]?.at!=null&&timeline[b]?.at!=null&&timeline[a].timebase===timeline[b].timebase&&timeline[b].at>=timeline[a].at?timeline[b].at-timeline[a].at:null;
++    return {slotId:first.slotId,cycleId:first.cycleId,renderToken:first.renderToken,correlationComplete:first.slotId!=null&&first.cycleId!=null&&first.renderToken!=null,
++      timeline,requestToManagerMs:delta('request','manager'),managerToPrerollMs:delta('manager','preroll'),requestToFrameMs:delta('request','frame'),
++      frameToRevealMs:delta('frame','reveal'),gamRenderToOpenMs:delta('render','open'),
++      missingTransitions:['adsready','preroll','start','frame'].filter(stage=>!timeline[stage]),
++      missingMeans:'not-observed-in-this-export-NOT-proof-event-did-not-fire',
++      geometry:events.filter(row=>row.data.readinessAnchorRect||row.data.wrapperRect||row.data.snapshot?.anchorRect).map(row=>({at:row.timestamp,event:row.event,
++        anchor:row.data.readinessAnchorRect??row.data.snapshot?.anchorRect??null,wrapper:row.data.wrapperRect??row.data.snapshot?.wrapperRect??null,
++        readinessRatio:row.data.readinessIntersectionRatio??row.data.snapshot?.readiness?.intersectionRatio??null,wrapperRatio:row.data.wrapperIntersectionRatio??row.data.intersectionRatio??null})),
++      prebidWarnings:events.filter(row=>row.message.includes('intext_prebid_targeting_missing_after_bid')).length};
++  })};
++}
++function harRequests(har) {
++  return (har.log?.entries??[]).filter(entry=>{try{return new URL(entry.request.url).pathname==='/gampad/ads';}catch{return false;}}).map(entry=>({
++    startedAt:Date.parse(entry.startedDateTime),status:entry.response?.status??null,totalMs:entry.time??null,blockedMs:entry.timings?.blocked??null,
++    waitMs:entry.timings?.wait??null,otherTimings:entry.timings??null,bodyAvailable:typeof entry.response?.content?.text==='string',
++    correlation:'manual-request-identity-required-NOT-nearest-timestamp'}));
++}
++module.exports={normalize,summarize,harRequests};
++if(require.main===module) {
++  if(process.argv.length<3)throw Error('Pass explicit JSON/HAR paths; inputs are read-only');
++  const reports=process.argv.slice(2).map(file=>{const input=JSON.parse(fs.readFileSync(file,'utf8').replace(/^\uFEFF/,''));return input.log?.entries?{name:path.basename(file),har:harRequests(input)}:summarize(input,path.basename(file));});
++  console.log(JSON.stringify({qaOnly:true,reports},null,2));
++}
+diff --git a/tests/qa/intext-p13c-replay.cjs b/tests/qa/intext-p13c-replay.cjs
+new file mode 100644
+index 0000000..9be133e
+--- /dev/null
++++ b/tests/qa/intext-p13c-replay.cjs
+@@ -0,0 +1,46 @@
++'use strict';
++const fs=require('node:fs'),path=require('node:path'),crypto=require('node:crypto');
++const {summarize}=require('./intext-p13c-timelines.cjs');
++const suffixes=['10-04-40-566Z','10-05-48-573Z','10-27-37-390Z','10-28-30-220Z','10-29-27-305Z','10-30-10-902Z','10-35-43-997Z'];
++const selected=new Set(['video_prepare_ready','video_activation_started','video_player_prepared','video_ima_request_sent','video_ads_manager_loaded',
++  'video_adstart','video_first_frame','video_player_revealed','video_complete','video_error','video_timeout','video_missed_viewport',
++  'video_recovery_requested','video_recovery_api_called','video_recovery_cancelled','video_recovery_confirmed',
++  'display_fallback_started','display_request_started','display_slot_requested','display_slot_response_received','display_slot_render_ended',
++  'display_creative_ready','display_viewport_wait_started','display_viewport_wait_resolved','display_wrapper_opened','display_impression_viewable']);
++function replay(directory) {
++  const names=fs.readdirSync(directory),reports=[];
++  for(const suffix of suffixes) {
++    const matches=names.filter(name=>name.includes('2026-10-19T'+suffix)&&name.endsWith('.json'));
++    if(matches.length!==1)throw Error('Expected exactly one original capture for '+suffix);
++    const name=matches[0],bytes=fs.readFileSync(path.join(directory,name)),dump=JSON.parse(bytes.toString('utf8'));
++    const timeline=dump.logs.flatMap(entry=>{
++      const data=entry.args?.find(value=>value&&typeof value==='object')||{};
++      if(!selected.has(data.metric))return [];
++      return [{sequence:entry.sequence,elapsedMs:entry.elapsedMs,event:data.metric,slotId:data.slotId??null,cycleId:data.cycleId??null,renderToken:data.renderToken??null,
++        source:data.source??null,reason:data.reason??null,errorCode:data.imaErrorCode??data.errorCode??null,
++        currentTime:data.currentTime??null,readinessRatio:data.readinessIntersectionRatio??null,wrapperRatio:data.wrapperIntersectionRatio??null,
++        readinessAnchorRect:data.readinessAnchorRect??null,wrapperRect:data.wrapperRect??null,
++        documentVisibility:data.documentVisibility??null,pausedForEligibility:data.pausedForEligibility??null}];
++    });
++    const states=dump.summary.slotsAndCycles.filter(cycle=>cycle.slotId==='gexp-intext'&&(cycle.video.requestStarted||cycle.display.opened)).map(cycle=>({
++      slotId:cycle.slotId,cycleId:cycle.cycleId,renderToken:cycle.renderToken,video:{activationToFirstFrameMs:cycle.video.activationToFirstFrameMs,
++        firstFrame:cycle.video.firstFrame,complete:cycle.video.complete,error:cycle.video.error,timeout:cycle.video.timeout,firstFrameSource:cycle.video.firstFrameSource},
++      display:cycle.display}));
++    const warningEntries=dump.logs.filter(entry=>entry.message.includes('intext_prebid_targeting_missing_after_bid')).map(entry=>({elapsedMs:entry.elapsedMs,data:entry.args?.find(value=>value&&typeof value==='object')??null}));
++    const nativeAudits=dump.logs.filter(entry=>entry.message.includes('intext_prebid_native_targeting_after_set_audit')).map(entry=>{
++      const a=entry.args?.find(value=>value&&typeof value==='object')||{};
++      return {elapsedMs:entry.elapsedMs,slotId:a.slotId,auctionId:a.auctionId,renderToken:a.renderToken,cycleId:a.cycleId,
++        pbjsTargeting:a.pbjsTargeting,gptSlotTargeting:a.gptSlotTargeting,gptSlotTargetingApiAvailable:a.gptSlotTargetingApiAvailable,
++        rawBannerBids:a.rawBannerBids?.map(bid=>({bidder:bid.bidder,adId:bid.adId,rawCpm:bid.rawCpm,adserverTargeting:bid.adserverTargeting}))};
++    });
++    const diagnosticMessages=dump.logs.filter(entry=>/readyforpreroll|adsready|loadstart|player\.play\(\)|suppressedTracks|NotSupportedError|AbortError|Could not attach native|Initializing IMA immediately/.test(entry.message)).map(entry=>({sequence:entry.sequence,elapsedMs:entry.elapsedMs,message:entry.message.replace(/https?:\/\/\S+/g,'[URL]'),
++      errors:entry.args?.filter(value=>value&&typeof value==='object'&&('stack'in value||'message'in value)).map(value=>({name:value.name??null,message:value.message??null,stack:value.stack??null}))}));
++    reports.push({name,sha256:crypto.createHash('sha256').update(bytes).digest('hex'),runtime:dump.runtime,logCount:dump.logs.length,
++      states,timeline,diagnosticMessages,warningEntries,nativeAudits,parser:summarize(dump,name).cycles.map(cycle=>({slotId:cycle.slotId,cycleId:cycle.cycleId,renderToken:cycle.renderToken,
++        requestToManagerMs:cycle.requestToManagerMs,managerToPrerollMs:cycle.managerToPrerollMs,requestToFrameMs:cycle.requestToFrameMs}))});
++  }
++  return {source:'original-19Oct2026-JSON-read-only',reports};
++}
++module.exports={replay};
++if(require.main===module){const text=JSON.stringify(replay(process.argv[2]||path.join(process.env.USERPROFILE,'Downloads')),null,2);
++  if(process.argv[3]==='--out'&&process.argv[4])fs.writeFileSync(process.argv[4],text+'\n');else console.log(text);}
+diff --git a/tests/qa/intext-p13c-config.example.json b/tests/qa/intext-p13c-config.example.json
+new file mode 100644
+index 0000000..9d60eca
+--- /dev/null
++++ b/tests/qa/intext-p13c-config.example.json
+@@ -0,0 +1,11 @@
++{
++  "enabled": true,
++  "captureErrors": true,
++  "console": false,
++  "mode": "shadow",
++  "mobile": true,
++  "totalMs": 10000,
++  "managerMs": null,
++  "cancelPassed": false,
++  "qaConfirmed": false
++}
+diff --git a/tests/qa/generated/.gitignore b/tests/qa/generated/.gitignore
+new file mode 100644
+index 0000000..def1020
+--- /dev/null
++++ b/tests/qa/generated/.gitignore
+@@ -0,0 +1 @@
++*.qa.js
+diff --git a/tests/intext-p13c-latency.audit.test.cjs b/tests/intext-p13c-latency.audit.test.cjs
+new file mode 100644
+index 0000000..5bbdc7d
+--- /dev/null
++++ b/tests/intext-p13c-latency.audit.test.cjs
+@@ -0,0 +1,108 @@
++'use strict';
++const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path');
++const probeApi=require('./qa/intext-p13c-probe.cjs'),{budget,errorInfo}=probeApi;
++const {instrument}=require('./qa/intext-p13c-build.cjs');
++const {normalize,summarize,harRequests}=require('./qa/intext-p13c-timelines.cjs');
++const vm=require('node:vm');
++function clock(config={}) {
++  let now=0,id=0,valid=true,allowed=true;const timers=new Map(),logs=[],cancelled=[];
++  const b=budget({config,now:()=>now,setTimer:(fn,ms)=>{const key=++id;timers.set(key,{fn,at:now+ms});return key;},clearTimer:key=>timers.delete(key),
++    live:()=>valid,canCancel:()=>allowed,record:(event,data)=>logs.push({event,...data}),cancel:reason=>cancelled.push(reason)});
++  return {b,logs,cancelled,timers,setLive:value=>valid=value,setAllowed:value=>allowed=value,tick(ms,drift=0){const target=now+ms;now=target+drift;
++    for(const [key,timer]of[...timers])if(timer.at<=target){timers.delete(key);timer.fn();}},get now(){return now;}};
++}
++const enforcement={mode:'enforce',mobile:true,qaConfirmed:true,totalMs:10000};
++test('observe is default and never installs deadline timers',()=>{const f=clock({mobile:true,totalMs:10000});f.b.note('ads-request');assert.equal(f.timers.size,0);});
++for(const totalMs of [10000,12000])test('explicit QA mobile deadline '+totalMs+' cancels once at boundary',()=>{
++  const f=clock({...enforcement,totalMs});f.b.note('ads-request');f.tick(totalMs-1);assert.equal(f.cancelled.length,0);f.tick(1);f.tick(25000);
++  assert.deepEqual(f.cancelled,['request-to-frame']);assert.equal(f.timers.size,0);
++});
++for(const config of [{mode:'shadow',mobile:true,qaConfirmed:true,totalMs:10000},{...enforcement,mobile:false},{...enforcement,qaConfirmed:false}])test('non-enforcing/unconfirmed/desktop policy never cancels '+JSON.stringify(config),()=>{
++  const f=clock(config);f.b.note('ads-request');f.tick(15000);assert.equal(f.cancelled.length,0);
++});
++test('shadow preserves a valid frame after expiry for opportunity-loss measurement',()=>{const f=clock({mode:'shadow',mobile:true,totalMs:10000});f.b.note('ads-request');f.tick(11000);f.b.note('first-frame');assert.equal(f.cancelled.length,0);assert.equal(f.b.state().frame,true);});
++test('manager watchdog is separate, optional and not rearmed by duplicate events',()=>{
++  const f=clock({...enforcement,managerMs:3000});f.b.note('ads-request');f.tick(1000);f.b.note('ads-manager');f.tick(2999);f.b.note('ads-manager');assert.equal(f.cancelled.length,0);f.tick(1);assert.deepEqual(f.cancelled,['manager-to-preroll']);
++});
++test('readyforpreroll cancels only manager watchdog; total request deadline remains',()=>{
++  const f=clock({...enforcement,managerMs:1000});f.b.note('ads-request');f.b.note('ads-manager');f.b.note('readyforpreroll');assert.equal(f.timers.size,1);f.tick(10000);assert.equal(f.cancelled.length,1);
++});
++for(const event of ['adstart','native-STARTED','native-IMPRESSION'])test(event+' blocks cancellation even if no frame yet',()=>{
++  const f=clock(enforcement);f.b.note('ads-request');f.b.note(event);f.tick(10000);assert.equal(f.cancelled.length,0);assert.ok(f.logs.some(log=>log.event==='qa_budget_cancel_blocked'));
++});
++test('unproven ownership blocks enforcement',()=>{const f=clock(enforcement);f.setAllowed(false);f.b.note('ads-request');f.tick(10000);assert.equal(f.cancelled.length,0);});
++for(const event of ['first-frame','error','complete','skipped','destroy','abort'])test(event+' clears all diagnostic timers',()=>{
++  const f=clock({...enforcement,managerMs:2000});f.b.note('ads-request');f.b.note('ads-manager');f.b.note(event);assert.equal(f.timers.size,0);f.tick(30000);assert.equal(f.cancelled.length,0);
++});
++test('stale token cannot cancel, and cannot resurrect by becoming live later',()=>{const f=clock(enforcement);f.b.note('ads-request');f.setLive(false);f.tick(10000);f.setLive(true);f.b.note('ads-manager');assert.equal(f.timers.size,0);assert.equal(f.cancelled.length,0);});
++test('passed anchor opt-in and started guards preserve safe cancellation',()=>{
++  const f=clock({...enforcement,cancelPassed:true});f.b.checkPassed(false);assert.equal(f.cancelled.length,0);f.b.checkPassed(true);assert.deepEqual(f.cancelled,['anchor-passed']);
++  const active=clock({...enforcement,cancelPassed:true});active.b.note('native-STARTED');active.b.checkPassed(true);assert.equal(active.cancelled.length,0);
++});
++test('late callback records event-loop drift without treating it as network latency',()=>{const f=clock(enforcement);f.b.note('ads-request');f.tick(10000,900);assert.equal(f.logs[0].timerDriftMs,900);assert.equal(f.logs[0].clockSource,'plugin-ads-request-proxy-NOT-HTTP');});
++test('invalid policy is rejected without inventing defaults',()=>{assert.throws(()=>clock({mode:'other'}),/Unknown/);assert.throws(()=>clock({totalMs:-1}),/Invalid/);});
++test('IMA error payload preserves SDK type, inner error and stack including 1005',()=>{
++  const inner=new Error('network detail'),error=Object.assign(new Error('request failed'),{getErrorCode:()=>1005,getType:()=> 'adLoadError',getInnerError:()=>inner,getVastErrorCode:()=>900});
++  const result=errorInfo(error);assert.equal(result.code,1005);assert.equal(result.type,'adLoadError');assert.equal(result.inner.stack,inner.stack);assert.equal(result.stack,error.stack);
++});
++test('optional error getters may throw without disrupting diagnosis',()=>{assert.equal(errorInfo({getErrorCode(){throw Error();}}).code,null);});
++test('QA cannot break playback if the plugin error-listener API requires a manager first',()=>{
++  const previous=global.google;global.google={ima:{AdErrorEvent:{Type:{AD_ERROR:'error'}},AdEvent:{Type:{IMPRESSION:'impression'}}}};
++  try{const logs=[],creative={node:{id:'A',isActiveRenderToken:()=>true},_renderToken:1,destroy(){}};
++    const player={on(){},off(){},ima:{addEventListener(){throw Error('manager not ready');}}};
++    const p=probeApi.attach(creative,{enabled:true,console:false,record:entry=>logs.push(entry)});p.attachPlayer(player,{beforeIma:true});
++    assert.doesNotThrow(()=>p.afterIma());assert.ok(logs.some(entry=>entry.event==='qa_plugin_error_listener_unavailable'));p.dispose();
++  }finally{global.google=previous;}
++});
++test('QA API wrappers preserve this, original return identity and never subscribe to play rejection',()=>{
++  let calls=0,subscriptions=0;const result={then(){subscriptions++;}},creative={node:{id:'B',isActiveRenderToken:()=>true},_renderToken:1,destroy(){}};
++  const player={on(){},off(){},play(){assert.equal(this,player);calls++;return result;}};
++  const p=probeApi.attach(creative,{enabled:true,console:false});p.attachPlayer(player,{beforeIma:true});
++  assert.equal(player.play(),result);assert.equal(calls,1);assert.equal(subscriptions,0);p.dispose();
++});
++for(const device of ['desktop',undefined])test('QA denies mobile budgets when actual manager device is '+device,()=>{
++  const callbacks=new Map(),creative={node:{id:'guard',manager:{device},isActiveRenderToken:()=>true},_renderToken:1,destroy(){}};
++  const player={on:(event,fn)=>callbacks.set(event,fn),off:event=>callbacks.delete(event)};
++  const p=probeApi.attach(creative,{enabled:true,...enforcement,console:false});p.attachPlayer(player,{beforeIma:true});
++  callbacks.get('ads-request')();assert.equal(p.state().pendingTimers,0);p.dispose();
++});
++for(const file of ['_gam_kv_.js','IntextManager.js'])test(file+': QA builder keeps all original commercial calls and preserves production input',()=>{
++  const before=fs.readFileSync(path.join(__dirname,'..',file),'utf8'),probe=fs.readFileSync(path.join(__dirname,'qa/intext-p13c-probe.cjs'),'utf8');
++  const output=instrument(before,probe,{enabled:true,mode:'shadow'});
++  assert.equal(fs.readFileSync(path.join(__dirname,'..',file),'utf8'),before);
++  assert.ok(output.includes('NOT FOR PRODUCTION'));new Function(output);
++  for(const marker of ['this.player.ima(options);','const playPromise = this.player.play();','pb.setTargetingForGPTAsync([configuration.code]);'])assert.equal(output.split(marker).length,before.split(marker).length);
++  assert.ok(output.includes('before-set'));assert.ok(output.includes('after-set'));assert.ok(output.includes('markFallback(this.node,renderToken)'));
++});
++test('builder rejects incompatible source instead of silently patching a different lifecycle',()=>assert.throws(()=>instrument('class IntextVideoCreative {}',''),/marker/));
++test('timeline retains case-sensitive JSON keys, separates tokens and never invents absent milestones',()=>{
++  const input={logs:[{timestamp:1,message:'[IntextMetrics] video_ads_manager_loaded',args:[{slotId:'A',cycleId:1,renderToken:1,playerSize:1,playersize:2}]},{timestamp:5,message:'[IntextMetrics] display_wrapper_opened',args:[{slotId:'A',cycleId:2,renderToken:2}]}]};
++  assert.equal(normalize(input)[0].data.playersize,2);const result=summarize(input);assert.equal(result.cycles.length,2);assert.equal(result.cycles[0].timeline.frame,null);assert.equal(result.cycles[0].requestToFrameMs,null);
++});
++test('HAR blocked remains separate from wait and absent XML body stays unknown',()=>{
++  const result=harRequests({log:{entries:[{startedDateTime:'2026-10-19T10:00:00Z',request:{url:'https://pubads.g.doubleclick.net/gampad/ads'},response:{status:200,content:{}},time:4209,timings:{blocked:4073,wait:92}}]}})[0];
++  assert.equal(result.blockedMs,4073);assert.equal(result.waitMs,92);assert.equal(result.bodyAvailable,false);
++});
++for(const file of ['_gam_kv_.js','IntextManager.js'])for(const allowed of [true,false])test(file+': real core settlement/cleanup preserves fallback authorization '+allowed,async()=>{
++  const text=fs.readFileSync(path.join(__dirname,'intext-ima-preload-first-frame.audit.test.cjs'),'utf8'),context={require,__dirname,URL,URLSearchParams};
++  vm.runInNewContext(text.slice(0,text.indexOf("for (const file of"))+'\nthis.fixture=fixture;',context);
++  const f=context.fixture(file),r=f.playback();r.creative.abort();await r.result;
++  f.context.performance={now:()=>f.context.Date.now()};f.window.document=f.document;
++  f.window.google.ima.AdEvent.Type.IMPRESSION='impression';
++  vm.runInContext(fs.readFileSync(path.join(__dirname,'qa/intext-p13c-probe.cjs'),'utf8'),f.context);
++  const probe=f.window.IntextP13C,creative=new f.Creative({node:r.node,container:r.container,config:{},adTagUrl:'test-vast'});
++  r.node.manager={device:'mobile'};creative.player=r.player;r.player.ads={isInAdMode:()=>false};let disposals=0;r.player.dispose=()=>{disposals++;};
++  const manager=f.element();r.player.ima.getAdsManager=()=>manager;
++  const observer=probe.attach(creative,{enabled:true,mode:'enforce',mobile:true,qaConfirmed:true,managerMs:1000,console:false});observer.attachPlayer(r.player,{beforeIma:true});
++  const result=creative.requestAds().catch(error=>error);r.adsManagerLoaded();
++  const begin=f.source.indexOf('  async requestWinner('),end=f.source.indexOf('  async _requestFormat(',begin);
++  vm.runInContext('this.Winner=class {'+f.source.slice(begin,end)+'};',f.context);
++  let displayRequests=0,closed=0;Object.assign(r.node,{closeAll(){closed++;},beginVisualRender(){return ++this._activeRenderToken;},startIntextTelemetryCycle(){},ensureSingleVisibleIntextSurface(){}});
++  const wf=Object.assign(new f.context.Winner(),{node:r.node,lastTrigger:'QA',_requestFormat:async format=>{
++    if(format==='video'){await result;return false;}displayRequests++;return true;
++  }});
++  const finish=wf.requestWinner('video','display',allowed);f.tick(1000);await finish;
++  assert.match(String(await result),/p13c_qa_manager-to-preroll/);assert.equal(disposals,1);assert.equal(creative._aborted,true);
++  assert.equal(displayRequests,allowed?1:0);assert.equal(closed,allowed?0:1);assert.equal(f.timers.size,0);
++  r.started();r.frame();assert.equal(r.opens,0);assert.equal(disposals,1);probe.dispose();
++});
+diff --git a/docs/intext-p13c-diagnostico.md b/docs/intext-p13c-diagnostico.md
+new file mode 100644
+index 0000000..0d1c819
+--- /dev/null
++++ b/docs/intext-p13c-diagnostico.md
+@@ -0,0 +1,156 @@
++# P1.3c — diagnóstico residual, propuesta QA y validación pendiente
++
++No se modifica producción. `_gam_kv_.js` e `IntextManager.js` conservan los SHA256 de P1.3b: `1CDE1CCDC962C07D5833DC9691A3BFE31B7DD74B3E649E89153A240940A06690` y `BA832DC0EB3C0F6E1070A515FAC09DD31467E2C7A5A64A18FF4E4F4C063FEAD8`. Versión sin cambio. Sin commit, push ni despliegue. **P1.3c no está resuelta ni aprobada: faltan nuevas pruebas Chrome/SDK de esta propuesta.**
++
++## Evidencia original reutilizada
++
++Se localizaron los siete JSON originales en Downloads. `intext-p13c-real-evidence.json` contiene nombres completos, hashes SHA256, runtime, métricas correlacionadas por slot/cycle/token, geometría, diagnósticos y auditorías Prebid extraídas mediante Node. Los originales se leen y no se modifican. Otros dos JSON del 19/10 (10:07 y 10:09) no forman parte del conjunto solicitado. El único HAR disponible, `127.0.0.1.har`, es del **13/10 14:02–14:34 UTC**: no se usa para atribuir red, HTTP ni blocked a los casos del 19/10.
++
++| Fichero (sufijo UTC) | Contexto | Resultado inicial Slot 1 |
++|---|---|---|
++| 10-04-40-566Z | PSP/dual; random nativo GPT | Vídeo completo; activation→frame 6659 ms |
++| 10-05-48-573Z | PSP/dual; random nativo GPT | Display directo; request métrica→open 7027 ms |
++| 10-27-37-390Z | Sin PSP; gexp-owner-random | Vídeo completo; activation→frame 5021 ms |
++| 10-28-30-220Z | Sin PSP; gexp-owner-random | 1005; request proxy→error 8155 ms; fallback open 18,132 s |
++| 10-29-27-305Z | Sin PSP; gexp-owner-random | AdsManager sin readyforpreroll/frame; timeout; fallback open 36,260 s |
++| 10-30-10-902Z | Sin PSP; gexp-owner-random | Vídeo completo; activation→frame 7678 ms |
++| 10-35-43-997Z | Sin PSP; gexp-owner-random | 1005; request proxy→error 19047 ms; fallback open 31,640 s |
++
++Todos usan la misma cadena de versión Intext; no inferir hashes del bundle desde esa cadena. Los tiempos de esta tabla salen de entradas métricas, que pueden diferir unos ms de logs de texto/observación visual. El request proxy es `video_ima_request_sent` (evento player ads-request), **no el instante HTTP probado por HAR**.
++
++Reproducción offline exacta:
++
++```powershell
++node tests/qa/intext-p13c-replay.cjs "$env:USERPROFILE/Downloads" --out docs/intext-p13c-real-evidence.json
++```
++
++El parser conserva las claves case-sensitive playerSize/playersize. PowerShell ConvertFrom-Json de esta máquina rechaza ese esquema; no se ha normalizado ni eliminado ninguna clave de los originales para sortearlo.
++
++## Prioridad 1 — móvil 10:29
++
++| Hito | t desde inicio del dump |
++|---|---:|
++| Dependencias preparadas | 7,584 s |
++| Activation started | 7,856 s |
++| Log inicio IMA inmediato tras Video.js | 7,863 s |
++| Plugin inicializado (log) | 7,869 s |
++| Player/plugin prepared (métrica) | 7,870 s |
++| ads-request proxy (métrica) | 8,052 s |
++| player.play llamado (log) | 8,058 s |
++| AdsManager recibido | 11,430 s |
++| Primer anchor pasado | 22,836 s |
++| Reentrada; recovery solicitado/API llamada | 24,019 / 24,020 s |
++| Nueva salida; recovery cancelado | 25,538 s |
++| Timeout de seguridad | 32,867 s |
++| Fallback iniciado / petición Display | 32,915 / 32,917 s |
++| GPT slotRequested / response / render | 33,335 / 33,762 / 33,834 s |
++| Espera visual resuelta / wrapper abierto | 36,252 / 36,260 s |
++| Evento GPT impressionViewable | 37,333 s |
++
++Al recibir AdsManager el anchor está completamente visible (ratio 1); el wrapper mide altura 0 y ratio 0. El primer missed-viewport llega **11,406 s después** del manager: salida/recovery no explican el inicio del bloqueo. No hay readyforpreroll, adstart ni first-frame en este export. No se registra AbortError de play en este caso. Tampoco hay evidencia de inicialización tardía como en Lifecycle A: P1.3b ejecuta el init inmediato. **No hay causa residual demostrada.**
++
++Faltan señales discriminantes: loadstart real, dispatch de play, adsready y estado de contrib-ads antes/después de esos eventos, estado/retorno de init/start del manager y swaps de source/media. El código productivo actual no registra todos esos eventos; ausencia de adsready en el JSON no prueba que no haya ocurrido. Una llamada player.play no prueba dispatch de play ni reproducción. AdsManager no demuestra que el ad-break se haya iniciado.
++
++Hipótesis ordenadas para la siguiente prueba:
++
++1. Prerrequisito play/adsready o transición interna de contrib-ads no alcanzado: capturar ambos eventos y estado antes/después del dispatch. Si ambos llegan y readyforpreroll no, concentrarse en FSM/source/loadstart; si falta play, investigar promise/tech/autoplay; si falta adsready, SDK→plugin.
++2. Loadstart/source/ready de la tech desincronizados pese a init en el mismo turno: capturar native loadstart desde antes de crear el vídeo, player loadstart, contentchanged, src setters y snapshot. No emitir un loadstart artificial.
++3. Manager obtenido pero init/start no ejecutados, o SDK no progresa por creatividad/media: observar APIs nativas y error type/inner; exigir HAR/XML/MP4 de ese mismo caso.
++4. Pausa/recovery puede prolongar el estado posterior, pero la cronología descarta que la primera salida observada cause el bloqueo inicial. No se modifica P1.2b.
++
++[contrib-ads documenta play + adsready → readyforpreroll y la necesidad de init inmediato](https://videojs.github.io/videojs-contrib-ads/integrator/getting-started.html). Esa regla orienta la instrumentación, no demuestra por sí sola qué evento faltó aquí.
++
++## Dónde está la latencia
++
++En los tres vídeos exitosos, player/plugin prepared − activation es **21, 15 y 17 ms**. No parece el coste principal de esos ensayos. Request proxy→manager: **5255, 3946 y 6783 ms**; manager→frame: **1189, 846 y 692 ms**. Son medidas de pipeline, no tiempos puros de GAM/red: sin HAR del 19/10 no se separan cola del navegador, wrappers, SDK, media o main thread.
++
++Display directo desktop: métrica request 6,165 → slotRequested 7,078 → render 9,515 → open 13,192 s. Total **7027 ms** (la referencia aproximada 7,16 s usa otro log de inicio). Hay 913 ms antes de slotRequested, 2437 ms hasta render y 3677 ms render→open. La espera explícita de viewport es 9,530→13,175, **3645 ms**. No atribuir los 7 s íntegros al adserver ni abrir fuera de viewport para reducirlos.
++
++Fallbacks correlacionados por Slot 1 y transición visible de token/ciclo 1→2 en el mismo export:
++
++| Caso | Terminal→fallback inicio | Request Display→slotRequested | slotRequested→response | response→render | render→open | Terminal→open |
++|---|---:|---:|---:|---:|---:|---:|
++| 10:28, 1005 | 83 ms | 597 ms | 516 ms | 276 ms | 802 ms | 2280 ms |
++| 10:29, timeout | 48 ms | 418 ms | 427 ms | 72 ms | 2426 ms | 3393 ms |
++| 10:35, 1005 | 67 ms | 585 ms | 561 ms | 114 ms | 2083 ms | 3414 ms |
++
++Entre fallback inicio y request hay otros 6/2/4 ms. En los tres casos Display creative-ready observa reason=passed; se abre al volver a elegibilidad. No hay evidencia de que abrir tarde fuera del viewport sea el comportamiento de esos tres casos. El DOM pintado/píxel no queda probado por wrapper-open; impressionViewable es una señal separada de GPT.
++
++## Propuesta QA: observación y presupuestos, sin tocar producción
++
++`tests/qa/intext-p13c-probe.cjs` y el builder generan copias rotuladas **NOT FOR PRODUCTION** dentro de tests/qa/generated. No hay imports nuevos desde producción. No se cambian versiones, floors, targeting, SDKs ni autoridades. El builder exige marcadores únicos y falla si el lifecycle no coincide; conserva las llamadas originales init/play/setTargeting.
++
++Instrumentación por creative/cycle/token:
++
++- Native loadstart desde el contenedor, creación e init Video.js, retorno de IMA; play/adsready/readyforpreroll y snapshots de FSM tanto durante listener como en microtask posterior al dispatch.
++- AdsManager, init/start/pause/resume delegados exactamente una vez sobre la instancia; nunca se inician desde el probe. LOADED/STARTED/IMPRESSION/error/complete nativos y first-frame/reveal del core. Sin eventos sintéticos, nuevas requests ni retries.
++- Setter de source y llamadas play/pause con callsite; no se agregan handlers a la Promise original de play, para conservar su semántica de rechazo/unhandled.
++- Error SDK con code/type/VAST code/inner/stack; errores globales permanecen sin atribución automática a un slot y con lista de contextos. No preventDefault ni parche de suppressedTracks.
++- Wrapper y anchor separados, visibilidad documental y estado observado de media. Historial acotado a 2000 entradas y contador de descartes; console=false en el ejemplo. observerBuildMs permite estimar el coste de construir cada snapshot, sin confundirlo con blocked HTTP.
++- Puente explícito parentRenderToken/parentCycleId para el nuevo fallback, y observación DOM/CSS finita tras apertura Display. No es Active View ni prueba de píxel; los eventos GPT del debugger original se conservan aparte.
++
++Modos: **observe** por defecto en el builder (sin deadlines); **shadow** en el ejemplo explícito (solo mide vencimientos); **enforce** exclusivamente para QA autorizado y mobile=true/qaConfirmed=true. Además se exige que el manager real declare device=mobile: desktop o dispositivo desconocido no arman presupuestos aunque se copie por error un perfil móvil. No hay umbral nuevo productivo. totalMs se configura explícitamente a 10000 o 12000 para comparar; managerMs es opcional y por defecto null. El watchdog manager→preroll se desarma con readyforpreroll. La confirmación de frame elimina ambos timers. Se registra timerDriftMs.
++
++El reloj online empieza en ads-request del plugin, etiquetado **proxy-NOT-HTTP**. No garantiza 10 s exactos desde la salida HTTP: cuantificar el offset/blocked en HAR antes de adoptar ese presupuesto. Los plazos reales desde VAST se evalúan con la request HTTP inequívocamente correlacionada; el analizador no asigna por cercanía de timestamp ni mezcla clocks de exports.
++
++Cancelación QA requiere token vigente, observación armada antes de init, cobertura nativa de impresión, settle disponible, ningún reveal, `player.ads.isInAdMode() === false`, ningún currentTime positivo y ninguna señal adstart/STARTED/IMPRESSION. Si falta una prueba, o empezó el ad-break, **no cancela** y mantiene el timeout general existente. Por ello no es una cota universal hasta frame en todos los estados. La garantía negativa de impresión debe comprobarse además en SDK/HAR real; la falta de un evento aislado no basta para aprobarlo.
++
++Una cancelación permitida marca solo el creative antiguo aborted, rechaza su Promise con razón QA y usa destroy/dispose existentes. El waterfall decide si puede pedir Display y genera su token nuevo; el probe no fuerza fallback ni cambia el token del nodo por su cuenta. No llama AdsManager.destroy adicionalmente ni duplica play/start/request. Los tests comprueban el contrato con el core real y SDK mock; no prueban que el SDK real haya cancelado todo callback/tracking de red.
++
++## Evaluación de umbrales y pérdida de oportunidad
++
++Los dos éxitos móviles observados tienen request proxy→frame ≈4792 y 7475 ms. 10/12 s no los cortarían retrospectivamente; **n=2 no permite fijar un default ni estimar pérdida de impresiones**. Un watchdog 3 s desde manager tampoco cortaría los tres éxitos (manager→frame ≤1189 ms), pero sigue siendo solo una hipótesis.
++
++En 10:28 el error llega a +8155 ms: un deadline 10/12 no mejoraría ese caso. En 10:35 llega a +19047 ms: habría vencido antes, pero el anchor ya se había pasado a +1213 ms desde request. Solicitar fallback antes no garantiza apertura/impression antes: hay que respetar viewport y medir reentrada. En 10:29 el deadline 10 s proxy vencería a 18,052 s, antes de la primera salida registrada; es una oportunidad para probar, no un resultado causal de monetización ya obtenido.
++
++Primero observar/shadow, contando vídeos que obtienen frame/impresión después de cada umbral, segmentados por creatividad/VPAID, conexión, bloqueo, documento y scroll. Después comparar enforce en inventario QA limitado, con tracking de cancelaciones que habrían producido vídeo válido. No extender/reducir el timeout de 25 s para ocultar estados.
++
++## Errores secundarios
++
++AbortError tras pause aparece en los éxitos móviles 10:27 (+8,356 s) y 10:30 (+13,914 s), además de 1005. No aparece en el bloqueo 10:29. No es causa demostrada; nuevos callsites de player/manager permiten distinguir pausa de contrib-ads/IMA del gate de viewport sin agregar play de recuperación.
++
++Desktop 10:04 registra NotSupportedError del play original a 30,684 s, después de video_complete a 30,658 s; luego Display se abre y llega impressionViewable. No impidió ese playback ni esa recuperación observada; queda por analizar snapshot restore/dummy/segundos ciclos con pila real. No se cambia la fuente ni el SDK.
++
++No se encontraron mensajes suppressedTracks en estos siete exports; eso no demuestra que no ocurriera en la consola/SDK. La instrumentación global captura stack si el navegador lo expone; con error cross-origin opaco, usar DevTools Pause on exceptions y conservar pila, source exacto y momento. No suprimirlo ni atribuirlo al gate C.
++
++IMA 1005 es [FAILED_TO_REQUEST_ADS](https://developers.google.com/interactive-media-ads/docs/sdks/html5/client-side/reference/namespace/google.ima.AdError); no identifica por sí solo HTTP status, timeout de red, respuesta inválida o proveedor culpable. [getType/getInnerError/getErrorCode](https://developers.google.com/interactive-media-ads/docs/sdks/html5/client-side/reference/interface/google.ima.AdError) y el HAR de la misma ejecución son necesarios. En los JSON actuales no están todos esos datos.
++
++## Uso exacto en Fiddler y plan de pruebas
++
++```powershell
++# Observe, sin cancelación: omitir el tercer argumento.
++node tests/qa/intext-p13c-build.cjs _gam_kv_.js
++# Shadow móvil 10 s, sin cancelación; configuración explícita de ejemplo.
++node tests/qa/intext-p13c-build.cjs _gam_kv_.js tests/qa/intext-p13c-config.example.json
++node tests/qa/intext-p13c-build.cjs IntextManager.js tests/qa/intext-p13c-config.example.json
++```
++
++Los ficheros locales son tests/qa/generated/intext-p13c-gam.qa.js y intext-p13c-manager.qa.js. Son copias derivadas ignoradas por Git, no nuevos bundles productivos. `node --check` sobre ambos antes de cargar. Para 12 s, copiar el ejemplo a un fichero QA y cambiar únicamente totalMs; para watchdog, añadir el managerMs elegido en shadow. Enforce exige edición explícita mode=enforce y qaConfirmed=true, exclusivamente con campaña/inventario QA autorizado. No activar cancelPassed inicialmente: medirlo en brazo separado.
++
++En AutoResponder reemplazar **solo la URL exacta del bundle Intext efectivamente cargado** por la copia correspondiente, una sola distribución/instancia. No sustituir migrate/PSP/GAMExp/GPT/Prebid/APS ni VAST/MP4. Nuevo documento, comprobar cuerpo rotulado QA y hash, evitar caché/304. Comparar runtime, dual/PSP, randomSource/random1–4, networkId/adUnit/tag/t/HB/mode con el control; si cambian, no se aísla este experimento.
++
++Exportar el JSON del debugger original y además el probe, con DevTools `copy(JSON.stringify({qaOnly:true,stats:IntextP13C.stats(),logs:IntextP13C.entries},null,2))`. Guardar consola completa y HAR/SAZ con contenido/XML de VAST, wrappers y MP4. No se incorporan los logs QA al debugger productivo automáticamente. Verificar que los cuerpos existen en el archivo. Al terminar, `IntextP13C.dispose()` retira listeners, timers y observers propios; no destruye anuncios vigentes como acción diagnóstica. La navegación/destroy normal limpia cada creative. Guardar datos antes de disponer.
++
++Matriz: desktop/mobile control observe; móvil shadow10/shadow12; watchdog shadow con umbrales separados; solo después enforce QA. Por cada brazo: éxito, 1005, manager sin preroll, salida antes de manager, salida entre manager/frame, reentrada, documento oculto, refresh/SPAs, destroy y late callbacks. Ambos slots en vídeo si la configuración QA autorizada lo permite; mantener Slot 2 display_only por defecto. No forzar fill ni duplicar requests para fabricar estados.
++
++Aceptación antes de producción: explicar el estado 10:29 con nuevas trazas; no cortar antes de impresión un anuncio ya iniciado; cero tracking/impression/play/reveal tardío tras cancelación; fallback solo según modo; Display no abierto fuera de elegibilidad; sin dos superficies/loaders; refresh y recuperación intactos. Comparar API/HTTP request counts por token. Los tests mock no sustituyen estas comprobaciones.
++
++## Alternativa comercial móvil (solo propuesta)
++
++Comparar Slot 1 auto vídeo+fallback frente a display_only mediante la configuración ya existente, en cohortes autorizadas y estables, estratificadas por noticia/dispositivo/contexto PSP. No se modifica ningún config ni random publicitario en este ticket. Hacer este ensayo separado del experimento técnico de deadlines para no mezclar efectos.
++
++Denominador: mil oportunidades elegibles de Slot 1, incluyendo no-fill, abandono y cancelación; refrescos como oportunidades separadas etiquetadas. Ingresos netos reales de GAM por mil oportunidades (no CPM de bid como ingreso), fill por formato, impresiones totales/vídeo perdidas, Active View sobre impresiones medibles, tiempo hasta impresión/reveal, oportunidades perdidas por scroll, fallback/errores y coste de red/CPU. Reportar distribuciones p50/p75/p95, intervalos de confianza y mezcla de campañas/demanda. No afirmar que Display gana monetización por servir antes ni que un wrapper visible equivale a impresión.
++
++## Validación local y límites de entrega
++
++Baseline comprobado: **1081/1081**. Regresiones nuevas: **38/38**; vídeo/preload/PiP/animación/predictive/debug **526/526**; suite completa **1119/1119**, sin omitidos/cancelados/fallos. Floor Authority **86/86**, Prebid audit/aliases **85/85**, Random/runtime **61/61**, APS/TAM **63/63**, GPT/PSP **17/17**.
++
++Los nuevos tests cubren deadlines 10/12 s, shadow/observe, desktop/dispositivo desconocido, watchdog/readyforpreroll, impresión/STARTED/adstart, cancelación cuando pasa el anchor, first-frame/terminal/cleanup/token, drift, SDK error 1005/inner, API listener no disponible sin romper playback, delegación sin suscribirse a la Promise original, constructor de ambas copias QA, schemas y HAR. Cuatro pruebas usan el método requestWinner y settle/destroy del core actual con SDK mock para verificar fallback autorizado/prohibido y bloqueo de callbacks tardíos.
++
++Ejecución: `node --test --test-isolation=none tests/intext-p13c-latency.audit.test.cjs`; suite/grupos mediante `node --require "$env:TEMP/intext-authority-test-command-cache.cjs" --test --test-isolation=none ...`. Se usa el adaptador externo ya establecido para spawn EPERM: comprueba hashes y reproduce únicamente git-root/git-diff-name y sintaxis realmente ejecutados desde PowerShell. No reemplaza tests ni valida SDK. El baseline floor sigue siendo `$env:TEMP/intext-authority-head.js`.
++
++`node --check` pasó en ambas distribuciones productivas, los cuatro módulos QA nuevos, el test nuevo y las dos copias generadas. `git diff --check` pasó. Los hashes productivos coinciden con las copias capturadas al iniciar P1.3c: **cero cambios productivos nuevos**, incluidos monetización, lifecycle, timeout, Floor Authority, PSP, random, first-frame/reveal, PiP, animación y Display. Los cambios anteriores sin commit siguen preservados.
++
++Artefactos: `intext-p13c-qa.patch` (solo archivos nuevos QA/tests/documentación), `intext-p13c-real-evidence.json` (extracción verificable de siete originales) e `intext-p13c-validation.txt` (stdout de la suite y resultados). Las copias generated se reconstruyen con los comandos anteriores. CodeMemory consultado y reindexado, sin artefacto persistente en el repo; el código/dumps/tests/diff son la fuente de verdad.
++
++Se analizaron capturas reales existentes; **no se ejecutó una nueva sesión Chrome/SDK con el probe ni con enforce**. No hay herramienta de navegador disponible en esta sesión. La causa residual 10:29, las fases HTTP 1005 del 19/10 y la pérdida de impresiones válidas por deadlines siguen pendientes de la matriz real. No hay aprobación productiva ni afirmación de mejora de viewability.
+diff --git a/docs/intext-p13c-prebid-psp-audit.md b/docs/intext-p13c-prebid-psp-audit.md
+new file mode 100644
+index 0000000..c652f5a
+--- /dev/null
++++ b/docs/intext-p13c-prebid-psp-audit.md
+@@ -0,0 +1,31 @@
++# P1.3c — auditoría Prebid/PSP independiente, sin cambios comerciales
++
++Fuente: los siete JSON originales identificados por hash en `intext-p13c-real-evidence.json`. Se conserva la separación entre targeting nativo Prebid, targeting reconstruido Intext y petición GAM. No se cambia ningún bidder, floor, alias, targeting, prioridad ni autoridad PSP/random.
++
++## Hallazgos observados
++
++Hay **7 warnings intext_prebid_targeting_missing_after_bid**: cuatro en desktop 10:04 (Slots 1/2 y ciclos posteriores), dos en desktop 10:05 (Slot 1) y uno en móvil 10:29 (Slot 1). En los **7/7**, el audit inmediatamente posterior al set muestra hb_pb/hb_bidder/hb_adid presentes en `pbjsTargeting`, mientras `gptSlotTargetingApiAvailable=false` y `gptSlotTargeting=null`.
++
++No es el caso A «bid tiene targeting pero PBJS API no lo devuelve»: la API sí lo devuelve en estos warnings. La evidencia corresponde a API Prebid disponible frente a **API de targeting del node.slot no disponible en ese instante**. No se puede distinguir solo con ese booleano si el slot aún no existe o si hay un proxy sin ese método; no se ha probado una pérdida GPT causada por PSP. También aparece en móvil sin PSP.
++
++Ejemplo concreto 10:29: auction `a7b3fce2-d010-4586-a18f-b6bef995f25f`, adUnit `gexp-intext`, un banner candidato; PBJS devuelve hb_pb=0.84, hb_bidder=richaudience y hb_adid=14132ecc8908179. El warning se emite antes de crear/adjuntar el GPT Display del primer render; el audit no dispone de getTargetingMap del node.slot. No se usa ese precio para decidir nuevos floors ni se concluye qué línea GAM ganó.
++
++En dos warnings de ciclos posteriores de desktop, el hb_adid devuelto por la API no está entre los rawBannerBids de esa subasta corriente. La API consulta por adUnitCode, no por auctionId; puede exponer estado de otras subastas/bids todavía considerados por Prebid. Esto requiere correlación adicional de auction/TTL/ganador/render, **no autoriza filtrar bids ni declara un bug de caché por sí solo**. Los aliases cuyo nombre contiene video pueden responder banner; no deducir formato por nombre del bidder.
++
++## Qué hace el código actual
++
++executePrebid reúne respuestas del auction observado, registra auditoría de bids, llama setTargetingForGPTAsync([code]), captura inmediatamente la auditoría nativa y comprueba `node.slot?.getTargetingMap?.() || {}`. El warning se condiciona a que haya respuestas de cualquier formato y a que **ninguna** de las tres keys exista. No exige un banner ganador utilizable ni prueba que falten las tres en un slot nativo ya creado. No comprueba que las tres estén completas cuando solo existe una.
++
++El nombre Async no demuestra que la llamada ya haya aplicado targeting al slot que el warning inspecciona. No se espera ni bloquea finalize. La reconstrucción manual Intext ocurre después y tiene un evento separado, intext_prebid_winner_targeting_audit; no debe interpretarse como targeting nativo. Tampoco debe compararse una API por adUnit global con un bid de auction distinto sin etiquetar esa diferencia.
++
++## Instrumentación QA preparada
++
++La copia derivada QA añade snapshots read-only antes y después de setTargetingForGPTAsync con slotExists, slotElementId, auctionId, adUnitCode, cycleId/token, bid.mediaType, adId, CPM bruto y subset hb_* de bid/API/slot. Si el objeto ofrece explícitamente __ctrl.innerObject, se registra la identidad y el targeting de ese handle; si no, es unknown, sin resolver ni sustituir autoridades. No se infiere un slot nativo ni se llama a un API alternativo stateful para fabricar el dato.
++
++El native audit y el winner audit existentes se conservan. La propuesta no escribe targeting ni espera APIs. La próxima captura debe correlacionar estos snapshots con el slot real de slotRequested/slotRenderEnded y el targeting de la request GAM en HAR; una captura inmediata no certifica el estado final de una cola GPT.
++
++## Prueba mínima pendiente
++
++En PSP y sin PSP, Slot 1 auto y Slot 2 display_only: identificar código de adUnit, auctionId, tipo de cada bid, candidato banner y winner efectivo; registrar API Prebid antes/después, existencia/identidad del GPT slot, native/proxy cuando el handle esté observado y hb_* antes del request GAM. Comparar después el targeting reconstruido por Intext y el HAR real. Repetir refresh con APIs que devuelven bids anteriores; comprobar TTL/auction sin alterar selección.
++
++Clasificar cada caso: bid/API/slot presentes, API presente pero slot todavía no observable, proxy distinto observado, targeting aplicado posteriormente, bid de otro formato, API relacionada con otro auction, o evidencia insuficiente. No corregir el warning ni la monetización en P1.3c basándose únicamente en ausencia de keys.
