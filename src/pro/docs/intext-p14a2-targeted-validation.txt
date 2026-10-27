@@ -1,0 +1,17 @@
+✔ P14A2: four missing HAR VASTs remain unknown network outcomes, not NO-FILL (1.8469ms)
+✔ P14A2: failed video and successful fallback are separate cycles (0.3206ms)
+✔ P14A2: five eligible anchors are not relabelled offscreen by zero-height wrapper flags (0.2315ms)
+✔ P14A2: timeouts stay in denominators; observed milestone medians do not fabricate zeroes (0.5094ms)
+✔ P14A2: overlap measures intersection, not minimum duration with staggered branches (0.2928ms)
+✔ P14A2: historical plugin verifies return-proxy ordering, not current network or bytes (0.8023ms)
+✔ P14A2: HAR lifecycle start is preserved and sensitive data is removed (1.5094ms)
+✔ P14A2: E1-3 post-response gap is measured separately from preroll and reveal (0.4836ms)
+✔ P14A2: no later cycle, other slot, or missing activation contaminates an initial timeout (2.6454ms)
+ℹ tests 9
+ℹ suites 0
+ℹ pass 9
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 41.6272

@@ -1,0 +1,1394 @@
+{
+  "schema": "p14a2-legacy-performance-evidence-v1",
+  "reviewDate": "2026-10-26",
+  "qaOnly": true,
+  "enforce": false,
+  "canonicalId": "Legacy-E0-2",
+  "cohort": "P14A2-Legacy-E0-20261026-performance",
+  "cohortPolicy": "Separate from Legacy E0 25/10, Legacy E1 22/10, PSP 4 E0+6 E1 22/10 and PSP E0 26/10; descriptive Legacy controls 2/2; no causal effect or pooled rate",
+  "inputs": [
+    {
+      "file": "Informe_P14A2_E0_Legacy_Performance_2026-10-26.md",
+      "bytes": 12077,
+      "sha256": "d90b12ea1278fd1f69d8c50596973dc634cef0b53a22c5448734218d28aaadc2"
+    },
+    {
+      "file": "E0-26oct-json.json",
+      "bytes": 1000638,
+      "sha256": "9eb904c04abd699d3a5cbf6a0cdfdbd42ce5e25a2aa33093914879ba7d427026"
+    },
+    {
+      "file": "E0-26oct.json",
+      "bytes": 627251,
+      "sha256": "9e2da363596304b583a38aa3a491d63ce23bc2022060c8c9948564fedf798af2"
+    },
+    {
+      "file": "www.marca.com-mobile E0-26oct.har",
+      "bytes": 49059951,
+      "sha256": "054b2a3bde270de68299d1ccfeaf70a40fcf755679c81230f2e5ba4d13924ef9"
+    },
+    {
+      "file": "E0-26OCT-performance.json",
+      "bytes": 28940995,
+      "sha256": "231c4503ffc48077d13f879453eb43d3db4b52f804a75c3bb4169e15595a158e"
+    }
+  ],
+  "identity": {
+    "arm": "E0",
+    "fixed": [
+      "E0"
+    ],
+    "conflicts": 0,
+    "dropped": 0,
+    "integrationDropped": 0,
+    "debuggerDropped": 0,
+    "runtime": {
+      "gexpIntextVersion": "2026.10.07-p1-ima-preload-first-frame",
+      "dualMode": false,
+      "pspDetected": false,
+      "randomSource": "gexp-owner-random"
+    },
+    "branchIntervals": [
+      {
+        "branch": "videojs-contrib",
+        "start": 1793035027746,
+        "end": 1793035028908
+      },
+      {
+        "branch": "ima-sdk",
+        "start": 1793035028908,
+        "end": 1793035029345
+      }
+    ],
+    "branchOverlapMs": 0
+  },
+  "stages": {
+    "winner": 1793035027663,
+    "dependenciesStarted": 1793035027746,
+    "dependenciesReady": 1793035029381,
+    "prepared": 1793035029384,
+    "activation": 1793035035392,
+    "playerAttached": 1793035035385,
+    "imaInitLog": 1793035035397,
+    "imaPluginReturned": 1793035035419,
+    "adsLoader": 1793035035521,
+    "sdkRequestReturnedProxy": 1793035035534,
+    "imaRequestMetric": 1793035035534,
+    "harVastStart": 1793035036782,
+    "harVastEnd": 1793035037037.341,
+    "adsManager": 1793035037326,
+    "adsready": 1793035037330,
+    "readyforpreroll": 1793035037332,
+    "adstart": 1793035037443,
+    "firstFrame": 1793035038896,
+    "nativeStarted": 1793035039019,
+    "nativeImpression": 1793035039010,
+    "reveal": 1793035038903,
+    "nativeComplete": 1793035049091,
+    "advertisingTimeout": null,
+    "timeoutProbe": null,
+    "destroy": 1793035049178
+  },
+  "durations": {
+    "dependenciesTotalMs": 1635,
+    "branches": [
+      {
+        "branch": "videojs-contrib",
+        "durationMs": 1162
+      },
+      {
+        "branch": "ima-sdk",
+        "durationMs": 437
+      }
+    ],
+    "branchIntervals": [
+      {
+        "branch": "videojs-contrib",
+        "start": 1793035027746,
+        "end": 1793035028908
+      },
+      {
+        "branch": "ima-sdk",
+        "start": 1793035028908,
+        "end": 1793035029345
+      }
+    ],
+    "branchOverlapObservedMs": 0,
+    "branchOverlapProxyMs": 0,
+    "winnerToDependenciesReadyMs": 1718,
+    "winnerToPreparedMs": 1721,
+    "prepareDependencyWaitMs": 545,
+    "residualDependenciesWaitMs": 0,
+    "winnerToAdsManagerMs": 9663,
+    "winnerToFirstFrameMs": 11233,
+    "activationToFirstFrameMs": 3504,
+    "adsLoaderToRequestEventMs": 13,
+    "requestMetricToHarStartMs": 1248,
+    "harResponseToAdsManagerMs": 288.658935546875,
+    "requestMetricToAdsManagerMs": 1792,
+    "firstFrameToRevealMs": 7,
+    "activationToTimeoutMs": null,
+    "requestEventToTimeoutMs": null,
+    "managerToFrameMs": 1570,
+    "viewportWaitMs": 5909,
+    "completeToDisplayRequestMs": 2432
+  },
+  "timeline": [
+    {
+      "event": "assignment_fixed",
+      "timestamp": 1793035023701
+    },
+    {
+      "event": "video_winner_resolved",
+      "timestamp": 1793035027663,
+      "slotId": "gexp-intext",
+      "cycleId": 1,
+      "renderToken": 0,
+      "durationMs": 3375
+    },
+    {
+      "event": "video_preparation_ownership_transferred",
+      "timestamp": 1793035027668,
+      "slotId": "gexp-intext",
+      "cycleId": 1,
+      "renderToken": 1,
+      "durationMs": null
+    },
+    {
+      "event": "video_dependency_prewarm_started",
+      "timestamp": 1793035027743,
+      "slotId": "gexp-intext",
+      "cycleId": 1,
+      "renderToken": 1,
+      "durationMs": 0
+    },
+    {
+      "event": "dependencies_started",
+      "timestamp": 1793035027746
+    },
+    {
+      "event": "video_prepare_triggered",
+      "timestamp": 1793035028831,
+      "slotId": "gexp-intext",
+      "cycleId": 1,
+      "renderToken": 1,
+      "durationMs": null
+    },
+    {
+      "event": "video_prepare_started",
+      "timestamp": 1793035028834,
+      "slotId": "gexp-intext",
+      "cycleId": 1,
+      "renderToken": 1,
+      "durationMs": null
+    },
+    {
+      "event": "video_dependencies_wait_started",
+      "timestamp": 1793035028837,
+      "slotId": "gexp-intext",
+      "cycleId": 1,
+      "renderToken": 1,
+      "durationMs": null
+    },
+    {
+      "event": "video_activation_pending",
+      "timestamp": 1793035028842,
+      "slotId": "gexp-intext",
+      "cycleId": 1,
+      "renderToken": 1,
+      "durationMs": null
+    },
+    {
+      "event": "dependencies_ready",
+      "timestamp": 1793035029381,
+      "durationMs": 1635
+    },
+    {
+      "event": "dependencies_drained",
+      "timestamp": 1793035029381,
+      "durationMs": 1635
+    },
+    {
+      "event": "video_dependency_prewarm_ready",
+      "timestamp": 1793035029381,
+      "slotId": "gexp-intext",
+      "cycleId": 1,
+      "renderToken": 1,
+      "durationMs": 1638
+    },
+    {
+      "event": "video_dependencies_ready",
+      "timestamp": 1793035029382,
+      "slotId": "gexp-intext",
+      "cycleId": 1,
+      "renderToken": 1,
+      "durationMs": null
+    },
+    {
+      "event": "video_prepare_ready",
+      "timestamp": 1793035029384,
+      "slotId": "gexp-intext",
+      "cycleId": 1,
+      "renderToken": 1,
+      "durationMs": 550
+    },
+    {
+      "event": "video_viewport_wait_started",
+      "timestamp": 1793035029385,
+      "slotId": "gexp-intext",
+      "cycleId": 1,
+      "renderToken": 1,
+      "durationMs": null
+    },
+    {
+      "event": "video_viewport_wait_resolved",
+      "timestamp": 1793035035294,
+      "slotId": "gexp-intext",
+      "cycleId": 1,
+      "renderToken": 1,
+      "durationMs": 5909
+    },
+    {
+      "event": "activation_dependencies_wait_started",
+      "timestamp": 1793035035297,
+      "slotId": "gexp-intext",
+      "cycleId": 1,
+      "renderToken": 1
+    },
+    {
+      "event": "activation_dependencies_ready",
+      "timestamp": 1793035035297,
+      "slotId": "gexp-intext",
+      "cycleId": 1,
+      "renderToken": 1,
+      "residualDependenciesWaitMs": 0
+    },
+    {
+      "event": "video_activation_deferred",
+      "timestamp": 1793035035297,
+      "slotId": "gexp-intext",
+      "cycleId": 1,
+      "renderToken": 1,
+      "durationMs": null
+    },
+    {
+      "event": "video_viewport_wait_started",
+      "timestamp": 1793035035299,
+      "slotId": "gexp-intext",
+      "cycleId": 1,
+      "renderToken": 1,
+      "durationMs": null
+    },
+    {
+      "event": "video_viewport_wait_resolved",
+      "timestamp": 1793035035301,
+      "slotId": "gexp-intext",
+      "cycleId": 1,
+      "renderToken": 1,
+      "durationMs": 2
+    },
+    {
+      "event": "video_activation_eligible",
+      "timestamp": 1793035035303,
+      "slotId": "gexp-intext",
+      "cycleId": 1,
+      "renderToken": 1,
+      "durationMs": null
+    },
+    {
+      "event": "video_activation_started",
+      "timestamp": 1793035035392,
+      "slotId": "gexp-intext",
+      "cycleId": 1,
+      "renderToken": 1,
+      "durationMs": null
+    },
+    {
+      "event": "video_ima_preload_config",
+      "timestamp": 1793035035398,
+      "slotId": "gexp-intext",
+      "cycleId": 1,
+      "renderToken": 1,
+      "durationMs": null
+    },
+    {
+      "event": "core:video-player-prepared",
+      "timestamp": 1793035035419,
+      "slotId": "gexp-intext",
+      "cycleId": 1,
+      "renderToken": 1
+    },
+    {
+      "event": "video_ima_request_sent",
+      "timestamp": 1793035035534,
+      "slotId": "gexp-intext",
+      "cycleId": 1,
+      "renderToken": 1,
+      "durationMs": null
+    },
+    {
+      "event": "video_ads_manager_loaded",
+      "timestamp": 1793035037326,
+      "slotId": "gexp-intext",
+      "cycleId": 1,
+      "renderToken": 1,
+      "durationMs": null
+    },
+    {
+      "event": "core:player-adstart",
+      "timestamp": 1793035037444,
+      "slotId": "gexp-intext",
+      "cycleId": 1,
+      "renderToken": 1
+    },
+    {
+      "event": "video_media_state_event",
+      "timestamp": 1793035038643,
+      "slotId": "gexp-intext",
+      "cycleId": 1,
+      "renderToken": 1,
+      "durationMs": null
+    },
+    {
+      "event": "video_media_state_event",
+      "timestamp": 1793035038647,
+      "slotId": "gexp-intext",
+      "cycleId": 1,
+      "renderToken": 1,
+      "durationMs": null
+    },
+    {
+      "event": "video_media_state_event",
+      "timestamp": 1793035038660,
+      "slotId": "gexp-intext",
+      "cycleId": 1,
+      "renderToken": 1,
+      "durationMs": null
+    },
+    {
+      "event": "video_media_state_event",
+      "timestamp": 1793035038662,
+      "slotId": "gexp-intext",
+      "cycleId": 1,
+      "renderToken": 1,
+      "durationMs": null
+    },
+    {
+      "event": "core:first-frame",
+      "timestamp": 1793035038896,
+      "slotId": "gexp-intext",
+      "cycleId": 1,
+      "renderToken": 1
+    },
+    {
+      "event": "core:revealed",
+      "timestamp": 1793035038903,
+      "slotId": "gexp-intext",
+      "cycleId": 1,
+      "renderToken": 1
+    },
+    {
+      "event": "core:complete",
+      "timestamp": 1793035049113,
+      "slotId": "gexp-intext",
+      "cycleId": 1,
+      "renderToken": 1
+    },
+    {
+      "event": "display_creative_ready",
+      "timestamp": 1793035052972,
+      "slotId": "gexp-intext",
+      "cycleId": 2,
+      "renderToken": 2,
+      "durationMs": null
+    },
+    {
+      "event": "display_viewport_wait_started",
+      "timestamp": 1793035052975,
+      "slotId": "gexp-intext",
+      "cycleId": 2,
+      "renderToken": 2,
+      "durationMs": null
+    },
+    {
+      "event": "display_viewport_wait_resolved",
+      "timestamp": 1793035052978,
+      "slotId": "gexp-intext",
+      "cycleId": 2,
+      "renderToken": 2,
+      "durationMs": 4
+    },
+    {
+      "event": "display_reveal_eligible",
+      "timestamp": 1793035052991,
+      "slotId": "gexp-intext",
+      "cycleId": 2,
+      "renderToken": 2,
+      "durationMs": 19
+    },
+    {
+      "event": "intext_winner_resolved",
+      "timestamp": 1793035057855,
+      "slotId": "gexp-intext-2",
+      "cycleId": 1,
+      "renderToken": 0,
+      "durationMs": 2565
+    },
+    {
+      "event": "display_creative_ready",
+      "timestamp": 1793035059345,
+      "slotId": "gexp-intext-2",
+      "cycleId": 1,
+      "renderToken": 1,
+      "durationMs": null
+    },
+    {
+      "event": "display_viewport_wait_started",
+      "timestamp": 1793035059347,
+      "slotId": "gexp-intext-2",
+      "cycleId": 1,
+      "renderToken": 1,
+      "durationMs": null
+    },
+    {
+      "event": "display_viewport_wait_resolved",
+      "timestamp": 1793035059349,
+      "slotId": "gexp-intext-2",
+      "cycleId": 1,
+      "renderToken": 1,
+      "durationMs": 2
+    },
+    {
+      "event": "display_reveal_eligible",
+      "timestamp": 1793035059356,
+      "slotId": "gexp-intext-2",
+      "cycleId": 1,
+      "renderToken": 1,
+      "durationMs": 10
+    },
+    {
+      "event": "display_creative_ready",
+      "timestamp": 1793035067723,
+      "slotId": "gexp-intext-2",
+      "cycleId": 2,
+      "renderToken": 2,
+      "durationMs": null
+    },
+    {
+      "event": "display_viewport_wait_started",
+      "timestamp": 1793035067724,
+      "slotId": "gexp-intext-2",
+      "cycleId": 2,
+      "renderToken": 2,
+      "durationMs": null
+    },
+    {
+      "event": "display_viewport_wait_resolved",
+      "timestamp": 1793035067725,
+      "slotId": "gexp-intext-2",
+      "cycleId": 2,
+      "renderToken": 2,
+      "durationMs": 1
+    },
+    {
+      "event": "display_reveal_eligible",
+      "timestamp": 1793035067727,
+      "slotId": "gexp-intext-2",
+      "cycleId": 2,
+      "renderToken": 2,
+      "durationMs": 3
+    }
+  ],
+  "geometry": [
+    {
+      "event": "observer:attached",
+      "timestamp": 1793035035385,
+      "readiness": {
+        "eligible": true,
+        "reason": "visible",
+        "distancePx": 0,
+        "intersectionRatio": 0.002249755859375
+      },
+      "anchor": {
+        "top": 921.6625366210938,
+        "bottom": 1071.6625366210938,
+        "left": 16,
+        "right": 396,
+        "width": 380,
+        "height": 150
+      },
+      "playerRect": {
+        "top": 1091.6624755859375,
+        "bottom": 1441.6624755859375,
+        "left": 16,
+        "right": 396,
+        "width": 380,
+        "height": 350
+      },
+      "wrapper": {
+        "id": 4,
+        "connected": true,
+        "rect": {
+          "top": 1091.6624755859375,
+          "bottom": 1091.6624755859375,
+          "left": 16,
+          "right": 396,
+          "width": 380,
+          "height": 0
+        },
+        "display": "block",
+        "visibility": "visible",
+        "opacity": "0",
+        "hidden": false,
+        "hasBox": false
+      },
+      "documentVisibility": "visible"
+    },
+    {
+      "event": "player:ads-request",
+      "timestamp": 1793035035534,
+      "readiness": {
+        "eligible": true,
+        "reason": "visible",
+        "distancePx": -5,
+        "intersectionRatio": 0.03425008138020833
+      },
+      "anchor": {
+        "top": 916.8624877929688,
+        "bottom": 1066.8624877929688,
+        "left": 16,
+        "right": 396,
+        "width": 380,
+        "height": 150
+      },
+      "playerRect": {
+        "top": 1086.862548828125,
+        "bottom": 1436.862548828125,
+        "left": 16,
+        "right": 396,
+        "width": 380,
+        "height": 350
+      },
+      "wrapper": {
+        "id": 4,
+        "connected": true,
+        "rect": {
+          "top": 1086.862548828125,
+          "bottom": 1086.862548828125,
+          "left": 16,
+          "right": 396,
+          "width": 380,
+          "height": 0
+        },
+        "display": "block",
+        "visibility": "visible",
+        "opacity": "0",
+        "hidden": false,
+        "hasBox": false
+      },
+      "documentVisibility": "visible"
+    },
+    {
+      "event": "player:ads-manager",
+      "timestamp": 1793035037326,
+      "readiness": {
+        "eligible": true,
+        "reason": "visible",
+        "distancePx": -332,
+        "intersectionRatio": 1
+      },
+      "anchor": {
+        "top": 589.6625366210938,
+        "bottom": 739.6625366210938,
+        "left": 16,
+        "right": 396,
+        "width": 380,
+        "height": 150
+      },
+      "playerRect": {
+        "top": 759.6625366210938,
+        "bottom": 1109.6625366210938,
+        "left": 16,
+        "right": 396,
+        "width": 380,
+        "height": 350
+      },
+      "wrapper": {
+        "id": 4,
+        "connected": true,
+        "rect": {
+          "top": 759.6625366210938,
+          "bottom": 759.6625366210938,
+          "left": 16,
+          "right": 396,
+          "width": 380,
+          "height": 0
+        },
+        "display": "block",
+        "visibility": "visible",
+        "opacity": "0",
+        "hidden": false,
+        "hasBox": false
+      },
+      "documentVisibility": "visible"
+    },
+    {
+      "event": "core:first-frame",
+      "timestamp": 1793035038896,
+      "readiness": {
+        "eligible": true,
+        "reason": "visible",
+        "distancePx": -616,
+        "intersectionRatio": 1
+      },
+      "anchor": {
+        "top": 306.4624938964844,
+        "bottom": 456.4624938964844,
+        "left": 16,
+        "right": 396,
+        "width": 380,
+        "height": 150
+      },
+      "playerRect": {
+        "top": 476.4624938964844,
+        "bottom": 826.4624938964844,
+        "left": 16,
+        "right": 396,
+        "width": 380,
+        "height": 350
+      },
+      "wrapper": {
+        "id": 4,
+        "connected": true,
+        "rect": {
+          "top": 476.4624938964844,
+          "bottom": 476.4624938964844,
+          "left": 16,
+          "right": 396,
+          "width": 380,
+          "height": 0
+        },
+        "display": "block",
+        "visibility": "visible",
+        "opacity": "0",
+        "hidden": false,
+        "hasBox": false
+      },
+      "documentVisibility": "visible"
+    },
+    {
+      "event": "ima:IMPRESSION",
+      "timestamp": 1793035039010,
+      "readiness": {
+        "eligible": true,
+        "reason": "visible",
+        "distancePx": -621,
+        "intersectionRatio": 1
+      },
+      "anchor": {
+        "top": 300.8625183105469,
+        "bottom": 450.8625183105469,
+        "left": 16,
+        "right": 396,
+        "width": 380,
+        "height": 150
+      },
+      "playerRect": {
+        "top": 470.8625183105469,
+        "bottom": 820.8625183105469,
+        "left": 16,
+        "right": 396,
+        "width": 380,
+        "height": 350
+      },
+      "wrapper": {
+        "id": 4,
+        "connected": true,
+        "rect": {
+          "top": 470.8625183105469,
+          "bottom": 470.8625183105469,
+          "left": 16,
+          "right": 396,
+          "width": 380,
+          "height": 0
+        },
+        "display": "block",
+        "visibility": "visible",
+        "opacity": "0",
+        "hidden": false,
+        "hasBox": false
+      },
+      "documentVisibility": "visible"
+    },
+    {
+      "event": "ima:STARTED",
+      "timestamp": 1793035039019,
+      "readiness": {
+        "eligible": true,
+        "reason": "visible",
+        "distancePx": -621,
+        "intersectionRatio": 1
+      },
+      "anchor": {
+        "top": 300.8625183105469,
+        "bottom": 450.8625183105469,
+        "left": 16,
+        "right": 396,
+        "width": 380,
+        "height": 150
+      },
+      "playerRect": {
+        "top": 470.8625183105469,
+        "bottom": 820.8625183105469,
+        "left": 16,
+        "right": 396,
+        "width": 380,
+        "height": 350
+      },
+      "wrapper": {
+        "id": 4,
+        "connected": true,
+        "rect": {
+          "top": 470.8625183105469,
+          "bottom": 470.8625183105469,
+          "left": 16,
+          "right": 396,
+          "width": 380,
+          "height": 0
+        },
+        "display": "block",
+        "visibility": "visible",
+        "opacity": "0",
+        "hidden": false,
+        "hasBox": false
+      },
+      "documentVisibility": "visible"
+    }
+  ],
+  "network": {
+    "bundle": [
+      {
+        "entryIndex": 9,
+        "startedAt": 1793035023228,
+        "endAt": 1793035023450.96,
+        "durationMs": 222.95999999914784,
+        "status": 200,
+        "timings": {
+          "blocked": 199.75399999952725,
+          "dns": -1,
+          "ssl": -1,
+          "connect": -1,
+          "send": 0.4549999999999983,
+          "wait": 8.478000000754605,
+          "receive": 14.272999998865998,
+          "_blocked_queueing": 173.23299999952724,
+          "_workerStart": -1,
+          "_workerReady": -1,
+          "_workerFetchStart": -1,
+          "_workerRespondWithSettled": -1
+        },
+        "mime": "text/javascript",
+        "bodyCaptured": true,
+        "loopbackPeer": true,
+        "connection": "8888",
+        "requestRange": null,
+        "contentRange": null,
+        "bodyBytes": 894934,
+        "bodySha256": "18299f4fa54e151ff045e6d355c554055bdc85399ddec29eb5e9e85990bcfdfc"
+      }
+    ],
+    "plugin": [
+      {
+        "entryIndex": 246,
+        "startedAt": 1793035029346,
+        "endAt": 1793035029378.116,
+        "durationMs": 32.11600000031467,
+        "status": 200,
+        "timings": {
+          "blocked": 1.6739999998947606,
+          "dns": -1,
+          "ssl": -1,
+          "connect": -1,
+          "send": 0.2729999999999999,
+          "wait": 29.40200000087847,
+          "receive": 0.76699999954144,
+          "_blocked_queueing": 0.5369999998947605,
+          "_workerStart": -1,
+          "_workerReady": -1,
+          "_workerFetchStart": -1,
+          "_workerRespondWithSettled": -1
+        },
+        "mime": "application/javascript",
+        "bodyCaptured": true,
+        "loopbackPeer": true,
+        "connection": "8888",
+        "requestRange": null,
+        "contentRange": null,
+        "bodyBytes": 36933,
+        "bodySha256": "01b11a7a6a4b771ead01e2060b8983d0b37f6f3e01a7e74f0140eb04b69459c8",
+        "sourceAudit": {
+          "bytes": 36933,
+          "sha256": "01b11a7a6a4b771ead01e2060b8983d0b37f6f3e01a7e74f0140eb04b69459c8",
+          "sdkCallBeforeAdsRequestEvent": true,
+          "defaultRequestModeOnLoad": true
+        }
+      }
+    ],
+    "bridge": [
+      {
+        "entryIndex": 336,
+        "startedAt": 1793035035506,
+        "endAt": 1793035035949.507,
+        "durationMs": 443.50699999995413,
+        "status": 200,
+        "timings": {
+          "blocked": 1.7690000004222384,
+          "dns": -1,
+          "ssl": 73.482,
+          "connect": 155.441,
+          "send": 0.5619999999999834,
+          "wait": 263.3690000002941,
+          "receive": 22.36599999923783,
+          "_blocked_queueing": 1.7690000004222384,
+          "_workerStart": -1,
+          "_workerReady": -1,
+          "_workerFetchStart": -1,
+          "_workerRespondWithSettled": -1
+        },
+        "mime": "text/html",
+        "bodyCaptured": false,
+        "loopbackPeer": true,
+        "connection": "8888",
+        "requestRange": null,
+        "contentRange": null
+      }
+    ],
+    "vast": [
+      {
+        "entryIndex": 340,
+        "startedAt": 1793035036782,
+        "endAt": 1793035037037.341,
+        "durationMs": 255.341000000044,
+        "status": 200,
+        "timings": {
+          "blocked": 5.467000000188476,
+          "dns": -1,
+          "ssl": 63.385999999999996,
+          "connect": 92.17399999999999,
+          "send": 0.5420000000000016,
+          "wait": 156.35800000005634,
+          "receive": 0.7999999997991836,
+          "_blocked_queueing": 4.068000000188476,
+          "_workerStart": -1,
+          "_workerReady": -1,
+          "_workerFetchStart": -1,
+          "_workerRespondWithSettled": -1
+        },
+        "mime": "text/xml",
+        "bodyCaptured": false,
+        "loopbackPeer": true,
+        "connection": "8888",
+        "requestRange": null,
+        "contentRange": null
+      }
+    ],
+    "redirect302": [
+      {
+        "entryIndex": 346,
+        "startedAt": 1793035037421,
+        "endAt": 1793035038433.349,
+        "durationMs": 1012.3490000005404,
+        "status": 302,
+        "timings": {
+          "blocked": 3.100999999390682,
+          "dns": -1,
+          "ssl": 893.557,
+          "connect": 966.489,
+          "send": 0.7630000000000337,
+          "wait": 41.096000000238746,
+          "receive": 0.9000000009109499,
+          "_blocked_queueing": 1.2769999993906822,
+          "_workerStart": -1,
+          "_workerReady": -1,
+          "_workerFetchStart": -1,
+          "_workerRespondWithSettled": -1
+        },
+        "mime": "text/html",
+        "bodyCaptured": false,
+        "loopbackPeer": true,
+        "connection": "8888",
+        "requestRange": "bytes=0-",
+        "contentRange": null
+      }
+    ],
+    "media206": [
+      {
+        "entryIndex": 350,
+        "startedAt": 1793035038434,
+        "endAt": 1793035038713.563,
+        "durationMs": 279.56300000005285,
+        "status": 206,
+        "timings": {
+          "blocked": 3.6450000003846363,
+          "dns": -1,
+          "ssl": 60.033,
+          "connect": 154.09799999999998,
+          "send": 1.2040000000000077,
+          "wait": 19.942000000323986,
+          "receive": 100.67399999934423,
+          "_blocked_queueing": 0.3880000003846362,
+          "_workerStart": -1,
+          "_workerReady": -1,
+          "_workerFetchStart": -1,
+          "_workerRespondWithSettled": -1
+        },
+        "mime": "video/mp4",
+        "bodyCaptured": true,
+        "loopbackPeer": true,
+        "connection": "8888",
+        "requestRange": "bytes=0-",
+        "contentRange": "bytes 0-498318/498319",
+        "redirectTargetMatches": true
+      }
+    ]
+  },
+  "display": [
+    {
+      "event": "display_request_started",
+      "timestamp": 1793035051545,
+      "slotId": "gexp-intext",
+      "cycleId": 2,
+      "renderToken": 2,
+      "isRefresh": true,
+      "isFallback": false
+    },
+    {
+      "event": "display_slot_render_ended",
+      "timestamp": 1793035052957,
+      "slotId": "gexp-intext",
+      "cycleId": 2,
+      "renderToken": 2,
+      "isRefresh": true,
+      "isFallback": false,
+      "gamFilled": true,
+      "realDisplayFilled": true,
+      "isEmpty": false
+    },
+    {
+      "event": "display_wrapper_opened",
+      "timestamp": 1793035052995,
+      "slotId": "gexp-intext",
+      "cycleId": 2,
+      "renderToken": 2,
+      "isRefresh": true,
+      "isFallback": false
+    },
+    {
+      "event": "display_impression_viewable",
+      "timestamp": 1793035054051,
+      "slotId": "gexp-intext",
+      "cycleId": 2,
+      "renderToken": 2,
+      "isRefresh": false,
+      "isFallback": false,
+      "impressionViewable": true
+    },
+    {
+      "event": "display_request_started",
+      "timestamp": 1793035057861,
+      "slotId": "gexp-intext-2",
+      "cycleId": 1,
+      "renderToken": 1,
+      "isRefresh": false,
+      "isFallback": false
+    },
+    {
+      "event": "display_slot_render_ended",
+      "timestamp": 1793035059339,
+      "slotId": "gexp-intext-2",
+      "cycleId": 1,
+      "renderToken": 1,
+      "isRefresh": false,
+      "isFallback": false,
+      "gamFilled": true,
+      "realDisplayFilled": true,
+      "isEmpty": false
+    },
+    {
+      "event": "display_wrapper_opened",
+      "timestamp": 1793035059359,
+      "slotId": "gexp-intext-2",
+      "cycleId": 1,
+      "renderToken": 1,
+      "isRefresh": false,
+      "isFallback": false
+    },
+    {
+      "event": "display_impression_viewable",
+      "timestamp": 1793035060398,
+      "slotId": "gexp-intext-2",
+      "cycleId": 1,
+      "renderToken": 1,
+      "isRefresh": false,
+      "isFallback": false,
+      "impressionViewable": true
+    },
+    {
+      "event": "display_request_started",
+      "timestamp": 1793035066777,
+      "slotId": "gexp-intext-2",
+      "cycleId": 2,
+      "renderToken": 2,
+      "isRefresh": true,
+      "isFallback": false
+    },
+    {
+      "event": "display_slot_render_ended",
+      "timestamp": 1793035067720,
+      "slotId": "gexp-intext-2",
+      "cycleId": 2,
+      "renderToken": 2,
+      "isRefresh": true,
+      "isFallback": false,
+      "gamFilled": true,
+      "realDisplayFilled": true,
+      "isEmpty": false
+    },
+    {
+      "event": "display_wrapper_opened",
+      "timestamp": 1793035067728,
+      "slotId": "gexp-intext-2",
+      "cycleId": 2,
+      "renderToken": 2,
+      "isRefresh": true,
+      "isFallback": false
+    }
+  ],
+  "displayLogs": [
+    {
+      "timestamp": 1793035049239,
+      "message": "[Intext:Display:gexp-intext] video_to_display_display_missing_keep_video_surface"
+    },
+    {
+      "timestamp": 1793035052030,
+      "message": "[Intext:Display:gexp-intext] ⚠️ DOM element missing, recreating wrapper..."
+    },
+    {
+      "timestamp": 1793035052032,
+      "message": "[Intext:Display:gexp-intext] display_height_state_applied - source=askDisplay_recreate_from_video_bridge, content_height=345, total_height=360, locked_height=345"
+    },
+    {
+      "timestamp": 1793035052034,
+      "message": "[Intext:Display:gexp-intext] video_to_display_bridge_display_recreated"
+    },
+    {
+      "timestamp": 1793035052037,
+      "message": "[Intext:Display:gexp-intext] video_to_display_bridge_video_hidden_after_recreate"
+    }
+  ],
+  "performance": {
+    "compression": "gzip",
+    "uncompressedBytes": 238554799,
+    "traceEvents": 810091,
+    "metadataStartUtc": "2026-10-26T17:17:10.733Z",
+    "emulatedDevice": "Pixel 9 Pro Fold",
+    "windowUs": {
+      "min": 11780058392,
+      "max": 11815851882,
+      "range": 35793490
+    },
+    "durationMs": 35793.49,
+    "screenshotCount": 450,
+    "screenshotsFirstTsUs": 11780103974,
+    "screenshotsLastTsUs": 11794283833,
+    "screenshotsSpanMs": 14179.859,
+    "screenshotsLastOffsetFromWindowMs": 14225.441,
+    "screenshotsEndBeforeComplete": true,
+    "clockMethod": "Approximate correlation anchored to identical media ResourceSendRequest and HAR start; metadata projection differs by about 144 ms. This aligns different networking milestones, not an exact drift calibration; busy-window boundaries remain approximate.",
+    "mediaClockComparison": [
+      {
+        "ts": 11786602465,
+        "metadataProjectedEpochMs": 1793035037277.073,
+        "pid": 23580,
+        "tid": 3012,
+        "metadataProjectionMinusHarMs": -143.927001953125,
+        "approxCorrelationShiftMsApplied": 143.927001953125
+      }
+    ],
+    "busy": [
+      {
+        "pid": 23580,
+        "tid": 3012,
+        "windowMs": 3504,
+        "runTaskUnionMs": 2089.73828125,
+        "occupiedPercent": 59.63864957905251,
+        "interpretation": "Approximate HAR clock projection; clipped union of wall-time task intervals, not InText CPU attribution"
+      },
+      {
+        "pid": 2984,
+        "tid": 18584,
+        "windowMs": 3504,
+        "runTaskUnionMs": 1207.198486328125,
+        "occupiedPercent": 34.45201159612229,
+        "interpretation": "Approximate HAR clock projection; clipped union of wall-time task intervals, not InText CPU attribution"
+      }
+    ],
+    "tasks": [
+      {
+        "name": "RunTask",
+        "pid": 23580,
+        "tid": 3012,
+        "tsUs": 11784648357,
+        "durationMs": 204.751,
+        "approxEpochMs": 1793035035466.892,
+        "source": null
+      },
+      {
+        "name": "RunTask",
+        "pid": 2984,
+        "tid": 18584,
+        "tsUs": 11785199263,
+        "durationMs": 535.861,
+        "approxEpochMs": 1793035036017.798,
+        "source": null
+      },
+      {
+        "name": "ParseHTML",
+        "pid": 2984,
+        "tid": 18584,
+        "tsUs": 11785199272,
+        "durationMs": 535.628,
+        "approxEpochMs": 1793035036017.807,
+        "source": null
+      },
+      {
+        "name": "EvaluateScript",
+        "pid": 2984,
+        "tid": 18584,
+        "tsUs": 11785325355,
+        "durationMs": 409.036,
+        "approxEpochMs": 1793035036143.89,
+        "source": "IMA bridge3.796.0"
+      },
+      {
+        "name": "v8.compile",
+        "pid": 2984,
+        "tid": 18584,
+        "tsUs": 11785325424,
+        "durationMs": 284.938,
+        "approxEpochMs": 1793035036143.959,
+        "source": "IMA bridge3.796.0"
+      },
+      {
+        "name": "RunTask",
+        "pid": 2984,
+        "tid": 18584,
+        "tsUs": 11786222271,
+        "durationMs": 196.522,
+        "approxEpochMs": 1793035037040.806,
+        "source": null
+      },
+      {
+        "name": "RunTask",
+        "pid": 23580,
+        "tid": 3012,
+        "tsUs": 11786295933,
+        "durationMs": 165.982,
+        "approxEpochMs": 1793035037114.468,
+        "source": null
+      },
+      {
+        "name": "MajorGC",
+        "pid": 23580,
+        "tid": 3012,
+        "tsUs": 11786296255,
+        "durationMs": 165.228,
+        "approxEpochMs": 1793035037114.79,
+        "source": null
+      }
+    ],
+    "limitations": [
+      "Trace begins after dependencies/prepare; no measurement of their evaluation CPU",
+      "Nested tasks are not additive; threads overlap",
+      "No NetLog or SAZ: proxy and origin transport unresolved",
+      "VAST XML body absent",
+      "Screenshots end before COMPLETE; P1.3c visual remains open",
+      "No historical outlier reproduced or explained by this fast attempt"
+    ]
+  },
+  "protectedInputs": [
+    {
+      "file": "_gam_kv_.js",
+      "sha256": "1cde1ccdc962c07d5833dc9691a3bfe31b7dd74b3e649e89153a240940a06690",
+      "unchangedSinceReviewStart": true
+    },
+    {
+      "file": "IntextManager.js",
+      "sha256": "ba832dc0eb3c0f6e1070a515fac09dd31467e2c7a5a64a18ff4e4f4c063fead8",
+      "unchangedSinceReviewStart": true
+    },
+    {
+      "file": "tests/qa/intext-p14a-build.cjs",
+      "sha256": "5316f97dc7cf2e2413dc16d2df3c6d2a77c4a60196ea034a9e2211f4f8fcd85d",
+      "unchangedSinceReviewStart": true
+    },
+    {
+      "file": "tests/qa/intext-p14a-dependencies.cjs",
+      "sha256": "465e0103f66ed873e8a5dc13f45dea2e7bdd473211120ce0b75c1e9eecbe8053",
+      "unchangedSinceReviewStart": true
+    },
+    {
+      "file": "tests/qa/intext-p13c-integration-probe.cjs",
+      "sha256": "9e05060a3013d20476bc0dade07f5784c59730220495b683c53393394bd80f4a",
+      "unchangedSinceReviewStart": true
+    },
+    {
+      "file": "docs/intext-p14a-build.json",
+      "sha256": "ab5003d00171b8266efa2d914c353b10d69b9259d186de429b8908f2fe0fc6b3",
+      "unchangedSinceReviewStart": true
+    },
+    {
+      "file": "tests/qa/generated/integration-build.txt",
+      "sha256": "6a4a8841518ecee978a5bafdc9f17333a35477ff9674772cc4ea951522bf9306",
+      "unchangedSinceReviewStart": true
+    },
+    {
+      "file": "tests/qa/generated/integration-current-code.txt",
+      "sha256": "3e72ff060ab6bac95e81eff76a02b073a9dda708c69c95b0eab8e6e35fb3cf2f",
+      "unchangedSinceReviewStart": true
+    },
+    {
+      "file": "tests/qa/generated/integration-debug.json",
+      "sha256": "f3d71c573dbd8e0c7b556042a558615d190bc37a9350a4b4f7acf47ea90f6152",
+      "unchangedSinceReviewStart": true
+    },
+    {
+      "file": "tests/qa/generated/integration-scope-check.txt",
+      "sha256": "26522ca2146d395d4de34099d4c9f9d23586041bc067ec1a6742185f0a2974fd",
+      "unchangedSinceReviewStart": true
+    },
+    {
+      "file": "tests/qa/generated/integration-timeline.txt",
+      "sha256": "55d77077884fd5dca8e09fde7bd1509ea87f85d1bbb3007bcbe465fb983ab545",
+      "unchangedSinceReviewStart": true
+    },
+    {
+      "file": "tests/qa/generated/intext-integration-black-gam.qa.js",
+      "sha256": "e5428aa1ee1bb1a3ac8d6b9bd2b65f93ccdd796f7f8c03f32dc9ff9268582514",
+      "unchangedSinceReviewStart": true
+    },
+    {
+      "file": "tests/qa/generated/intext-integration-black-manager.qa.js",
+      "sha256": "afd46c29051f376f5684ab632d30e734fe68b3bad1a336432baab6791270cc6a",
+      "unchangedSinceReviewStart": true
+    },
+    {
+      "file": "tests/qa/generated/intext-integration-original-gam.qa.js",
+      "sha256": "1bedee9f303ce9822cc27acd0b7584af077883c503232fa91c8c93b2245f079b",
+      "unchangedSinceReviewStart": true
+    },
+    {
+      "file": "tests/qa/generated/intext-integration-original-manager.qa.js",
+      "sha256": "78f4b8b50f050103d2c7aee27219bb0445e8ef12cfe8c1551edfd4a5b41234da",
+      "unchangedSinceReviewStart": true
+    },
+    {
+      "file": "tests/qa/generated/intext-p13c-gam.qa.js",
+      "sha256": "15bb30329d2c1cd97ff3c6e4f5c8a61dec5bd37e759685dede6023edb908f1ff",
+      "unchangedSinceReviewStart": true
+    },
+    {
+      "file": "tests/qa/generated/intext-p13c-manager.qa.js",
+      "sha256": "94aec73d75fc93a216ecb9d4a38956c7ace4d354a9ea9ed56148b687b7c64bdb",
+      "unchangedSinceReviewStart": true
+    },
+    {
+      "file": "tests/qa/generated/intext-p14a-E0-gam.qa.js",
+      "sha256": "18299f4fa54e151ff045e6d355c554055bdc85399ddec29eb5e9e85990bcfdfc",
+      "unchangedSinceReviewStart": true
+    },
+    {
+      "file": "tests/qa/generated/intext-p14a-E0-manager.qa.js",
+      "sha256": "0995a835320911ea856636044e5008e175285f8bbc76abb1f94aa596290fbf5f",
+      "unchangedSinceReviewStart": true
+    },
+    {
+      "file": "tests/qa/generated/intext-p14a-E1-gam.qa.js",
+      "sha256": "6356718da3b272d2c68ac208ac9147020b9b327ce6b6dc7b40af3317e3e58e11",
+      "unchangedSinceReviewStart": true
+    },
+    {
+      "file": "tests/qa/generated/intext-p14a-E1-manager.qa.js",
+      "sha256": "250c24ca253e814c6cca4beec1363fe32abd6f17cf2c9234fdf2a5f73c164bd8",
+      "unchangedSinceReviewStart": true
+    },
+    {
+      "file": "docs/intext-p14a2-e0-real-evidence.json",
+      "sha256": "ede1484d0588d1eac74d9e2d6d3e08a8e3adc47a152fe2a8aeb56e223dd2f3ed",
+      "unchangedSinceReviewStart": true
+    },
+    {
+      "file": "docs/intext-p14a2-evidence.json",
+      "sha256": "ced30f1d194a1fb207ed81e3a1570f79319c70e5361297cac13f6165ec4f1230",
+      "unchangedSinceReviewStart": true
+    },
+    {
+      "file": "docs/intext-p14a2-har-complete-evidence.json",
+      "sha256": "28a18c6a3691a117820fa60b9244628227d7aae8d552acc9b7711aa11a9806aa",
+      "unchangedSinceReviewStart": true
+    }
+  ],
+  "harEntries": 813,
+  "validation": {
+    "reviewDate": "2026-10-26",
+    "kind": "Offline documentation/evidence validation, not a browser or historical suite run",
+    "originalFilesVerified": 35,
+    "protectedFilesUnchanged": 24,
+    "localLinksChecked": 76,
+    "documentsChecked": 7,
+    "invariants": [
+      "E0 body/assignment/context and serial branches",
+      "5909 ms geometry; 11233 ms winner-frame; 1570 ms manager-frame",
+      "2432 ms COMPLETE-to-refresh request; fallback=false",
+      "810091 events; gzip 238554799 decompressed bytes; screenshots before COMPLETE",
+      "Nested bridge task/evaluation/compile intervals",
+      "UTF-8 and local Markdown links"
+    ],
+    "result": "PASS",
+    "historicalOriginalsNotFoundInDownloads": 31,
+    "unavailableHistoricalOriginalFiles": [
+      "E0-1.json",
+      "gexp-intext-debug_marca.com_6e313bd494389c954dfc9e81_2026-10-22T10-45-03-067Z-E0-1.json",
+      "www.marca.com-mobile E0-1.har",
+      "E0-2.json",
+      "gexp-intext-debug_marca.com_6e313bd494389c954dfc9e81_2026-10-22T10-49-05-196Z-E0-2.json",
+      "www.marca.com-mobile E0-2.har",
+      "E0-3.json",
+      "gexp-intext-debug_marca.com_6e313bd494389c954dfc9e81_2026-10-22T10-53-02-010Z-E0-3.json",
+      "www.marca.com-mobile E0-3.har",
+      "E0-4.json",
+      "gexp-intext-debug_marca.com_6e313bd494389c954dfc9e81_2026-10-22T10-56-35-422Z-E0-4.json",
+      "www.marca.com-mobile E0-4.har",
+      "E1-1.json",
+      "gexp-intext-debug_marca.com_6e313bd494389c954dfc9e81_2026-10-22T11-25-56-450Z-E1-1.json",
+      "www.marca.com-mobile E1-1.har",
+      "E1-2.json",
+      "gexp-intext-debug_marca.com_6e313bd494389c954dfc9e81_2026-10-22T11-28-31-223Z-E1-2.json",
+      "www.marca.com-mobile E1-2.har",
+      "E1-3.json",
+      "gexp-intext-debug_marca.com_6e313bd494389c954dfc9e81_2026-10-22T11-31-49-843Z-E1-3.json",
+      "www.marca.com-mobile E1-3.har",
+      "E1-4.json",
+      "gexp-intext-debug_marca.com_6e313bd494389c954dfc9e81_2026-10-22T11-34-33-268Z-E1-4.json",
+      "www.marca.com-mobile E1-4.har",
+      "E1-5.json",
+      "gexp-intext-debug_marca.com_6e313bd494389c954dfc9e81_2026-10-22T11-36-54-580Z-E1-5.json",
+      "www.marca.com-mobile E1-5.har",
+      "E1-6.json",
+      "gexp-intext-debug_marca.com_6e313bd494389c954dfc9e81_2026-10-22T11-40-01-763Z-E1-6.json",
+      "www.marca.com-mobile E1-6.har",
+      "Informe_P14A_E0_vs_E1_Marca_mobile_2026-10-22.md"
+    ],
+    "historicalCoverageNote": "Unavailable original PSP-study files are represented by the preserved historical evidence JSON; their raw hashes were not revalidated in this review. All new Performance inputs and available later A2 inputs were verified. No capture expansion requested."
+  }
+}

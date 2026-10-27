@@ -1,0 +1,262 @@
+{
+  "qaOnly": true,
+  "enforce": false,
+  "versionUnchanged": true,
+  "production": [
+    {
+      "file": "_gam_kv_.js",
+      "expectedHash": "1cde1ccdc962c07d5833dc9691a3bfe31b7dd74b3e649e89153a240940a06690",
+      "actualHash": "1cde1ccdc962c07d5833dc9691a3bfe31b7dd74b3e649e89153a240940a06690",
+      "unchanged": true
+    },
+    {
+      "file": "IntextManager.js",
+      "expectedHash": "ba832dc0eb3c0f6e1070a515fac09dd31467e2c7a5a64a18ff4e4f4c063fead8",
+      "actualHash": "ba832dc0eb3c0f6e1070a515fac09dd31467e2c7a5a64a18ff4e4f4c063fead8",
+      "unchanged": true
+    }
+  ],
+  "variants": [
+    {
+      "file": "intext-p14a-E0-gam.qa.js",
+      "arm": "E0",
+      "sha256": "18299f4fa54e151ff045e6d355c554055bdc85399ddec29eb5e9e85990bcfdfc",
+      "byteExactReversal": true
+    },
+    {
+      "file": "intext-p14a-E1-gam.qa.js",
+      "arm": "E1",
+      "sha256": "6356718da3b272d2c68ac208ac9147020b9b327ce6b6dc7b40af3317e3e58e11",
+      "byteExactReversal": true
+    },
+    {
+      "file": "intext-p14a-E0-manager.qa.js",
+      "arm": "E0",
+      "sha256": "0995a835320911ea856636044e5008e175285f8bbc76abb1f94aa596290fbf5f",
+      "byteExactReversal": true
+    },
+    {
+      "file": "intext-p14a-E1-manager.qa.js",
+      "arm": "E1",
+      "sha256": "250c24ca253e814c6cca4beec1363fe32abd6f17cf2c9234fdf2a5f73c164bd8",
+      "byteExactReversal": true
+    }
+  ],
+  "previousQAInputs": [
+    {
+      "file": "tests/qa/intext-p13c-integration-probe.cjs",
+      "sha256": "9e05060a3013d20476bc0dade07f5784c59730220495b683c53393394bd80f4a",
+      "modifiedThisPhase": false
+    },
+    {
+      "file": "tests/qa/intext-p13c-integration-build.cjs",
+      "sha256": "b70ed1bbe129db7b5738d4803ae1cac4ffdbd1f32c3b1f0082a8d9d9f3ef2d73",
+      "modifiedThisPhase": false
+    },
+    {
+      "file": "tests/qa/intext-p13c-dummy-source-build.cjs",
+      "sha256": "93ec49c829a73a86123fb41e5c09b9224f394244ecc38a03af97a1096b158cab",
+      "modifiedThisPhase": false
+    },
+    {
+      "file": "tests/qa/intext-p13c-dummy-candidate.cjs",
+      "sha256": "8436b045b3fd42ae9f61ef6b72c4147aee766a7a84be2a9c7b45c8a2939c1dd6",
+      "modifiedThisPhase": false
+    },
+    {
+      "file": "docs/intext-p13c-integration-build.json",
+      "sha256": "c765cf7b4c81c38b75ed1ce87c5c0064a47891a928621717347cbd2e1bf42f07",
+      "modifiedThisPhase": false
+    },
+    {
+      "file": "docs/intext-p13c-dummy-source-build.json",
+      "sha256": "69ba90ddc19e6887165a879ce4b9e9d6a2506914ebdfd5d59afd2da87b943333",
+      "modifiedThisPhase": false
+    }
+  ],
+  "patch": {
+    "file": "docs/intext-p14a-qa.patch",
+    "sha256": "67ed4438775d58d5b9dc46803e444465fbd3a277e0922d8cd6221837062206b5",
+    "files": [
+      "tests/qa/intext-p14a-dependencies.cjs",
+      "tests/qa/intext-p14a-build.cjs",
+      "tests/intext-p14a-dependencies.audit.test.cjs",
+      "docs/intext-p14a-qa.md"
+    ],
+    "format": "new QA files only; baseline report updated separately"
+  },
+  "validations": {
+    "baselineCovered": 1252,
+    "newTests": 75,
+    "affected": 183,
+    "full": {
+      "tests": 1327,
+      "failed": 0,
+      "passed": 1327,
+      "cancelled": 0,
+      "skipped": 0,
+      "todo": 0,
+      "topLevel": 1327,
+      "suites": 0
+    },
+    "perFile": {
+      "tests/configpro-sync.audit.test.cjs": {
+        "pass": 25,
+        "fail": 0
+      },
+      "tests/intext-aps-display-slot.audit.test.cjs": {
+        "pass": 50,
+        "fail": 0
+      },
+      "tests/intext-core.audit.test.cjs": {
+        "pass": 115,
+        "fail": 0
+      },
+      "tests/intext-debugger.audit.test.cjs": {
+        "pass": 44,
+        "fail": 0
+      },
+      "tests/intext-dummy-lab.audit.test.cjs": {
+        "pass": 28,
+        "fail": 0
+      },
+      "tests/intext-dummy-source.audit.test.cjs": {
+        "pass": 5,
+        "fail": 0
+      },
+      "tests/intext-floor-authority.audit.test.cjs": {
+        "pass": 86,
+        "fail": 0
+      },
+      "tests/intext-gpt-controls.audit.test.cjs": {
+        "pass": 10,
+        "fail": 0
+      },
+      "tests/intext-gpt-psp.audit.test.cjs": {
+        "pass": 7,
+        "fail": 0
+      },
+      "tests/intext-ima-preload-first-frame.audit.test.cjs": {
+        "pass": 77,
+        "fail": 0
+      },
+      "tests/intext-initial-open-animation.audit.test.cjs": {
+        "pass": 7,
+        "fail": 0
+      },
+      "tests/intext-p13-video-blocking.audit.test.cjs": {
+        "pass": 13,
+        "fail": 0
+      },
+      "tests/intext-p13a-lifecycle.audit.test.cjs": {
+        "pass": 21,
+        "fail": 0
+      },
+      "tests/intext-p13b-lifecycle.audit.test.cjs": {
+        "pass": 30,
+        "fail": 0
+      },
+      "tests/intext-p13c-integration.audit.test.cjs": {
+        "pass": 26,
+        "fail": 0
+      },
+      "tests/intext-p13c-isolated.audit.test.cjs": {
+        "pass": 19,
+        "fail": 0
+      },
+      "tests/intext-p13c-latency.audit.test.cjs": {
+        "pass": 93,
+        "fail": 0
+      },
+      "tests/intext-p14a-dependencies.audit.test.cjs": {
+        "pass": 75,
+        "fail": 0
+      },
+      "tests/intext-pip-phase1-close.audit.test.cjs": {
+        "pass": 7,
+        "fail": 0
+      },
+      "tests/intext-pip.audit.test.cjs": {
+        "pass": 43,
+        "fail": 0
+      },
+      "tests/intext-prebid-aliases.audit.test.cjs": {
+        "pass": 11,
+        "fail": 0
+      },
+      "tests/intext-prebid-aps-psp.audit.test.cjs": {
+        "pass": 13,
+        "fail": 0
+      },
+      "tests/intext-prebid-floor.audit.test.cjs": {
+        "pass": 74,
+        "fail": 0
+      },
+      "tests/intext-predictive-readiness.audit.test.cjs": {
+        "pass": 253,
+        "fail": 0
+      },
+      "tests/intext-preproduction.audit.test.cjs": {
+        "pass": 14,
+        "fail": 0
+      },
+      "tests/intext-qa.audit.test.cjs": {
+        "pass": 24,
+        "fail": 0
+      },
+      "tests/intext-random-runtime.audit.test.cjs": {
+        "pass": 61,
+        "fail": 0
+      },
+      "tests/intext-rule-targeting.audit.test.cjs": {
+        "pass": 96,
+        "fail": 0
+      }
+    },
+    "syntax": [
+      "_gam_kv_.js",
+      "IntextManager.js",
+      "tests/qa/intext-p14a-dependencies.cjs",
+      "tests/qa/intext-p14a-build.cjs",
+      "tests/intext-p14a-dependencies.audit.test.cjs",
+      "tests/qa/generated/intext-p14a-E0-gam.qa.js",
+      "tests/qa/generated/intext-p14a-E1-gam.qa.js",
+      "tests/qa/generated/intext-p14a-E0-manager.qa.js",
+      "tests/qa/generated/intext-p14a-E1-manager.qa.js"
+    ],
+    "firstAdaptedRun": {
+      "passed": 1322,
+      "failed": 1,
+      "reason": "Before final four render-mark tests: existing dummy lab pause-stack ended test returned lab-timeout; unchanged test passed isolated 28/28, then full rerun 1323/1323."
+    },
+    "subprocessAdapter": "Existing temp adapter: exact externally verified git rev-parse/diff and node --check results; syntax SHA validated. No test or SDK stubs.",
+    "historicalBaseline": {
+      "commit": "98106a032aa4d8b2cbc83855030973e6c4563dba",
+      "path": "src/pro/_gam_kv_.js",
+      "sha256": "e26e59f2f65c9bd2517e7582b53a1d5bc0781a63204b9b2e5fcc16ad50dd8118",
+      "environment": "INTEXT_FLOOR_AUDIT_BASELINE"
+    },
+    "browser": "NOT EXECUTED; Chrome/IMA and viewability benefit pending",
+    "diffCheck": "PASS: git diff --check exit 0; manual whitespace verification also covers new untracked QA files and updated design.",
+    "patchReverseCheck": "PASS: git apply --reverse --check docs/intext-p14a-qa.patch exit 0."
+  },
+  "scopeAudit": {
+    "commercialChanges": 0,
+    "productionDiff": 0,
+    "claims": "No changes to GAMExp, WindowArray, Floor Authority, RandomStrategy/random1-4, pricing, targeting, Prebid/RichAudience, APS/TAM, PSP, waterfall, refresh, timeouts, first-frame/reveal, PiP, animation or Display. Earlier working-tree changes preserved.",
+    "qaChanges": "Both QA copies: same existing black dummy/probe; delegation of loadDependencies, infrastructure runtime prefix, two diagnostics and two marks around existing activation prepare await.",
+    "sdkInitialization": "Unchanged; no new player/SDK constructors, play/start/requests in prewarm."
+  },
+  "codeMemory": {
+    "consultedBeforeChanges": true,
+    "reindexed": true,
+    "mode": "fast",
+    "persistence": false,
+    "productionSerialLoaderVerified": true,
+    "currentQAHelperCoverage": "run/resource/branch/install and builder functions found. Object-literal activationWait method not returned as a standalone graph node; its QA builder hooks verified against current source. Graph is discovery only, not a replacement for source/tests/diff.",
+    "finalIndexNodes": 20307,
+    "finalIndexEdges": 39408,
+    "expectedCountsMatch": true,
+    "temporaryHelpersRemovedBeforeFinalIndex": true
+  }
+}

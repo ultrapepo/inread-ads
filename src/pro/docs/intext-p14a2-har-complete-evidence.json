@@ -1,0 +1,1415 @@
+{
+  "cohort": "P14A2-Legacy-E1-20261022-full-HAR",
+  "sourceReport": {
+    "file": "Informe_P14A2_revision_HAR_completos_2026-10-22.md",
+    "sha256": "d00aed66cc6fb44f3d8cb607873f35228433da4cd718796eabf0204456af55a2"
+  },
+  "priorCohort": "Separate PSP/dual 4 E0 + 6 E1; no pooling or statistical causal inference",
+  "sessions": [
+    {
+      "id": "A2-E0",
+      "sourceFiles": [
+        {
+          "file": "A2-E0.har",
+          "sha256": "4ea703c17490d0df6d5c0dfd0a7289eb1e57bccdf3b4ff4376a5ab0b89a47810"
+        },
+        {
+          "file": "A2-E0.json",
+          "sha256": "6d382c61cf147de5be223a30c89ed39a7c91ab8d606242b6b31f11c5ad73a896"
+        },
+        {
+          "file": "A2-E0-debug.json",
+          "sha256": "1678ec6c934128f9c8ff8a302cbdb6000fdcabc1bae0d82c9d532b6bdd1ef1e9"
+        }
+      ],
+      "runtime": {
+        "gexpIntextVersion": "2026.10.07-p1-ima-preload-first-frame",
+        "dualMode": false,
+        "pspDetected": false,
+        "randomSource": "gexp-owner-random"
+      },
+      "qa": {
+        "arm": "E1",
+        "assignmentFixed": [
+          "E1"
+        ],
+        "assignmentConflicts": 0,
+        "dropped": 0,
+        "integrationDropped": 0,
+        "activeObservers": 0
+      },
+      "harEntries": 1141,
+      "bundle": [
+        {
+          "status": 200,
+          "bytes": 894934,
+          "sha256": "6356718da3b272d2c68ac208ac9147020b9b327ce6b6dc7b40af3317e3e58e11",
+          "startMs": 1792682423175,
+          "durationMs": 300.2819998655468
+        }
+      ],
+      "plugin": [
+        {
+          "status": 200,
+          "bytes": 36933,
+          "sha256": "01b11a7a6a4b771ead01e2060b8983d0b37f6f3e01a7e74f0140eb04b69459c8",
+          "startMs": 1792682429000,
+          "durationMs": 37.83199982717633
+        }
+      ],
+      "imaSdk": [
+        {
+          "status": 200,
+          "bytes": 539700,
+          "sha256": "8866215167cb5115a4ef324767876adeb2f46df9cf2b82a3f3c9e1eb2c192b59",
+          "startMs": 1792682428189,
+          "durationMs": 383.02499987185
+        }
+      ],
+      "bridge": [
+        {
+          "status": 200,
+          "bytes": null,
+          "sha256": null,
+          "startMs": 1792682433016,
+          "durationMs": 422.11599997244775
+        }
+      ],
+      "vast": [
+        {
+          "status": 200,
+          "bytes": null,
+          "sha256": null,
+          "startMs": 1792682436453,
+          "durationMs": 252.71399994380772,
+          "bodyCaptured": false
+        }
+      ],
+      "tagShape": {
+        "protocol": "https:",
+        "host": "securepubads.g.doubleclick.net",
+        "path": "/gampad/ads",
+        "queryCaptured": false,
+        "note": "Debugger removes query. This is the logged sanitized tag, not the effective AdsRequest; parameters cannot be validated from it."
+      },
+      "usedAdsResponse": false,
+      "containerInitialized": true,
+      "dependenciesMs": 862,
+      "activationMs": 1792682432755,
+      "adsLoaderMs": 1792682433060,
+      "adsRequestMs": 1792682433076,
+      "adsManagerMs": 1792682437666,
+      "frameMs": 1792682438651,
+      "completeMs": 1792682448806,
+      "timeout": false,
+      "firstDisplayCycle2": {
+        "maxInViewPercentage": 100,
+        "requestStarted": true,
+        "slotResponseReceived": true,
+        "waterfallResult": true,
+        "renderEnded": true,
+        "gamFilled": true,
+        "realFilled": true,
+        "empty": false,
+        "house": false,
+        "sentinel": false,
+        "opened": true,
+        "impressionViewable": false,
+        "requestToResponseMs": 1435,
+        "responseToRenderMs": 52,
+        "renderToOpenMs": 23,
+        "renderToViewableMs": null
+      },
+      "durations": {
+        "dependenciesTotalMs": 862,
+        "branches": [
+          {
+            "branch": "ima-sdk",
+            "durationMs": 705
+          },
+          {
+            "branch": "videojs-contrib",
+            "durationMs": 813
+          }
+        ],
+        "branchIntervals": [
+          {
+            "branch": "ima-sdk",
+            "start": 1792682428188,
+            "end": 1792682428893
+          },
+          {
+            "branch": "videojs-contrib",
+            "start": 1792682428185,
+            "end": 1792682428998
+          }
+        ],
+        "branchOverlapObservedMs": 705,
+        "branchOverlapProxyMs": 705,
+        "winnerToDependenciesReadyMs": 973,
+        "winnerToPreparedMs": 976,
+        "prepareDependencyWaitMs": 87,
+        "residualDependenciesWaitMs": 0,
+        "winnerToAdsManagerMs": 9592,
+        "winnerToFirstFrameMs": 10577,
+        "activationToFirstFrameMs": 5896,
+        "adsLoaderToRequestEventMs": 16,
+        "requestMetricToHarStartMs": 3376,
+        "harResponseToAdsManagerMs": 960.285888671875,
+        "requestMetricToAdsManagerMs": 4589,
+        "firstFrameToRevealMs": 7,
+        "activationToTimeoutMs": null,
+        "requestEventToTimeoutMs": null
+      },
+      "stages": {
+        "winner": 1792682428074,
+        "dependenciesStarted": 1792682428185,
+        "dependenciesReady": 1792682429047,
+        "prepared": 1792682429050,
+        "activation": 1792682432755,
+        "playerAttached": 1792682432751,
+        "imaInitLog": 1792682432762,
+        "imaPluginReturned": 1792682432772,
+        "adsLoader": 1792682433060,
+        "sdkRequestReturnedProxy": 1792682433076,
+        "imaRequestMetric": 1792682433077,
+        "harVastStart": 1792682436453,
+        "harVastEnd": 1792682436705.714,
+        "adsManager": 1792682437666,
+        "adsready": 1792682437669,
+        "readyforpreroll": 1792682437670,
+        "adstart": 1792682437774,
+        "firstFrame": 1792682438651,
+        "nativeStarted": 1792682438854,
+        "nativeImpression": 1792682438847,
+        "reveal": 1792682438658,
+        "nativeComplete": 1792682448806,
+        "advertisingTimeout": null,
+        "timeoutProbe": null,
+        "destroy": 1792682448873
+      },
+      "result": "complete",
+      "frameObservation": {
+        "event": "core:first-frame",
+        "timestamp": 1792682438651,
+        "monotonicMs": 16396.400000095367,
+        "renderToken": 1,
+        "activeRenderToken": 1,
+        "tokenMatches": true,
+        "documentVisibility": "visible",
+        "readiness": {
+          "eligible": true,
+          "reason": "visible",
+          "intersectionRatio": 1,
+          "distancePx": -471
+        },
+        "wrapper": {
+          "hasBox": false,
+          "height": 0,
+          "opacity": "0"
+        },
+        "inAdMode": true,
+        "inAdBreak": true,
+        "playerId": 1,
+        "managerId": 8
+      },
+      "timeoutObservation": null
+    },
+    {
+      "id": "A2-E0-2",
+      "sourceFiles": [
+        {
+          "file": "A2-E0-2.har",
+          "sha256": "832cff3dfec6da908bff3b17cc7e5432d94b464e994a7025bff5911260cfd061"
+        },
+        {
+          "file": "A2-E0-2.json",
+          "sha256": "ee7425fa079281a555b8de6867dab6f22fc9b81c62ad17d21d27e84ba90bc151"
+        },
+        {
+          "file": "A2-E0-2-debug.json",
+          "sha256": "0c2e5ba0cfda55a66d0396ae128d88e748fc4c6ca764d3ccf5a7eca6aed30257"
+        }
+      ],
+      "runtime": {
+        "gexpIntextVersion": "2026.10.07-p1-ima-preload-first-frame",
+        "dualMode": false,
+        "pspDetected": false,
+        "randomSource": "gexp-owner-random"
+      },
+      "qa": {
+        "arm": "E1",
+        "assignmentFixed": [
+          "E1"
+        ],
+        "assignmentConflicts": 0,
+        "dropped": 0,
+        "integrationDropped": 0,
+        "activeObservers": 0
+      },
+      "harEntries": 930,
+      "bundle": [
+        {
+          "status": 200,
+          "bytes": 894934,
+          "sha256": "6356718da3b272d2c68ac208ac9147020b9b327ce6b6dc7b40af3317e3e58e11",
+          "startMs": 1792682532598,
+          "durationMs": 1538.7430000118911
+        }
+      ],
+      "plugin": [
+        {
+          "status": 200,
+          "bytes": 36933,
+          "sha256": "01b11a7a6a4b771ead01e2060b8983d0b37f6f3e01a7e74f0140eb04b69459c8",
+          "startMs": 1792682543613,
+          "durationMs": 227.51199989579618
+        }
+      ],
+      "imaSdk": [
+        {
+          "status": 200,
+          "bytes": 539700,
+          "sha256": "5b9e9a2a729cf873113362dcec999c6a53f918df1f636577cfc85bfc15f45035",
+          "startMs": 1792682540334,
+          "durationMs": 1713.0660000257194
+        }
+      ],
+      "bridge": [
+        {
+          "status": 200,
+          "bytes": null,
+          "sha256": null,
+          "startMs": 1792682544279,
+          "durationMs": 1668.426000047475
+        }
+      ],
+      "vast": [],
+      "tagShape": {
+        "protocol": "https:",
+        "host": "securepubads.g.doubleclick.net",
+        "path": "/gampad/ads",
+        "queryCaptured": false,
+        "note": "Debugger removes query. This is the logged sanitized tag, not the effective AdsRequest; parameters cannot be validated from it."
+      },
+      "usedAdsResponse": false,
+      "containerInitialized": true,
+      "dependenciesMs": 3528,
+      "activationMs": 1792682543977,
+      "adsLoaderMs": 1792682544297,
+      "adsRequestMs": 1792682544310,
+      "adsManagerMs": null,
+      "frameMs": null,
+      "completeMs": null,
+      "timeout": true,
+      "firstDisplayCycle2": {
+        "maxInViewPercentage": 100,
+        "requestStarted": true,
+        "slotResponseReceived": true,
+        "waterfallResult": true,
+        "renderEnded": true,
+        "gamFilled": true,
+        "realFilled": true,
+        "empty": false,
+        "house": false,
+        "sentinel": false,
+        "opened": true,
+        "impressionViewable": true,
+        "requestToResponseMs": 1130,
+        "responseToRenderMs": 53,
+        "renderToOpenMs": 17,
+        "renderToViewableMs": 3443
+      },
+      "durations": {
+        "dependenciesTotalMs": 3528,
+        "branches": [
+          {
+            "branch": "ima-sdk",
+            "durationMs": 1967
+          },
+          {
+            "branch": "videojs-contrib",
+            "durationMs": 3280
+          }
+        ],
+        "branchIntervals": [
+          {
+            "branch": "ima-sdk",
+            "start": 1792682540332,
+            "end": 1792682542299
+          },
+          {
+            "branch": "videojs-contrib",
+            "start": 1792682540330,
+            "end": 1792682543610
+          }
+        ],
+        "branchOverlapObservedMs": 1967,
+        "branchOverlapProxyMs": 1967,
+        "winnerToDependenciesReadyMs": 3660,
+        "winnerToPreparedMs": 3664,
+        "prepareDependencyWaitMs": 3097,
+        "residualDependenciesWaitMs": 0,
+        "winnerToAdsManagerMs": null,
+        "winnerToFirstFrameMs": null,
+        "activationToFirstFrameMs": null,
+        "adsLoaderToRequestEventMs": 13,
+        "requestMetricToHarStartMs": null,
+        "harResponseToAdsManagerMs": null,
+        "requestMetricToAdsManagerMs": null,
+        "firstFrameToRevealMs": null,
+        "activationToTimeoutMs": 25023,
+        "requestEventToTimeoutMs": 24690
+      },
+      "stages": {
+        "winner": 1792682540198,
+        "dependenciesStarted": 1792682540330,
+        "dependenciesReady": 1792682543858,
+        "prepared": 1792682543862,
+        "activation": 1792682543977,
+        "playerAttached": 1792682543973,
+        "imaInitLog": 1792682543983,
+        "imaPluginReturned": 1792682543996,
+        "adsLoader": 1792682544297,
+        "sdkRequestReturnedProxy": 1792682544310,
+        "imaRequestMetric": 1792682544311,
+        "harVastStart": null,
+        "harVastEnd": null,
+        "adsManager": null,
+        "adsready": null,
+        "readyforpreroll": null,
+        "adstart": null,
+        "firstFrame": null,
+        "nativeStarted": null,
+        "nativeImpression": null,
+        "reveal": null,
+        "nativeComplete": null,
+        "advertisingTimeout": 1792682569000,
+        "timeoutProbe": 1792682569002,
+        "destroy": 1792682569007
+      },
+      "result": "timeout",
+      "frameObservation": null,
+      "timeoutObservation": {
+        "lastObservedBeforeTimeout": {
+          "event": "surface:mutation",
+          "timestamp": 1792682544792,
+          "monotonicMs": 18411.800000190735,
+          "renderToken": 1,
+          "activeRenderToken": 1,
+          "tokenMatches": true,
+          "documentVisibility": "visible",
+          "readiness": {
+            "eligible": true,
+            "reason": "visible",
+            "intersectionRatio": 1,
+            "distancePx": -465
+          },
+          "wrapper": {
+            "hasBox": false,
+            "height": 0,
+            "opacity": "0"
+          },
+          "inAdMode": true,
+          "inAdBreak": false,
+          "playerId": 1,
+          "managerId": null
+        },
+        "lastLifecycleEventBeforeTimeout": {
+          "event": "media:canplay",
+          "timestamp": 1792682544755,
+          "monotonicMs": 18375.10000014305,
+          "renderToken": 1,
+          "activeRenderToken": 1,
+          "tokenMatches": true,
+          "documentVisibility": "visible",
+          "readiness": {
+            "eligible": true,
+            "reason": "visible",
+            "intersectionRatio": 1,
+            "distancePx": -465
+          },
+          "wrapper": {
+            "hasBox": false,
+            "height": 0,
+            "opacity": "0"
+          },
+          "inAdMode": true,
+          "inAdBreak": false,
+          "playerId": 1,
+          "managerId": null
+        },
+        "atTimeout": {
+          "event": "core:timeout",
+          "timestamp": 1792682569002,
+          "monotonicMs": 42622.40000009537,
+          "renderToken": 1,
+          "activeRenderToken": 1,
+          "tokenMatches": true,
+          "documentVisibility": "visible",
+          "readiness": {
+            "eligible": true,
+            "reason": "visible",
+            "intersectionRatio": 1,
+            "distancePx": -465
+          },
+          "wrapper": {
+            "hasBox": false,
+            "height": 0,
+            "opacity": "0"
+          },
+          "inAdMode": true,
+          "inAdBreak": false,
+          "playerId": 1,
+          "managerId": null
+        },
+        "allObservedTokensValid": true,
+        "documentVisibilityChanges": [],
+        "recoveryEvents": [
+          {
+            "event": "video_activation_deferred",
+            "timestamp": 1792682543869
+          },
+          {
+            "event": "video_recovery_unavailable",
+            "timestamp": 1792682565606
+          },
+          {
+            "event": "video_recovery_requested",
+            "timestamp": 1792682565607
+          }
+        ],
+        "driftProxyMs": {
+          "sinceActivationMinus25000": 23,
+          "sincePrePluginInitMinus25000": 17,
+          "exactDriftKnown": false,
+          "note": "Arm and callback entry not logged. Approximate bounds include core/telemetry work; durationMs=25000 is configured, not measured."
+        }
+      }
+    },
+    {
+      "id": "A2-E0-3",
+      "sourceFiles": [
+        {
+          "file": "A2-E0-3.har",
+          "sha256": "3cc1c0537ada08e4991639acaad5ca5885bea5d3bc6aa561d1029d93e72c33f4"
+        },
+        {
+          "file": "A2-E0-3.json",
+          "sha256": "196bd0ddb6764c71e62a71890d963a0801d174f32bc2b40af4ee24d036f55000"
+        },
+        {
+          "file": "A2-E0-3-debug.json",
+          "sha256": "235169aafacf0e3e4714a60db38e834700901da30ef5e0982e19cbf0e89df51d"
+        }
+      ],
+      "runtime": {
+        "gexpIntextVersion": "2026.10.07-p1-ima-preload-first-frame",
+        "dualMode": false,
+        "pspDetected": false,
+        "randomSource": "gexp-owner-random"
+      },
+      "qa": {
+        "arm": "E1",
+        "assignmentFixed": [
+          "E1"
+        ],
+        "assignmentConflicts": 0,
+        "dropped": 0,
+        "integrationDropped": 0,
+        "activeObservers": 0
+      },
+      "harEntries": 929,
+      "bundle": [
+        {
+          "status": 200,
+          "bytes": 894934,
+          "sha256": "6356718da3b272d2c68ac208ac9147020b9b327ce6b6dc7b40af3317e3e58e11",
+          "startMs": 1792686422239,
+          "durationMs": 254.40600002184513
+        }
+      ],
+      "plugin": [
+        {
+          "status": 200,
+          "bytes": 36933,
+          "sha256": "01b11a7a6a4b771ead01e2060b8983d0b37f6f3e01a7e74f0140eb04b69459c8",
+          "startMs": 1792686429048,
+          "durationMs": 589.5640000235289
+        }
+      ],
+      "imaSdk": [
+        {
+          "status": 200,
+          "bytes": 539700,
+          "sha256": "c89ab88832cae76099ef064f495b06494505e049df10add18c0833989c98131d",
+          "startMs": 1792686427622,
+          "durationMs": 726.3380000367761
+        }
+      ],
+      "bridge": [
+        {
+          "status": 200,
+          "bytes": null,
+          "sha256": null,
+          "startMs": 1792686430542,
+          "durationMs": 496.769999852404
+        }
+      ],
+      "vast": [
+        {
+          "status": 200,
+          "bytes": null,
+          "sha256": null,
+          "startMs": 1792686437004,
+          "durationMs": 301.6530000604689,
+          "bodyCaptured": false
+        }
+      ],
+      "tagShape": {
+        "protocol": "https:",
+        "host": "securepubads.g.doubleclick.net",
+        "path": "/gampad/ads",
+        "queryCaptured": false,
+        "note": "Debugger removes query. This is the logged sanitized tag, not the effective AdsRequest; parameters cannot be validated from it."
+      },
+      "usedAdsResponse": false,
+      "containerInitialized": true,
+      "dependenciesMs": 2027,
+      "activationMs": 1792686430224,
+      "adsLoaderMs": 1792686430565,
+      "adsRequestMs": 1792686430579,
+      "adsManagerMs": 1792686437766,
+      "frameMs": 1792686438343,
+      "completeMs": 1792686448423,
+      "timeout": false,
+      "firstDisplayCycle2": {
+        "maxInViewPercentage": 100,
+        "requestStarted": true,
+        "slotResponseReceived": true,
+        "waterfallResult": true,
+        "renderEnded": true,
+        "gamFilled": true,
+        "realFilled": true,
+        "empty": false,
+        "house": true,
+        "sentinel": false,
+        "opened": true,
+        "impressionViewable": true,
+        "requestToResponseMs": 1011,
+        "responseToRenderMs": 74,
+        "renderToOpenMs": 33,
+        "renderToViewableMs": 3293
+      },
+      "durations": {
+        "dependenciesTotalMs": 2027,
+        "branches": [
+          {
+            "branch": "videojs-contrib",
+            "durationMs": 1359
+          },
+          {
+            "branch": "ima-sdk",
+            "durationMs": 1425
+          }
+        ],
+        "branchIntervals": [
+          {
+            "branch": "videojs-contrib",
+            "start": 1792686427619,
+            "end": 1792686428978
+          },
+          {
+            "branch": "ima-sdk",
+            "start": 1792686427621,
+            "end": 1792686429046
+          }
+        ],
+        "branchOverlapObservedMs": 1357,
+        "branchOverlapProxyMs": 1359,
+        "winnerToDependenciesReadyMs": 2143,
+        "winnerToPreparedMs": 2147,
+        "prepareDependencyWaitMs": 1219,
+        "residualDependenciesWaitMs": 0,
+        "winnerToAdsManagerMs": 10264,
+        "winnerToFirstFrameMs": 10841,
+        "activationToFirstFrameMs": 8119,
+        "adsLoaderToRequestEventMs": 14,
+        "requestMetricToHarStartMs": 6424,
+        "harResponseToAdsManagerMs": 460.346923828125,
+        "requestMetricToAdsManagerMs": 7186,
+        "firstFrameToRevealMs": 6,
+        "activationToTimeoutMs": null,
+        "requestEventToTimeoutMs": null
+      },
+      "stages": {
+        "winner": 1792686427502,
+        "dependenciesStarted": 1792686427618,
+        "dependenciesReady": 1792686429645,
+        "prepared": 1792686429649,
+        "activation": 1792686430224,
+        "playerAttached": 1792686430220,
+        "imaInitLog": 1792686430235,
+        "imaPluginReturned": 1792686430250,
+        "adsLoader": 1792686430565,
+        "sdkRequestReturnedProxy": 1792686430579,
+        "imaRequestMetric": 1792686430580,
+        "harVastStart": 1792686437004,
+        "harVastEnd": 1792686437305.653,
+        "adsManager": 1792686437766,
+        "adsready": 1792686437770,
+        "readyforpreroll": 1792686437771,
+        "adstart": 1792686437854,
+        "firstFrame": 1792686438343,
+        "nativeStarted": 1792686438441,
+        "nativeImpression": 1792686438434,
+        "reveal": 1792686438349,
+        "nativeComplete": 1792686448423,
+        "advertisingTimeout": null,
+        "timeoutProbe": null,
+        "destroy": 1792686448486
+      },
+      "result": "complete",
+      "frameObservation": {
+        "event": "core:first-frame",
+        "timestamp": 1792686438343,
+        "monotonicMs": 16870.800000190735,
+        "renderToken": 1,
+        "activeRenderToken": 1,
+        "tokenMatches": true,
+        "documentVisibility": "visible",
+        "readiness": {
+          "eligible": true,
+          "reason": "visible",
+          "intersectionRatio": 1,
+          "distancePx": -665
+        },
+        "wrapper": {
+          "hasBox": false,
+          "height": 0,
+          "opacity": "0"
+        },
+        "inAdMode": true,
+        "inAdBreak": true,
+        "playerId": 1,
+        "managerId": 8
+      },
+      "timeoutObservation": null
+    },
+    {
+      "id": "A2-E1",
+      "sourceFiles": [
+        {
+          "file": "A2-E1.har",
+          "sha256": "c5fcf09d3af699cc73c31ba0b45a536a2d28bfbf6ba540bf9ff40986d1a5bf1e"
+        },
+        {
+          "file": "A2-E1.json",
+          "sha256": "8243d9807b6648d4553eaecd4a3341c5a4b1eb2f33d1120a4b791890e62deea9"
+        },
+        {
+          "file": "A2-E1-debug.json",
+          "sha256": "d15c0ba9a8376dca4fcc849b65e0f674d0fbcf05289aefbf3afff69b57722d67"
+        }
+      ],
+      "runtime": {
+        "gexpIntextVersion": "2026.10.07-p1-ima-preload-first-frame",
+        "dualMode": false,
+        "pspDetected": false,
+        "randomSource": "gexp-owner-random"
+      },
+      "qa": {
+        "arm": "E1",
+        "assignmentFixed": [
+          "E1"
+        ],
+        "assignmentConflicts": 0,
+        "dropped": 0,
+        "integrationDropped": 0,
+        "activeObservers": 0
+      },
+      "harEntries": 1008,
+      "bundle": [
+        {
+          "status": 200,
+          "bytes": 894934,
+          "sha256": "6356718da3b272d2c68ac208ac9147020b9b327ce6b6dc7b40af3317e3e58e11",
+          "startMs": 1792681605589,
+          "durationMs": 861.2710000015795
+        }
+      ],
+      "plugin": [
+        {
+          "status": 200,
+          "bytes": 36933,
+          "sha256": "01b11a7a6a4b771ead01e2060b8983d0b37f6f3e01a7e74f0140eb04b69459c8",
+          "startMs": 1792681613825,
+          "durationMs": 193.13599984161556
+        }
+      ],
+      "imaSdk": [
+        {
+          "status": 200,
+          "bytes": 539700,
+          "sha256": "e424dbe5d89cb103ab5fa03e1ba585cf1f552780fdf2cf37354316a2592b8212",
+          "startMs": 1792681611587,
+          "durationMs": 418.959999922663
+        }
+      ],
+      "bridge": [
+        {
+          "status": 200,
+          "bytes": null,
+          "sha256": null,
+          "startMs": 1792681615586,
+          "durationMs": 595.82499996759
+        }
+      ],
+      "vast": [
+        {
+          "status": 200,
+          "bytes": null,
+          "sha256": null,
+          "startMs": 1792681624791,
+          "durationMs": 730.920000001788,
+          "bodyCaptured": false
+        }
+      ],
+      "tagShape": {
+        "protocol": "https:",
+        "host": "securepubads.g.doubleclick.net",
+        "path": "/gampad/ads",
+        "queryCaptured": false,
+        "note": "Debugger removes query. This is the logged sanitized tag, not the effective AdsRequest; parameters cannot be validated from it."
+      },
+      "usedAdsResponse": false,
+      "containerInitialized": true,
+      "dependenciesMs": 2479,
+      "activationMs": 1792681615407,
+      "adsLoaderMs": 1792681615619,
+      "adsRequestMs": 1792681615630,
+      "adsManagerMs": 1792681625650,
+      "frameMs": 1792681626550,
+      "completeMs": 1792681636530,
+      "timeout": false,
+      "firstDisplayCycle2": {
+        "maxInViewPercentage": 100,
+        "requestStarted": true,
+        "slotResponseReceived": true,
+        "waterfallResult": true,
+        "renderEnded": true,
+        "gamFilled": true,
+        "realFilled": true,
+        "empty": false,
+        "house": true,
+        "sentinel": false,
+        "opened": true,
+        "impressionViewable": false,
+        "requestToResponseMs": 1169,
+        "responseToRenderMs": 76,
+        "renderToOpenMs": 35,
+        "renderToViewableMs": null
+      },
+      "durations": {
+        "dependenciesTotalMs": 2478,
+        "branches": [
+          {
+            "branch": "ima-sdk",
+            "durationMs": 1488
+          },
+          {
+            "branch": "videojs-contrib",
+            "durationMs": 2240
+          }
+        ],
+        "branchIntervals": [
+          {
+            "branch": "ima-sdk",
+            "start": 1792681611585,
+            "end": 1792681613073
+          },
+          {
+            "branch": "videojs-contrib",
+            "start": 1792681611583,
+            "end": 1792681613823
+          }
+        ],
+        "branchOverlapObservedMs": 1488,
+        "branchOverlapProxyMs": 1488,
+        "winnerToDependenciesReadyMs": 2597,
+        "winnerToPreparedMs": 2601,
+        "prepareDependencyWaitMs": 1076,
+        "residualDependenciesWaitMs": 0,
+        "winnerToAdsManagerMs": 14186,
+        "winnerToFirstFrameMs": 15086,
+        "activationToFirstFrameMs": 11143,
+        "adsLoaderToRequestEventMs": 11,
+        "requestMetricToHarStartMs": 9161,
+        "harResponseToAdsManagerMs": 128.080078125,
+        "requestMetricToAdsManagerMs": 10020,
+        "firstFrameToRevealMs": 5,
+        "activationToTimeoutMs": null,
+        "requestEventToTimeoutMs": null
+      },
+      "stages": {
+        "winner": 1792681611464,
+        "dependenciesStarted": 1792681611583,
+        "dependenciesReady": 1792681614061,
+        "prepared": 1792681614065,
+        "activation": 1792681615407,
+        "playerAttached": 1792681615404,
+        "imaInitLog": 1792681615414,
+        "imaPluginReturned": 1792681615425,
+        "adsLoader": 1792681615619,
+        "sdkRequestReturnedProxy": 1792681615630,
+        "imaRequestMetric": 1792681615630,
+        "harVastStart": 1792681624791,
+        "harVastEnd": 1792681625521.92,
+        "adsManager": 1792681625650,
+        "adsready": 1792681625653,
+        "readyforpreroll": 1792681625655,
+        "adstart": 1792681625736,
+        "firstFrame": 1792681626550,
+        "nativeStarted": 1792681626665,
+        "nativeImpression": 1792681626656,
+        "reveal": 1792681626555,
+        "nativeComplete": 1792681636530,
+        "advertisingTimeout": null,
+        "timeoutProbe": null,
+        "destroy": 1792681636595
+      },
+      "result": "complete",
+      "frameObservation": {
+        "event": "core:first-frame",
+        "timestamp": 1792681626550,
+        "monotonicMs": 21627.39999985695,
+        "renderToken": 1,
+        "activeRenderToken": 1,
+        "tokenMatches": true,
+        "documentVisibility": "visible",
+        "readiness": {
+          "eligible": true,
+          "reason": "visible",
+          "intersectionRatio": 1,
+          "distancePx": -665
+        },
+        "wrapper": {
+          "hasBox": false,
+          "height": 0,
+          "opacity": "0"
+        },
+        "inAdMode": true,
+        "inAdBreak": true,
+        "playerId": 1,
+        "managerId": 8
+      },
+      "timeoutObservation": null
+    },
+    {
+      "id": "A2-E1-2",
+      "sourceFiles": [
+        {
+          "file": "A2-E1-2.har",
+          "sha256": "77f303a168cae8049f76c0e056a80d2ad179691effc64fdb5d4ddb3018d98d2a"
+        },
+        {
+          "file": "A2-E1-2.json",
+          "sha256": "7cefacfa9df123bc7fff4abbee9cab659e58d9c6ebab16ce9baf98cd678c12e9"
+        },
+        {
+          "file": "E1-2-debug.json",
+          "sha256": "9c35429395253819be011a97ed5212988e034ce0f7e9f608e84d0f88f4987b29"
+        }
+      ],
+      "runtime": {
+        "gexpIntextVersion": "2026.10.07-p1-ima-preload-first-frame",
+        "dualMode": false,
+        "pspDetected": false,
+        "randomSource": "gexp-owner-random"
+      },
+      "qa": {
+        "arm": "E1",
+        "assignmentFixed": [
+          "E1"
+        ],
+        "assignmentConflicts": 0,
+        "dropped": 0,
+        "integrationDropped": 0,
+        "activeObservers": 0
+      },
+      "harEntries": 826,
+      "bundle": [
+        {
+          "status": 200,
+          "bytes": 894934,
+          "sha256": "6356718da3b272d2c68ac208ac9147020b9b327ce6b6dc7b40af3317e3e58e11",
+          "startMs": 1792681713218,
+          "durationMs": 970.3630001749843
+        }
+      ],
+      "plugin": [
+        {
+          "status": 200,
+          "bytes": 36933,
+          "sha256": "01b11a7a6a4b771ead01e2060b8983d0b37f6f3e01a7e74f0140eb04b69459c8",
+          "startMs": 1792681723330,
+          "durationMs": 92.32100006192923
+        }
+      ],
+      "imaSdk": [
+        {
+          "status": 200,
+          "bytes": 539700,
+          "sha256": "2de76dd9a1c4255d6ff39ad9116a0e4cc05c61b5f676133ffb5487801c3ddfd6",
+          "startMs": 1792681721315,
+          "durationMs": 1109.375
+        }
+      ],
+      "bridge": [
+        {
+          "status": 200,
+          "bytes": null,
+          "sha256": null,
+          "startMs": 1792681723894,
+          "durationMs": 426.7059999983758
+        }
+      ],
+      "vast": [
+        {
+          "status": 200,
+          "bytes": null,
+          "sha256": null,
+          "startMs": 1792681732222,
+          "durationMs": 263.9510000590235,
+          "bodyCaptured": false
+        }
+      ],
+      "tagShape": {
+        "protocol": "https:",
+        "host": "securepubads.g.doubleclick.net",
+        "path": "/gampad/ads",
+        "queryCaptured": false,
+        "note": "Debugger removes query. This is the logged sanitized tag, not the effective AdsRequest; parameters cannot be validated from it."
+      },
+      "usedAdsResponse": false,
+      "containerInitialized": true,
+      "dependenciesMs": 2264,
+      "activationMs": 1792681723671,
+      "adsLoaderMs": 1792681723937,
+      "adsRequestMs": 1792681723951,
+      "adsManagerMs": 1792681732829,
+      "frameMs": 1792681733530,
+      "completeMs": 1792681743614,
+      "timeout": false,
+      "firstDisplayCycle2": {
+        "maxInViewPercentage": 100,
+        "requestStarted": true,
+        "slotResponseReceived": true,
+        "waterfallResult": true,
+        "renderEnded": true,
+        "gamFilled": true,
+        "realFilled": true,
+        "empty": false,
+        "house": false,
+        "sentinel": false,
+        "opened": true,
+        "impressionViewable": false,
+        "requestToResponseMs": 1087,
+        "responseToRenderMs": 89,
+        "renderToOpenMs": 26,
+        "renderToViewableMs": null
+      },
+      "durations": {
+        "dependenciesTotalMs": 2264,
+        "branches": [
+          {
+            "branch": "videojs-contrib",
+            "durationMs": 962
+          },
+          {
+            "branch": "ima-sdk",
+            "durationMs": 2015
+          }
+        ],
+        "branchIntervals": [
+          {
+            "branch": "videojs-contrib",
+            "start": 1792681721310,
+            "end": 1792681722272
+          },
+          {
+            "branch": "ima-sdk",
+            "start": 1792681721313,
+            "end": 1792681723328
+          }
+        ],
+        "branchOverlapObservedMs": 959,
+        "branchOverlapProxyMs": 962,
+        "winnerToDependenciesReadyMs": 2428,
+        "winnerToPreparedMs": 2434,
+        "prepareDependencyWaitMs": 1556,
+        "residualDependenciesWaitMs": 0,
+        "winnerToAdsManagerMs": 11683,
+        "winnerToFirstFrameMs": 12384,
+        "activationToFirstFrameMs": 9859,
+        "adsLoaderToRequestEventMs": 14,
+        "requestMetricToHarStartMs": 8271,
+        "harResponseToAdsManagerMs": 343.049072265625,
+        "requestMetricToAdsManagerMs": 8878,
+        "firstFrameToRevealMs": 6,
+        "activationToTimeoutMs": null,
+        "requestEventToTimeoutMs": null
+      },
+      "stages": {
+        "winner": 1792681721146,
+        "dependenciesStarted": 1792681721310,
+        "dependenciesReady": 1792681723574,
+        "prepared": 1792681723580,
+        "activation": 1792681723671,
+        "playerAttached": 1792681723667,
+        "imaInitLog": 1792681723679,
+        "imaPluginReturned": 1792681723690,
+        "adsLoader": 1792681723937,
+        "sdkRequestReturnedProxy": 1792681723951,
+        "imaRequestMetric": 1792681723951,
+        "harVastStart": 1792681732222,
+        "harVastEnd": 1792681732485.951,
+        "adsManager": 1792681732829,
+        "adsready": 1792681732834,
+        "readyforpreroll": 1792681732837,
+        "adstart": 1792681732937,
+        "firstFrame": 1792681733530,
+        "nativeStarted": 1792681733637,
+        "nativeImpression": 1792681733631,
+        "reveal": 1792681733536,
+        "nativeComplete": 1792681743614,
+        "advertisingTimeout": null,
+        "timeoutProbe": null,
+        "destroy": 1792681743680
+      },
+      "result": "complete",
+      "frameObservation": {
+        "event": "core:first-frame",
+        "timestamp": 1792681733530,
+        "monotonicMs": 22313.5,
+        "renderToken": 1,
+        "activeRenderToken": 1,
+        "tokenMatches": true,
+        "documentVisibility": "visible",
+        "readiness": {
+          "eligible": true,
+          "reason": "visible",
+          "intersectionRatio": 1,
+          "distancePx": -765
+        },
+        "wrapper": {
+          "hasBox": false,
+          "height": 0,
+          "opacity": "0"
+        },
+        "inAdMode": true,
+        "inAdBreak": true,
+        "playerId": 1,
+        "managerId": 8
+      },
+      "timeoutObservation": null
+    },
+    {
+      "id": "A2-E1-3",
+      "sourceFiles": [
+        {
+          "file": "A2-E1-3.har",
+          "sha256": "ebcec922c10a3ab7a8a43b54c546784390389c50bad62e66724f2937ef059290"
+        },
+        {
+          "file": "A2-E1-3.json",
+          "sha256": "e5087a2f09692ee0463373f988d1b8a5e1aefd355af8825b0749be98a80fa6de"
+        },
+        {
+          "file": "E1-3-debug.json",
+          "sha256": "ce98b86a5f2c6d8ca8e0b044dc6cd95449be905e9cb3a4f8ee3e83a6063188c6"
+        }
+      ],
+      "runtime": {
+        "gexpIntextVersion": "2026.10.07-p1-ima-preload-first-frame",
+        "dualMode": false,
+        "pspDetected": false,
+        "randomSource": "gexp-owner-random"
+      },
+      "qa": {
+        "arm": "E1",
+        "assignmentFixed": [
+          "E1"
+        ],
+        "assignmentConflicts": 0,
+        "dropped": 0,
+        "integrationDropped": 0,
+        "activeObservers": 0
+      },
+      "harEntries": 1040,
+      "bundle": [
+        {
+          "status": 200,
+          "bytes": 894934,
+          "sha256": "6356718da3b272d2c68ac208ac9147020b9b327ce6b6dc7b40af3317e3e58e11",
+          "startMs": 1792681875279,
+          "durationMs": 623.405999969691
+        }
+      ],
+      "plugin": [
+        {
+          "status": 200,
+          "bytes": 36933,
+          "sha256": "01b11a7a6a4b771ead01e2060b8983d0b37f6f3e01a7e74f0140eb04b69459c8",
+          "startMs": 1792681883607,
+          "durationMs": 415.03300005570054
+        }
+      ],
+      "imaSdk": [
+        {
+          "status": 200,
+          "bytes": 539700,
+          "sha256": "19b772524c838dd58bc71227ff754597ec9b93c8d31557350fb9bc3ad89d2351",
+          "startMs": 1792681881336,
+          "durationMs": 569.5980000309646
+        }
+      ],
+      "bridge": [
+        {
+          "status": 200,
+          "bytes": null,
+          "sha256": null,
+          "startMs": 1792681887419,
+          "durationMs": 5114.722999976948
+        }
+      ],
+      "vast": [
+        {
+          "status": 200,
+          "bytes": null,
+          "sha256": null,
+          "startMs": 1792681908633,
+          "durationMs": 140.34899999387562,
+          "bodyCaptured": false
+        }
+      ],
+      "tagShape": {
+        "protocol": "https:",
+        "host": "securepubads.g.doubleclick.net",
+        "path": "/gampad/ads",
+        "queryCaptured": false,
+        "note": "Debugger removes query. This is the logged sanitized tag, not the effective AdsRequest; parameters cannot be validated from it."
+      },
+      "usedAdsResponse": false,
+      "containerInitialized": true,
+      "dependenciesMs": 2697,
+      "activationMs": 1792681886967,
+      "adsLoaderMs": 1792681887376,
+      "adsRequestMs": 1792681887401,
+      "adsManagerMs": 1792681909274,
+      "frameMs": 1792681909944,
+      "completeMs": 1792681920130,
+      "timeout": false,
+      "firstDisplayCycle2": {
+        "maxInViewPercentage": 100,
+        "requestStarted": true,
+        "slotResponseReceived": true,
+        "waterfallResult": true,
+        "renderEnded": true,
+        "gamFilled": true,
+        "realFilled": true,
+        "empty": false,
+        "house": false,
+        "sentinel": false,
+        "opened": true,
+        "impressionViewable": true,
+        "requestToResponseMs": 987,
+        "responseToRenderMs": 79,
+        "renderToOpenMs": 22,
+        "renderToViewableMs": 1661
+      },
+      "durations": {
+        "dependenciesTotalMs": 2697,
+        "branches": [
+          {
+            "branch": "ima-sdk",
+            "durationMs": 1025
+          },
+          {
+            "branch": "videojs-contrib",
+            "durationMs": 2272
+          }
+        ],
+        "branchIntervals": [
+          {
+            "branch": "ima-sdk",
+            "start": 1792681881334,
+            "end": 1792681882359
+          },
+          {
+            "branch": "videojs-contrib",
+            "start": 1792681881332,
+            "end": 1792681883604
+          }
+        ],
+        "branchOverlapObservedMs": 1025,
+        "branchOverlapProxyMs": 1025,
+        "winnerToDependenciesReadyMs": 2821,
+        "winnerToPreparedMs": 2824,
+        "prepareDependencyWaitMs": 1611,
+        "residualDependenciesWaitMs": 1,
+        "winnerToAdsManagerMs": 28066,
+        "winnerToFirstFrameMs": 28736,
+        "activationToFirstFrameMs": 22977,
+        "adsLoaderToRequestEventMs": 25,
+        "requestMetricToHarStartMs": 21232,
+        "harResponseToAdsManagerMs": 500.65087890625,
+        "requestMetricToAdsManagerMs": 21873,
+        "firstFrameToRevealMs": 31,
+        "activationToTimeoutMs": null,
+        "requestEventToTimeoutMs": null
+      },
+      "stages": {
+        "winner": 1792681881208,
+        "dependenciesStarted": 1792681881332,
+        "dependenciesReady": 1792681884029,
+        "prepared": 1792681884032,
+        "activation": 1792681886967,
+        "playerAttached": 1792681886963,
+        "imaInitLog": 1792681886973,
+        "imaPluginReturned": 1792681886985,
+        "adsLoader": 1792681887376,
+        "sdkRequestReturnedProxy": 1792681887401,
+        "imaRequestMetric": 1792681887401,
+        "harVastStart": 1792681908633,
+        "harVastEnd": 1792681908773.349,
+        "adsManager": 1792681909274,
+        "adsready": 1792681909278,
+        "readyforpreroll": 1792681909280,
+        "adstart": 1792681909360,
+        "firstFrame": 1792681909944,
+        "nativeStarted": 1792681910182,
+        "nativeImpression": 1792681910176,
+        "reveal": 1792681909975,
+        "nativeComplete": 1792681920130,
+        "advertisingTimeout": null,
+        "timeoutProbe": null,
+        "destroy": 1792681920197
+      },
+      "result": "complete",
+      "frameObservation": {
+        "event": "core:first-frame",
+        "timestamp": 1792681909944,
+        "monotonicMs": 35029.700000047684,
+        "renderToken": 1,
+        "activeRenderToken": 1,
+        "tokenMatches": true,
+        "documentVisibility": "visible",
+        "readiness": {
+          "eligible": true,
+          "reason": "visible",
+          "intersectionRatio": 1,
+          "distancePx": -660
+        },
+        "wrapper": {
+          "hasBox": false,
+          "height": 0,
+          "opacity": "0"
+        },
+        "inAdMode": true,
+        "inAdBreak": true,
+        "playerId": 1,
+        "managerId": 8
+      },
+      "timeoutObservation": null
+    }
+  ],
+  "assignmentAudit": {
+    "artifacts": [
+      {
+        "file": "tests/qa/generated/intext-p14a-E0-gam.qa.js",
+        "expectedSha256": "18299f4fa54e151ff045e6d355c554055bdc85399ddec29eb5e9e85990bcfdfc",
+        "actualSha256": "18299f4fa54e151ff045e6d355c554055bdc85399ddec29eb5e9e85990bcfdfc",
+        "matches": true
+      },
+      {
+        "file": "tests/qa/generated/intext-p14a-E1-gam.qa.js",
+        "expectedSha256": "6356718da3b272d2c68ac208ac9147020b9b327ce6b6dc7b40af3317e3e58e11",
+        "actualSha256": "6356718da3b272d2c68ac208ac9147020b9b327ce6b6dc7b40af3317e3e58e11",
+        "matches": true
+      },
+      {
+        "file": "tests/qa/generated/intext-p14a-E0-manager.qa.js",
+        "expectedSha256": "0995a835320911ea856636044e5008e175285f8bbc76abb1f94aa596290fbf5f",
+        "actualSha256": "0995a835320911ea856636044e5008e175285f8bbc76abb1f94aa596290fbf5f",
+        "matches": true
+      },
+      {
+        "file": "tests/qa/generated/intext-p14a-E1-manager.qa.js",
+        "expectedSha256": "250c24ca253e814c6cca4beec1363fe32abd6f17cf2c9234fdf2a5f73c164bd8",
+        "actualSha256": "250c24ca253e814c6cca4beec1363fe32abd6f17cf2c9234fdf2a5f73c164bd8",
+        "matches": true
+      }
+    ],
+    "pairs": [
+      {
+        "distribution": "gam",
+        "onlyAssignmentDiff": true
+      },
+      {
+        "distribution": "manager",
+        "onlyAssignmentDiff": true
+      }
+    ]
+  },
+  "validation": {
+    "reviewType": "Documentation and offline evidence only; no browser/ad requests, builds or runtime changes",
+    "existingFilesChanged": [
+      "docs/intext-p14-mobile-latency-viewability-design.md",
+      "docs/intext-p14a2-fiddler.md",
+      "docs/intext-p14a2-pre-vast-environment.md"
+    ],
+    "newFiles": [
+      "docs/intext-p14a2-adsrequest-ima-audit.md",
+      "docs/intext-p14a2-har-complete-evidence.json"
+    ],
+    "preservedExistingFiles": 321,
+    "artifactHashesAndAssignmentPairs": "PASS",
+    "sixHarAndQaIdentities": "PASS",
+    "cohortCountsAndTiming": "PASS",
+    "relativeDocumentLinksAndWhitespace": "PASS",
+    "historicalTestResultsNotRerun": true
+  },
+  "codeReferences": [
+    {
+      "file": "_gam_kv_.js",
+      "sha256": "1cde1ccdc962c07d5833dc9691a3bfe31b7dd74b3e649e89153a240940a06690",
+      "unchangedSinceReviewStart": true
+    },
+    {
+      "file": "IntextManager.js",
+      "sha256": "ba832dc0eb3c0f6e1070a515fac09dd31467e2c7a5a64a18ff4e4f4c063fead8",
+      "unchangedSinceReviewStart": true
+    },
+    {
+      "file": "tests/qa/intext-p14a-build.cjs",
+      "sha256": "5316f97dc7cf2e2413dc16d2df3c6d2a77c4a60196ea034a9e2211f4f8fcd85d",
+      "unchangedSinceReviewStart": true
+    },
+    {
+      "file": "tests/qa/intext-p14a-dependencies.cjs",
+      "sha256": "465e0103f66ed873e8a5dc13f45dea2e7bdd473211120ce0b75c1e9eecbe8053",
+      "unchangedSinceReviewStart": true
+    },
+    {
+      "file": "tests/qa/intext-p13c-integration-probe.cjs",
+      "sha256": "9e05060a3013d20476bc0dade07f5784c59730220495b683c53393394bd80f4a",
+      "unchangedSinceReviewStart": true
+    },
+    {
+      "file": "docs/intext-p14a-build.json",
+      "sha256": "ab5003d00171b8266efa2d914c353b10d69b9259d186de429b8908f2fe0fc6b3",
+      "unchangedSinceReviewStart": true
+    }
+  ]
+}

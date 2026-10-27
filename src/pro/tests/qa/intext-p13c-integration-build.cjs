@@ -6,16 +6,19 @@ const sha=text=>crypto.createHash('sha256').update(text).digest('hex');
 function instrument(source,probe){let output=source;const edits=[];
  const insert=(marker,addition)=>{if(output.split(marker).length!==2)throw Error('Ambiguous QA marker: '+marker);
   output=output.replace(marker,marker+addition);edits.push({marker,addition});};
- insert('    this.initVideoJS();','\n    try { window.IntextIntegrationQA?.attach(this); } catch (e) { /* QA observation only */ }');
+ insert('    this.initVideoJS();','\n    try { window.IntextIntegrationQA?.attach(this, { stage: "after-videojs-before-ima" }); } catch (e) { /* QA observation only */ }');
  insert('      const debugVideo = (event, data = {}) => {','\n        window.IntextIntegrationQA?.core(this, event);');
  insert('  onVideoEnded(renderToken = this._activeRenderToken) {','\n    window.IntextIntegrationQA?.node(this, "video-ended-entry");');
- // Record entry; close after dispose/removal (also when the original dispose throws).
+ // QA-only try/finally: preserve the original return/exception even if destroy exits before removal.
  const begin=output.indexOf('class IntextVideoCreative {'),end=output.indexOf('class WPromise {',begin);
  const segment=output.slice(begin,end<0?undefined:end),marker='  destroy() {';
  if(segment.split(marker).length!==2)throw Error('Creative destroy marker ambiguous');
- const at=begin+segment.indexOf(marker)+marker.length,addition='\n    window.IntextIntegrationQA?.core(this, "destroy-entry");';
+ const at=begin+segment.indexOf(marker)+marker.length,addition='\n    window.IntextIntegrationQA?.core(this, "destroy-entry");\n    let __intextQaDestroyThrew = false;\n    try {';
  output=output.slice(0,at)+addition+output.slice(at);edits.push({marker:'IntextVideoCreative.destroy',addition});
- insert('    this.videoEl?.remove?.();','\n    window.IntextIntegrationQA?.close(this, "creative-destroy");');
+ const bodyEnd=output.indexOf('    this.videoEl?.remove?.();',at)+'    this.videoEl?.remove?.();'.length;
+ if(bodyEnd<'    this.videoEl?.remove?.();'.length||!/^\s*\}/.test(output.slice(bodyEnd)))throw Error('Creative destroy end changed');
+ const finalizer='\n    } catch (__intextQaDestroyError) {\n      __intextQaDestroyThrew = true;\n      window.IntextIntegrationQA?.core(this, "destroy-exception", { errorName: __intextQaDestroyError?.name || "unknown" });\n      throw __intextQaDestroyError;\n    } finally {\n      window.IntextIntegrationQA?.core(this, "destroy-exit", { uncaughtException: __intextQaDestroyThrew });\n      window.IntextIntegrationQA?.close(this, "creative-destroy-finally");\n    }';
+ output=output.slice(0,bodyEnd)+finalizer+output.slice(bodyEnd);edits.push({marker:'IntextVideoCreative.destroy:finally',addition:finalizer});
  const banner='/* P1.3c integration QA OBSERVE ONLY. No budgets, enforce or playback wrappers. */\n';
  const generated=banner+probe+'\n'+output;new vm.Script(generated);return {output:generated,edits};
 }

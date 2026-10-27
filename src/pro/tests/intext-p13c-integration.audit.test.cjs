@@ -4,7 +4,7 @@ const {instrument}=require('./qa/intext-p13c-integration-build.cjs'),{expected,b
 const {parseHar,inspectHar,normalizeLogs}=require('./qa/intext-p13c-integration-analysis.cjs');
 const probeSource=fs.readFileSync(path.join(__dirname,'qa/intext-p13c-integration-probe.cjs'),'utf8');
 class Events{constructor(){this.handlers=new Map();}on(type,fn){const set=this.handlers.get(type)??new Set();set.add(fn);this.handlers.set(type,set);}off(type,fn){this.handlers.get(type)?.delete(fn);}emit(type,data={}){for(const fn of [...this.handlers.get(type)??[]])fn(data);}addEventListener(t,f){this.on(t,f);}removeEventListener(t,f){this.off(t,f);}count(){return [...this.handlers.values()].reduce((n,s)=>n+s.size,0);}}
-function environment(){const document=new Events(),windowEvents=new Events(),microtasks=[],observers=[];document.visibilityState='visible';
+function environment(){const document=new Events(),windowEvents=new Events(),microtasks=[],observers=[];document.visibilityState='visible';document.baseURI='https://page.invalid/article';
  const dom=()=>Object.assign(new Events(),{currentTime:0,paused:true,ended:false,readyState:4,networkState:1,videoWidth:64,videoHeight:64,currentSrc:'data:video/mp4;base64,AAAA',error:null,
   getAttribute(){return this.currentSrc;},closest(){return null;},isConnected:true,getBoundingClientRect(){return {top:100,bottom:460,left:0,right:640,width:640,height:360};}});
  const base=dom(),ad=dom();ad.currentSrc='https://example.invalid/ad.mp4';ad.closest=()=>({});const videos=[base,ad],surface=dom();surface.querySelectorAll=()=>videos;
@@ -14,7 +14,7 @@ function environment(){const document=new Events(),windowEvents=new Events(),mic
   getReadinessViewportState:()=>({eligible:true,intersectionRatio:1}),getIntextTelemetryElement:()=>surface};
  const creative={node,_renderToken:7,player,videoEl:base,_adMediaEl:ad};
  const Type=Object.fromEntries(['LOADED','STARTED','IMPRESSION','COMPLETE','ALL_ADS_COMPLETED','CONTENT_PAUSE_REQUESTED','CONTENT_RESUME_REQUESTED','PAUSED','RESUMED','SKIPPED'].map(t=>[t,t]));
- const context={document,performance:{now:()=>10},google:{ima:{AdEvent:{Type},AdErrorEvent:{Type:{AD_ERROR:'AD_ERROR'}}}},
+ const context={document,URL,performance:{now:()=>10},google:{ima:{AdEvent:{Type},AdErrorEvent:{Type:{AD_ERROR:'AD_ERROR'}}}},
   getComputedStyle:()=>({display:'block',visibility:'visible',opacity:'1'}),queueMicrotask:fn=>microtasks.push(fn),
   addEventListener:(...a)=>windowEvents.on(...a),removeEventListener:(...a)=>windowEvents.off(...a),
   MutationObserver:class{constructor(fn){this.fn=fn;this.disconnected=false;observers.push(this);}observe(){}disconnect(){this.disconnected=true;}},Date};
@@ -51,6 +51,62 @@ test('integration QA cleanup removes observers/listeners and drops queued callba
 test('integration QA leaves two slots independent and closes on pagehide',()=>{const e=environment(),second={...e.creative,node:{...e.node,id:'gexp-intext'},player:Object.assign(new Events(),{el:e.player.el,ads:{}})};
  e.api.attach(e.creative);e.api.attach(second);assert.equal(e.api.export().activeObservers,2);e.api.close(e.creative);assert.equal(e.api.export().activeObservers,1);
  e.windowEvents.emit('pagehide');assert.equal(e.api.export().activeObservers,0);});
+test('integration QA old creative closing cannot delete the newer owner of the same node',()=>{const e=environment(),a=e.creative,b={...a,player:Object.assign(new Events(),{el:e.player.el,ads:{}}),_renderToken:8};
+ e.api.attach(a);e.node._activeRenderToken=8;e.api.attach(b);const bPlayer=e.api.export().logs.at(-1).snapshot.playerId;
+ e.api.close(a,'old-cycle');assert.equal(e.api.export().activeObservers,1);e.api.node(e.node,'video-ended-entry');
+ const last=e.api.export().logs.at(-1);assert.equal(last.event,'node:video-ended-entry');assert.equal(last.renderToken,8);assert.equal(last.snapshot.playerId,bPlayer);
+ b.player.emit('contentresumed');assert.equal(e.api.export().logs.at(-1).snapshot.playerId,bPlayer);e.api.stop();assert.equal(b.player.count(),0);});
+test('integration QA source export strips credentials/query/hash while retaining local identity',()=>{const e=environment();
+ e.ad.currentSrc='https://user:private-password@media.invalid/ad.mp4?token=secret-query#secret-hash';e.api.attach(e.creative);
+ const first=e.api.export().logs.at(-1).snapshot.media[1].currentSrc;assert.equal(first.hostname,'media.invalid');assert.equal(first.pathname,'/ad.mp4');assert.equal(first.value,undefined);
+ e.ad.emit('playing');assert.equal(e.api.export().logs.at(-1).snapshot.media[1].currentSrc.sourceId,first.sourceId);
+ e.ad.currentSrc='https://media.invalid/ad.mp4?token=another-query';e.ad.emit('pause');const second=e.api.export().logs.at(-1).snapshot.media[1].currentSrc;
+ assert.notEqual(second.sourceId,first.sourceId);assert.equal(second.pathname,first.pathname);
+ const json=JSON.stringify(e.api.export());for(const secret of ['private-password','secret-query','secret-hash','another-query','user:'])assert(!json.includes(secret));e.api.stop();});
+test('integration QA sanitizes snapshot/player sources, blob ids and token-like paths',()=>{const e=environment();e.base.currentSrc='blob:https://page.invalid/private-blob-uuid';
+ e.ad.currentSrc='https://media.invalid/token/private-path-token/asset.mp4?private=1';e.player.ads.snapshot.currentSrc='https://media.invalid/abcdefghijklmnopqrstuvwxyz1234567890/movie.mp4#private-fragment';
+ e.api.attach(e.creative);const snap=e.api.export().logs.at(-1).snapshot;
+ assert.equal(snap.playerSource.kind,'blob');assert.equal(snap.playerSource.value,undefined);assert.equal(snap.media[0].currentSrc.sourceId,snap.playerSource.sourceId);
+ assert.equal(snap.media[1].currentSrc.pathname,'/token/[redacted]/asset.mp4');assert.equal(snap.adState.snapshotCurrentSrc.pathname,'/[redacted]/movie.mp4');
+ const json=JSON.stringify(e.api.export());for(const secret of ['private-blob-uuid','private-path-token','abcdefghijklmnopqrstuvwxyz1234567890','private-fragment'])assert(!json.includes(secret));e.api.stop();});
+test('integration QA distinct Data URLs keep distinct ids without exposing payload',()=>{const e=environment();e.api.attach(e.creative);const first=e.api.export().logs.at(-1).snapshot.media[0].currentSrc;
+ e.base.currentSrc='data:video/mp4;base64,BBBB';e.base.emit('loadedmetadata');const second=e.api.export().logs.at(-1).snapshot.media[0].currentSrc;
+ assert.equal(first.kind,'data');assert.equal(first.length,second.length);assert.notEqual(first.sourceId,second.sourceId);assert(!JSON.stringify(e.api.export()).includes('base64,AAAA'));e.api.stop();});
+test('integration QA missing AdsManager and unsubscribed enums remain missing coverage',()=>{const e=environment();e.api.attach(e.creative);e.player.emit('ads-manager');e.api.stop();
+ const logs=e.api.export().logs,coverage=logs.filter(l=>l.event==='observer:coverage').at(-1).coverage;
+ assert.equal(coverage.adsManagerEvents,1);assert.equal(coverage.currentManagerId,null);assert.equal(coverage.nativeManagers.length,0);
+ assert(logs.some(l=>l.event==='manager:coverage-missing'));assert(!logs.some(l=>l.event==='ima:COMPLETE'));});
+test('integration QA records effective subscriptions and native events, not enum availability alone',()=>{const e=environment(),m=e.manager();e.api.attach(e.creative);e.player.emit('ads-manager',{adsManager:m});
+ for(const name of ['COMPLETE','CONTENT_RESUME_REQUESTED','IMPRESSION'])m.emit(name);e.api.stop();
+ const coverage=e.api.export().logs.filter(l=>l.event==='observer:coverage').at(-1).coverage;
+ for(const name of ['COMPLETE','CONTENT_RESUME_REQUESTED','IMPRESSION']){const status=coverage.nativeManagers[0].events[name];assert.equal(status.subscriptionEstablished,true);assert.equal(status.observed,1);assert.equal(status.subscribed,false);}
+ assert.equal(coverage.adsManagerEventObserved,true);assert.equal(m.count(),0);});
+test('integration QA unsubscribing failure is diagnosed even when activeObservers is zero',()=>{const e=environment(),m=e.manager();e.api.attach(e.creative);e.player.emit('ads-manager',{adsManager:m});
+ m.removeEventListener=()=>{throw Error('SDK refused unsubscribe');};e.api.stop();assert.equal(e.api.export().activeObservers,0);
+ const last=e.api.export().logs.at(-1);assert(last.cleanupFailures>0);assert.equal(last.sdkDestructionVerified,false);
+ const length=e.api.export().logs.length;m.emit('COMPLETE');assert.equal(e.api.export().logs.length,length);});
+function actualMethod(output,name){const begin=output.indexOf('class IntextVideoCreative {'),at=output.indexOf('\n  '+name+'(',begin);
+ const end=name==='destroy'?output.indexOf('\n  // One small page-local ledger.',at):output.indexOf('\n  ',output.indexOf('\n  }',at)+4);
+ assert(at>begin&&end>at);return output.slice(at,end).trim();}
+test('integration QA real createPlayerForActivation installs observer before synchronous IMA events',()=>{const e=environment(),source=fs.readFileSync(path.join(__dirname,'../_gam_kv_.js'),'utf8');
+ const {output}=instrument(source,probeSource),method=actualMethod(output,'createPlayerForActivation');e.context.window=e.context;
+ const fn=vm.runInNewContext('({'+method+'})',e.context).createPlayerForActivation;e.creative.preparationValid=()=>true;e.creative.createVideoElement=()=>{};
+ e.creative.initVideoJS=()=>{};e.creative.attachPlayerEvents=()=>{};e.creative.container=e.node.videoContainer;e.player.el().querySelector=()=>null;e.player.el().style={};
+ fn.call(e.creative);const attached=e.api.export().logs.find(l=>l.event==='observer:attached');assert.equal(attached.installationStage,'after-videojs-before-ima');
+ assert(e.player.handlers.get('ads-manager').size>0);const manager=e.manager();e.player.emit('ads-manager',{adsManager:manager});manager.emit('COMPLETE');manager.emit('CONTENT_RESUME_REQUESTED');manager.emit('IMPRESSION');
+ for(const name of ['COMPLETE','CONTENT_RESUME_REQUESTED','IMPRESSION'])assert(e.api.export().logs.some(l=>l.event==='ima:'+name));e.api.stop();});
+for(const scenario of ['throws-before-dispose','throws-after-dispose','normal','early-return'])test('integration QA real destroy finally preserves original outcome and cleans observer: '+scenario,()=>{
+ const e=environment(),source=fs.readFileSync(path.join(__dirname,'../_gam_kv_.js'),'utf8'),{output}=instrument(source,probeSource),method=actualMethod(output,'destroy');
+ e.context.window=e.context;const fn=vm.runInNewContext('({'+method+'})',e.context).destroy,error=new Error('original destroy failure');let disposals=0;
+ e.creative.cleanupAdMediaObservation=()=>{};e.player.dispose=()=>{disposals++;e.player.emit('dispose');};e.base.remove=()=>{};
+ if(scenario==='throws-before-dispose')e.creative._eligibilityCleanup=()=>{throw error;};
+ if(scenario==='throws-after-dispose')e.base.remove=()=>{throw error;};if(scenario==='early-return')e.creative._destroyed=true;
+ e.api.attach(e.creative);if(scenario.startsWith('throws'))assert.throws(()=>fn.call(e.creative),err=>err===error);else assert.equal(fn.call(e.creative),undefined);
+ e.flush();const logs=e.api.export().logs,exit=logs.find(l=>l.event==='core:destroy-exit'),last=logs.at(-1);
+ assert.equal(exit.uncaughtException,scenario.startsWith('throws'));assert.equal(last.reason,'creative-destroy-finally');assert.equal(last.sdkDestructionVerified,false);
+ assert.equal(disposals,scenario==='normal'||scenario==='throws-after-dispose'?1:0);assert.equal(last.disposeEventObserved,disposals===1);
+ assert.equal(e.api.export().activeObservers,0);assert.equal(e.player.count(),0);assert.equal(e.document.count(),0);assert.equal(e.base.count(),0);assert(e.observers.every(o=>o.disconnected));
+});
 for(const name of Object.keys(expected))test('integration QA reversible hooks and protected source hash: '+name,()=>{const source=fs.readFileSync(path.join(__dirname,'..',name),'utf8');
  assert.equal(crypto.createHash('sha256').update(source).digest('hex'),expected[name]);
  for(const input of [source,build(source).output]){const {output,edits}=instrument(input,probeSource);let rest=output.slice(output.indexOf(probeSource)+probeSource.length+1);

@@ -18,44 +18,63 @@
   "variants": [
     {
       "file": "intext-integration-original-gam.qa.js",
-      "hash": "93b7b1623db29b1e509121ff72f48fc9d33b2073abc4d1ebda35143e3b5e3545",
+      "hash": "1bedee9f303ce9822cc27acd0b7584af077883c503232fa91c8c93b2245f079b",
       "matchesManifest": true
     },
     {
       "file": "intext-integration-black-gam.qa.js",
-      "hash": "bd348bb34f2ba57f48d56f2d7aa57c05db1653e1b1b86e08eee8d29f033d9ed5",
+      "hash": "e5428aa1ee1bb1a3ac8d6b9bd2b65f93ccdd796f7f8c03f32dc9ff9268582514",
       "matchesManifest": true
     },
     {
       "file": "intext-integration-original-manager.qa.js",
-      "hash": "0469a96a549010080f22d6e57c0cdb2d9533c9ad35b2a2338a8f6928cc5de5b8",
+      "hash": "78f4b8b50f050103d2c7aee27219bb0445e8ef12cfe8c1551edfd4a5b41234da",
       "matchesManifest": true
     },
     {
       "file": "intext-integration-black-manager.qa.js",
-      "hash": "79ba1223802a3921fa58f84ea56b147278960b46ad589dc53f76bb51f71639cb",
+      "hash": "afd46c29051f376f5684ab632d30e734fe68b3bad1a336432baab6791270cc6a",
       "matchesManifest": true
     }
   ],
-  "externallyVerifiedHeadMatchesTestBaseline": true,
+  "historicalFloorBaseline": {
+    "commit": "98106a032aa4d8b2cbc83855030973e6c4563dba",
+    "path": "src/pro/_gam_kv_.js",
+    "sha256": "e26e59f2f65c9bd2517e7582b53a1d5bc0781a63204b9b2e5fcc16ad50dd8118",
+    "matchesPreviouslyVerifiedBaseline": true,
+    "reason": "Before/after regression intentionally requires the pre-override resolver; current HEAD already contains it. Test and expectations unchanged."
+  },
+  "validation": {
+    "full": {
+      "tests": 1252,
+      "pass": 1252,
+      "fail": 0,
+      "cancelled": 0,
+      "skipped": 0,
+      "todo": 0
+    },
+    "affected": {
+      "tests": 59,
+      "pass": 59,
+      "fail": 0,
+      "cancelled": 0,
+      "skipped": 0,
+      "todo": 0
+    },
+    "integration": 26,
+    "newTests": 12,
+    "adapter": "Existing external-command adapter, hash checked; no test or SDK stubs added by adapter."
+  },
+  "coverage": {
+    "installationStage": "after-videojs-before-ima",
+    "sdkRealValidation": "PENDING Chrome",
+    "activeObserversIsSdkDestructionProof": false
+  },
   "codeMemory": {
     "reindexed": true,
     "mode": "fast",
     "persistence": false,
-    "graphCurrentQAHelpersFound": false,
-    "note": "Index completed; graph/search still omit these QA CJS helpers. Workspace/tests are authoritative."
+    "graphCurrentQAHelpersFound": false
   },
-  "tests": {
-    "new": 14,
-    "affected": 47,
-    "full": 1240,
-    "skipped": 0
-  },
-  "newFiles": [
-    "tests/qa/intext-p13c-integration-probe.cjs",
-    "tests/qa/intext-p13c-integration-build.cjs",
-    "tests/qa/intext-p13c-integration-analysis.cjs",
-    "tests/intext-p13c-integration.audit.test.cjs"
-  ],
-  "patchSha256": "a10cff0259c3de8053feba93187f4145b9f13d8f3cab3c8dfd6cc382ea1307e2"
+  "patchSha256": "6a35520ef5f14b01caa6c4040d3ee3ba6417daf529a807113b76abac5aecd283"
 }

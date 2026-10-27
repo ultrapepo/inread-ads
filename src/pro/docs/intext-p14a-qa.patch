@@ -1,0 +1,556 @@
+diff --git a/src/pro/tests/qa/intext-p14a-dependencies.cjs b/src/pro/tests/qa/intext-p14a-dependencies.cjs
+new file mode 100644
+--- /dev/null
++++ b/src/pro/tests/qa/intext-p14a-dependencies.cjs
+@@ -0,0 +1,101 @@
++/* P1.4-A QA only. Infrastructure scheduling; no player or advertising SDK objects. */
++(function(root,factory){
++ 'use strict';
++ function install(target,arm){
++  if(!['E0','E1'].includes(arm))throw new Error('p14a_invalid_arm');
++  const existing=Object.getOwnPropertyDescriptor(target,'IntextP14A');
++  if(existing){if(existing.value?.schema!=='p14a-dependencies-v1')throw new Error('p14a_namespace_collision');existing.value.assignmentRequested(arm);return existing.value;}
++  const api=factory(target,arm);Object.defineProperty(target,'IntextP14A',{value:api,writable:false,configurable:false});return api;
++ }
++ if(typeof module==='object'&&module.exports)module.exports={install};
++ else install(root,/*__P14A_ARM__*/'E0');
++})(typeof window==='object'?window:globalThis,function(root,arm){
++ 'use strict';
++ const logs=[],attempts=new Map(),activationWaits=new WeakMap();let sequence=0,nextAttempt=0,inflight=null,dropped=0;
++ const now=()=>Date.now(),safe=(fn,fallback=null)=>{try{return fn()??fallback;}catch{return fallback;}};
++ const errorData=error=>({errorName:error?.name||'Error',errorCode:/^[a-z0-9_-]{1,80}$/i.test(error?.message||'')?error.message:'dependency-error'});
++ const record=(event,data={})=>{try{if(logs.length>=5000){logs.shift();dropped++;}logs.push({event,arm,sequence:++sequence,timestamp:now(),monotonicMs:safe(()=>root.performance.now()),...data});}catch{/* QA observation must not change settlement. */}};
++ const resources={
++  videojs:{url:'https://vjs.zencdn.net/7.20.3/video.min.js',available:()=>!!root.videojs},
++  contrib:{url:'https://cdnjs.cloudflare.com/ajax/libs/videojs-contrib-ads/6.9.0/videojs-contrib-ads.min.js',available:()=>safe(()=>!!root.videojs?.getPlugin?.('ads'),false)},
++  imaSdk:{url:'https://imasdk.googleapis.com/js/sdkloader/ima3.js',available:()=>!!root.google?.ima},
++  imaPlugin:{url:'https://cdnjs.cloudflare.com/ajax/libs/videojs-ima/1.11.0/videojs.ima.min.js',available:()=>safe(()=>!!root.videojs?.getPlugin?.('ima'),false)},
++ };
++ function timing(url,startedAt){return safe(()=>{
++  const entry=root.performance.getEntriesByName(url,'resource').at(-1);if(!entry)return null;
++  const base=root.performance.timeOrigin,epoch=Number.isFinite(base)?base+entry.startTime:null;
++  return {source:'ResourceTiming',requestScope:epoch===null?'unknown':epoch<startedAt?'pre-existing-request':'current-request',
++   startTime:entry.startTime,duration:entry.duration,fetchStart:entry.fetchStart,responseEnd:entry.responseEnd,
++   ttfbMs:entry.requestStart>0&&entry.responseStart>=entry.requestStart?entry.responseStart-entry.requestStart:null,
++   receiveMs:entry.responseStart>0&&entry.responseEnd>=entry.responseStart?entry.responseEnd-entry.responseStart:null,
++   transferSize:entry.transferSize??null,encodedBodySize:entry.encodedBodySize??null,
++   blockedMs:null,scriptEvaluationCpuMs:null,note:'Elapsed/request timing only; zero sizes may be restricted. Use HAR/Performance for blocked, wait and CPU.'};
++ });}
++ function run(owner){
++  if(inflight){record('dependencies_shared',{attemptId:inflight.id});return inflight.promise;}
++  const attempt={id:++nextAttempt,startedAt:now(),failed:false,error:null,settled:false,drained:false};attempts.set(attempt.id,attempt);
++  record('dependencies_started',{attemptId:attempt.id});
++  const fail=error=>{if(!attempt.failed){attempt.failed=true;attempt.error=error;record('dependencies_failed',{attemptId:attempt.id,durationMs:now()-attempt.startedAt,...errorData(error)});}};
++  const requireLive=()=>{if(attempt.failed)throw attempt.error;};
++  async function resource(key){
++   requireLive();const spec=resources[key],startedAt=now();
++   const url=owner.resolveDependencyUrl(spec.url),existing=safe(()=>owner.findDependencyElement('script','src',url));
++   record('resource_started',{attemptId:attempt.id,resource:key,alreadyAvailable:safe(spec.available,false),existingScript:!!existing,
++    existingStatus:existing?.__intextDependencyStatus??existing?.readyState??null,reusedScriptPromise:!!existing?.__intextDependencyPromise});
++   try{
++    await owner.loadDependencyScript(spec.url,spec.available);
++    if(!spec.available())throw new Error('video_dependency_loaded_but_unavailable');
++    record('resource_ready',{attemptId:attempt.id,resource:key,durationMs:now()-startedAt,afterAttemptFailure:attempt.failed,timing:timing(url,startedAt)});
++   }catch(error){fail(error);record('resource_failed',{attemptId:attempt.id,resource:key,durationMs:now()-startedAt,timing:timing(url,startedAt),...errorData(error)});throw error;}
++  }
++  async function branch(name,keys){
++   const startedAt=now();record('branch_started',{attemptId:attempt.id,branch:name});
++   try{for(const key of keys){requireLive();await resource(key);}requireLive();record('branch_ready',{attemptId:attempt.id,branch:name,durationMs:now()-startedAt});}
++   catch(error){fail(error);record('branch_failed',{attemptId:attempt.id,branch:name,durationMs:now()-startedAt,...errorData(error)});throw error;}
++  }
++  const tasks=[];
++  const execute=async()=>{
++   const barrierAt=now();record('barrier_wait_started',{attemptId:attempt.id});
++   try{
++    const video=branch('videojs-contrib',['videojs','contrib']);tasks.push(video);
++    if(arm==='E0')await video;
++    const ima=branch('ima-sdk',['imaSdk']);tasks.push(ima);
++    await Promise.all([video,ima]);requireLive();
++    if(!resources.videojs.available()||!resources.contrib.available()||!resources.imaSdk.available())throw new Error('video_dependencies_unavailable_at_barrier');
++    record('barrier_ready',{attemptId:attempt.id,durationMs:now()-barrierAt});
++    await resource('imaPlugin');requireLive();
++    if(!owner.dependenciesAvailable())throw new Error('video_dependencies_unavailable_after_load');
++    record('dependencies_ready',{attemptId:attempt.id,durationMs:now()-attempt.startedAt});
++   }catch(error){fail(error);record('barrier_or_load_failed',{attemptId:attempt.id,durationMs:now()-barrierAt,...errorData(error)});throw error;}
++   finally{
++    // Fail-fast consumers; all already-started infrastructure remains bounded by the unchanged loader.
++    // A failed attempt never schedules a new stage. Observe both branches even after consumer rejection.
++    Promise.allSettled(tasks).then(()=>{attempt.drained=true;record('dependencies_drained',{attemptId:attempt.id,failed:attempt.failed,durationMs:now()-attempt.startedAt});if(attempt.settled)attempts.delete(attempt.id);});
++   }
++  };
++  const promise=execute();const current={id:attempt.id,promise};inflight=current;
++  const settled=()=>{attempt.settled=true;if(inflight===current)inflight=null;if(attempt.drained)attempts.delete(attempt.id);};
++  promise.then(settled,settled);return promise;
++ }
++ const identity=node=>({slotId:node?.id??null,cycleId:node?._intextTelemetryCycleId??null,renderToken:node?._activeRenderToken??null});
++ const api={schema:'p14a-dependencies-v1',arm,run,
++  assignmentRequested(requestedArm){record(requestedArm===arm?'assignment_reused':'assignment_conflict',{requestedArm,effectiveArm:arm});},
++  activationWait(creative,phase){
++   const data={...identity(creative?.node),renderToken:creative?._renderToken??null,prepared:creative?._prepared===true};
++   if(phase==='started'){activationWaits.set(creative,now());record('activation_dependencies_wait_started',data);}
++   else if(phase==='ready'){
++    const startedAt=activationWaits.get(creative);activationWaits.delete(creative);
++    record('activation_dependencies_ready',{...data,residualDependenciesWaitMs:Number.isFinite(startedAt)?now()-startedAt:null});
++   }
++  },
++  diagnostic(event,node,data={}){record(event,{...identity(node),renderToken:data.renderToken??node?._activeRenderToken??null,attemptId:inflight?.id??null,
++   dependenciesWaitMs:data.dependenciesWaitMs??null,durationMs:data.durationMs??null,reusedPromise:data.reusedPromise??null,
++   alreadyReady:data.alreadyReady??null,winner:data.winner??null,trigger:data.trigger??null});},
++  core(creative,event,data={}){record('core:'+event,{...identity(creative?.node),renderToken:creative?._renderToken??null,
++   source:typeof data.source==='string'?data.source:null,currentTime:Number.isFinite(data.currentTime)?data.currentTime:null});},
++  export(){return {schema:api.schema,qaOnly:true,enforce:false,arm,dropped,inflightAttemptId:inflight?.id??null,
++   pendingAttempts:[...attempts.values()].map(a=>({id:a.id,failed:a.failed,settled:a.settled,drained:a.drained})),logs:logs.slice(),
++   integration:safe(()=>root.IntextIntegrationQA.export())};},
++ };
++ record('assignment_fixed',{effectiveArm:arm});return Object.freeze(api);
++});
+diff --git a/src/pro/tests/qa/intext-p14a-build.cjs b/src/pro/tests/qa/intext-p14a-build.cjs
+new file mode 100644
+--- /dev/null
++++ b/src/pro/tests/qa/intext-p14a-build.cjs
+@@ -0,0 +1,70 @@
++'use strict';
++// Reversible QA composition. No production file or pre-existing QA artifact is written.
++const fs=require('node:fs'),path=require('node:path'),crypto=require('node:crypto'),vm=require('node:vm');
++const {build:replaceDummy,expected}=require('./intext-p13c-dummy-source-build.cjs');
++const {instrument}=require('./intext-p13c-integration-build.cjs');
++const root=path.resolve(__dirname,'../..');
++const sha=bytes=>crypto.createHash('sha256').update(bytes).digest('hex');
++const runtimeSource=()=>fs.readFileSync(path.join(__dirname,'intext-p14a-dependencies.cjs'),'utf8');
++const probeSource=()=>fs.readFileSync(path.join(__dirname,'intext-p13c-integration-probe.cjs'),'utf8');
++function runtimeFor(arm){
++ if(!['E0','E1'].includes(arm))throw Error('Invalid P1.4-A arm');
++ const source=runtimeSource(),marker="/*__P14A_ARM__*/'E0'";
++ if(source.split(marker).length!==2)throw Error('Ambiguous assignment marker');
++ return source.replace(marker,"/*__P14A_ARM__*/'"+arm+"'");
++}
++function replaceOnce(source,before,after){if(source.split(before).length!==2)throw Error('Ambiguous QA edit: '+before.slice(0,90));return source.replace(before,after);}
++function build(source,arm,{probe=probeSource()}={}){
++ if(!Object.values(expected).includes(sha(source)))throw Error('Protected P1.3b source hash mismatch');
++ const black=replaceDummy(source),from=black.output.indexOf('  static async loadDependencies() {',black.output.indexOf('class IntextVideoCreative {'));
++ const to=black.output.indexOf('  static ensureSharedDependencies()',from);
++ if(from<0||to<0)throw Error('Dependency method boundaries changed');
++ const before=black.output.slice(from,to),after='  static async loadDependencies() {\n    return window.IntextP14A.run(this);\n  }\n\n';
++ const edits=[{before,after}];let core=replaceOnce(black.output,before,after);
++ const hook=(marker,addition)=>{const edit={before:marker,after:marker+addition};core=replaceOnce(core,edit.before,edit.after);edits.push(edit);};
++ hook('  static dependencyDiagnostic(metric, node, data = {}) {','\n    try { window.IntextP14A?.diagnostic(metric, node, data); } catch (e) { /* QA observation only */ }');
++ hook('      const debugVideo = (event, data = {}) => {','\n        try { window.IntextP14A?.core(this, event, data); } catch (e) { /* QA observation only */ }');
++ hook('  async activate() {','\n    try { window.IntextP14A?.activationWait(this, "started"); } catch (e) { /* QA observation only */ }');
++ const activateFrom=core.indexOf('  async activate() {'),prepareAt=core.indexOf('    await this.prepare();',activateFrom);
++ const readyHook='\n    try { window.IntextP14A?.activationWait(this, "ready"); } catch (e) { /* QA observation only */ }';
++ if(prepareAt<0||prepareAt>core.indexOf('\n  }',activateFrom))throw Error('Activation await changed');
++ const beforeReady=core.slice(activateFrom,prepareAt+'    await this.prepare();'.length),afterReady=beforeReady+readyHook;
++ core=replaceOnce(core,beforeReady,afterReady);edits.push({before:beforeReady,after:afterReady});
++ const integrated=instrument(core,probe),runtime=runtimeFor(arm);
++ const prefix='/* P1.4-A QA '+arm+'. Dependency experiment only; not Lifecycle A/B/C. */\n'+runtime+'\n';
++ const output=prefix+integrated.output;new vm.Script(output);
++ const dummyOffset=black.manifest.offset,dummyAt=text=>text.slice(dummyOffset).match(/^data:video\/mp4;base64,[A-Za-z0-9+/=]+/)[0];
++ const ledger={prefix,probe,edits,integrationEdits:integrated.edits,blackSource:black.output,
++  dummyOffset,originalDummy:dummyAt(source),qaDummy:dummyAt(black.output),originalSha256:sha(source)};
++ if(reverse(output,ledger)!==source)throw Error('QA reversal is not byte-exact');
++ return {output,ledger,manifest:{arm,inputSha256:sha(source),sourceOnlySha256:sha(black.output),outputSha256:sha(output),
++  runtimeSha256:sha(runtime),probeSha256:sha(probe),dummy:black.manifest.candidate,
++  commercialCodeRestoredSha256:sha(reverse(output,ledger)),byteExactReversal:true,
++  originalLoadDependenciesSha256:sha(before),edits:['QA runtime prefix','same integration probe/hooks','same black dummy literal','loadDependencies delegation','two diagnostic hooks','two marks around existing activation prepare await']}};
++}
++function reverse(output,ledger){
++ if(!output.startsWith(ledger.prefix))throw Error('QA prefix changed');let source=output.slice(ledger.prefix.length);
++ const integrationEnd=source.indexOf(ledger.probe)+ledger.probe.length+1;
++ if(integrationEnd<=ledger.probe.length)throw Error('Integration prefix missing');source=source.slice(integrationEnd);
++ for(const edit of ledger.integrationEdits)source=replaceOnce(source,edit.addition,'');
++ for(const edit of ledger.edits.slice().reverse())source=replaceOnce(source,edit.after,edit.before);
++ if(source!==ledger.blackSource)throw Error('Non-experiment core change');
++ // Reverse the one pre-existing source-only replacement; its source is never inferred from a QA file.
++ if(source.slice(ledger.dummyOffset,ledger.dummyOffset+ledger.qaDummy.length)!==ledger.qaDummy)throw Error('QA dummy literal changed');
++ source=source.slice(0,ledger.dummyOffset)+ledger.originalDummy+source.slice(ledger.dummyOffset+ledger.qaDummy.length);
++ if(sha(source)!==ledger.originalSha256)throw Error('Commercial reversal hash mismatch');return source;
++}
++function buildAll(){
++ const directory=path.join(__dirname,'generated');fs.mkdirSync(directory,{recursive:true});const variants=[];
++ for(const [name,hash]of Object.entries(expected)){
++  const source=fs.readFileSync(path.join(root,name),'utf8');if(sha(source)!==hash)throw Error('Protected P1.3b changed: '+name);
++  for(const arm of ['E0','E1']){const result=build(source,arm),file='intext-p14a-'+arm+'-'+(name==='_gam_kv_.js'?'gam':'manager')+'.qa.js';
++   fs.writeFileSync(path.join(directory,file),result.output);variants.push({source:name,file,...result.manifest});}
++ }
++ const manifest={schema:'p14a-build-v1',qaOnly:true,enforce:false,productionVersion:'2026.10.07-p1-ima-preload-first-frame',
++  assignment:'External choice of E0/E1 artifact before document execution; first assignment immutable through SPA/PNC and refresh.',
++  dependencyScriptTimeoutMs:10000,productionFilesWritten:false,probeUnmodified:true,variants};
++ fs.writeFileSync(path.join(root,'docs/intext-p14a-build.json'),JSON.stringify(manifest,null,2)+'\n');return manifest;
++}
++module.exports={build,reverse,buildAll,runtimeFor,sha,expected};
++if(require.main===module)console.log(JSON.stringify(buildAll(),null,2));
+diff --git a/src/pro/tests/intext-p14a-dependencies.audit.test.cjs b/src/pro/tests/intext-p14a-dependencies.audit.test.cjs
+new file mode 100644
+--- /dev/null
++++ b/src/pro/tests/intext-p14a-dependencies.audit.test.cjs
+@@ -0,0 +1,208 @@
++'use strict';
++const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),vm=require('node:vm');
++const {build,reverse,runtimeFor,sha,expected}=require('./qa/intext-p14a-build.cjs');
++const root=path.resolve(__dirname,'..'),artifacts=new Map();
++const flush=async()=>{for(let i=0;i<40;i++)await Promise.resolve();};
++const originalFixture=fs.readFileSync(path.join(__dirname,'intext-ima-preload-first-frame.audit.test.cjs'),'utf8').split('\nfor (const file of')[0];
++function artifact(file,arm){const key=file+arm;if(!artifacts.has(key))artifacts.set(key,build(fs.readFileSync(path.join(root,file),'utf8'),arm));return artifacts.get(key);}
++function fixture(file,arm){
++ const output=artifact(file,arm).output;
++ const replacementRequire=name=>name==='node:fs'?{...fs,readFileSync:(fileName,...args)=>path.resolve(fileName)===path.join(root,file)?output:fs.readFileSync(fileName,...args)}:require(name);
++ const create=new Function('require','__dirname',originalFixture+'\nreturn fixture;')(replacementRequire,__dirname);
++ const f=create(file);f.window.document=f.document;vm.runInContext(runtimeFor(arm),f.context);
++ f.scripts=()=>f.assets.filter(e=>e.tagName==='SCRIPT');
++ f.script=part=>f.scripts().find(e=>e.src.includes(part));
++ f.events=event=>f.window.IntextP14A.export().logs.filter(e=>e.event===event);
++ return f;
++}
++for(const file of Object.keys(expected)){
++ test(file+': P14A byte-exact reversal, parity, protected loader and activation',()=>{
++  const source=fs.readFileSync(path.join(root,file),'utf8'),e0=artifact(file,'E0'),e1=artifact(file,'E1');
++  assert.equal(sha(source),expected[file]);
++  for(const a of [e0,e1]){
++   assert.equal(reverse(a.output,a.ledger),source);
++   const segment=(text,start,end)=>text.slice(text.indexOf(start),text.indexOf(end,text.indexOf(start)));
++   for(const [start,end]of [['  static loadDependencyScript(', '  static async loadDependencies('],['  static ensureSharedDependencies(', '  static prewarmDependencies(']]){
++    assert.ok(source.includes(start),start);assert.ok(source.includes(end),end);assert.equal(segment(a.output,start,end),segment(source,start,end));
++   }
++   const activate=text=>{const from=text.indexOf('  async activate()');return text.slice(from,text.indexOf('\n  }',from)+4);};
++   assert.equal(activate(a.output).replace(/\n    try \{ window\.IntextP14A\?\.activationWait\(this, "(?:started|ready)"\); \} catch \(e\) \{ \/\* QA observation only \*\/ \}/g,''),activate(source));
++   assert.equal(a.manifest.probeSha256,sha(fs.readFileSync(path.join(__dirname,'qa/intext-p13c-integration-probe.cjs'),'utf8')));
++   assert.equal(a.manifest.dummy.sha256,'410e77398580e6b470c0f5c2297d32484cbb29b9765133f7703038fc24ed753d');
++   assert.throws(()=>reverse(a.output.replace('return window.IntextP14A.run(this);','throw Error("changed");'),a.ledger));
++  }
++  assert.equal(e0.output.slice(e0.ledger.prefix.length),e1.output.slice(e1.ledger.prefix.length));
++ });
++ for(const arm of ['E0','E1']){
++  const check=(name,fn)=>test(`${file}: P14A ${arm} ${name}`,fn);
++  check('exact dependency graph and API barrier, no advertising objects',async()=>{
++   const f=fixture(file,arm),p=f.Creative.ensureSharedDependencies();await flush();
++   assert.equal(f.scripts().length,arm==='E0'?1:2);assert.ok(f.script('video.min.js'));
++   f.assetLoad(f.script('video.min.js'));await flush();assert.ok(f.script('contrib-ads.min.js'));
++   assert.equal(f.script('videojs.ima.min.js'),undefined);
++   f.assetLoad(f.script('contrib-ads.min.js'));await flush();assert.ok(f.script('ima3.js'));
++   assert.equal(f.script('videojs.ima.min.js'),undefined);
++   f.assetLoad(f.script('ima3.js'));await flush();assert.ok(f.script('videojs.ima.min.js'));
++   f.assetLoad(f.script('videojs.ima.min.js'));await p;await flush();
++   assert.equal(f.scripts().length,4);assert.equal(f.timers.size,0);
++   assert.ok(f.creates.every(t=>t==='script'||t==='link'));assert.equal(f.window.IntextP14A.export().pendingAttempts.length,0);
++   const events=f.window.IntextP14A.export().logs,barrier=events.find(e=>e.event==='barrier_ready');
++   for(const resource of ['videojs','contrib','imaSdk'])assert.ok(events.find(e=>e.event==='resource_ready'&&e.resource===resource).sequence<barrier.sequence);
++   assert.ok(events.find(e=>e.event==='resource_started'&&e.resource==='imaPlugin').sequence>barrier.sequence);
++  });
++  check('prewarm begins after pendingAuction and never blocks fetchComplete',async()=>{
++   const f=fixture(file,arm),wf=f.fetch('video'),original=f.Creative.prewarmDependencies;
++   let called=false;f.Creative.prewarmDependencies=function(...args){assert.equal(wf.pendingAuction.winner,'video');called=true;return original.apply(this,args);};
++   await wf.startFetch('fetch-intersection');await flush();assert.equal(called,true);assert.equal(wf.fetchComplete,true);
++   assert.equal(wf.pendingAuction.marker,'auction-preserved');assert.equal(f.events('dependencies_ready').length,0);
++   assert.ok(f.creates.every(t=>t==='script'||t==='link'));await f.finishAssets();
++  });
++  check('Display winner has no dependency or player cost',async()=>{
++   const f=fixture(file,arm),wf=f.fetch('display');await wf.startFetch('fetch');await flush();
++   assert.equal(wf.pendingAuction.winner,'display');assert.equal(f.creates.length,0);assert.equal(f.events('dependencies_started').length,0);
++  });
++  check('two slots and render share one promise, scripts and styles',async()=>{
++   const f=fixture(file,arm),p1=f.Creative.prewarmDependencies({node:{id:'one'}}),shared=f.Creative._dependenciesPromise;
++   const p2=f.Creative.prewarmDependencies({node:{id:'two'}}),creative=new f.Creative({node:{},config:{}});
++   assert.equal(creative.ensureDependencies(),shared);assert.equal(f.Creative.ensureSharedDependencies(),shared);
++   await f.finishAssets();await Promise.all([p1,p2]);
++   assert.equal(f.scripts().length,4);assert.equal(f.assets.filter(e=>e.tagName==='LINK').length,3);
++   assert.equal(f.events('dependencies_started').length,1);
++   await f.Creative.prewarmDependencies({node:{id:'third'}});assert.equal(f.scripts().length,4);
++  });
++  check('SDK already available is verified without reinserting it',async()=>{
++   const f=fixture(file,arm);f.window.google={ima:{}};
++   const p=f.Creative.ensureSharedDependencies();await f.finishAssets();await p;
++   assert.equal(f.scripts().length,3);assert.equal(f.script('ima3.js'),undefined);
++   assert.equal(f.events('resource_started').find(e=>e.resource==='imaSdk').alreadyAvailable,true);
++  });
++  check('CSS protocol-relative URL is reused, no parallel duplicate stylesheet',async()=>{
++   const f=fixture(file,arm),link=f.element('link');link.href='//vjs.zencdn.net/7.20.3/video-js.css';link.rel='stylesheet';f.assets.push(link);
++   const p=f.Creative.ensureSharedDependencies();await f.finishAssets();await p;
++   assert.equal(f.assets.filter(e=>e.tagName==='LINK').length,3);assert.equal(f.assets.filter(e=>e.href?.includes('video-js.css')).length,1);
++  });
++  check('foreign SDK script still loading, normalized URL, bounded shared ownership',async()=>{
++   const f=fixture(file,arm),script=f.element('script');script.src='//imasdk.googleapis.com/js/sdkloader/ima3.js';f.assets.push(script);
++   let done=false;const p=f.Creative.ensureSharedDependencies().then(()=>{done=true;});
++   await flush();f.assetLoad(f.script('video.min.js'));await flush();f.assetLoad(f.script('contrib-ads.min.js'));await flush();
++   assert.equal(done,false);assert.equal(f.scripts().filter(e=>e.src.includes('ima3.js')).length,1);
++   assert.equal(script.__intextDependencyStatus,'loading');assert.ok(script.__intextDependencyPromise);
++   f.assetLoad(script);await f.finishAssets();await p;assert.equal(f.timers.size,0);
++  });
++  check('load with missing API rejects and real retry replaces broken script',async()=>{
++   const f=fixture(file,arm),first=f.Creative.ensureSharedDependencies(),rejected=assert.rejects(first,/unavailable/);
++   const broken=f.script('video.min.js');broken.emit('load');await rejected;await flush();
++   assert.equal(f.Creative._dependenciesPromise,null);
++   const retry=f.Creative.ensureSharedDependencies();assert.notEqual(f.script('video.min.js'),broken);
++   await f.finishAssets();await retry;await flush();assert.equal(f.scripts().length,4);assert.equal(f.timers.size,0);
++   assert.equal(f.window.IntextP14A.export().pendingAttempts.length,0);
++  });
++  check('script failure keeps fetch and its winner, render can retry',async()=>{
++   const f=fixture(file,arm),wf=f.fetch('video');await wf.startFetch('fetch');await flush();
++   f.script('video.min.js').emit('error');await flush();
++   assert.equal(wf.fetchComplete,true);assert.equal(wf.pendingAuction.winner,'video');
++   assert.ok(f.logs.some(e=>e.metric==='video_dependency_prewarm_failed'));assert.equal(f.Creative._dependenciesPromise,null);
++   const retry=new f.Creative({node:{},config:{}}).ensureDependencies();await f.finishAssets();await retry;await flush();
++   assert.equal(f.scripts().length,4);assert.equal(f.timers.size,0);assert.equal(f.events('dependencies_ready').length,1);
++  });
++  check('unchanged 10s timeout rejects, no orphan or delayed plugin, retry works',async()=>{
++   const f=fixture(file,arm),p=f.Creative.ensureSharedDependencies(),rejected=assert.rejects(p,/timeout/);
++   assert.equal(f.Creative.DEPENDENCY_SCRIPT_TIMEOUT_MS,10000);f.tick(9999);await flush();assert.equal(f.events('dependencies_failed').length,0);
++   f.tick(1);await rejected;await flush();assert.equal(f.Creative._dependenciesPromise,null);assert.equal(f.timers.size,0);
++   assert.equal(f.script('videojs.ima.min.js'),undefined);assert.equal(f.window.IntextP14A.export().pendingAttempts.length,0);
++   const retry=f.Creative.ensureSharedDependencies();await f.finishAssets();await retry;assert.equal(f.scripts().length,4);
++  });
++  check('stale token while dependencies load never constructs or activates player',async()=>{
++   const f=fixture(file,arm),node={id:'slot-two',_activeRenderToken:1,isActiveRenderToken(token){return token===this._activeRenderToken;}};
++   const creative=new f.Creative({node,config:{}});creative.createPlayerForActivation=()=>assert.fail('stale activation');
++   const rejected=assert.rejects(creative.activate(),/stale_render_token/);node._activeRenderToken=2;
++   await f.finishAssets();await rejected;assert.ok(f.creates.every(t=>t==='script'||t==='link'));assert.equal(f.timers.size,0);
++  });
++  check('destroy during prepare settles without activation or leftover dependency timers',async()=>{
++   const f=fixture(file,arm),creative=new f.Creative({node:{isActiveRenderToken:()=>true},config:{}});
++   creative.createPlayerForActivation=()=>assert.fail('destroyed activation');
++   const rejected=assert.rejects(creative.activate(),/stale_render_token/);creative.destroy();
++   await f.finishAssets();await rejected;assert.equal(f.timers.size,0);assert.equal(creative.player,null);
++  });
++  check('residual dependency wait is measured, no fabricated CPU or blocked timing',async()=>{
++   const f=fixture(file,arm),node={id:'second-slot',_activeRenderToken:4,_intextTelemetryCycleId:'cycle',isActiveRenderToken:()=>true};
++   const creative=new f.Creative({node,config:{}}),p=creative.prepare();f.tick(137);await f.finishAssets();await p;
++   const ready=f.events('video_dependencies_ready')[0];assert.equal(ready.dependenciesWaitMs,137);assert.equal(ready.slotId,node.id);
++   assert.equal(ready.cycleId,'cycle');assert.equal(ready.renderToken,4);assert.equal(creative.player,null);
++   assert.equal(f.events('resource_ready')[0].timing,null);
++   const warm=new f.Creative({node,config:{}});await warm.prepare();assert.equal(f.events('video_dependencies_ready').at(-1).dependenciesWaitMs,0);
++  });
++  check('render residual is separate from standby prepare and excludes viewport wait',async()=>{
++   const f=fixture(file,arm),node={id:'any-slot',_activeRenderToken:7,isActiveRenderToken:()=>true},calls=[];
++   const creative=new f.Creative({node,config:{}});
++   creative.createPlayerForActivation=()=>{assert.equal(f.Creative.dependenciesAvailable(),true);calls.push('create');};
++   creative.observeActivationEligibility=()=>{};creative.requestAds=()=>{calls.push('request');return Promise.resolve('activated');};
++   const rendered=creative.render();assert.equal(creative.render(),rendered);f.tick(123);await f.finishAssets();assert.equal(await rendered,'activated');
++   assert.equal(f.events('activation_dependencies_ready')[0].residualDependenciesWaitMs,123);assert.deepEqual(calls,['create','request']);
++   const warm=new f.Creative({node,config:{}});await warm.prepare();let enter;
++   node.getReadinessViewportState=()=>({eligible:true,reason:'visible'});node.waitForViewport=()=>new Promise(resolve=>{enter=resolve;});
++   warm.createPlayerForActivation=()=>calls.push('warm-create');warm.observeActivationEligibility=()=>{};warm.requestAds=()=>Promise.resolve();
++   const warmRendered=warm.render();await flush();assert.equal(f.events('activation_dependencies_ready').at(-1).residualDependenciesWaitMs,0);
++   f.tick(2000);assert.ok(!calls.includes('warm-create'));enter('visible');await warmRendered;assert.ok(calls.includes('warm-create'));
++   assert.equal(f.events('activation_dependencies_ready').at(-1).residualDependenciesWaitMs,0);assert.equal(f.timers.size,0);
++  });
++  check('existing first-frame, reveal, timeout and cleanup behavior remains intact',async()=>{
++   const f=fixture(file,arm),r=f.playback();assert.ok([...f.timers.values()].some(t=>t.delay===25000));
++   r.started();r.media.emit('playing');assert.equal(r.opens,0);
++   r.frame();await r.result;assert.equal(r.opens,1);r.media.currentTime=.1;r.media.emit('timeupdate');assert.equal(r.opens,1);
++   for(const key of ['timeout','prerollTimeout','postrollTimeout'])assert.equal(r.player.ima.options[key],30000);
++   assert.equal(r.player.playCalls,1);
++   assert.equal(f.events('core:first-frame').length,1);assert.equal(f.events('core:revealed').length,1);r.creative.destroy();
++   assert.equal(r.creative._firstFrameWaitTimers.length,0);assert.equal(r.frameCallback(),null);
++   assert.ok([...f.timers.values()].every(t=>t.delay!==10000&&t.delay!==25000));
++  });
++ }
++ test(file+': P14A E1 SDK completes first; plugin still waits for contrib',async()=>{
++  const f=fixture(file,'E1'),p=f.Creative.ensureSharedDependencies();f.assetLoad(f.script('ima3.js'));await flush();
++  assert.equal(f.script('videojs.ima.min.js'),undefined);f.assetLoad(f.script('video.min.js'));await flush();
++  assert.equal(f.script('videojs.ima.min.js'),undefined);f.assetLoad(f.script('contrib-ads.min.js'));await f.finishAssets();await p;
++ });
++ test(file+': P14A E1 fail-fast branch drains while retry safely adopts in-flight sibling',async()=>{
++  const f=fixture(file,'E1'),p=f.Creative.ensureSharedDependencies(),rejected=assert.rejects(p,/load_failed/);
++  const oldVideo=f.script('video.min.js');f.script('ima3.js').emit('error');await rejected;await flush();
++  assert.equal(f.script('contrib-ads.min.js'),undefined);assert.equal(f.events('dependencies_ready').length,0);
++  assert.equal(f.window.IntextP14A.export().pendingAttempts.length,1);
++  const retry=f.Creative.ensureSharedDependencies();assert.equal(f.script('video.min.js'),oldVideo);
++  f.assetLoad(oldVideo);await flush();assert.equal(f.scripts().filter(e=>e.src.includes('contrib-ads.min.js')).length,1);
++  await f.finishAssets();await retry;await flush();assert.equal(f.scripts().length,4);
++  assert.equal(f.events('dependencies_ready').length,1);assert.equal(f.window.IntextP14A.export().pendingAttempts.length,0);assert.equal(f.timers.size,0);
++  assert.ok(!f.events('resource_started').some(e=>e.attemptId===1&&e.resource==='contrib'));
++ });
++ test(file+': P14A E1 plugin failure after barrier rejects and real retry loads it once',async()=>{
++  const f=fixture(file,'E1'),p=f.Creative.ensureSharedDependencies(),rejected=assert.rejects(p,/load_failed/);
++  f.assetLoad(f.script('ima3.js'));f.assetLoad(f.script('video.min.js'));await flush();f.assetLoad(f.script('contrib-ads.min.js'));await flush();
++  const broken=f.script('videojs.ima.min.js');broken.emit('error');await rejected;await flush();
++  const retry=f.Creative.ensureSharedDependencies();await flush();const replacement=f.script('videojs.ima.min.js');assert.notEqual(replacement,broken);
++  f.assetLoad(replacement);await retry;await flush();assert.equal(f.scripts().length,4);assert.equal(f.events('dependencies_ready').length,1);
++ });
++ test(file+': P14A E1 barrier rechecks APIs, absence cannot start plugin',async()=>{
++  const f=fixture(file,'E1'),p=f.Creative.ensureSharedDependencies(),rejected=assert.rejects(p,/unavailable_at_barrier/);
++  f.assetLoad(f.script('ima3.js'));await flush();f.assetLoad(f.script('video.min.js'));await flush();
++  f.assetLoad(f.script('contrib-ads.min.js'));delete f.window.google.ima;await rejected;await flush();
++  assert.equal(f.script('videojs.ima.min.js'),undefined);assert.equal(f.Creative._dependenciesPromise,null);assert.equal(f.timers.size,0);
++ });
++ test(file+': P14A E1 independent distribution classes also share document load',async()=>{
++  const f=fixture(file,'E1'),from=f.source.indexOf('class IntextVideoCreative');
++  vm.runInContext('this.Other = '+f.source.slice(from,f.source.indexOf('class WPromise',from)),f.context);
++  const p=f.Creative.ensureSharedDependencies(),other=f.context.Other.ensureSharedDependencies();
++  await f.finishAssets();await Promise.all([p,other]);assert.equal(f.scripts().length,4);assert.equal(f.events('dependencies_started').length,1);
++  assert.equal(f.events('dependencies_shared').length,1);
++ });
++ test(file+': P14A immutable assignment through second distribution, refresh and SPA/PNC',async()=>{
++  const f=fixture(file,'E0'),first=f.window.IntextP14A;f.document.baseURI='https://example.test/next';
++  vm.runInContext(runtimeFor('E1'),f.context);assert.equal(f.window.IntextP14A,first);assert.equal(first.arm,'E0');
++  assert.equal(f.events('assignment_conflict').length,1);
++  assert.throws(()=>vm.runInContext('"use strict";window.IntextP14A.arm="E1";',f.context));
++  assert.throws(()=>vm.runInContext('Object.defineProperty(window,"IntextP14A",{value:{}});',f.context));
++  for(let cycle=0;cycle<2;cycle++){const p=f.Creative.ensureSharedDependencies();await f.finishAssets();await p;}
++  assert.equal(f.scripts().length,4);assert.equal(first.arm,'E0');
++ });
++}
++test('P14A builder refuses unknown commercial input and arm',()=>{
++ assert.throws(()=>build('not the protected source','E0'),/hash/);assert.throws(()=>runtimeFor('C'),/Invalid/);
++});
+diff --git a/src/pro/docs/intext-p14a-qa.md b/src/pro/docs/intext-p14a-qa.md
+new file mode 100644
+--- /dev/null
++++ b/src/pro/docs/intext-p14a-qa.md
+@@ -0,0 +1,157 @@
++# P1.4-A — Experimento QA E0/E1 de dependencias compartidas
++
++Estado: copias QA para revisión y ensayo Chrome, sin despliegue. Versión productiva conservada: `2026.10.07-p1-ima-preload-first-frame`. P1.3c mantiene su gate visual independiente. Enforce, gate B y alternativa C deshabilitados; E0/E1 no son los lifecycles A/B/C de P1.3a.
++
++## Base y alcance
++
++El [diseño P1.4 actualizado](intext-p14-mobile-latency-viewability-design.md) incorpora separadamente la captura real de Marca mobile del **21/10**: prewarm 3139 ms, espera residual de dependencias 2589 ms y activación→frame 3454 ms. El revisor confirma eventos nativos IMA, COMPLETE, restauración del dummy y destroy posterior. No es un resultado E0/E1 ni una muestra estadística junto al 20/10. El cierre visual del contenido base continúa pendiente.
++
++El builder parte exclusivamente de los dos SHA256 P1.3b protegidos, compone el reemplazo source-only del dummy negro ya existente y el **mismo** probe de integración. Ningún archivo comercial ni artefacto anterior P1.3c se sobrescribe. El fixture negro es idéntico en ambos brazos: 7141 bytes, 25 fotogramas/25 fps; SHA256 `410e77398580e6b470c0f5c2297d32484cbb29b9765133f7703038fc24ed753d`.
++
++| Archivo productivo, sin cambios | SHA256 |
++|---|---|
++| `_gam_kv_.js` | `1cde1ccdc962c07d5833dc9691a3bfe31b7dd74b3e649e89153a240940a06690` |
++| `IntextManager.js` | `ba832dc0eb3c0f6e1070a515fac09dd31467e2c7a5a64a18ff4e4f4c063fead8` |
++
++## Diferencia única del experimento
++
++```text
++Ambos: winner vídeo → pendingAuction guardada → prewarm no bloqueante
++E0: Video.js → contrib-ads → IMA SDK → videojs-ima
++E1: ┌ Video.js → contrib-ads ┐
++    └ IMA SDK ───────────────┴→ barrera con APIs verificadas → videojs-ima
++Ambos: render espera la misma carga → elegibilidad vigente → Video.js + IMA
++       consecutivos en activate → request/play actuales → frame → reveal
++```
++
++`tests/qa/intext-p14a-dependencies.cjs` implementa la coordinación QA. Las cuatro URLs/versiones, CSS y callbacks de disponibilidad son los actuales. `loadDependencyScript`, canonicalización por `document.baseURI`, elementos/promise compartidos y timeout de **10000 ms por script** quedan intactos. Se comprueba disponibilidad tanto en el loader como en la barrera, y la disponibilidad conjunta después del plugin.
++
++El builder reemplaza solo el cuerpo de `loadDependencies` por una delegación al coordinador y añade dos hooks de diagnóstico protegidos, más dos marcas alrededor del `await this.prepare()` existente en activate. Estas marcas no añaden awaits ni cambian su orden. El probe de integración se incorpora sin modificar sus bytes; instala sus listeners post-Video.js/pre-IMA como antes. No se inicializa `player.ads()` por separado. No se crean player, video, AdsLoader, AdsRequest o AdsManager durante prewarm. No se alteran init/play/start, opciones IMA, autoplay, timeout de 25 s, opciones de 30 s, gates viewport/frame/reveal, recovery, PiP, animación, fallback o refresh.
++
++El estado es compartido por documento y por las clases que usen la misma ventana. Cada posición conserva su ownership/cycle/token actuales. Preparaciones obsoletas pueden terminar de cargar infraestructura compartida, pero el core vuelve a validar el token antes de construir/activar. Display no inicia este proceso.
++
++### Fallos y retry
++
++El primer fallo rechaza al consumidor inmediatamente y deja que el core limpie `_dependenciesPromise`. No se esperan los 10 s de otra rama para informar ese fallo. Los scripts ya iniciados continúan **solo como infraestructura**, observados hasta resolve/reject con el límite original; no se cancelan SDK ni anuncios. El intento fallido no puede iniciar contrib-ads o videojs-ima posteriormente. `dependencies_drained` permite comprobar cuándo se liquidaron esas ramas.
++
++Un retry explícito del lifecycle reutiliza los scripts aún cargándose mediante el loader existente, elimina/reemplaza los fallidos y vuelve a verificar APIs. La finalización tardía del intento viejo no borra el ownership del nuevo. No hay retry automático, bucle, polling ni nueva request publicitaria. Por diseño puede haber un intento rechazado y otro vigente con referencias al mismo script pendiente; eso no equivale a dos cargas efectivas.
++
++### Asignación externa inmutable
++
++Elegir el archivo **E0 o E1 en Fiddler antes de crear el documento**. No se utiliza cookie, targeting, random1–4, localStorage ni selección por slot. Todos los slots/ciclos del documento pertenecen al mismo brazo. `window.IntextP14A` es una propiedad no reconfigurable/no escribible y su API está congelada. La primera instalación fija el brazo hasta una navegación completa; refresh publicitario, SPA/PNC y segunda distribución reutilizan esa asignación.
++
++Si una reinyección pide otro brazo, se registra `assignment_conflict` y se conserva el primero. Esa captura se marca contaminada y se repite con navegación completa; no se cambia el brazo a mitad de anuncio. Un namespace ajeno ya ocupado hace fallar el artefacto QA explícitamente; retirar sustitución y recargar, sin tocar el entorno comercial.
++
++## Telemetría y límites
++
++`window.IntextP14A.export()` devuelve brazo, secuencia, reloj de documento, intentos pendientes, logs y exportación del probe de integración. Recursos y ramas se identifican con nombres locales, sin URLs de solicitudes publicitarias.
++
++| Marcas QA | Qué miden |
++|---|---|
++| `assignment_fixed/reused/conflict` | Asignación efectiva y mezcla accidental |
++| `dependencies_started/shared/ready/failed/drained` | Carga común, consumidor y drenaje real de ramas |
++| `resource_started/ready/failed` | Disponibilidad inicial, elemento/promise existente, duración elapsed y error saneado |
++| `branch_started/ready/failed` | Cadena Video.js/contrib y SDK IMA |
++| `barrier_wait_started`, `barrier_ready`, `barrier_or_load_failed` | Ventana de carga hasta APIs listas o fallo; no confundirla con una espera añadida a la red |
++| `video_dependency_prewarm_*`, `video_dependencies_wait_started/ready` | Hitos actuales; espera residual de prepare/render, slot/ciclo/token |
++| `activation_dependencies_wait_started/ready` | Espera residual real de activate sobre prepare (`residualDependenciesWaitMs`), antes de la espera de viewport; también registra cero cuando prepare ya terminó |
++| `core:*` y exportación `integration` | Player preparado/activación, request IMA proxy, AdsManager y cobertura nativa, frame/reveal, COMPLETE/restore y cleanup ya instrumentados |
++
++El intervalo de barrera empieza antes de las ramas: incluye su trabajo y **no se suma** a sus duraciones. Prewarm y espera residual se solapan. Un `resource_ready` tardío con `afterAttemptFailure=true` no es una preparación válida ni permiso de activar.
++
++Cuando hay Resource Timing se conserva duración, fetch/response y tamaños; TTFB/receive solo si los campos lo permiten. `blockedMs` y `scriptEvaluationCpuMs` son **null**: no se inventa una separación red/evaluación/CPU desde el callback load. TAO, caché y recursos externos preexistentes limitan la atribución. El HAR aporta blocked/wait; Performance/trace aporta evaluación/scheduling/CPU. Un tamaño cero no prueba caché caliente. Un error o hito ausente se informa como tal, no como duración cero.
++
++El ring QA retiene hasta 5000 eventos; `dropped` informa truncamiento. El probe conserva su cobertura y fuentes saneadas. `activeObservers=0` no certifica destrucción del SDK. Los hooks y la escritura de logs tienen coste: comparar E0/E1 con el mismo probe y hacer también controles P1.3b sin probe con el mismo dummy QA.
++
++## Construir y revisar
++
++Desde `src/pro`:
++
++```powershell
++node tests/qa/intext-p14a-build.cjs
++node --test --test-isolation=none tests/intext-p14a-dependencies.audit.test.cjs
++```
++
++El builder genera exclusivamente:
++
++```text
++tests/qa/generated/intext-p14a-E0-gam.qa.js
++tests/qa/generated/intext-p14a-E1-gam.qa.js
++tests/qa/generated/intext-p14a-E0-manager.qa.js
++tests/qa/generated/intext-p14a-E1-manager.qa.js
++docs/intext-p14a-build.json
++```
++
++El manifiesto contiene hashes de entrada, source-only, runtime, probe y salida. Los tests revierten prefijo, hooks, delegación y literal base y comparan byte a byte contra el original protegido. Comparan también que E0 y E1 solo difieren en el prefijo de asignación; el core instrumentado, dummy y configuración son idénticos. `build()` rechaza entradas desconocidas. `reverse()` rechaza modificaciones ajenas y demuestra restitución exacta; no se aplica sobre archivos productivos.
++
++La validación y los límites de sandbox se registran en [scope y resultados](intext-p14a-scope.json), [tests afectados](intext-p14a-affected-validation.txt), [intento directo](intext-p14a-validation-direct.txt) y [suite completa](intext-p14a-validation.txt). Son tests automatizados con DOM/SDK simulados y código actual extraído, no pruebas Chrome/IMA reales ni evidencia de mejora de viewability.
++
++### Resultados automatizados y reproducción de la suite
++
++| Grupo, contado por fichero en la ejecución completa | PASS / total |
++|---|---:|
++| Nuevas regresiones E0/E1, ambas distribuciones | 75/75 |
++| Vídeo/preload/PiP/animación, P1.3*, dummy y predictive-readiness existentes | 622/622 |
++| Floor Authority | 86/86 |
++| Prebid floor audit + aliases | 85/85 |
++| Random/runtime | 61/61 |
++| APS/TAM y Prebid/APS/PSP | 63/63 |
++| GPT controls / PSP | 17/17 |
++| Core, debugger, QA, configuración y targeting | 318/318 |
++| **Suite completa** | **1327/1327** |
++
++La baseline existente queda cubierta con 1252 tests más 75 nuevos, cero omitidos/cancelados. El grupo afectado ejecutado antes de la suite pasa 183/183. Sintaxis verificada en los dos originales, cuatro bundles generados y tres archivos JS nuevos. No hay package.json ni configuración lint dedicada en `src/pro`; se usaron los controles de arquitectura/seguridad existentes de la suite y revisión de diff, sin instalar herramientas.
++
++Comando normal fuera de la restricción de subprocess:
++
++```powershell
++cmd /c "git show 98106a032aa4d8b2cbc83855030973e6c4563dba:src/pro/_gam_kv_.js > tests/qa/generated/p14a-floor-baseline.js"
++$env:INTEXT_FLOOR_AUDIT_BASELINE = (Resolve-Path tests/qa/generated/p14a-floor-baseline.js).Path
++node --test --test-isolation=none tests/*.test.cjs
++```
++
++Para reproducir el hash histórico exacto, exportar con `git show ... > tests/qa/generated/p14a-floor-baseline.js` desde **cmd.exe** (PowerShell puede transcodificar/añadir BOM). SHA256 esperado `e26e59f2f65c9bd2517e7582b53a1d5bc0781a63204b9b2e5fcc16ad50dd8118`. El commit es la baseline anterior al override usada también en P1.3c; HEAD ya contiene el comportamiento posterior. No se cambian expectativas de tests para usar HEAD como si fuera la implementación antigua. El archivo histórico solo se lee en tests y no se sirve en Fiddler.
++
++En este sandbox Windows, Node no pudo crear ciertos subprocess (`spawnSync git`/`node` EPERM). Se ejecutaron externamente `git rev-parse --show-toplevel`, `git diff --name-only`, `git show` del commit histórico y `node --check`; sus salidas y hashes alimentaron el adaptador temporal existente `intext-authority-test-command-cache.cjs`. El adaptador solo responde a los comandos exactos ya verificados y verifica SHA antes de devolver una comprobación de sintaxis. El env de baseline evita los `git show` internos, sin falsearlos. No sustituye tests, asserts, SDK ni DOM. La ejecución completa usó `--require` de ese preloader y `--test-isolation=none`; el adaptador no forma parte de los bundles ni del patch.
++
++Se conserva también [la primera ejecución con adaptador](intext-p14a-validation-first.txt), previa a las cuatro regresiones de las marcas finales de render: 1322 PASS y un `lab-timeout` en el test existente de pause-stack/ended del laboratorio dummy (expectativa `ended`). Ese fichero y sus tiempos no se modificaron. Su [repetición aislada](intext-p14a-dummy-recheck.txt) pasa 28/28; la repetición completa pasó 1323/1323 y la validación final, incluidas las marcas de render, pasa 1327/1327. Se informa esta sensibilidad temporal del harness, sin atribuirla a E1 ni ocultar el fallo. La ejecución directa sin adaptador queda guardada por separado con sus EPERM.
++
++El [patch QA](intext-p14a-qa.patch) contiene los tres archivos nuevos de implementación/pruebas y esta guía; requiere los helpers/probe P1.3c actuales, cuyos hashes se fijan en el manifiesto. La actualización del diseño P1.4 se conserva en su propio documento. El patch no modifica fuentes productivas. Se verifica `git apply --reverse --check` sobre los archivos nuevos presentes para comprobar su reversibilidad; retirar una sustitución Fiddler y recargar sigue siendo el rollback operativo.
++
++CodeMemory se consultó antes de modificar y se reindexó en modo fast sin persistir artefactos. Se volvió a contrastar `loadDependencies` productivo (todavía serial). La memoria sirve para descubrimiento, no sustituye hashes, tests ni diff; la cobertura de helpers QA se indica en scope.
++
++## Guía Fiddler E0/E1
++
++1. Conservar el artículo de Marca, campaña fija GAM autorizada y contexto comercial del sitio. No añadir/remover parámetros ni forzar PSP/Legacy, random, bidders o floors. Guardar los hashes del bundle original y la respuesta sustituida. El brazo depende del documento completo, no del Slot 1.
++2. En AutoResponder, reutilizar el matcher **exacto de la URL JS Intext que carga la página** y seleccionar uno de los cuatro archivos locales. Si el sitio usa `_gam_kv_.js`, usar `-gam`; si carga `IntextManager.js`, usar `-manager`. Si carga ambos, ambos deben ser del mismo brazo. No añadir una distribución que la página no cargaba. No interceptar GPT, Prebid, APS, IMA, assets CDN ni VAST. No construir reglas generales para todos los JS.
++3. La sustitución es solo del bundle QA. Deshabilitar los probes anteriores observe/shadow/enforce, budgets, variantes de lifecycle y copias manual ad-break: este archivo ya incorpora el probe de integración vigente. No inyectarlo dos veces. Confirmar que no existe otro `IntextP14A` antes de la primera ejecución.
++4. Configurar frío/caliente antes de navegar. Para frío, DevTools Disable cache y documentar Fiddler/browser cache; para caliente, permitir caché y repetir navegación completa con el mismo protocolo. No comparar E0 frío contra E1 caliente. No suponer que recargar deshabilita service workers. Registrar si intervienen, sin cambiar autoridades comerciales.
++5. Abrir documento nuevo con captura Network/Preserve log y, cuando sea viable, Performance y grabación/filmstrip. Tras cargar, comprobar `window.IntextP14A.arm` y ausencia de `assignment_conflict`. Comprobar Network/Response y SHA256 contra el manifiesto; la propiedad global sola no prueba todos los bytes sustituidos.
++6. Ejecutar recorridos equivalentes: scroll lento, rápido/pasada y reentrada; documento oculto/visible; refresh y navegación SPA/PNC. Comprobar dos slots, sus modos efectivos y Display directo. Las variantes no convierten un Display en vídeo para completar la matriz. En PSP/Legacy usar contextos naturalmente obtenidos y verificar autoridades reales en debugger.
++7. Conservar la grabación después de COMPLETE, restore y destroy, hasta el siguiente ciclo/Display. Comprobar visualmente dummy negro no perceptible, una superficie, animación y PiP habituales. P1.3c sigue abierta si falta esta prueba aunque E0/E1 descargue correctamente.
++8. Exportar con `copy(JSON.stringify(window.IntextP14A.export(), null, 2))`; guardar como JSON junto al debugger habitual. Exportar HAR con contenido cuando esté autorizado y Performance trace. El HAR puede contener tokens/identificadores: guardarlo por el canal restringido, no subirlo a documentación pública. Si faltan XML/TAO, indicar cobertura ausente.
++9. Antes de terminar una captura se puede llamar al `stop()` del probe de integración para retirar observadores; no aborta el SDK ni revierte el brazo. No usarlo a mitad de un ensayo que precise COMPLETE. Para cambiar brazo o hacer rollback: deshabilitar sustitución o elegir el otro archivo y realizar **navegación completa**. No borrar la propiedad global ni destruir/reproducir un anuncio para cambiar brazo.
++
++### Hoja de captura y criterios
++
++Registrar fecha/artículo, brazo y cuatro hashes relevantes (producción, artefacto, probe, dummy), navegador/dispositivo, PSP/Legacy real, caché, conexión, modo/slot/ciclo/token, creatividad/line item cuando conste, ruta de scroll y cobertura IMA. Alternar el orden E0/E1 externamente y repetir en condiciones comparables. No tratar slots/ciclos del mismo documento como muestras independientes.
++
++Medir winner→prewarm→dependencies ready; residual dependencies wait; activación→request proxy→HTTP→AdsManager→preroll→frame **publicitario**→reveal y primer píxel perceptible. Conservar también errores, oportunidades sin frame, inicios fuera de viewport, impresiones antes del reveal, COMPLETE→restore→Display, conteos HTTP/SDK, observerBuildMs y CPU/red/memoria. Anchor, wrapper cerrado y viewability GAM son señales diferentes. La reproducción del dummy no certifica frame del anuncio.
++
++Aceptar el gate técnico solo con cero nuevas requests publicitarias antes de elegibilidad, cero duplicación de init/play/start/impresión, deduplicación de dependencias, retry acotado, cleanup y fallback vigentes, sin regresión visual o de autoridades. Redirects/wrappers y rangos MP4 legítimos no son requests duplicadas por definición. Un prewarm menor sin mejor primer frame se informa únicamente como reducción técnica. La captura 21/10 no demuestra beneficio E1. Ninguna afirmación de ingresos/viewability se hace antes de las mediciones reales y de sus denominadores/variabilidad.
++
++## Riesgos residuales y rollback
++
++| Riesgo | Evidencia / medida |
++|---|---|
++| Dos descargas compiten por red/CPU en mobile | La independencia de APIs no garantiza menor frame; HAR y Performance, caché fría/caliente |
++| SDK externo cargándose o fallido | Reutilización, disponibilidad y timeout existentes; tests de adopción, fallo y retry; repetir en Chrome |
++| Rama pendiente tras fallo | Drenaje bounded sin publicidad; intento viejo no inicia nuevas etapas; revisar `pendingAttempts` |
++| Script load tarda por evaluación/blocked | No subir timeout ni atribuirlo a GAM; recoger trace/HAR |
++| El recurso ya está listo antes de render | Beneficio potencial nulo; distinguir espera residual de duración total |
++| Probe/QA cambia scheduling | Coste no nulo; mismo instrumento entre brazos y controles sin probe |
++| Mezcla de brazo por reinyección | Primera asignación inmutable; log conflict y repetir documento |
++| Contenido base tras COMPLETE | Gate visual P1.3c pendiente, independiente del éxito de carga |
++| Error VAST/SDK o offscreen STARTED | No resuelto por paralelización; preservar gates y diagnóstico, sin deadlines ni start manual |
++
++Rollback: retirar AutoResponder y recargar documento completo; verificar los SHA256 productivos. No mutar SDK, targeting, cookies, refresh ni el anuncio activo. No hay commit, push, despliegue o integración automática del dummy.

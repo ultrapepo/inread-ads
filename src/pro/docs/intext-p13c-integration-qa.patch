@@ -2,24 +2,39 @@ diff --git a/tests/qa/intext-p13c-integration-probe.cjs b/tests/qa/intext-p13c-i
 new file mode 100644
 --- /dev/null
 +++ b/tests/qa/intext-p13c-integration-probe.cjs
-@@ -0,0 +1,91 @@
+@@ -0,0 +1,121 @@
 +/* QA only: event subscriptions and read-only snapshots. No playback or SDK wrappers. */
 +(function(root,factory){const api=factory(root);if(typeof module==='object'&&module.exports)module.exports=api;else root.IntextIntegrationQA=api;})(typeof window==='object'?window:globalThis,function(root){
 + 'use strict';
-+ const logs=[],instances=new Set(),byCreative=new WeakMap(),byNode=new WeakMap(),ids=new WeakMap();let nextId=0,dropped=0;
++ const logs=[],instances=new Set(),byCreative=new WeakMap(),byNode=new WeakMap(),ids=new WeakMap(),sourceIds=new Map();let nextId=0,nextSourceId=0,dropped=0;
 + const read=(fn,fallback=null)=>{try{return fn()??fallback;}catch{return fallback;}};
 + const identity=o=>o&&(typeof o==='object'||typeof o==='function')?(ids.has(o)?ids.get(o):(ids.set(o,++nextId),nextId)):null;
-+ const source=value=>{if(!value)return null;const s=String(value);return s.startsWith('data:')?{kind:'data',mime:s.slice(5,s.indexOf(';')),length:s.length}:
-+  s.startsWith('blob:')?{kind:'blob',value:s}: {kind:'url',value:s};};
++ const source=value=>{if(!value)return null;const s=String(value);
++  if(!sourceIds.has(s)){if(sourceIds.size>=5000)sourceIds.clear();sourceIds.set(s,++nextSourceId);}const sourceId=sourceIds.get(s);
++  if(s.startsWith('data:'))return {kind:'data',sourceId,mime:/^data:([\w.+-]+\/[\w.+-]+)[;,]/.exec(s)?.[1]??null,length:s.length};
++  if(s.startsWith('blob:'))return {kind:'blob',sourceId};
++  try{const url=new URL(s,root.document?.baseURI);if(!/^https?:$/.test(url.protocol))return {kind:'other',sourceId};
++   let redactNext=false;const pathname=url.pathname.split('/').map(segment=>{
++    const decoded=read(()=>decodeURIComponent(segment),segment),sensitive=redactNext||/^[\w-]+\.[\w-]+\.[\w-]+$/.test(decoded)||/[A-Za-z0-9_-]{32,}/.test(decoded)||/[=@;]/.test(decoded);
++    redactNext=/^(?:token|access_token|auth|authorization|signature|sig|key|api_key|session|jwt)$/i.test(decoded);
++    return sensitive?'[redacted]':segment;
++   }).join('/');return {kind:'url',sourceId,hostname:url.hostname,pathname};
++  }catch{return {kind:'unknown',sourceId};}
++ };
 + const rect=el=>read(()=>{const r=el.getBoundingClientRect();return {top:r.top,bottom:r.bottom,left:r.left,right:r.right,width:r.width,height:r.height};});
 + function surface(el){return read(()=>{const style=root.getComputedStyle(el),r=rect(el);return {id:identity(el),connected:el.isConnected,rect:r,
 +  display:style.display,visibility:style.visibility,opacity:style.opacity,hidden:el.hidden,
 +  // Geometry/CSS snapshot only, not IMA/GAM viewability or proof of visible pixels.
 +  hasBox:!!r&&r.width>0&&r.height>0};});}
-+ function attach(creative){if(byCreative.has(creative))return byCreative.get(creative);const player=creative.player;if(!player)return null;
++ function attach(creative,installation={}){if(byCreative.has(creative))return byCreative.get(creative);const player=creative.player;if(!player)return null;
 +  const node=creative.node,token=creative._renderToken,cycle=node?._intextTelemetryCycleId??null;
-+  const cleanup=[],mediaCleanup=new Map();let closed=false,manager=null,managerOff=[],sequence=0,mutationQueued=false;
-+  const emit=(event,detail={})=>{if(closed)return;try{const buildStart=read(()=>root.performance.now());
++  const cleanup=[],mediaCleanup=new Map(),playerSubscriptions=new Set(),nativeCoverage=[];
++  let closed=false,closing=false,manager=null,managerOff=[],sequence=0,mutationQueued=false,destroyEntryObserved=false,disposeEventObserved=false,adsManagerEvents=0;
++  const coverage=()=>({playerEvents:[...playerSubscriptions],missingRequiredPlayerEvents:['ads-manager'].filter(type=>!playerSubscriptions.has(type)),
++   managerCoverage:manager?'manager-observed':'manager-not-observed',adsManagerEvents,adsManagerEventObserved:adsManagerEvents>0,
++   currentManagerId:identity(manager),nativeManagers:nativeCoverage.map(c=>({...c,events:Object.fromEntries(Object.entries(c.events).map(([k,v])=>[k,{...v}]))})),
++   meaning:'No observation or missing subscription is not evidence that an SDK event did not occur.'});
++  const emit=(event,detail={})=>{if(closed||(closing&&!event.startsWith('observer:')))return;try{const buildStart=read(()=>root.performance.now());
 +   const base=creative.videoEl,current=creative._adMediaEl,tech=read(()=>player.el().querySelector('video.vjs-tech')),adState=read(()=>player.ads?._state);
 +   const scalarState=typeof player.ads?.state==='string'?player.ads.state:null;
 +   const media=[...new Set([base,current,...read(()=>Array.from(player.el().querySelectorAll('video')),[])].filter(Boolean))];
@@ -46,8 +61,9 @@ new file mode 100644
 +    tokenMatches:node?._activeRenderToken===token,snapshot,...detail,
 +    observerBuildMs:buildStart===null?null:read(()=>root.performance.now()-buildStart)});
 +  }catch{/* Observation must not interrupt the original call stack. */}};
-+  const later=fn=>{if(typeof root.queueMicrotask==='function')root.queueMicrotask(()=>{if(!closed)fn();});else Promise.resolve().then(()=>{if(!closed)fn();});};
++  const later=fn=>{if(typeof root.queueMicrotask==='function')root.queueMicrotask(()=>{if(!closed&&!closing)fn();});else Promise.resolve().then(()=>{if(!closed&&!closing)fn();});};
 +  const discover=()=>{
++   if(closed||closing)return;
 +   const all=[creative.videoEl,creative._adMediaEl,...read(()=>Array.from(player.el().querySelectorAll('video')),[])].filter(Boolean);
 +   for(const el of [...mediaCleanup.keys()])if(!all.includes(el)){mediaCleanup.get(el)();mediaCleanup.delete(el);}
 +   for(const el of new Set(all)){if(mediaCleanup.has(el))continue;const off=[];
@@ -57,26 +73,39 @@ new file mode 100644
 +   }
 +  };
 +  const bindManager=event=>{
-+   const next=event?.adsManager??read(()=>player.ima.getAdsManager());if(next===manager)return;
-+   managerOff.forEach(fn=>read(fn));managerOff=[];manager=next??null;emit('manager:identity');if(!manager)return;
++   const next=event?.adsManager??read(()=>player.ima.getAdsManager());
++   if(next&&next===manager)return;
++   if(nativeCoverage.length)nativeCoverage.at(-1).retired=true;
++   managerOff.forEach(fn=>read(fn));managerOff=[];manager=next??null;emit('manager:identity');
++   if(!manager){emit('manager:coverage-missing',{reason:'ads-manager-event-without-manager'});return;}
++   const managerCoverage={managerId:identity(manager),retired:false,events:{}};nativeCoverage.push(managerCoverage);
 +   const owner=manager,types=root.google?.ima?.AdEvent?.Type??{},errors=root.google?.ima?.AdErrorEvent?.Type??{};
 +   for(const [name,type]of [...['LOADED','STARTED','IMPRESSION','COMPLETE','ALL_ADS_COMPLETED','CONTENT_PAUSE_REQUESTED','CONTENT_RESUME_REQUESTED','PAUSED','RESUMED','SKIPPED']
 +    .map(name=>[name,types[name]]),['AD_ERROR',errors.AD_ERROR]]){
-+    if(!type){emit('manager:subscription-missing',{nativeEvent:name,reason:'enum-unavailable'});continue;}
-+    if(typeof owner.addEventListener!=='function'||typeof owner.removeEventListener!=='function'){emit('manager:subscription-missing',{nativeEvent:name,reason:'removable-api-unavailable'});continue;}
-+    const handler=()=>{if(closed||manager!==owner)return;discover();emit('ima:'+name);later(()=>emit('ima:'+name+':microtask'));};
-+    try{owner.addEventListener(type,handler);managerOff.push(()=>owner.removeEventListener(type,handler));emit('manager:subscribed',{nativeEvent:name});}
-+    catch(error){emit('manager:subscription-failed',{nativeEvent:name,error:String(error)});}
++    const status=managerCoverage.events[name]={enumAvailable:!!type,subscriptionEstablished:false,subscribed:false,observed:0};
++    if(!type){status.reason='enum-unavailable';emit('manager:subscription-missing',{nativeEvent:name,reason:status.reason});continue;}
++    if(typeof owner.addEventListener!=='function'||typeof owner.removeEventListener!=='function'){status.reason='removable-api-unavailable';emit('manager:subscription-missing',{nativeEvent:name,reason:status.reason});continue;}
++    const handler=()=>{if(closed||closing||manager!==owner)return;status.observed++;discover();emit('ima:'+name);later(()=>emit('ima:'+name+':microtask'));};
++    try{owner.addEventListener(type,handler);status.subscribed=true;status.subscriptionEstablished=true;
++     managerOff.push(()=>{try{owner.removeEventListener(type,handler);status.subscribed=false;}catch(error){status.reason='unsubscribe-failed';throw error;}});
++     emit('manager:subscribed',{nativeEvent:name});}
++    catch(error){status.reason='subscription-failed';emit('manager:subscription-failed',{nativeEvent:name,error:String(error)});}
 +   }
 +  };
-+  function close(reason='manual'){if(closed)return;emit('observer:closed',{reason});closed=true;cleanup.forEach(fn=>read(fn));managerOff.forEach(fn=>read(fn));
-+   mediaCleanup.forEach(fn=>read(fn));mediaCleanup.clear();instances.delete(probe);byNode.delete(node);byCreative.delete(creative);}
-+  const probe={record:(event,detail)=>{discover();emit(event,detail);},close};byCreative.set(creative,probe);if(node)byNode.set(node,probe);instances.add(probe);
++  function close(reason='manual'){if(closed||closing)return;closing=true;let cleanupFailures=0;
++   const remove=fn=>{try{fn();}catch{cleanupFailures++;}};
++   cleanup.forEach(remove);managerOff.forEach(remove);mediaCleanup.forEach(remove);mediaCleanup.clear();
++   emit('observer:coverage',{coverage:coverage(),phase:'after-cleanup'});
++   emit('observer:closed',{reason,destroyEntryObserved,disposeEventObserved,cleanupFailures,sdkDestructionVerified:false});closed=true;instances.delete(probe);
++   if(node&&byNode.get(node)===probe)byNode.delete(node);
++   byCreative.delete(creative);}
++  const probe={record:(event,detail)=>{if(event==='core:destroy-entry')destroyEntryObserved=true;discover();emit(event,detail);},close};byCreative.set(creative,probe);if(node)byNode.set(node,probe);instances.add(probe);
 +  for(const type of ['loadstart','play','playing','pause','ended','contentended','contentresumed','contentloadstart','contentloadedmetadata','contentcanplay',
 +   'ads-request','ads-loader','ads-manager','adsready','readyforpreroll','adstart','ads-ad-started','adend','adended','adtimeout','nopreroll','adserror','alladscompleted','dispose']){
-+   const handler=event=>{if(closed)return;discover();if(type==='ads-manager')bindManager(event);emit('player:'+type);
-+    if(type==='dispose')close('player-dispose');else later(()=>{discover();emit('player:'+type+':microtask');});};
-+   player.on(type,handler);cleanup.push(()=>player.off(type,handler));
++   const handler=event=>{if(closed||closing)return;discover();if(type==='ads-manager'){adsManagerEvents++;bindManager(event);}if(type==='dispose')disposeEventObserved=true;emit('player:'+type);
++    if(type==='dispose'){if(!destroyEntryObserved)close('player-dispose');}else later(()=>{discover();emit('player:'+type+':microtask');});};
++   try{player.on(type,handler);playerSubscriptions.add(type);cleanup.push(()=>player.off(type,handler));}
++   catch(error){emit('player:subscription-failed',{playerEvent:type,error:String(error)});}
 +  }
 +  const visibility=()=>emit('document:visibilitychange');root.document?.addEventListener('visibilitychange',visibility);
 +  cleanup.push(()=>root.document?.removeEventListener('visibilitychange',visibility));
@@ -86,9 +115,10 @@ new file mode 100644
 +   const observer=new root.MutationObserver(()=>{if(closed||mutationQueued)return;mutationQueued=true;later(()=>{mutationQueued=false;discover();emit('surface:mutation');});});
 +   observer.observe(wrapper,{subtree:true,childList:true,attributes:true,attributeFilter:['style','class','hidden','src']});cleanup.push(()=>observer.disconnect());
 +  }
-+  discover();emit('observer:attached');return probe;
++  discover();emit('observer:attached',{installationStage:installation.stage??'unknown'});
++  emit('observer:coverage',{coverage:coverage()});return probe;
 + }
-+ return {attach,core:(creative,event)=>{try{byCreative.get(creative)?.record('core:'+event);}catch{}},
++ return {attach,core:(creative,event,detail)=>{try{byCreative.get(creative)?.record('core:'+event,detail);}catch{}},
 +  node:(node,event)=>{try{byNode.get(node)?.record('node:'+event);}catch{}},
 +  close:(creative,reason)=>byCreative.get(creative)?.close(reason),
 +  stop:()=>[...instances].forEach(p=>p.close('manual-stop')),
@@ -98,7 +128,7 @@ diff --git a/tests/qa/intext-p13c-integration-build.cjs b/tests/qa/intext-p13c-i
 new file mode 100644
 --- /dev/null
 +++ b/tests/qa/intext-p13c-integration-build.cjs
-@@ -0,0 +1,33 @@
+@@ -0,0 +1,36 @@
 +'use strict';
 +// Separate observe-only copies; neither production nor the accepted source-only variants are overwritten.
 +const fs=require('node:fs'),path=require('node:path'),crypto=require('node:crypto'),vm=require('node:vm');
@@ -107,16 +137,19 @@ new file mode 100644
 +function instrument(source,probe){let output=source;const edits=[];
 + const insert=(marker,addition)=>{if(output.split(marker).length!==2)throw Error('Ambiguous QA marker: '+marker);
 +  output=output.replace(marker,marker+addition);edits.push({marker,addition});};
-+ insert('    this.initVideoJS();','\n    try { window.IntextIntegrationQA?.attach(this); } catch (e) { /* QA observation only */ }');
++ insert('    this.initVideoJS();','\n    try { window.IntextIntegrationQA?.attach(this, { stage: "after-videojs-before-ima" }); } catch (e) { /* QA observation only */ }');
 + insert('      const debugVideo = (event, data = {}) => {','\n        window.IntextIntegrationQA?.core(this, event);');
 + insert('  onVideoEnded(renderToken = this._activeRenderToken) {','\n    window.IntextIntegrationQA?.node(this, "video-ended-entry");');
-+ // Record entry; close after dispose/removal (also when the original dispose throws).
++ // QA-only try/finally: preserve the original return/exception even if destroy exits before removal.
 + const begin=output.indexOf('class IntextVideoCreative {'),end=output.indexOf('class WPromise {',begin);
 + const segment=output.slice(begin,end<0?undefined:end),marker='  destroy() {';
 + if(segment.split(marker).length!==2)throw Error('Creative destroy marker ambiguous');
-+ const at=begin+segment.indexOf(marker)+marker.length,addition='\n    window.IntextIntegrationQA?.core(this, "destroy-entry");';
++ const at=begin+segment.indexOf(marker)+marker.length,addition='\n    window.IntextIntegrationQA?.core(this, "destroy-entry");\n    let __intextQaDestroyThrew = false;\n    try {';
 + output=output.slice(0,at)+addition+output.slice(at);edits.push({marker:'IntextVideoCreative.destroy',addition});
-+ insert('    this.videoEl?.remove?.();','\n    window.IntextIntegrationQA?.close(this, "creative-destroy");');
++ const bodyEnd=output.indexOf('    this.videoEl?.remove?.();',at)+'    this.videoEl?.remove?.();'.length;
++ if(bodyEnd<'    this.videoEl?.remove?.();'.length||!/^\s*\}/.test(output.slice(bodyEnd)))throw Error('Creative destroy end changed');
++ const finalizer='\n    } catch (__intextQaDestroyError) {\n      __intextQaDestroyThrew = true;\n      window.IntextIntegrationQA?.core(this, "destroy-exception", { errorName: __intextQaDestroyError?.name || "unknown" });\n      throw __intextQaDestroyError;\n    } finally {\n      window.IntextIntegrationQA?.core(this, "destroy-exit", { uncaughtException: __intextQaDestroyThrew });\n      window.IntextIntegrationQA?.close(this, "creative-destroy-finally");\n    }';
++ output=output.slice(0,bodyEnd)+finalizer+output.slice(bodyEnd);edits.push({marker:'IntextVideoCreative.destroy:finally',addition:finalizer});
 + const banner='/* P1.3c integration QA OBSERVE ONLY. No budgets, enforce or playback wrappers. */\n';
 + const generated=banner+probe+'\n'+output;new vm.Script(generated);return {output:generated,edits};
 +}
@@ -217,14 +250,14 @@ diff --git a/tests/intext-p13c-integration.audit.test.cjs b/tests/intext-p13c-in
 new file mode 100644
 --- /dev/null
 +++ b/tests/intext-p13c-integration.audit.test.cjs
-@@ -0,0 +1,66 @@
+@@ -0,0 +1,122 @@
 +'use strict';
 +const {test}=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),vm=require('node:vm'),crypto=require('node:crypto');
 +const {instrument}=require('./qa/intext-p13c-integration-build.cjs'),{expected,build}=require('./qa/intext-p13c-dummy-source-build.cjs');
 +const {parseHar,inspectHar,normalizeLogs}=require('./qa/intext-p13c-integration-analysis.cjs');
 +const probeSource=fs.readFileSync(path.join(__dirname,'qa/intext-p13c-integration-probe.cjs'),'utf8');
 +class Events{constructor(){this.handlers=new Map();}on(type,fn){const set=this.handlers.get(type)??new Set();set.add(fn);this.handlers.set(type,set);}off(type,fn){this.handlers.get(type)?.delete(fn);}emit(type,data={}){for(const fn of [...this.handlers.get(type)??[]])fn(data);}addEventListener(t,f){this.on(t,f);}removeEventListener(t,f){this.off(t,f);}count(){return [...this.handlers.values()].reduce((n,s)=>n+s.size,0);}}
-+function environment(){const document=new Events(),windowEvents=new Events(),microtasks=[],observers=[];document.visibilityState='visible';
++function environment(){const document=new Events(),windowEvents=new Events(),microtasks=[],observers=[];document.visibilityState='visible';document.baseURI='https://page.invalid/article';
 + const dom=()=>Object.assign(new Events(),{currentTime:0,paused:true,ended:false,readyState:4,networkState:1,videoWidth:64,videoHeight:64,currentSrc:'data:video/mp4;base64,AAAA',error:null,
 +  getAttribute(){return this.currentSrc;},closest(){return null;},isConnected:true,getBoundingClientRect(){return {top:100,bottom:460,left:0,right:640,width:640,height:360};}});
 + const base=dom(),ad=dom();ad.currentSrc='https://example.invalid/ad.mp4';ad.closest=()=>({});const videos=[base,ad],surface=dom();surface.querySelectorAll=()=>videos;
@@ -234,7 +267,7 @@ new file mode 100644
 +  getReadinessViewportState:()=>({eligible:true,intersectionRatio:1}),getIntextTelemetryElement:()=>surface};
 + const creative={node,_renderToken:7,player,videoEl:base,_adMediaEl:ad};
 + const Type=Object.fromEntries(['LOADED','STARTED','IMPRESSION','COMPLETE','ALL_ADS_COMPLETED','CONTENT_PAUSE_REQUESTED','CONTENT_RESUME_REQUESTED','PAUSED','RESUMED','SKIPPED'].map(t=>[t,t]));
-+ const context={document,performance:{now:()=>10},google:{ima:{AdEvent:{Type},AdErrorEvent:{Type:{AD_ERROR:'AD_ERROR'}}}},
++ const context={document,URL,performance:{now:()=>10},google:{ima:{AdEvent:{Type},AdErrorEvent:{Type:{AD_ERROR:'AD_ERROR'}}}},
 +  getComputedStyle:()=>({display:'block',visibility:'visible',opacity:'1'}),queueMicrotask:fn=>microtasks.push(fn),
 +  addEventListener:(...a)=>windowEvents.on(...a),removeEventListener:(...a)=>windowEvents.off(...a),
 +  MutationObserver:class{constructor(fn){this.fn=fn;this.disconnected=false;observers.push(this);}observe(){}disconnect(){this.disconnected=true;}},Date};
@@ -271,6 +304,62 @@ new file mode 100644
 +test('integration QA leaves two slots independent and closes on pagehide',()=>{const e=environment(),second={...e.creative,node:{...e.node,id:'gexp-intext'},player:Object.assign(new Events(),{el:e.player.el,ads:{}})};
 + e.api.attach(e.creative);e.api.attach(second);assert.equal(e.api.export().activeObservers,2);e.api.close(e.creative);assert.equal(e.api.export().activeObservers,1);
 + e.windowEvents.emit('pagehide');assert.equal(e.api.export().activeObservers,0);});
++test('integration QA old creative closing cannot delete the newer owner of the same node',()=>{const e=environment(),a=e.creative,b={...a,player:Object.assign(new Events(),{el:e.player.el,ads:{}}),_renderToken:8};
++ e.api.attach(a);e.node._activeRenderToken=8;e.api.attach(b);const bPlayer=e.api.export().logs.at(-1).snapshot.playerId;
++ e.api.close(a,'old-cycle');assert.equal(e.api.export().activeObservers,1);e.api.node(e.node,'video-ended-entry');
++ const last=e.api.export().logs.at(-1);assert.equal(last.event,'node:video-ended-entry');assert.equal(last.renderToken,8);assert.equal(last.snapshot.playerId,bPlayer);
++ b.player.emit('contentresumed');assert.equal(e.api.export().logs.at(-1).snapshot.playerId,bPlayer);e.api.stop();assert.equal(b.player.count(),0);});
++test('integration QA source export strips credentials/query/hash while retaining local identity',()=>{const e=environment();
++ e.ad.currentSrc='https://user:private-password@media.invalid/ad.mp4?token=secret-query#secret-hash';e.api.attach(e.creative);
++ const first=e.api.export().logs.at(-1).snapshot.media[1].currentSrc;assert.equal(first.hostname,'media.invalid');assert.equal(first.pathname,'/ad.mp4');assert.equal(first.value,undefined);
++ e.ad.emit('playing');assert.equal(e.api.export().logs.at(-1).snapshot.media[1].currentSrc.sourceId,first.sourceId);
++ e.ad.currentSrc='https://media.invalid/ad.mp4?token=another-query';e.ad.emit('pause');const second=e.api.export().logs.at(-1).snapshot.media[1].currentSrc;
++ assert.notEqual(second.sourceId,first.sourceId);assert.equal(second.pathname,first.pathname);
++ const json=JSON.stringify(e.api.export());for(const secret of ['private-password','secret-query','secret-hash','another-query','user:'])assert(!json.includes(secret));e.api.stop();});
++test('integration QA sanitizes snapshot/player sources, blob ids and token-like paths',()=>{const e=environment();e.base.currentSrc='blob:https://page.invalid/private-blob-uuid';
++ e.ad.currentSrc='https://media.invalid/token/private-path-token/asset.mp4?private=1';e.player.ads.snapshot.currentSrc='https://media.invalid/abcdefghijklmnopqrstuvwxyz1234567890/movie.mp4#private-fragment';
++ e.api.attach(e.creative);const snap=e.api.export().logs.at(-1).snapshot;
++ assert.equal(snap.playerSource.kind,'blob');assert.equal(snap.playerSource.value,undefined);assert.equal(snap.media[0].currentSrc.sourceId,snap.playerSource.sourceId);
++ assert.equal(snap.media[1].currentSrc.pathname,'/token/[redacted]/asset.mp4');assert.equal(snap.adState.snapshotCurrentSrc.pathname,'/[redacted]/movie.mp4');
++ const json=JSON.stringify(e.api.export());for(const secret of ['private-blob-uuid','private-path-token','abcdefghijklmnopqrstuvwxyz1234567890','private-fragment'])assert(!json.includes(secret));e.api.stop();});
++test('integration QA distinct Data URLs keep distinct ids without exposing payload',()=>{const e=environment();e.api.attach(e.creative);const first=e.api.export().logs.at(-1).snapshot.media[0].currentSrc;
++ e.base.currentSrc='data:video/mp4;base64,BBBB';e.base.emit('loadedmetadata');const second=e.api.export().logs.at(-1).snapshot.media[0].currentSrc;
++ assert.equal(first.kind,'data');assert.equal(first.length,second.length);assert.notEqual(first.sourceId,second.sourceId);assert(!JSON.stringify(e.api.export()).includes('base64,AAAA'));e.api.stop();});
++test('integration QA missing AdsManager and unsubscribed enums remain missing coverage',()=>{const e=environment();e.api.attach(e.creative);e.player.emit('ads-manager');e.api.stop();
++ const logs=e.api.export().logs,coverage=logs.filter(l=>l.event==='observer:coverage').at(-1).coverage;
++ assert.equal(coverage.adsManagerEvents,1);assert.equal(coverage.currentManagerId,null);assert.equal(coverage.nativeManagers.length,0);
++ assert(logs.some(l=>l.event==='manager:coverage-missing'));assert(!logs.some(l=>l.event==='ima:COMPLETE'));});
++test('integration QA records effective subscriptions and native events, not enum availability alone',()=>{const e=environment(),m=e.manager();e.api.attach(e.creative);e.player.emit('ads-manager',{adsManager:m});
++ for(const name of ['COMPLETE','CONTENT_RESUME_REQUESTED','IMPRESSION'])m.emit(name);e.api.stop();
++ const coverage=e.api.export().logs.filter(l=>l.event==='observer:coverage').at(-1).coverage;
++ for(const name of ['COMPLETE','CONTENT_RESUME_REQUESTED','IMPRESSION']){const status=coverage.nativeManagers[0].events[name];assert.equal(status.subscriptionEstablished,true);assert.equal(status.observed,1);assert.equal(status.subscribed,false);}
++ assert.equal(coverage.adsManagerEventObserved,true);assert.equal(m.count(),0);});
++test('integration QA unsubscribing failure is diagnosed even when activeObservers is zero',()=>{const e=environment(),m=e.manager();e.api.attach(e.creative);e.player.emit('ads-manager',{adsManager:m});
++ m.removeEventListener=()=>{throw Error('SDK refused unsubscribe');};e.api.stop();assert.equal(e.api.export().activeObservers,0);
++ const last=e.api.export().logs.at(-1);assert(last.cleanupFailures>0);assert.equal(last.sdkDestructionVerified,false);
++ const length=e.api.export().logs.length;m.emit('COMPLETE');assert.equal(e.api.export().logs.length,length);});
++function actualMethod(output,name){const begin=output.indexOf('class IntextVideoCreative {'),at=output.indexOf('\n  '+name+'(',begin);
++ const end=name==='destroy'?output.indexOf('\n  // One small page-local ledger.',at):output.indexOf('\n  ',output.indexOf('\n  }',at)+4);
++ assert(at>begin&&end>at);return output.slice(at,end).trim();}
++test('integration QA real createPlayerForActivation installs observer before synchronous IMA events',()=>{const e=environment(),source=fs.readFileSync(path.join(__dirname,'../_gam_kv_.js'),'utf8');
++ const {output}=instrument(source,probeSource),method=actualMethod(output,'createPlayerForActivation');e.context.window=e.context;
++ const fn=vm.runInNewContext('({'+method+'})',e.context).createPlayerForActivation;e.creative.preparationValid=()=>true;e.creative.createVideoElement=()=>{};
++ e.creative.initVideoJS=()=>{};e.creative.attachPlayerEvents=()=>{};e.creative.container=e.node.videoContainer;e.player.el().querySelector=()=>null;e.player.el().style={};
++ fn.call(e.creative);const attached=e.api.export().logs.find(l=>l.event==='observer:attached');assert.equal(attached.installationStage,'after-videojs-before-ima');
++ assert(e.player.handlers.get('ads-manager').size>0);const manager=e.manager();e.player.emit('ads-manager',{adsManager:manager});manager.emit('COMPLETE');manager.emit('CONTENT_RESUME_REQUESTED');manager.emit('IMPRESSION');
++ for(const name of ['COMPLETE','CONTENT_RESUME_REQUESTED','IMPRESSION'])assert(e.api.export().logs.some(l=>l.event==='ima:'+name));e.api.stop();});
++for(const scenario of ['throws-before-dispose','throws-after-dispose','normal','early-return'])test('integration QA real destroy finally preserves original outcome and cleans observer: '+scenario,()=>{
++ const e=environment(),source=fs.readFileSync(path.join(__dirname,'../_gam_kv_.js'),'utf8'),{output}=instrument(source,probeSource),method=actualMethod(output,'destroy');
++ e.context.window=e.context;const fn=vm.runInNewContext('({'+method+'})',e.context).destroy,error=new Error('original destroy failure');let disposals=0;
++ e.creative.cleanupAdMediaObservation=()=>{};e.player.dispose=()=>{disposals++;e.player.emit('dispose');};e.base.remove=()=>{};
++ if(scenario==='throws-before-dispose')e.creative._eligibilityCleanup=()=>{throw error;};
++ if(scenario==='throws-after-dispose')e.base.remove=()=>{throw error;};if(scenario==='early-return')e.creative._destroyed=true;
++ e.api.attach(e.creative);if(scenario.startsWith('throws'))assert.throws(()=>fn.call(e.creative),err=>err===error);else assert.equal(fn.call(e.creative),undefined);
++ e.flush();const logs=e.api.export().logs,exit=logs.find(l=>l.event==='core:destroy-exit'),last=logs.at(-1);
++ assert.equal(exit.uncaughtException,scenario.startsWith('throws'));assert.equal(last.reason,'creative-destroy-finally');assert.equal(last.sdkDestructionVerified,false);
++ assert.equal(disposals,scenario==='normal'||scenario==='throws-after-dispose'?1:0);assert.equal(last.disposeEventObserved,disposals===1);
++ assert.equal(e.api.export().activeObservers,0);assert.equal(e.player.count(),0);assert.equal(e.document.count(),0);assert.equal(e.base.count(),0);assert(e.observers.every(o=>o.disconnected));
++});
 +for(const name of Object.keys(expected))test('integration QA reversible hooks and protected source hash: '+name,()=>{const source=fs.readFileSync(path.join(__dirname,'..',name),'utf8');
 + assert.equal(crypto.createHash('sha256').update(source).digest('hex'),expected[name]);
 + for(const input of [source,build(source).output]){const {output,edits}=instrument(input,probeSource);let rest=output.slice(output.indexOf(probeSource)+probeSource.length+1);

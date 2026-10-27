@@ -1,0 +1,178 @@
+{
+  "phase": "P1.4-A2",
+  "analysisOnly": true,
+  "enforce": false,
+  "productionVersion": "2026.10.07-p1-ima-preload-first-frame",
+  "production": [
+    {
+      "file": "_gam_kv_.js",
+      "sha256": "1cde1ccdc962c07d5833dc9691a3bfe31b7dd74b3e649e89153a240940a06690",
+      "unchanged": true
+    },
+    {
+      "file": "IntextManager.js",
+      "sha256": "ba832dc0eb3c0f6e1070a515fac09dd31467e2c7a5a64a18ff4e4f4c063fead8",
+      "unchanged": true
+    }
+  ],
+  "variants": [
+    {
+      "file": "tests/qa/generated/intext-p14a-E0-gam.qa.js",
+      "sha256": "18299f4fa54e151ff045e6d355c554055bdc85399ddec29eb5e9e85990bcfdfc",
+      "unchanged": true
+    },
+    {
+      "file": "tests/qa/generated/intext-p14a-E1-gam.qa.js",
+      "sha256": "6356718da3b272d2c68ac208ac9147020b9b327ce6b6dc7b40af3317e3e58e11",
+      "unchanged": true
+    },
+    {
+      "file": "tests/qa/generated/intext-p14a-E0-manager.qa.js",
+      "sha256": "0995a835320911ea856636044e5008e175285f8bbc76abb1f94aa596290fbf5f",
+      "unchanged": true
+    },
+    {
+      "file": "tests/qa/generated/intext-p14a-E1-manager.qa.js",
+      "sha256": "250c24ca253e814c6cca4beec1363fe32abd6f17cf2c9234fdf2a5f73c164bd8",
+      "unchanged": true
+    }
+  ],
+  "qaPreserved": [
+    {
+      "file": "tests/qa/intext-p13c-integration-probe.cjs",
+      "sha256": "9e05060a3013d20476bc0dade07f5784c59730220495b683c53393394bd80f4a",
+      "unchanged": true
+    },
+    {
+      "file": "tests/qa/intext-p14a-dependencies.cjs",
+      "sha256": "465e0103f66ed873e8a5dc13f45dea2e7bdd473211120ce0b75c1e9eecbe8053",
+      "unchanged": true
+    },
+    {
+      "file": "tests/qa/intext-p14a-build.cjs",
+      "sha256": "5316f97dc7cf2e2413dc16d2df3c6d2a77c4a60196ea034a9e2211f4f8fcd85d",
+      "unchanged": true
+    }
+  ],
+  "runtimePatchProduced": false,
+  "reason": "Existing pinned plugin post-return event already locates SDK call; current gaps require full network and CPU trace, not method wrappers.",
+  "primaryInputs": 31,
+  "auxiliaryInputs": [
+    {
+      "file": "ERROR E0-1.html",
+      "sha256": "c396ab37e618f9f5ec67eff63fa9a9f5bd02714b04c9b9a7504b50e43e4fdaf3"
+    },
+    {
+      "file": "ERROR E0-3.txt",
+      "sha256": "db1fa5b87231c76380232fac307771870aef5ca448b33347d39be993b3d64bf8"
+    },
+    {
+      "caseId": "E1-4",
+      "separateErrorFileAvailable": false
+    },
+    {
+      "file": "ERROR E1-5.txt",
+      "sha256": "4270d415c518f47786e5391584c296cf2f885d7cfa7e70e1281e8a70d748ddf9"
+    }
+  ],
+  "historicalPluginReference": {
+    "file": "www.marca.com-observe.har",
+    "sha256": "24c4a0dfa176cf6d806458340150869a90594d6ce9765abb1682217d0ed88b4f",
+    "bodies": [
+      {
+        "bytes": 36933,
+        "sha256": "01b11a7a6a4b771ead01e2060b8983d0b37f6f3e01a7e74f0140eb04b69459c8",
+        "sdkCallBeforeAdsRequestEvent": true,
+        "defaultRequestModeOnLoad": true
+      }
+    ],
+    "currentCaptureBodyVerified": false,
+    "meaning": "Earlier supplied HAR verifies the pinned plugin contract, not bytes loaded on 22/10. Do not substitute it for current HAR/Performance."
+  },
+  "filesChangedThisPhase": [
+    {
+      "file": "docs/intext-p14-mobile-latency-viewability-design.md",
+      "sha256": "270682c5afc6ac82a642b249ea9b46cff5e175584a528c2557718b801a6dba84"
+    },
+    {
+      "file": "docs/intext-p14a2-pre-vast-environment.md",
+      "sha256": "1d215ef22f06ae1e612f5f9502d55e72a37512ad4acb0f3e3bc446fe9e9221a5"
+    },
+    {
+      "file": "docs/intext-p14a2-fiddler.md",
+      "sha256": "8f4a0a717fe13d042ad65d6acb27d45ab9761647831d7fb9da53dc6d62ddbed3"
+    },
+    {
+      "file": "docs/intext-p14a2-evidence.json",
+      "sha256": "ced30f1d194a1fb207ed81e3a1570f79319c70e5361297cac13f6165ec4f1230"
+    },
+    {
+      "file": "tests/qa/intext-p14a2-analysis.cjs",
+      "sha256": "f74aeaac5e28277cf767aeb88682d6654531a7ad45a57bd271973e2c4924ec5e"
+    },
+    {
+      "file": "tests/intext-p14a2-analysis.audit.test.cjs",
+      "sha256": "d6c5e113b5bf01d053d4bc347ad0e010a0bc366e6e822e1ae3e5ba22dbb6f025"
+    }
+  ],
+  "validation": {
+    "full": {
+      "tests": 1336,
+      "passed": 1336,
+      "failed": 0,
+      "skipped": 0,
+      "cancelled": 0
+    },
+    "affected": {
+      "tests": 110,
+      "passed": 110,
+      "failed": 0,
+      "skipped": 0,
+      "cancelled": 0
+    },
+    "targeted": {
+      "tests": 9,
+      "passed": 9,
+      "failed": 0,
+      "skipped": 0,
+      "cancelled": 0
+    },
+    "baselineCovered": 1327,
+    "newTests": 9,
+    "syntax": [
+      "node --check _gam_kv_.js",
+      "node --check IntextManager.js",
+      "node --check tests/qa/intext-p14a2-analysis.cjs",
+      "node --check tests/intext-p14a2-analysis.audit.test.cjs"
+    ],
+    "diffCheck": "PASS external git diff --check plus whitespace check of new files and updated design",
+    "subprocess": "Direct run blocked by EPERM. Existing exact external-command adapter with verified syntax SHA; no SDK/test substitutions.",
+    "historicalBaseline": {
+      "commit": "98106a032aa4d8b2cbc83855030973e6c4563dba",
+      "sha256": "e26e59f2f65c9bd2517e7582b53a1d5bc0781a63204b9b2e5fcc16ad50dd8118",
+      "env": "INTEXT_FLOOR_AUDIT_BASELINE"
+    },
+    "browser": "No new browser run or ad requests. Supplied real captures reanalyzed offline; next maximum four E0/E1 plus one conditional historical control."
+  },
+  "scopeAudit": {
+    "newCommercialChanges": 0,
+    "existingWorkingTreeChangesPreserved": true,
+    "unchanged": "GAMExp/WindowArray/Floor Authority, Prebid/RichAudience/APS/TAM, PSP, random/targeting/pricing, timeout/request/start/play/autoplay, waterfall/fallback/refresh, first-frame/reveal/PiP/animation and original bundles.",
+    "roadmap": "Existing accepted P1.4 design section 9 updated; no separate current official ROADMAP located; no writes to historical LLM task registry outside workspace."
+  },
+  "decision": "Conserve E1 only in QA. Root cause inside SDK/browser/network not proven. A3 not started; B shadow only and C requires compatible public contract. P1.3c visual remains open.",
+  "codeMemory": {
+    "consultedBeforeChanges": true,
+    "finalReindex": "PASS fast, persistence=false, after temporary-file cleanup. First attempt failed database integrity; rebuilt successfully.",
+    "nodes": 17371,
+    "edges": 29070,
+    "expectedCountsMatch": true,
+    "currentAnalyzerFunctionsFound": [
+      "analyzeDirectory",
+      "analyzeSession",
+      "auditPluginSource",
+      "intervalOverlap"
+    ],
+    "graphDoesNotReplaceSourceTestsOrHashes": true
+  }
+}

@@ -1,0 +1,36 @@
+✔ dummy lab: independent buttons/default HTTP; no automatic all-case loop (7.4135ms)
+✔ dummy lab: native control metadata → two successful plays → disposal (102.3385ms)
+✔ dummy lab: Video.js starts empty, waits ready, assigns source and loads before play (110.345ms)
+✔ dummy lab: new element/state for every case; concurrent scenarios rejected (191.3586ms)
+✔ dummy lab: native+Video.js controls need two ended cycles in the SAME transport (304.5076ms)
+✔ dummy lab: metadata timeout never calls play, never counts a replay (49.0366ms)
+✔ dummy lab: spontaneous media error preserves code/message and current source (6.7014ms)
+✔ dummy lab: pending play times out once; cleanup AbortError is separate, timestamped and intentional (40.4267ms)
+✔ dummy lab: playback rejection is not a media error or cleanup interruption (18.4961ms)
+✔ dummy lab: a promise still unresolved after dispose requires reload, never overlapping another case (69.0412ms)
+✔ dummy lab: retry after failure is an explicit independent recovery, not a validated replay (100.1028ms)
+✔ dummy lab: hidden document cannot validate controls (177.847ms)
+✔ dummy lab: transient hidden state invalidates otherwise ended playback (85.1203ms)
+✔ dummy lab: data URL stored once with exact currentSrc reference; blob revoked after dispose (159.356ms)
+✔ dummy lab: failed/absent controls cannot become vacuous true (0.375ms)
+✔ dummy lab: contaminated ad environment refuses to create media (0.692ms)
+✔ dummy lab: server supports local MP4 full/range/HEAD; external connections remain forbidden (19.3534ms)
+✔ dummy lab: replay yields past remaining native ended listeners and waits for actual seeked (121ms)
+✔ dummy lab: missing seeked prevents second play; bounded diagnostic, no retry (103.8413ms)
+✔ dummy lab: missing public player ended prevents Video.js replay (85.068ms)
+✔ dummy lab: pause stack distinguishes unknown ended tail, player chain and deliberate harness cleanup (98.6206ms)
+✔ dummy lab: candidate has separate validation; it never certifies the GAM control fixture (204.3336ms)
+✔ dummy lab: rejects duration=1 immediate EOF and seeked retaining ended=true: native (79.4282ms)
+✔ dummy lab: rejects duration=1 immediate EOF and seeked retaining ended=true: videojs (68.824ms)
+✔ dummy lab: two fast ended cycles do not certify a candidate even when replay is stable (93.4236ms)
+✔ dummy lab: temporal success requires active progress, declared duration and normal playback rate (2.9944ms)
+✔ dummy lab: Chrome v3 evidence preserves successful Video.js replay and invalid hidden native control (24.9827ms)
+✔ dummy lab: actual Chrome single-frame candidate evidence is not suitable despite duration=1 (19.4095ms)
+ℹ tests 28
+ℹ suites 0
+ℹ pass 28
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 2489.8617
