@@ -1,0 +1,226 @@
+{
+  "schema": "p14b-qa0-integrity-v1",
+  "verifiedAt": "2026-10-27T11:30:20.309Z",
+  "environment": {
+    "node": "v25.8.1",
+    "platform": "win32"
+  },
+  "scope": "QA0 synthetic offline only; no commercial integration, acquisition, activation, commit, push or deployment",
+  "protected": {
+    "baselineFile": "docs/intext-p14b-qa0-protected-before.json",
+    "baselineSha256": "0b04005d2838bff529daeb39cbe0c65f61b51a6d619904cf0417d0c4cdbdcb5d",
+    "checked": 333,
+    "unchanged": 333,
+    "changed": [],
+    "missing": [],
+    "policy": "Every existing workspace file except .git/node_modules/environment credentials; no existing file may change in QA0"
+  },
+  "addedFiles": [
+    {
+      "file": "docs/intext-p14b-qa0-coverage.lcov",
+      "bytes": 19440,
+      "sha256": "b979b690f7090111330fd082e1d5375ad646f846ec2d88d96ff859ebfcf22e81"
+    },
+    {
+      "file": "docs/intext-p14b-qa0-protected-before.json",
+      "bytes": 58632,
+      "sha256": "0b04005d2838bff529daeb39cbe0c65f61b51a6d619904cf0417d0c4cdbdcb5d"
+    },
+    {
+      "file": "docs/intext-p14b-qa0-review.md",
+      "bytes": 22256,
+      "sha256": "1f1558dedb1953ec8dfc006e5b849df468373a1b54aa94f5abea81804821b8ea"
+    },
+    {
+      "file": "docs/intext-p14b-qa0-validation-first.txt",
+      "bytes": 6267,
+      "sha256": "472c2380b227c683f9d712ffdc01882c8d11f4b3f84bd4f4bdc9c5122f7beec0"
+    },
+    {
+      "file": "docs/intext-p14b-qa0-validation.txt",
+      "bytes": 8223,
+      "sha256": "22be106d64233192ba198c025d183598948a7f9483b1bede7780a178cce675d6"
+    },
+    {
+      "file": "docs/intext-p14b-qa1-observation-proposal.md",
+      "bytes": 11728,
+      "sha256": "1c328c86d724fb8c0ef9914e52bd60e2c3fc7b1eee0513b8445a27658597a443"
+    },
+    {
+      "file": "tests/intext-p14b-shadow.audit.test.cjs",
+      "bytes": 45795,
+      "sha256": "fed03dacb582d5c6ce55a604481a363ff6f0af66ee331af75795da5509dc3683"
+    },
+    {
+      "file": "tests/qa/intext-p14b-data.cjs",
+      "bytes": 4122,
+      "sha256": "5b1ba4c1241e2cd541ec3241cf16fdda7bd306dec565ef01eccaf671058a0a17"
+    },
+    {
+      "file": "tests/qa/intext-p14b-qa0-fixtures.cjs",
+      "bytes": 4577,
+      "sha256": "af20c261fc0c7d8a69a8a7c1d52af1e8c863675e2c89ed8b24ffa5c85429f621"
+    },
+    {
+      "file": "tests/qa/intext-p14b-shadow-evaluator.cjs",
+      "bytes": 11235,
+      "sha256": "641b2dcc61a0c5d27a23a474f3f643f059f8f93d579debb149c611b0da707322"
+    },
+    {
+      "file": "tests/qa/intext-p14b-shadow-ledger.cjs",
+      "bytes": 19051,
+      "sha256": "05d32aea606a49cb3b218d303dc4fc3d8a5fa5d3de64eaa13fb37b379114850c"
+    }
+  ],
+  "self": {
+    "file": "docs/intext-p14b-qa0-integrity.json",
+    "hashExcludedToAvoidSelfReference": true
+  },
+  "validation": {
+    "command": "node --test --test-isolation=none --experimental-test-coverage --test-coverage-include=tests/qa/intext-p14b-data.cjs --test-coverage-include=tests/qa/intext-p14b-shadow-evaluator.cjs --test-coverage-include=tests/qa/intext-p14b-shadow-ledger.cjs --test-reporter=spec --test-reporter-destination=stdout --test-reporter=lcov --test-reporter-destination=docs/intext-p14b-qa0-coverage.lcov tests/intext-p14b-shadow.audit.test.cjs",
+    "tests": 71,
+    "pass": 71,
+    "fail": 0,
+    "cancelled": 0,
+    "skipped": 0,
+    "coverage": [
+      {
+        "file": "tests/qa/intext-p14b-data.cjs",
+        "lines": {
+          "covered": 70,
+          "total": 70
+        },
+        "functions": {
+          "covered": 21,
+          "total": 21
+        },
+        "branches": {
+          "covered": 92,
+          "total": 94
+        }
+      },
+      {
+        "file": "tests/qa/intext-p14b-shadow-evaluator.cjs",
+        "lines": {
+          "covered": 141,
+          "total": 141
+        },
+        "functions": {
+          "covered": 13,
+          "total": 13
+        },
+        "branches": {
+          "covered": 224,
+          "total": 225
+        }
+      },
+      {
+        "file": "tests/qa/intext-p14b-shadow-ledger.cjs",
+        "lines": {
+          "covered": 280,
+          "total": 280
+        },
+        "functions": {
+          "covered": 45,
+          "total": 45
+        },
+        "branches": {
+          "covered": 290,
+          "total": 303
+        }
+      }
+    ],
+    "coverageScope": "Three isolated data/evaluator/ledger modules only; excludes fixtures and test harness",
+    "browserCpuLayoutHeapBudget": "unknown; synthetic Node test durations do not measure browser observer cost",
+    "functionalTests": 70,
+    "workspaceIntegrityTests": 1,
+    "portability": "70 functional tests; the separate integrity test needs all 333 original workspace files. Node 22.16.0 external run applied to the prior version only."
+  },
+  "reversibility": {
+    "method": "Inventory projection only; no files deleted",
+    "rollbackFiles": [
+      "docs/intext-p14b-qa0-coverage.lcov",
+      "docs/intext-p14b-qa0-integrity.json",
+      "docs/intext-p14b-qa0-protected-before.json",
+      "docs/intext-p14b-qa0-review.md",
+      "docs/intext-p14b-qa0-validation-first.txt",
+      "docs/intext-p14b-qa0-validation.txt",
+      "docs/intext-p14b-qa1-observation-proposal.md",
+      "tests/intext-p14b-shadow.audit.test.cjs",
+      "tests/qa/intext-p14b-data.cjs",
+      "tests/qa/intext-p14b-qa0-fixtures.cjs",
+      "tests/qa/intext-p14b-shadow-evaluator.cjs",
+      "tests/qa/intext-p14b-shadow-ledger.cjs"
+    ],
+    "remainingOriginalFiles": 333,
+    "remainingOriginalHashesUnchanged": true,
+    "protectPreexistingChanges": true,
+    "requiresCoreRevert": false,
+    "requiresBundleRebuild": false
+  },
+  "blocked": [
+    "B-QA1 pending explicit approval and independent audit",
+    "B4/B5 temporal stage",
+    "B shadow/enforce activation",
+    "A3",
+    "C"
+  ],
+  "limitations": [
+    "Logical serialized memory is bounded; physical JS heap and transient export allocations are not certified",
+    "Coverage flags and Q1-Q5 evidence are explicit input attestations, not verified runtime observations",
+    "No exact rates after accounting overflow or insufficient denominator/numerator coverage",
+    "No continuous scroll reconstruction or revenue/fill/viewability counterfactuals"
+  ],
+  "auditRevision": "qa0-independent-corrections-1",
+  "previousAudit": {
+    "manifestSha256": "4c386b9acf0d2697961278f076bc70b78dbc1a82a3924c862f4a0229b8cb4341",
+    "tests": 62,
+    "changedQA0Files": [
+      {
+        "file": "docs/intext-p14b-qa0-coverage.lcov",
+        "beforeSha256": "4d2f5fce1c7c4ab9166c6eb9ba1e25f1959bffb93fb8437288b5373a32ec4b73",
+        "afterSha256": "b979b690f7090111330fd082e1d5375ad646f846ec2d88d96ff859ebfcf22e81"
+      },
+      {
+        "file": "docs/intext-p14b-qa0-review.md",
+        "beforeSha256": "027c90e5f62f6b58c052c2b229c4c40b9e862e2a9e9526f87419579014ba1b49",
+        "afterSha256": "1f1558dedb1953ec8dfc006e5b849df468373a1b54aa94f5abea81804821b8ea"
+      },
+      {
+        "file": "docs/intext-p14b-qa0-validation.txt",
+        "beforeSha256": "aec5530062dadb6190ce475ad55a0fb38318abb5b16f5f880de94077a182c362",
+        "afterSha256": "22be106d64233192ba198c025d183598948a7f9483b1bede7780a178cce675d6"
+      },
+      {
+        "file": "docs/intext-p14b-qa1-observation-proposal.md",
+        "beforeSha256": "765b8325163310391140641d9a79b55d8f515023e28596dc6b00bd046901c4b4",
+        "afterSha256": "1c328c86d724fb8c0ef9914e52bd60e2c3fc7b1eee0513b8445a27658597a443"
+      },
+      {
+        "file": "tests/intext-p14b-shadow.audit.test.cjs",
+        "beforeSha256": "f8ceaf3b4971e58b484c3f7782cd0f1a830989f41a1346158c501d4ebb43b9e8",
+        "afterSha256": "fed03dacb582d5c6ce55a604481a363ff6f0af66ee331af75795da5509dc3683"
+      },
+      {
+        "file": "tests/qa/intext-p14b-qa0-fixtures.cjs",
+        "beforeSha256": "888aacbe3a2965cc9220aa604fc572a09607610fe01f49ae1300e547123ef822",
+        "afterSha256": "af20c261fc0c7d8a69a8a7c1d52af1e8c863675e2c89ed8b24ffa5c85429f621"
+      },
+      {
+        "file": "tests/qa/intext-p14b-shadow-evaluator.cjs",
+        "beforeSha256": "5f8547697880131e7a7f1846f89cfbb5a50bea63e9cd34e41dc78998176a7fc7",
+        "afterSha256": "641b2dcc61a0c5d27a23a474f3f643f059f8f93d579debb149c611b0da707322"
+      },
+      {
+        "file": "tests/qa/intext-p14b-shadow-ledger.cjs",
+        "beforeSha256": "3513eebd7504dde1dab2059b9b40d2ba57b344b508a9d236ee85a2686aeb7421",
+        "afterSha256": "05d32aea606a49cb3b218d303dc4fc3d8a5fa5d3de64eaa13fb37b379114850c"
+      }
+    ]
+  },
+  "corrections": [
+    "Geometric left censor does not taint factual accounting; source/membership/numerator gaps remain independent",
+    "Frame requires matching active identity and verified ad manager/media binding plus presentation/decoding evidence; insufficient attribution remains unknown",
+    "Negative/inconsistent chrome/padding/borders invalidate model qualification; null/zero chrome fallback preserved"
+  ]
+}

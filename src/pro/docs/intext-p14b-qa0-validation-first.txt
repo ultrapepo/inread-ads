@@ -1,0 +1,73 @@
+﻿✔ R1 B0: a reliable C0=true passes without P, viewport, stage, provenance or layout fields (3.7713ms)
+✔ R1 B0 never reads P or motion accessors; no mutation and deterministic fresh results (2.9782ms)
+✔ R1 B0 false/unknown are factual and are not reconstructed from visible P (0.3371ms)
+✔ R1 missing geometry cannot defeat a known false C0 for B1-B3 (0.4272ms)
+✔ Scope, verified identity, source and version precedence (0.6183ms)
+✔ _gam_kv_.js/player-measured-current-flow: model-specific measured/estimated qualification and mathematical results (2.1031ms)
+✔ _gam_kv_.js/player-intent-current-flow-v1: model-specific measured/estimated qualification and mathematical results (0.6401ms)
+✔ _gam_kv_.js/slot-open-envelope-v1: model-specific measured/estimated qualification and mathematical results (0.5943ms)
+✔ IntextManager.js/player-measured-current-flow: model-specific measured/estimated qualification and mathematical results (0.5917ms)
+✔ IntextManager.js/player-intent-current-flow-v1: model-specific measured/estimated qualification and mathematical results (0.5404ms)
+✔ IntextManager.js/slot-open-envelope-v1: model-specific measured/estimated qualification and mathematical results (0.5775ms)
+✔ Q1-Q5 fail independently from concrete witnesses, not five supplied pass flags (2.0495ms)
+✔ Partial/unknown models do not become measured by successful geometry or later snapshots (1.5569ms)
+✔ Literal 350px and a closed wrapper are not qualification or perceptibility proofs (0.6469ms)
+✔ The 46.382% sample compares thresholds at the sample, never interpolates a crossing (0.3279ms)
+✔ Horizontal clipping, vertical fraction and area are distinct mathematical quantities (0.485ms)
+✔ Oversized surfaces report an unreachable threshold, never lower it (0.2155ms)
+✔ Versioned parameters are explicit calibration sets, not silent thresholds (0.6292ms)
+✔ Touching edges are not positive intersections; a fractional crossing is (0.6235ms)
+✔ Analytical clipping agrees with an independent integer unit-cell enumeration (5.2946ms)
+✔ Invalid, null, NaN, infinite and arithmetic-overflow dimensions remain unknown (2.1228ms)
+✔ Ambiguous or foreign geometry is not silently chosen (0.4882ms)
+✔ B4/B5 stay deferred even with ideal independent pairs, false control or missing P (0.3445ms)
+✔ Accessor values and custom-prototype inputs are not executed as observation (0.2179ms)
+✔ Ledger totals come from fetch, initial winner and C0, never P or retained snapshots (4.3492ms)
+✔ Ring FIFO eviction preserves populations, outcomes, timestamps and loss summaries (2.2784ms)
+✔ Opportunity 65 freezes admission, not the commercial lifecycle, and blocks all exact capture rates (76.9371ms)
+✔ Deduplication, pending winner and later control facts are independent of candidates (3.1031ms)
+✔ Conflicting winners become unknown; a successful candidate cannot select a winner (1.2757ms)
+✔ Unknown control, missing winner and right-censored outcomes cannot produce exact rates (1.2478ms)
+✔ No-frame terminal and incomplete temporal coverage remain distinct (1.4602ms)
+✔ Gap D0 blocks only supported rates needing the affected population/coverage (0.9629ms)
+✔ Gap Dv blocks only supported rates needing the affected population/coverage (0.7822ms)
+✔ Gap Dc blocks only supported rates needing the affected population/coverage (0.6276ms)
+✔ Gap outcomes blocks only supported rates needing the affected population/coverage (1.1199ms)
+✔ Gap all blocks only supported rates needing the affected population/coverage (0.672ms)
+✔ Coverage is not assumed by default, even for a fully successful synthetic stream (0.7672ms)
+✔ An observation without fetch taints D0; a later fetch does not silently restore integrity (1.3119ms)
+✔ Left censor and source gaps survive raw eviction and manual export (1.3259ms)
+✔ Two slots/navs/cycles are separate; foreign documents do not contaminate this ledger (1.5511ms)
+✔ New generations retire old tokens and terminal cycles never restart (3.1204ms)
+✔ Base media, STARTED and IMPRESSION do not invent an ad frame or first-pass success (1.139ms)
+✔ Negative/NaN clocks, regressions and malformed identities fail data accounting closed (2.4334ms)
+✔ Summary memory overflow retains prior counters and prevents exact global rates (0.739ms)
+✔ Byte eviction and over-size snapshot rejection do not become population gaps (0.6129ms)
+✔ Limits cannot be raised above r2, partitions must fit, and catalogue size is bounded (0.6232ms)
+✔ Every committed ledger component remains within its logical serialization partition (83.5553ms)
+✔ Manual export is detached, deterministic, sanitized and size checked without reset or I/O (2.982ms)
+✔ Empty population is null, not a zero-percent or NaN success (0.6524ms)
+✔ Both distributions and both pre-player intent/envelope models support the same isolated data pipeline (7.4777ms)
+✔ Isolated modules run with browser/SDK/network/timer globals unavailable and only pure data imports (9.5115ms)
+✔ All 333 pre-existing protected files retain their bytes; no core/probe/bundle generation occurred (1530.2456ms)
+ℹ tests 52
+ℹ suites 0
+ℹ pass 52
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1831.9935
+ℹ start of coverage report
+ℹ -----------------------------------------------------------------------------------
+ℹ file                               | line % | branch % | funcs % | uncovered lines
+ℹ -----------------------------------------------------------------------------------
+ℹ tests                              |        |          |         | 
+ℹ  qa                                |        |          |         | 
+ℹ   intext-p14b-data.cjs             | 100.00 |    94.25 |  100.00 | 
+ℹ   intext-p14b-shadow-evaluator.cjs | 100.00 |   100.00 |  100.00 | 
+ℹ   intext-p14b-shadow-ledger.cjs    |  99.21 |    94.62 |  100.00 | 189-190
+ℹ -----------------------------------------------------------------------------------
+ℹ all files                          |  99.53 |    96.28 |  100.00 | 
+ℹ -----------------------------------------------------------------------------------
+ℹ end of coverage report
