@@ -1,0 +1,747 @@
+{
+  "schema": "qa1a-captured-projections-v1",
+  "cases": [
+    {
+      "captureLocalId": "legacy26",
+      "originals": [
+        {
+          "file": "E0-26oct-json.json",
+          "sha256": "9eb904c04abd699d3a5cbf6a0cdfdbd42ce5e25a2aa33093914879ba7d427026",
+          "pointers": [
+            "/integration/logs/0",
+            "/integration/logs/80",
+            "/integration/logs/72"
+          ]
+        },
+        {
+          "file": "E0-26oct.json",
+          "sha256": "9e2da363596304b583a38aa3a491d63ce23bc2022060c8c9948564fedf798af2",
+          "pointers": [
+            {
+              "pointer": "/logs/127/args/0",
+              "metric": "video_winner_resolved"
+            },
+            {
+              "pointer": "/logs/188/args/0",
+              "metric": "video_activation_eligible"
+            }
+          ]
+        }
+      ],
+      "projection": "Whitelisted fields copied without value changes; reduced event population, NOT full exports or complete coverage.",
+      "qa": {
+        "schema": "p14a-dependencies-v1",
+        "qaOnly": true,
+        "enforce": false,
+        "arm": "E0",
+        "dropped": 0,
+        "inflightAttemptId": null,
+        "pendingAttempts": [],
+        "logs": [
+          {
+            "event": "assignment_fixed",
+            "arm": "E0",
+            "sequence": 1,
+            "timestamp": 1793035023701,
+            "monotonicMs": 874.4000000003725,
+            "effectiveArm": "E0"
+          },
+          {
+            "event": "video_winner_resolved",
+            "arm": "E0",
+            "sequence": 2,
+            "timestamp": 1793035027663,
+            "monotonicMs": 4836.5,
+            "slotId": "gexp-intext",
+            "cycleId": 1,
+            "renderToken": 0,
+            "attemptId": null,
+            "dependenciesWaitMs": null,
+            "durationMs": 3375,
+            "reusedPromise": null,
+            "alreadyReady": null,
+            "winner": null,
+            "trigger": null
+          },
+          {
+            "event": "video_activation_eligible",
+            "arm": "E0",
+            "sequence": 36,
+            "timestamp": 1793035035303,
+            "monotonicMs": 12475.900000000373,
+            "slotId": "gexp-intext",
+            "cycleId": 1,
+            "renderToken": 1,
+            "attemptId": null,
+            "dependenciesWaitMs": null,
+            "durationMs": null,
+            "reusedPromise": null,
+            "alreadyReady": null,
+            "winner": null,
+            "trigger": null
+          }
+        ],
+        "integration": {
+          "schema": "p13c-integration-observe-v1",
+          "qaOnly": true,
+          "enforce": false,
+          "wrappers": false,
+          "dropped": 0,
+          "activeObservers": 0,
+          "logs": [
+            {
+              "event": "observer:attached",
+              "sequence": 1,
+              "timestamp": 1793035035385,
+              "monotonicMs": 12559.199999999255,
+              "slotId": "gexp-intext",
+              "cycleId": 1,
+              "renderToken": 1,
+              "activeRenderToken": 1,
+              "tokenMatches": true,
+              "installationStage": "after-videojs-before-ima",
+              "snapshot": {
+                "playerId": 1,
+                "managerId": null,
+                "baseMediaId": 2,
+                "observedAdMediaId": null,
+                "playerSurface": {
+                  "id": 3,
+                  "connected": true,
+                  "rect": {
+                    "top": 1091.6624755859375,
+                    "bottom": 1441.6624755859375,
+                    "left": 16,
+                    "right": 396,
+                    "width": 380,
+                    "height": 350
+                  },
+                  "display": "block",
+                  "visibility": "visible",
+                  "opacity": "0",
+                  "hidden": false,
+                  "hasBox": true
+                },
+                "videoSurface": {
+                  "id": 4,
+                  "connected": true,
+                  "rect": {
+                    "top": 1091.6624755859375,
+                    "bottom": 1091.6624755859375,
+                    "left": 16,
+                    "right": 396,
+                    "width": 380,
+                    "height": 0
+                  },
+                  "display": "block",
+                  "visibility": "visible",
+                  "opacity": "0",
+                  "hidden": false,
+                  "hasBox": false
+                },
+                "readiness": {
+                  "eligible": true,
+                  "reason": "visible",
+                  "distancePx": 0,
+                  "intersectionRatio": 0.002249755859375
+                },
+                "readinessAnchorRect": {
+                  "top": 921.6625366210938,
+                  "bottom": 1071.6625366210938,
+                  "left": 16,
+                  "right": 396,
+                  "width": 380,
+                  "height": 150
+                },
+                "documentVisibility": "visible",
+                "revealed": false,
+                "destroyed": false
+              }
+            },
+            {
+              "event": "ima:IMPRESSION",
+              "sequence": 81,
+              "timestamp": 1793035039010,
+              "monotonicMs": 16183.400000000373,
+              "slotId": "gexp-intext",
+              "cycleId": 1,
+              "renderToken": 1,
+              "activeRenderToken": 1,
+              "tokenMatches": true,
+              "snapshot": {
+                "playerId": 1,
+                "managerId": 8,
+                "baseMediaId": 2,
+                "observedAdMediaId": 6,
+                "playerSurface": {
+                  "id": 3,
+                  "connected": true,
+                  "rect": {
+                    "top": 470.8625183105469,
+                    "bottom": 820.8625183105469,
+                    "left": 16,
+                    "right": 396,
+                    "width": 380,
+                    "height": 350
+                  },
+                  "display": "block",
+                  "visibility": "visible",
+                  "opacity": "1",
+                  "hidden": false,
+                  "hasBox": true
+                },
+                "videoSurface": {
+                  "id": 4,
+                  "connected": true,
+                  "rect": {
+                    "top": 470.8625183105469,
+                    "bottom": 470.8625183105469,
+                    "left": 16,
+                    "right": 396,
+                    "width": 380,
+                    "height": 0
+                  },
+                  "display": "block",
+                  "visibility": "visible",
+                  "opacity": "0",
+                  "hidden": false,
+                  "hasBox": false
+                },
+                "readiness": {
+                  "eligible": true,
+                  "reason": "visible",
+                  "distancePx": -621,
+                  "intersectionRatio": 1
+                },
+                "readinessAnchorRect": {
+                  "top": 300.8625183105469,
+                  "bottom": 450.8625183105469,
+                  "left": 16,
+                  "right": 396,
+                  "width": 380,
+                  "height": 150
+                },
+                "documentVisibility": "visible",
+                "revealed": true,
+                "destroyed": false
+              }
+            },
+            {
+              "event": "core:first-frame",
+              "sequence": 73,
+              "timestamp": 1793035038896,
+              "monotonicMs": 16069,
+              "slotId": "gexp-intext",
+              "cycleId": 1,
+              "renderToken": 1,
+              "activeRenderToken": 1,
+              "tokenMatches": true,
+              "snapshot": {
+                "playerId": 1,
+                "managerId": 8,
+                "baseMediaId": 2,
+                "observedAdMediaId": 6,
+                "playerSurface": {
+                  "id": 3,
+                  "connected": true,
+                  "rect": {
+                    "top": 476.4624938964844,
+                    "bottom": 826.4624938964844,
+                    "left": 16,
+                    "right": 396,
+                    "width": 380,
+                    "height": 350
+                  },
+                  "display": "block",
+                  "visibility": "visible",
+                  "opacity": "0",
+                  "hidden": false,
+                  "hasBox": true
+                },
+                "videoSurface": {
+                  "id": 4,
+                  "connected": true,
+                  "rect": {
+                    "top": 476.4624938964844,
+                    "bottom": 476.4624938964844,
+                    "left": 16,
+                    "right": 396,
+                    "width": 380,
+                    "height": 0
+                  },
+                  "display": "block",
+                  "visibility": "visible",
+                  "opacity": "0",
+                  "hidden": false,
+                  "hasBox": false
+                },
+                "readiness": {
+                  "eligible": true,
+                  "reason": "visible",
+                  "distancePx": -616,
+                  "intersectionRatio": 1
+                },
+                "readinessAnchorRect": {
+                  "top": 306.4624938964844,
+                  "bottom": 456.4624938964844,
+                  "left": 16,
+                  "right": 396,
+                  "width": 380,
+                  "height": 150
+                },
+                "documentVisibility": "visible",
+                "revealed": false,
+                "destroyed": false
+              }
+            }
+          ]
+        }
+      },
+      "debug": {
+        "schemaVersion": "1.0.0",
+        "runtime": {
+          "gexpIntextVersion": "2026.10.07-p1-ima-preload-first-frame",
+          "dualMode": false,
+          "pspDetected": false,
+          "randomSource": "gexp-owner-random"
+        },
+        "debugger": {
+          "droppedEntries": 0
+        },
+        "logs": [
+          {
+            "sequence": 128,
+            "timestamp": 1793035027664,
+            "message": "[IntextMetrics] video_winner_resolved",
+            "args": [
+              {
+                "metric": "video_winner_resolved",
+                "format": "video",
+                "timestamp": 1793035027663,
+                "slotId": "gexp-intext",
+                "cycleId": 1,
+                "renderToken": 0,
+                "navIndex": 0,
+                "viewportHeight": 922,
+                "readinessAnchorRect": {
+                  "top": 987.8624877929688,
+                  "left": 16,
+                  "bottom": 1137.8624877929688,
+                  "right": 396,
+                  "width": 380,
+                  "height": 150
+                },
+                "readinessIntersectionRatio": 0,
+                "winnerFormat": "video",
+                "reason": "below",
+                "stage": "video_winner_resolved",
+                "documentVisibility": "visible"
+              }
+            ]
+          },
+          {
+            "sequence": 189,
+            "timestamp": 1793035035303,
+            "message": "[IntextMetrics] video_activation_eligible",
+            "args": [
+              {
+                "metric": "video_activation_eligible",
+                "format": "video",
+                "timestamp": 1793035035303,
+                "slotId": "gexp-intext",
+                "cycleId": 1,
+                "renderToken": 1,
+                "navIndex": 0,
+                "viewportHeight": 922,
+                "readinessAnchorRect": {
+                  "top": 921.6625366210938,
+                  "left": 16,
+                  "bottom": 1071.6625366210938,
+                  "right": 396,
+                  "width": 380,
+                  "height": 150
+                },
+                "readinessIntersectionRatio": 0.002249755859375,
+                "winnerFormat": "video",
+                "reason": "visible",
+                "stage": "video_activation_eligible",
+                "documentVisibility": "visible"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "captureLocalId": "psp26",
+      "originals": [
+        {
+          "file": "A2-Legacy-E0-real-1-JSON.json",
+          "sha256": "1ebd8b285f718e33bd80405d954f0b949b19991fb947164601590ba5402c78c6",
+          "pointers": [
+            "/integration/logs/0",
+            "/integration/logs/80",
+            "/integration/logs/72"
+          ]
+        },
+        {
+          "file": "A2-Legacy-E0-real-1.json",
+          "sha256": "12f4e55909247122201332e3af9b5e33fc2391259d3abb214f6f976ac4be67a3",
+          "pointers": [
+            {
+              "pointer": "/logs/150/args/0",
+              "metric": "video_winner_resolved"
+            },
+            {
+              "pointer": "/logs/212/args/0",
+              "metric": "video_activation_eligible"
+            }
+          ]
+        }
+      ],
+      "projection": "Whitelisted fields copied without value changes; reduced event population, NOT full exports or complete coverage.",
+      "qa": {
+        "schema": "p14a-dependencies-v1",
+        "qaOnly": true,
+        "enforce": false,
+        "arm": "E0",
+        "dropped": 0,
+        "inflightAttemptId": null,
+        "pendingAttempts": [],
+        "logs": [
+          {
+            "event": "assignment_fixed",
+            "arm": "E0",
+            "sequence": 1,
+            "timestamp": 1793009424358,
+            "monotonicMs": 3463.2999999523163,
+            "effectiveArm": "E0"
+          },
+          {
+            "event": "video_winner_resolved",
+            "arm": "E0",
+            "sequence": 2,
+            "timestamp": 1793009428643,
+            "monotonicMs": 7748.299999952316,
+            "slotId": "gexp-intext",
+            "cycleId": 1,
+            "renderToken": 0,
+            "attemptId": null,
+            "dependenciesWaitMs": null,
+            "durationMs": 3337,
+            "reusedPromise": null,
+            "alreadyReady": null,
+            "winner": null,
+            "trigger": null
+          },
+          {
+            "event": "video_activation_eligible",
+            "arm": "E0",
+            "sequence": 36,
+            "timestamp": 1793009434844,
+            "monotonicMs": 13948.899999856949,
+            "slotId": "gexp-intext",
+            "cycleId": 1,
+            "renderToken": 1,
+            "attemptId": null,
+            "dependenciesWaitMs": null,
+            "durationMs": null,
+            "reusedPromise": null,
+            "alreadyReady": null,
+            "winner": null,
+            "trigger": null
+          }
+        ],
+        "integration": {
+          "schema": "p13c-integration-observe-v1",
+          "qaOnly": true,
+          "enforce": false,
+          "wrappers": false,
+          "dropped": 0,
+          "activeObservers": 0,
+          "logs": [
+            {
+              "event": "observer:attached",
+              "sequence": 1,
+              "timestamp": 1793009434934,
+              "monotonicMs": 14038.699999809265,
+              "slotId": "gexp-intext",
+              "cycleId": 1,
+              "renderToken": 1,
+              "activeRenderToken": 1,
+              "tokenMatches": true,
+              "installationStage": "after-videojs-before-ima",
+              "snapshot": {
+                "playerId": 1,
+                "managerId": null,
+                "baseMediaId": 2,
+                "observedAdMediaId": null,
+                "playerSurface": {
+                  "id": 3,
+                  "connected": true,
+                  "rect": {
+                    "top": 838.8624877929688,
+                    "bottom": 1188.8624877929688,
+                    "left": 16,
+                    "right": 396,
+                    "width": 380,
+                    "height": 350
+                  },
+                  "display": "block",
+                  "visibility": "visible",
+                  "opacity": "0",
+                  "hidden": false,
+                  "hasBox": true
+                },
+                "videoSurface": {
+                  "id": 4,
+                  "connected": true,
+                  "rect": {
+                    "top": 838.8624877929688,
+                    "bottom": 838.8624877929688,
+                    "left": 16,
+                    "right": 396,
+                    "width": 380,
+                    "height": 0
+                  },
+                  "display": "block",
+                  "visibility": "visible",
+                  "opacity": "0",
+                  "hidden": false,
+                  "hasBox": false
+                },
+                "readiness": {
+                  "eligible": true,
+                  "reason": "visible",
+                  "distancePx": -253,
+                  "intersectionRatio": 1
+                },
+                "readinessAnchorRect": {
+                  "top": 668.8624877929688,
+                  "bottom": 818.8624877929688,
+                  "left": 16,
+                  "right": 396,
+                  "width": 380,
+                  "height": 150
+                },
+                "documentVisibility": "visible",
+                "revealed": false,
+                "destroyed": false
+              }
+            },
+            {
+              "event": "ima:IMPRESSION",
+              "sequence": 81,
+              "timestamp": 1793009448378,
+              "monotonicMs": 27483.099999904633,
+              "slotId": "gexp-intext",
+              "cycleId": 1,
+              "renderToken": 1,
+              "activeRenderToken": 1,
+              "tokenMatches": true,
+              "snapshot": {
+                "playerId": 1,
+                "managerId": 8,
+                "baseMediaId": 2,
+                "observedAdMediaId": 6,
+                "playerSurface": {
+                  "id": 3,
+                  "connected": true,
+                  "rect": {
+                    "top": 433.4125061035156,
+                    "bottom": 783.4125061035156,
+                    "left": 16,
+                    "right": 396,
+                    "width": 380,
+                    "height": 350
+                  },
+                  "display": "block",
+                  "visibility": "visible",
+                  "opacity": "1",
+                  "hidden": false,
+                  "hasBox": true
+                },
+                "videoSurface": {
+                  "id": 4,
+                  "connected": true,
+                  "rect": {
+                    "top": 430.8625183105469,
+                    "bottom": 631.7500152587891,
+                    "left": 16,
+                    "right": 396,
+                    "width": 380,
+                    "height": 200.8874969482422
+                  },
+                  "display": "block",
+                  "visibility": "visible",
+                  "opacity": "0",
+                  "hidden": false,
+                  "hasBox": true
+                },
+                "readiness": {
+                  "eligible": true,
+                  "reason": "visible",
+                  "distancePx": -661,
+                  "intersectionRatio": 1
+                },
+                "readinessAnchorRect": {
+                  "top": 260.8625183105469,
+                  "bottom": 410.8625183105469,
+                  "left": 16,
+                  "right": 396,
+                  "width": 380,
+                  "height": 150
+                },
+                "documentVisibility": "visible",
+                "revealed": true,
+                "destroyed": false
+              }
+            },
+            {
+              "event": "core:first-frame",
+              "sequence": 73,
+              "timestamp": 1793009448249,
+              "monotonicMs": 27354.299999952316,
+              "slotId": "gexp-intext",
+              "cycleId": 1,
+              "renderToken": 1,
+              "activeRenderToken": 1,
+              "tokenMatches": true,
+              "snapshot": {
+                "playerId": 1,
+                "managerId": 8,
+                "baseMediaId": 2,
+                "observedAdMediaId": 6,
+                "playerSurface": {
+                  "id": 3,
+                  "connected": true,
+                  "rect": {
+                    "top": 430.8625183105469,
+                    "bottom": 780.8625183105469,
+                    "left": 16,
+                    "right": 396,
+                    "width": 380,
+                    "height": 350
+                  },
+                  "display": "block",
+                  "visibility": "visible",
+                  "opacity": "0",
+                  "hidden": false,
+                  "hasBox": true
+                },
+                "videoSurface": {
+                  "id": 4,
+                  "connected": true,
+                  "rect": {
+                    "top": 430.8625183105469,
+                    "bottom": 430.8625183105469,
+                    "left": 16,
+                    "right": 396,
+                    "width": 380,
+                    "height": 0
+                  },
+                  "display": "block",
+                  "visibility": "visible",
+                  "opacity": "0",
+                  "hidden": false,
+                  "hasBox": false
+                },
+                "readiness": {
+                  "eligible": true,
+                  "reason": "visible",
+                  "distancePx": -661,
+                  "intersectionRatio": 1
+                },
+                "readinessAnchorRect": {
+                  "top": 260.8625183105469,
+                  "bottom": 410.8625183105469,
+                  "left": 16,
+                  "right": 396,
+                  "width": 380,
+                  "height": 150
+                },
+                "documentVisibility": "visible",
+                "revealed": false,
+                "destroyed": false
+              }
+            }
+          ]
+        }
+      },
+      "debug": {
+        "schemaVersion": "1.0.0",
+        "runtime": {
+          "gexpIntextVersion": "2026.10.07-p1-ima-preload-first-frame",
+          "dualMode": true,
+          "pspDetected": true,
+          "randomSource": "gpt-native-slot-targeting"
+        },
+        "debugger": {
+          "droppedEntries": 0
+        },
+        "logs": [
+          {
+            "sequence": 151,
+            "timestamp": 1793009428644,
+            "message": "[IntextMetrics] video_winner_resolved",
+            "args": [
+              {
+                "metric": "video_winner_resolved",
+                "format": "video",
+                "timestamp": 1793009428643,
+                "slotId": "gexp-intext",
+                "cycleId": 1,
+                "renderToken": 0,
+                "navIndex": 0,
+                "viewportHeight": 922,
+                "readinessAnchorRect": {
+                  "top": 1056.862548828125,
+                  "left": 16,
+                  "bottom": 1206.862548828125,
+                  "right": 396,
+                  "width": 380,
+                  "height": 150
+                },
+                "readinessIntersectionRatio": 0,
+                "winnerFormat": "video",
+                "reason": "below",
+                "stage": "video_winner_resolved",
+                "documentVisibility": "visible"
+              }
+            ]
+          },
+          {
+            "sequence": 213,
+            "timestamp": 1793009434844,
+            "message": "[IntextMetrics] video_activation_eligible",
+            "args": [
+              {
+                "metric": "video_activation_eligible",
+                "format": "video",
+                "timestamp": 1793009434844,
+                "slotId": "gexp-intext",
+                "cycleId": 1,
+                "renderToken": 1,
+                "navIndex": 0,
+                "viewportHeight": 922,
+                "readinessAnchorRect": {
+                  "top": 668.8624877929688,
+                  "left": 16,
+                  "bottom": 818.8624877929688,
+                  "right": 396,
+                  "width": 380,
+                  "height": 150
+                },
+                "readinessIntersectionRatio": 1,
+                "winnerFormat": "video",
+                "reason": "visible",
+                "stage": "video_activation_eligible",
+                "documentVisibility": "visible"
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}

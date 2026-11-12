@@ -26,7 +26,7 @@ Sobre la telemetría, a no ser que encuentres una solucion, proponla entonces.
 
   localStorage.removeItem(
     "gexp_intext_fallback_blank_count"
-  );
+  ); 
 
   location.reload();
 })();
@@ -39,8 +39,7 @@ console.table({
   herramientasDisponibles:
     typeof window.gexpIntextDebugTools === "object",
 
-  numeroLogs:
-    window.gexpIntextDebugTools?.getLogs?.().length ?? 0
+  numeroLogs:window.gexpIntextDebugTools?.getLogs?.().length ?? 0
 });
 
 
@@ -151,3 +150,7 @@ summary
 logs
 
 El buffer tiene límite de 5.000 entradas y aproximadamente 5 MB.
+
+
+
+& .\scripts\qa\start-manual-qa.ps1
