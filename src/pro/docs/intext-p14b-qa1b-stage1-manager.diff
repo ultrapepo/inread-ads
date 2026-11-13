@@ -1,0 +1,5 @@
+--- a/IntextManager.js
++++ b/manager.qa.js
+@@ -1,1 +1,2 @@
++/* QA1-B r1-review-B | STAGE I OFFLINE COPY | acquisition disabled | no hooks */
+ const GEXP_INTEXT_VERSION = "2026.10.07-p1-ima-preload-first-frame";

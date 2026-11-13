@@ -1,0 +1,319 @@
+{
+  "schema": "qa1b-stage1-case-matrix-v1",
+  "proposedCases": 52,
+  "meaning": "Case-level applicability, not a claim that 52 runtime scenarios passed. Match case IDs in the stage-I test names.",
+  "cases": [
+    {
+      "id": "G01",
+      "proposedCase": "C0=true y false: below, passed, horizontal, hidden, zero-size/no-render",
+      "status": "PARTIAL-OFFLINE",
+      "limitation": "Only data semantics, static byte invariance or report criteria are tested; original callbacks/guards and browser budget require later authorization."
+    },
+    {
+      "id": "G02",
+      "proposedCase": "Anchor-missing/rect ausente y excepciones originales",
+      "status": "PARTIAL-OFFLINE",
+      "limitation": "Only data semantics, static byte invariance or report criteria are tested; original callbacks/guards and browser budget require later authorization."
+    },
+    {
+      "id": "G03",
+      "proposedCase": "Contador de invocaciones y cortocircuitos",
+      "status": "PARTIAL-OFFLINE",
+      "limitation": "Only data semantics, static byte invariance or report criteria are tested; original callbacks/guards and browser budget require later authorization."
+    },
+    {
+      "id": "G04",
+      "proposedCase": "recordReadiness entre guard y creación cambia lecturas",
+      "status": "PARTIAL-OFFLINE",
+      "limitation": "Only data semantics, static byte invariance or report criteria are tested; original callbacks/guards and browser budget require later authorization."
+    },
+    {
+      "id": "G05",
+      "proposedCase": "Proximidad/preparación vs activación",
+      "status": "PARTIAL-OFFLINE",
+      "limitation": "Only data semantics, static byte invariance or report criteria are tested; original callbacks/guards and browser budget require later authorization."
+    },
+    {
+      "id": "G06",
+      "proposedCase": "Wait varios false, true, token stale, fallback IO/listeners",
+      "status": "PARTIAL-OFFLINE",
+      "limitation": "Only data semantics, static byte invariance or report criteria are tested; original callbacks/guards and browser budget require later authorization."
+    },
+    {
+      "id": "G07",
+      "proposedCase": "W1 Display true, tanto winner inicial Display como fallback Display tras winner inicial Video, mismo ciclo",
+      "status": "VALIDATED-SYNTHETIC",
+      "limitation": "Fixture data and actual frozen QA0 APIs only; no evidence of live acquisition, population completeness or browser cost."
+    },
+    {
+      "id": "G08",
+      "proposedCase": "Camino sin prepared: W2 capacity-or-legacy → W3 build → W4 video-activation → C1 final; cuatro true de la misma oportunidad",
+      "status": "VALIDATED-SYNTHETIC",
+      "limitation": "Fixture data and actual frozen QA0 APIs only; no evidence of live acquisition, population completeness or browser cost."
+    },
+    {
+      "id": "G09",
+      "proposedCase": "Camino prepared: W2 no ejecutado, W3/W4/C1 sí; owner=null legítimo de W2 en el otro camino",
+      "status": "VALIDATED-SYNTHETIC",
+      "limitation": "Fixture data and actual frozen QA0 APIs only; no evidence of live acquisition, population completeness or browser cost."
+    },
+    {
+      "id": "G10",
+      "proposedCase": "W2/W3 false repetidos→true, W4 true y C1 false por salida posterior, dentro del mismo ciclo",
+      "status": "VALIDATED-SYNTHETIC",
+      "limitation": "Fixture data and actual frozen QA0 APIs only; no evidence of live acquisition, population completeness or browser cost."
+    },
+    {
+      "id": "G11",
+      "proposedCase": "Token stale antes del check W0; anchor-missing durante check ejecutado; método ausente/terminal/preparationValid false antes de guard",
+      "status": "PARTIAL-OFFLINE",
+      "limitation": "Only data semantics, static byte invariance or report criteria are tested; original callbacks/guards and browser budget require later authorization."
+    },
+    {
+      "id": "G12",
+      "proposedCase": "C3 recordReadiness disparado por Display/wait/eligible y C5 argumento deferred; cambian rect/estado entre ambas lecturas",
+      "status": "PARTIAL-OFFLINE",
+      "limitation": "Only data semantics, static byte invariance or report criteria are tested; original callbacks/guards and browser budget require later authorization."
+    },
+    {
+      "id": "G13",
+      "proposedCase": "C4 entry.eligible con below, standby sin boundToken, claim y lease/reentrada; entry inválida o short-circuit; setupVideoPreparation con descriptor local {winner:video} desde buildAndPlayVideo",
+      "status": "VALIDATED-SYNTHETIC",
+      "limitation": "Fixture data and actual frozen QA0 APIs only; no evidence of live acquisition, population completeness or browser cost."
+    },
+    {
+      "id": "G14",
+      "proposedCase": "C6 current con epoch/manager/media viejo; C7 check tras reveal; C8 resolución tardía play; C9 reveal con terminal/reintento",
+      "status": "PARTIAL-OFFLINE",
+      "limitation": "Only data semantics, static byte invariance or report criteria are tested; original callbacks/guards and browser budget require later authorization."
+    },
+    {
+      "id": "G15",
+      "proposedCase": "C10 plugin-init y C11 player.ready true/false; preparación inválida, terminal o método ausente omiten lectura",
+      "status": "PARTIAL-OFFLINE",
+      "limitation": "Only data semantics, static byte invariance or report criteria are tested; original callbacks/guards and browser budget require later authorization."
+    },
+    {
+      "id": "G16",
+      "proposedCase": "Dos checks originales W3 con idéntico booleano/owner/token, posterior retransmisión del primer packet; IDs locales coincidentes en series GAM y Manager",
+      "status": "VALIDATED-SYNTHETIC",
+      "limitation": "Fixture data and actual frozen QA0 APIs only; no evidence of live acquisition, population completeness or browser cost."
+    },
+    {
+      "id": "I01",
+      "proposedCase": "Dos documentos, dos raíces/nav, slots con IDs DOM repetidos",
+      "status": "VALIDATED-SYNTHETIC",
+      "limitation": "Fixture data and actual frozen QA0 APIs only; no evidence of live acquisition, population completeness or browser cost."
+    },
+    {
+      "id": "I02",
+      "proposedCase": "Handoff standby→render-owned, lease expirado, cleanup/nuevo fetch",
+      "status": "VALIDATED-SYNTHETIC",
+      "limitation": "Fixture data and actual frozen QA0 APIs only; no evidence of live acquisition, population completeness or browser cost."
+    },
+    {
+      "id": "I03",
+      "proposedCase": "Ruta startAuction sin _fetchGeneration acreditada",
+      "status": "VALIDATED-SYNTHETIC",
+      "limitation": "Fixture data and actual frozen QA0 APIs only; no evidence of live acquisition, population completeness or browser cost."
+    },
+    {
+      "id": "I04",
+      "proposedCase": "Anchor sustituido, desconectado, root ambiguo, BFCache no observado",
+      "status": "PARTIAL-OFFLINE",
+      "limitation": "Only data semantics, static byte invariance or report criteria are tested; original callbacks/guards and browser budget require later authorization."
+    },
+    {
+      "id": "P01",
+      "proposedCase": "C0=true/P unknown y B0; manager/medio ausentes",
+      "status": "VALIDATED-SYNTHETIC",
+      "limitation": "Fixture data and actual frozen QA0 APIs only; no evidence of live acquisition, population completeness or browser cost."
+    },
+    {
+      "id": "P02",
+      "proposedCase": "C0=false y P inválido/ausente",
+      "status": "PARTIAL-OFFLINE",
+      "limitation": "Only data semantics, static byte invariance or report criteria are tested; original callbacks/guards and browser budget require later authorization."
+    },
+    {
+      "id": "P03",
+      "proposedCase": "Anchor 0,225%, P previsto fuera; fracciones parciales y clipping",
+      "status": "DEFERRED-III",
+      "limitation": "No P producer/profile, CSS bracket or live geometry implemented; frozen QA0 arithmetic regressions only."
+    },
+    {
+      "id": "P04",
+      "proposedCase": "Cambios A/V/W/estilos/owner entre lecturas; CSS animada/transform",
+      "status": "DEFERRED-III",
+      "limitation": "No P producer/profile, CSS bracket or live geometry implemented; frozen QA0 arithmetic regressions only."
+    },
+    {
+      "id": "P05",
+      "proposedCase": "P post-player ofrecido como intención, revision falsa, CSS/config sin resolver",
+      "status": "DEFERRED-III",
+      "limitation": "No P producer/profile, CSS bracket or live geometry implemented; frozen QA0 arithmetic regressions only."
+    },
+    {
+      "id": "P06",
+      "proposedCase": "Reglas de open/preset/lockedHeight/chrome y currentBox no triviales",
+      "status": "DEFERRED-III",
+      "limitation": "No P producer/profile, CSS bracket or live geometry implemented; frozen QA0 arithmetic regressions only."
+    },
+    {
+      "id": "T01",
+      "proposedCase": "Evento no catalogado, prefijo conocido, stage del input, vecino reveal",
+      "status": "PARTIAL-OFFLINE",
+      "limitation": "Only data semantics, static byte invariance or report criteria are tested; original callbacks/guards and browser budget require later authorization."
+    },
+    {
+      "id": "O01",
+      "proposedCase": "Manager no entregado o getter no ejecutado por core",
+      "status": "DEFERRED-IV",
+      "limitation": "No manager/media/frame/reveal acquisition or binding producer implemented."
+    },
+    {
+      "id": "O02",
+      "proposedCase": "Manager/medio reemplazados, dummy, source cambiado, token 999",
+      "status": "DEFERRED-IV",
+      "limitation": "No manager/media/frame/reveal acquisition or binding producer implemented."
+    },
+    {
+      "id": "O03",
+      "proposedCase": "Metadata del RVFC ya registrado y binding correcto",
+      "status": "DEFERRED-IV",
+      "limitation": "No manager/media/frame/reveal acquisition or binding producer implemented."
+    },
+    {
+      "id": "O04",
+      "proposedCase": "RVFC cancelado, no soportado, playing/timeupdate/canplay/STARTED/IMPRESSION/COMPLETE sin metadata",
+      "status": "DEFERRED-IV",
+      "limitation": "No manager/media/frame/reveal acquisition or binding producer implemented."
+    },
+    {
+      "id": "O05",
+      "proposedCase": "Wrapper cerrado al frame; reveal request, dos rAF, PiP/animación",
+      "status": "DEFERRED-IV",
+      "limitation": "No manager/media/frame/reveal acquisition or binding producer implemented."
+    },
+    {
+      "id": "D01",
+      "proposedCase": "Oportunidad sin guard, sin winner, con false repetidos o sin frame",
+      "status": "VALIDATED-SYNTHETIC",
+      "limitation": "Fixture data and actual frozen QA0 APIs only; no evidence of live acquisition, population completeness or browser cost."
+    },
+    {
+      "id": "D02",
+      "proposedCase": "Inicio positivo, hueco factual, duplicados, terminal sin outcome",
+      "status": "VALIDATED-SYNTHETIC",
+      "limitation": "Fixture data and actual frozen QA0 APIs only; no evidence of live acquisition, population completeness or browser cost."
+    },
+    {
+      "id": "D03",
+      "proposedCase": "Refresh tras COMPLETE vs fallback, con/sin ciclo nuevo",
+      "status": "VALIDATED-SYNTHETIC",
+      "limitation": "Fixture data and actual frozen QA0 APIs only; no evidence of live acquisition, population completeness or browser cost."
+    },
+    {
+      "id": "D04",
+      "proposedCase": "Evento 2001/byte eviction y pérdidas distintas en ring/packets",
+      "status": "VALIDATED-SYNTHETIC",
+      "limitation": "Fixture data and actual frozen QA0 APIs only; no evidence of live acquisition, population completeness or browser cost."
+    },
+    {
+      "id": "D05",
+      "proposedCase": "Oportunidad 65, resumen/agregados llenos, counter overflow",
+      "status": "VALIDATED-SYNTHETIC",
+      "limitation": "Fixture data and actual frozen QA0 APIs only; no evidence of live acquisition, population completeness or browser cost."
+    },
+    {
+      "id": "D06",
+      "proposedCase": "Handoff token 0→1 sin frame y terminal",
+      "status": "VALIDATED-SYNTHETIC",
+      "limitation": "Fixture data and actual frozen QA0 APIs only; no evidence of live acquisition, population completeness or browser cost."
+    },
+    {
+      "id": "D07",
+      "proposedCase": "Destrucción/lease de standby y reentrada con la misma pendingAuction",
+      "status": "VALIDATED-SYNTHETIC",
+      "limitation": "Fixture data and actual frozen QA0 APIs only; no evidence of live acquisition, population completeness or browser cost."
+    },
+    {
+      "id": "D08",
+      "proposedCase": "Diagnóstico/reveal/recuperación true sin positiva primaria acreditada",
+      "status": "VALIDATED-SYNTHETIC",
+      "limitation": "Fixture data and actual frozen QA0 APIs only; no evidence of live acquisition, population completeness or browser cost."
+    },
+    {
+      "id": "D09",
+      "proposedCase": "Constructor con coverage false; cierre/export aparentemente completo",
+      "status": "VALIDATED-SYNTHETIC",
+      "limitation": "Fixture data and actual frozen QA0 APIs only; no evidence of live acquisition, population completeness or browser cost."
+    },
+    {
+      "id": "A01",
+      "proposedCase": "Primer perfil con sourceComplete={D0:false,Dv:false,Dc:false,outcomes:false}; muestras primarias true y false completas, sin P/manager/frame",
+      "status": "VALIDATED-SYNTHETIC",
+      "limitation": "Fixture data and actual frozen QA0 APIs only; no evidence of live acquisition, population completeness or browser cost."
+    },
+    {
+      "id": "A02",
+      "proposedCase": "Muestras A válidas junto a startAuction directo sin generación nativa acreditada o episodio sin identidad",
+      "status": "VALIDATED-SYNTHETIC",
+      "limitation": "Fixture data and actual frozen QA0 APIs only; no evidence of live acquisition, population completeness or browser cost."
+    },
+    {
+      "id": "A03",
+      "proposedCase": "Todas las muestras retenidas A válidas, cero dropped, cierre/export y recibos de runner aparentemente completos",
+      "status": "VALIDATED-SYNTHETIC",
+      "limitation": "Fixture data and actual frozen QA0 APIs only; no evidence of live acquisition, population completeness or browser cost."
+    },
+    {
+      "id": "A04",
+      "proposedCase": "Evaluar salida de II con cobertura funcional acreditada por distribución/ruta, exclusiones R1 probadas, gaps declarados y coste total medido dentro de límites",
+      "status": "PARTIAL-OFFLINE",
+      "limitation": "Only data semantics, static byte invariance or report criteria are tested; original callbacks/guards and browser budget require later authorization."
+    },
+    {
+      "id": "A05",
+      "proposedCase": "Pretender tasas exactas con perfil inicial, incluso después de revisión externa positiva; comparar con perfil completo nuevo aprobado independientemente antes de construir",
+      "status": "VALIDATED-SYNTHETIC",
+      "limitation": "Fixture data and actual frozen QA0 APIs only; no evidence of live acquisition, population completeness or browser cost."
+    },
+    {
+      "id": "A06",
+      "proposedCase": "Proponer replay desde ring evictado/resúmenes, cambiar scope para ocultar ruta sin generación o pedir tasa global de perfil restringido",
+      "status": "VALIDATED-SYNTHETIC",
+      "limitation": "Fixture data and actual frozen QA0 APIs only; no evidence of live acquisition, population completeness or browser cost."
+    },
+    {
+      "id": "A07",
+      "proposedCase": "Contrastar perfil inicial false con futura instancia de perfil aprobado con D0/Dv/Dc completos y outcomes incompleto; denominadores no vacíos y luego vacíos",
+      "status": "VALIDATED-SYNTHETIC",
+      "limitation": "Fixture data and actual frozen QA0 APIs only; no evidence of live acquisition, population completeness or browser cost."
+    },
+    {
+      "id": "A08",
+      "proposedCase": "Perfil futuro con las cuatro completitudes acreditadas; pretender firstPassFrame por haber superado A, salida de II o revisión poblacional",
+      "status": "VALIDATED-SYNTHETIC",
+      "limitation": "Fixture data and actual frozen QA0 APIs only; no evidence of live acquisition, population completeness or browser cost."
+    },
+    {
+      "id": "X01",
+      "proposedCase": "Export repetido, tamaño máximo, resultados/packets mutados por consumidor",
+      "status": "VALIDATED-SYNTHETIC",
+      "limitation": "Fixture data and actual frozen QA0 APIs only; no evidence of live acquisition, population completeness or browser cost."
+    },
+    {
+      "id": "X02",
+      "proposedCase": "Recibo/build servido falsificado, copia JSON, hash/dist/source incompatible",
+      "status": "VALIDATED-SYNTHETIC",
+      "limitation": "Fixture data and actual frozen QA0 APIs only; no evidence of live acquisition, population completeness or browser cost."
+    },
+    {
+      "id": "X03",
+      "proposedCase": "Fallo/ausencia/desactivación del sink y datos incompletos",
+      "status": "PARTIAL-OFFLINE",
+      "limitation": "Only data semantics, static byte invariance or report criteria are tested; original callbacks/guards and browser budget require later authorization."
+    }
+  ]
+}

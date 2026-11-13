@@ -1,0 +1,81 @@
+{
+  "schema": "qa1b-stage1-validation-results-v1",
+  "environment": {
+    "node": "v25.8.1",
+    "platform": "win32"
+  },
+  "stage1": {
+    "tests": 44,
+    "pass": 44,
+    "fail": 0,
+    "cancelled": 0,
+    "skipped": 0,
+    "status": "PASS-offline-synthetic",
+    "command": [
+      "node",
+      "--test",
+      "--test-isolation=none",
+      "--experimental-test-coverage",
+      "--test-coverage-include=tests/qa/qa1b/*.cjs",
+      "tests/intext-p14b-qa1b-stage1.test.cjs"
+    ],
+    "log": "docs/intext-p14b-qa1b-stage1-validation.txt"
+  },
+  "frozen": {
+    "tests": 110,
+    "pass": 108,
+    "fail": 2,
+    "cancelled": 0,
+    "skipped": 0,
+    "status": "FAIL-two-preexisting-historical-integrity-mismatches",
+    "command": [
+      "node",
+      "--test",
+      "--test-isolation=none",
+      "tests/intext-p14b-shadow.audit.test.cjs",
+      "tests/intext-p14b-qa1a.audit.test.cjs"
+    ],
+    "log": "docs/intext-p14b-qa1b-stage1-frozen-validation.txt",
+    "failures": [
+      {
+        "test": "All 333 pre-existing protected files retain their bytes; no core/probe/bundle generation occurred",
+        "source": "tests/intext-p14b-shadow.audit.test.cjs:532"
+      },
+      {
+        "test": "All 345 pre-existing files including approved QA0 retain their bytes in the complete workspace",
+        "source": "tests/intext-p14b-qa1a.audit.test.cjs:348"
+      }
+    ],
+    "reason": {
+      "file": "Indicar que dependencias tiene el core d.sty",
+      "historicalExpectedBytes": 3903,
+      "authorizedCurrentBytes": 3940,
+      "authorizedCurrentSha256": "15c72d69032cc0e212b1501cdd78e9da78561b404c65165fe1a6d02efe16b660",
+      "restoredOrNormalized": false
+    },
+    "testsChanged": false,
+    "testsFiltered": false
+  },
+  "proposedCases": {
+    "total": 52,
+    "synthetic": 28,
+    "partialOffline": 15,
+    "deferredIII": 4,
+    "deferredIV": 5,
+    "matrix": "docs/intext-p14b-qa1b-stage1-case-matrix.json"
+  },
+  "oracles": [
+    "Independent opportunity-set reducer",
+    "BigInt bounded-counter arithmetic",
+    "Actual frozen QA0 ledger/evaluator APIs",
+    "Binding source hashes and exact anchors",
+    "Byte-for-byte reverse transformation"
+  ],
+  "evidenceCommand": [
+    "node",
+    "tests/qa/qa1b/evidence.cjs"
+  ],
+  "browserMeasurements": false,
+  "realAcquisition": false,
+  "independentAuditPending": true
+}

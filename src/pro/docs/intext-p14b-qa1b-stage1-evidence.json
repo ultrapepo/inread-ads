@@ -1,0 +1,507 @@
+{
+  "schema": "qa1b-stage1-evidence-v1",
+  "origin": "synthetic-fixtures-only",
+  "acquisition": false,
+  "environment": {
+    "node": "v25.8.1",
+    "platform": "win32"
+  },
+  "protectedOriginalsVerified": 360,
+  "bindingContractsVerified": 4,
+  "sessions": {
+    "_gam_kv_.js": {
+      "counts": {
+        "D0": {
+          "yes": 1,
+          "no": 0,
+          "unknown": 0,
+          "complete": false
+        },
+        "Dv": {
+          "yes": 1,
+          "no": 0,
+          "unknown": 0,
+          "complete": false
+        },
+        "Dc": {
+          "yes": 1,
+          "no": 0,
+          "unknown": 0,
+          "complete": false
+        }
+      },
+      "coverage": {
+        "sourceComplete": {
+          "D0": false,
+          "Dv": false,
+          "Dc": false,
+          "outcomes": false
+        },
+        "gaps": {
+          "D0": false,
+          "Dv": false,
+          "Dc": false,
+          "outcomes": false
+        },
+        "flags": {
+          "accountingOverflow": false,
+          "summaryOverflow": false,
+          "sourceGap": false,
+          "counterOverflow": false,
+          "untrackedOpportunityNotifications": 0,
+          "untrackedObservations": 0,
+          "rejectedInputs": 0,
+          "rawEvidenceEvicted": false,
+          "rawDropped": 0,
+          "oversizedSnapshots": 0,
+          "snapshotLimitDrops": 0,
+          "firstRawDroppedSequence": null,
+          "lastRawDroppedSequence": null,
+          "rawDroppedByStage": {
+            "before-player": 0,
+            "after-player": 0,
+            "post-request": 0,
+            "post-reveal": 0,
+            "unknown": 0
+          }
+        },
+        "accountingComplete": {
+          "D0": false,
+          "Dv": false,
+          "Dc": false
+        },
+        "exactRatesAllowed": false,
+        "meaning": "Record populations only; no continuous scroll, alternative request, revenue, fill or viewability is reconstructed."
+      },
+      "receipts": [
+        {
+          "schema": "qa1b-ingest-receipt-v1",
+          "packetId": "e3",
+          "sampleSequence": 3,
+          "distribution": "_gam_kv_.js",
+          "documentLocalId": "a1",
+          "series": "primary-video",
+          "accepted": true,
+          "reason": "recorded",
+          "acceptanceA": "valid",
+          "candidateB0": "pass",
+          "opportunityId": "o1",
+          "duplicate": false
+        },
+        {
+          "schema": "qa1b-ingest-receipt-v1",
+          "packetId": "e4",
+          "sampleSequence": 4,
+          "distribution": "_gam_kv_.js",
+          "documentLocalId": "a1",
+          "series": "primary-video",
+          "accepted": true,
+          "reason": "recorded",
+          "acceptanceA": "valid",
+          "candidateB0": "pass",
+          "opportunityId": "o1",
+          "duplicate": false
+        },
+        {
+          "schema": "qa1b-ingest-receipt-v1",
+          "packetId": "e5",
+          "sampleSequence": 5,
+          "distribution": "_gam_kv_.js",
+          "documentLocalId": "a1",
+          "series": "primary-video",
+          "accepted": true,
+          "reason": "recorded",
+          "acceptanceA": "valid",
+          "candidateB0": "pass",
+          "opportunityId": "o1",
+          "duplicate": false
+        },
+        {
+          "schema": "qa1b-ingest-receipt-v1",
+          "packetId": "e6",
+          "sampleSequence": 6,
+          "distribution": "_gam_kv_.js",
+          "documentLocalId": "a1",
+          "series": "primary-video",
+          "accepted": true,
+          "reason": "recorded",
+          "acceptanceA": "valid",
+          "candidateB0": "pass",
+          "opportunityId": "o1",
+          "duplicate": false
+        }
+      ],
+      "exportBytes": 18465
+    },
+    "IntextManager.js": {
+      "counts": {
+        "D0": {
+          "yes": 1,
+          "no": 0,
+          "unknown": 0,
+          "complete": false
+        },
+        "Dv": {
+          "yes": 1,
+          "no": 0,
+          "unknown": 0,
+          "complete": false
+        },
+        "Dc": {
+          "yes": 1,
+          "no": 0,
+          "unknown": 0,
+          "complete": false
+        }
+      },
+      "coverage": {
+        "sourceComplete": {
+          "D0": false,
+          "Dv": false,
+          "Dc": false,
+          "outcomes": false
+        },
+        "gaps": {
+          "D0": false,
+          "Dv": false,
+          "Dc": false,
+          "outcomes": false
+        },
+        "flags": {
+          "accountingOverflow": false,
+          "summaryOverflow": false,
+          "sourceGap": false,
+          "counterOverflow": false,
+          "untrackedOpportunityNotifications": 0,
+          "untrackedObservations": 0,
+          "rejectedInputs": 0,
+          "rawEvidenceEvicted": false,
+          "rawDropped": 0,
+          "oversizedSnapshots": 0,
+          "snapshotLimitDrops": 0,
+          "firstRawDroppedSequence": null,
+          "lastRawDroppedSequence": null,
+          "rawDroppedByStage": {
+            "before-player": 0,
+            "after-player": 0,
+            "post-request": 0,
+            "post-reveal": 0,
+            "unknown": 0
+          }
+        },
+        "accountingComplete": {
+          "D0": false,
+          "Dv": false,
+          "Dc": false
+        },
+        "exactRatesAllowed": false,
+        "meaning": "Record populations only; no continuous scroll, alternative request, revenue, fill or viewability is reconstructed."
+      },
+      "receipts": [
+        {
+          "schema": "qa1b-ingest-receipt-v1",
+          "packetId": "e3",
+          "sampleSequence": 3,
+          "distribution": "IntextManager.js",
+          "documentLocalId": "a1",
+          "series": "primary-video",
+          "accepted": true,
+          "reason": "recorded",
+          "acceptanceA": "valid",
+          "candidateB0": "pass",
+          "opportunityId": "o1",
+          "duplicate": false
+        },
+        {
+          "schema": "qa1b-ingest-receipt-v1",
+          "packetId": "e4",
+          "sampleSequence": 4,
+          "distribution": "IntextManager.js",
+          "documentLocalId": "a1",
+          "series": "primary-video",
+          "accepted": true,
+          "reason": "recorded",
+          "acceptanceA": "valid",
+          "candidateB0": "pass",
+          "opportunityId": "o1",
+          "duplicate": false
+        },
+        {
+          "schema": "qa1b-ingest-receipt-v1",
+          "packetId": "e5",
+          "sampleSequence": 5,
+          "distribution": "IntextManager.js",
+          "documentLocalId": "a1",
+          "series": "primary-video",
+          "accepted": true,
+          "reason": "recorded",
+          "acceptanceA": "valid",
+          "candidateB0": "pass",
+          "opportunityId": "o1",
+          "duplicate": false
+        },
+        {
+          "schema": "qa1b-ingest-receipt-v1",
+          "packetId": "e6",
+          "sampleSequence": 6,
+          "distribution": "IntextManager.js",
+          "documentLocalId": "a1",
+          "series": "primary-video",
+          "accepted": true,
+          "reason": "recorded",
+          "acceptanceA": "valid",
+          "candidateB0": "pass",
+          "opportunityId": "o1",
+          "duplicate": false
+        }
+      ],
+      "exportBytes": 18575
+    }
+  },
+  "stress": {
+    "originalGuards": 2001,
+    "notificationsIncludingFetchAndWinner": 2003,
+    "memory": {
+      "summaryBytes": 920,
+      "qa0AggregateBytes": 1123,
+      "qa0RingBytes": 523909,
+      "metadataBytes": 895,
+      "packetRingBytes": 1277395,
+      "detailEntries": 1636,
+      "limits": {
+        "summaryBytes": 262144,
+        "qa0AggregateBytes": 16384,
+        "metadataBytes": 16384,
+        "qa0RingBytes": 524288,
+        "packetRingBytes": 1277952,
+        "opportunities": 64,
+        "qa0Entries": 1000,
+        "packetEntries": 1000,
+        "totalBytes": 2097152
+      }
+    },
+    "retainedQA0": 792,
+    "retainedPackets": 844,
+    "packetLoss": {
+      "firstSequence": 1,
+      "lastSequence": 1159
+    },
+    "packetCounters": {
+      "received": 2003,
+      "accepted": 2003,
+      "rawOnly": 0,
+      "rejected": 0,
+      "duplicates": 0,
+      "retiredSequences": 0,
+      "packetDropped": 1159,
+      "packetOversized": 0
+    },
+    "qa0Loss": {
+      "accountingOverflow": false,
+      "summaryOverflow": false,
+      "sourceGap": false,
+      "counterOverflow": false,
+      "untrackedOpportunityNotifications": 0,
+      "untrackedObservations": 0,
+      "rejectedInputs": 0,
+      "rawEvidenceEvicted": true,
+      "rawDropped": 1211,
+      "oversizedSnapshots": 0,
+      "snapshotLimitDrops": 1211,
+      "firstRawDroppedSequence": 1,
+      "lastRawDroppedSequence": 1211,
+      "rawDroppedByStage": {
+        "before-player": 1211,
+        "after-player": 0,
+        "post-request": 0,
+        "post-reveal": 0,
+        "unknown": 0
+      }
+    },
+    "exportStatus": "ok",
+    "exportBytes": 1769923,
+    "logicalPartitionVerified": true,
+    "physicalHeapMeasured": false,
+    "browserBudgetMeasured": false
+  },
+  "opportunity65": {
+    "retained": 64,
+    "totals": {
+      "D0": {
+        "yes": 64,
+        "no": 0,
+        "unknown": 0,
+        "complete": false
+      },
+      "Dv": {
+        "yes": 64,
+        "no": 0,
+        "unknown": 0,
+        "complete": false
+      },
+      "Dc": {
+        "yes": 64,
+        "no": 0,
+        "unknown": 0,
+        "complete": false
+      }
+    },
+    "flags": {
+      "accountingOverflow": true,
+      "summaryOverflow": false,
+      "sourceGap": true,
+      "counterOverflow": false,
+      "untrackedOpportunityNotifications": 3,
+      "untrackedObservations": 0,
+      "rejectedInputs": 0,
+      "rawEvidenceEvicted": false,
+      "rawDropped": 0,
+      "oversizedSnapshots": 0,
+      "snapshotLimitDrops": 0,
+      "firstRawDroppedSequence": null,
+      "lastRawDroppedSequence": null,
+      "rawDroppedByStage": {
+        "before-player": 0,
+        "after-player": 0,
+        "post-request": 0,
+        "post-reveal": 0,
+        "unknown": 0
+      }
+    },
+    "registry": {
+      "logicalChargedBytes": 5511,
+      "budgetBytes": 12288,
+      "aliasesIssued": 72,
+      "exhausted": false,
+      "physicalHeapMeasured": false
+    }
+  },
+  "generator": {
+    "copies": [
+      {
+        "schema": "qa1b-offline-copy-v1",
+        "stage": "I",
+        "distribution": "_gam_kv_.js",
+        "baseSha256": "1cde1ccdc962c07d5833dc9691a3bfe31b7dd74b3e649e89153a240940a06690",
+        "baseBytes": 864935,
+        "artifactFile": "gam.qa.js",
+        "artifactSha256": "251d77084114210a7b3d26f4af943fa2de4271297a6d32336e28ffa1bfa36a4b",
+        "artifactBytes": 865016,
+        "patchFile": "gam.diff",
+        "patchSha256": "d807be7aea4405f859a3ade4df9a69c905c4238e3fd12494c892c48524a00a72",
+        "anchors": [
+          {
+            "text": "getReadinessViewportState() {",
+            "line": 11488,
+            "sha256": "b79669e920df4a2f3e3d44c25ae19281d651c9780b19ae030ebf42b5e6021c89"
+          },
+          {
+            "text": "waitForViewport(renderToken = this._activeRenderToken, source = \"waitForViewport\", owner = null) {",
+            "line": 11518,
+            "sha256": "66e4cc8ae6bea9b815226173324a48d400e186ecb6bfa99132816a05bdd14077"
+          },
+          {
+            "text": "const viewportState = await this.waitForViewport(renderToken, \"showDisplay:waitForViewport\");",
+            "line": 11562,
+            "sha256": "99756ae335f36ac78df768d8770e953d72454ae6e14024c2d6b8491f4eb5e2ef"
+          },
+          {
+            "text": "const eligibility = await this.waitForViewport(renderToken, \"buildAndPlayVideo:capacity-or-legacy\");",
+            "line": 11983,
+            "sha256": "7bbb0d0a9cdb950b353f759bfefb0976db5827a8fb3e52ef3f788758fa412a61"
+          },
+          {
+            "text": "const viewportState = await this.waitForViewport(renderToken, \"buildAndPlayVideo:waitForViewport\", creative);",
+            "line": 12031,
+            "sha256": "a7df98e5281d890923c3f90c9ec4702db11220309a59ccd7c2909bf5b85292be"
+          },
+          {
+            "text": "const state = await node.waitForViewport(this._renderToken, \"video-activation\", this);",
+            "line": 16698,
+            "sha256": "23830787e876ada2940dd82747ff731c23aa7f0f2919e761cc176db174357ac2"
+          },
+          {
+            "text": "if (node?.getReadinessViewportState && !node.getReadinessViewportState().eligible) throw new Error(\"video_activation_ineligible\");",
+            "line": 16701,
+            "sha256": "e6d6004b2690d7d583ee76c852fc1789b24230996ae9bf5549dff839f0e3107a"
+          }
+        ],
+        "acquisitionEnabled": false,
+        "transformation": "inert-comment-prefix-only",
+        "reverse": "Remove the exact fixed prefix, then require the approved original byte hash. Never write the original path.",
+        "reverseVerified": true,
+        "copyExecuted": false,
+        "copyRetainedInWorkspace": false
+      },
+      {
+        "schema": "qa1b-offline-copy-v1",
+        "stage": "I",
+        "distribution": "IntextManager.js",
+        "baseSha256": "ba832dc0eb3c0f6e1070a515fac09dd31467e2c7a5a64a18ff4e4f4c063fead8",
+        "baseBytes": 696885,
+        "artifactFile": "manager.qa.js",
+        "artifactSha256": "e98a839dcc46ad270a94c360661d3e81dfc43dd947c97dd216a44177ac6e3ac8",
+        "artifactBytes": 696966,
+        "patchFile": "manager.diff",
+        "patchSha256": "920b49461e38ac143bc4d39a9bef32e2f669cd7d8b6ab6a5ed15a505cbd37f7b",
+        "anchors": [
+          {
+            "text": "getReadinessViewportState() {",
+            "line": 9706,
+            "sha256": "b79669e920df4a2f3e3d44c25ae19281d651c9780b19ae030ebf42b5e6021c89"
+          },
+          {
+            "text": "waitForViewport(renderToken = this._activeRenderToken, source = \"waitForViewport\", owner = null) {",
+            "line": 9736,
+            "sha256": "66e4cc8ae6bea9b815226173324a48d400e186ecb6bfa99132816a05bdd14077"
+          },
+          {
+            "text": "const viewportState = await this.waitForViewport(renderToken, \"showDisplay:waitForViewport\");",
+            "line": 9780,
+            "sha256": "99756ae335f36ac78df768d8770e953d72454ae6e14024c2d6b8491f4eb5e2ef"
+          },
+          {
+            "text": "const eligibility = await this.waitForViewport(renderToken, \"buildAndPlayVideo:capacity-or-legacy\");",
+            "line": 10184,
+            "sha256": "7bbb0d0a9cdb950b353f759bfefb0976db5827a8fb3e52ef3f788758fa412a61"
+          },
+          {
+            "text": "const viewportState = await this.waitForViewport(renderToken, \"buildAndPlayVideo:waitForViewport\", creative);",
+            "line": 10232,
+            "sha256": "a7df98e5281d890923c3f90c9ec4702db11220309a59ccd7c2909bf5b85292be"
+          },
+          {
+            "text": "const state = await node.waitForViewport(this._renderToken, \"video-activation\", this);",
+            "line": 14539,
+            "sha256": "23830787e876ada2940dd82747ff731c23aa7f0f2919e761cc176db174357ac2"
+          },
+          {
+            "text": "if (node?.getReadinessViewportState && !node.getReadinessViewportState().eligible) throw new Error(\"video_activation_ineligible\");",
+            "line": 14542,
+            "sha256": "e6d6004b2690d7d583ee76c852fc1789b24230996ae9bf5549dff839f0e3107a"
+          }
+        ],
+        "acquisitionEnabled": false,
+        "transformation": "inert-comment-prefix-only",
+        "reverse": "Remove the exact fixed prefix, then require the approved original byte hash. Never write the original path.",
+        "reverseVerified": true,
+        "copyExecuted": false,
+        "copyRetainedInWorkspace": false
+      }
+    ],
+    "originalsTouched": 0,
+    "served": false,
+    "executed": false,
+    "instrumentationImplemented": false
+  },
+  "blocked": [
+    "II",
+    "III",
+    "IV",
+    "real acquisition",
+    "B shadow runtime",
+    "B enforce",
+    "A3",
+    "C"
+  ]
+}

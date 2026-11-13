@@ -1,0 +1,5 @@
+--- a/_gam_kv_.js
++++ b/gam.qa.js
+@@ -1,1 +1,2 @@
++/* QA1-B r1-review-B | STAGE I OFFLINE COPY | acquisition disabled | no hooks */
+ class WindowArray {

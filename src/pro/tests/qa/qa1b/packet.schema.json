@@ -1,0 +1,549 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "contractRevision",
+    "eventId",
+    "sampleSequence",
+    "kind",
+    "caller",
+    "stage",
+    "format",
+    "identity",
+    "ownership",
+    "time",
+    "provenance",
+    "guard",
+    "evidence",
+    "facts"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": "qa1b-packet-v1"
+    },
+    "contractRevision": {
+      "const": "r1-review-B"
+    },
+    "eventId": {
+      "type": "string",
+      "pattern": "^e[1-9][0-9]{0,15}$"
+    },
+    "sampleSequence": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 9007199254740991
+    },
+    "kind": {
+      "enum": [
+        "fetch",
+        "winner",
+        "guard",
+        "handoff",
+        "terminal",
+        "subattempt",
+        "gap"
+      ]
+    },
+    "caller": {
+      "enum": [
+        "W1",
+        "W2",
+        "W3",
+        "W4",
+        "C1",
+        "C2",
+        "C3",
+        "C4",
+        "C5",
+        "C6",
+        "C7",
+        "C8",
+        "C9",
+        "C10",
+        "C11",
+        "population",
+        "unknown"
+      ]
+    },
+    "stage": {
+      "enum": [
+        "before-player",
+        "after-player",
+        "post-request",
+        "post-reveal",
+        "unknown"
+      ]
+    },
+    "format": {
+      "enum": [
+        "video",
+        "display",
+        "opportunity",
+        "unknown"
+      ]
+    },
+    "identity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "documentLocalId",
+        "navigationLocalId",
+        "slotLocalId",
+        "anchorLocalId",
+        "cycleId",
+        "fetchGeneration",
+        "renderToken",
+        "activeRenderToken",
+        "verified",
+        "state"
+      ],
+      "properties": {
+        "documentLocalId": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^[A-Za-z][A-Za-z0-9_-]{0,47}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "navigationLocalId": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^[A-Za-z][A-Za-z0-9_-]{0,47}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "slotLocalId": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^[A-Za-z][A-Za-z0-9_-]{0,47}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "anchorLocalId": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^[A-Za-z][A-Za-z0-9_-]{0,47}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "cycleId": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 9007199254740991
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "fetchGeneration": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 9007199254740991
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "renderToken": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "activeRenderToken": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "verified": {
+          "type": "boolean"
+        },
+        "state": {
+          "enum": [
+            "live",
+            "stale",
+            "terminal",
+            "unknown"
+          ]
+        }
+      }
+    },
+    "ownership": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "nodeLocalId",
+        "waterfallLocalId",
+        "attemptLocalId",
+        "creativeLocalId",
+        "entryLocalId",
+        "verified",
+        "state"
+      ],
+      "properties": {
+        "nodeLocalId": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^[A-Za-z][A-Za-z0-9_-]{0,47}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "waterfallLocalId": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^[A-Za-z][A-Za-z0-9_-]{0,47}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "attemptLocalId": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^[A-Za-z][A-Za-z0-9_-]{0,47}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "creativeLocalId": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^[A-Za-z][A-Za-z0-9_-]{0,47}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "entryLocalId": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^[A-Za-z][A-Za-z0-9_-]{0,47}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "verified": {
+          "type": "boolean"
+        },
+        "state": {
+          "enum": [
+            "live",
+            "stale",
+            "terminal",
+            "unknown"
+          ]
+        }
+      }
+    },
+    "time": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "sourceClock",
+        "monotonicMs"
+      ],
+      "properties": {
+        "sourceClock": {
+          "enum": [
+            "synthetic-monotonic-ms",
+            "page-monotonic-ms",
+            "unknown"
+          ]
+        },
+        "monotonicMs": {
+          "anyOf": [
+            {
+              "type": "number",
+              "minimum": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "distribution",
+        "coreSha256",
+        "origin",
+        "fixtureVersion",
+        "cssModelVersion",
+        "configVersion",
+        "boundary",
+        "verified"
+      ],
+      "properties": {
+        "distribution": {
+          "enum": [
+            "_gam_kv_.js",
+            "IntextManager.js"
+          ]
+        },
+        "coreSha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "origin": {
+          "enum": [
+            "synthetic-fixture",
+            "unknown"
+          ]
+        },
+        "fixtureVersion": {
+          "type": "string",
+          "pattern": "^[A-Za-z][A-Za-z0-9_-]{0,47}$"
+        },
+        "cssModelVersion": {
+          "type": "string",
+          "pattern": "^[A-Za-z][A-Za-z0-9_-]{0,47}$"
+        },
+        "configVersion": {
+          "type": "string",
+          "pattern": "^[A-Za-z][A-Za-z0-9_-]{0,47}$"
+        },
+        "boundary": {
+          "enum": [
+            "native-fetch",
+            "native-auction",
+            "native-decision",
+            "guard-result",
+            "handoff",
+            "terminal",
+            "subattempt",
+            "unknown"
+          ]
+        },
+        "verified": {
+          "type": "boolean"
+        }
+      }
+    },
+    "guard": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "executed",
+        "eligible",
+        "reason",
+        "playerCreated"
+      ],
+      "properties": {
+        "executed": {
+          "type": "boolean"
+        },
+        "eligible": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "reason": {
+          "enum": [
+            "unknown",
+            "visible",
+            "below",
+            "passed",
+            "document-hidden",
+            "anchor-missing",
+            "geometry-unavailable",
+            "anchor-zero-or-invalid-size",
+            "anchor-not-rendered",
+            "outside-horizontal",
+            "guard-not-executed",
+            "stale",
+            "terminal"
+          ]
+        },
+        "playerCreated": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "anchorRect",
+        "viewport",
+        "documentVisibility"
+      ],
+      "properties": {
+        "anchorRect": {
+          "anyOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "left",
+                "top",
+                "width",
+                "height"
+              ],
+              "properties": {
+                "left": {
+                  "type": "number"
+                },
+                "top": {
+                  "type": "number"
+                },
+                "width": {
+                  "type": "number"
+                },
+                "height": {
+                  "type": "number"
+                }
+              }
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "viewport": {
+          "anyOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "width",
+                "height"
+              ],
+              "properties": {
+                "width": {
+                  "type": "number"
+                },
+                "height": {
+                  "type": "number"
+                }
+              }
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "documentVisibility": {
+          "enum": [
+            "visible",
+            "hidden",
+            "unknown"
+          ]
+        }
+      }
+    },
+    "facts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "initialWinner",
+        "winnerSource",
+        "terminal",
+        "relation"
+      ],
+      "properties": {
+        "initialWinner": {
+          "enum": [
+            "video",
+            "display",
+            "none",
+            "unknown"
+          ]
+        },
+        "winnerSource": {
+          "enum": [
+            "native-decision",
+            "preparation-descriptor",
+            "unknown"
+          ]
+        },
+        "terminal": {
+          "enum": [
+            "complete",
+            "timeout",
+            "error",
+            "disposed",
+            "abandoned",
+            null
+          ]
+        },
+        "relation": {
+          "enum": [
+            "initial",
+            "fallback",
+            "refresh",
+            "handoff",
+            "subattempt",
+            "unknown"
+          ]
+        }
+      }
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:intext:qa1b:packet:v1"
+}
