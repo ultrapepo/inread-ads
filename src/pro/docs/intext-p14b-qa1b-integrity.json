@@ -43,7 +43,7 @@
         "references": [
           "design 3.1",
           "matrix 2.1",
-          "plan G07-G15"
+          "plan G07-G16"
         ],
         "implemented": false
       },
@@ -53,7 +53,7 @@
         "references": [
           "design 7.1 and 8",
           "matrix 4.1",
-          "plan A01-A06 and 6"
+          "plan A01-A08 and 6"
         ],
         "implemented": false
       },
@@ -64,6 +64,17 @@
           "protectedBefore",
           "historicalReferenceComparison",
           "documentFiles"
+        ],
+        "implemented": false
+      },
+      {
+        "id": "review-revalidation-2026-11-13",
+        "change": "Clarify preparation descriptor provenance, execution/transport deduplication and unchanged per-rate conditions; preserve declared pre-existing .sty difference",
+        "references": [
+          "design 3.1 and 7.1",
+          "matrix 2.1 and 4.1",
+          "plan G13/G16/A07/A08",
+          "review.revalidation"
         ],
         "implemented": false
       }
@@ -105,7 +116,14 @@
       "exactRates": {
         "requires": "Complete coverage profile independently approved before constructing a new instance, full native identity and start-to-close coverage of the declared population, plus unchanged QA0 conditions per rate",
         "restrictedProfileDoesNotAuthorizeGlobalRates": true,
-        "partialReplayAllowed": false
+        "partialReplayAllowed": false,
+        "QA0Conditions": {
+          "videoOpportunityShare": "DvComplete && D0.yes > 0",
+          "controlObservedShare": "DcComplete && Dv.yes > 0",
+          "videoWithObservedFrame": "frameComplete && Dv.yes > 0",
+          "aggregateCoverageFlag": "D0Complete && DvComplete && DcComplete && frameComplete; individual rate denominators still apply",
+          "firstPassFrame": "value=null; exactRatesAllowed=false; temporal-coverage-not-implemented, including under a future approved complete profile"
+        }
       }
     },
     "plannedCases": {
@@ -124,9 +142,12 @@
         "A03",
         "A04",
         "A05",
-        "A06"
+        "A06",
+        "G16",
+        "A07",
+        "A08"
       ],
-      "totalDocumented": 49,
+      "totalDocumented": 52,
       "implemented": false,
       "executed": false
     },
@@ -135,16 +156,114 @@
       "protectedUnchanged": 360,
       "protectedChanged": [],
       "protectedMissing": [],
+      "baselineReference": "review.revalidation.baseline",
       "authorizedDocumentsChanged": 4,
       "otherBaselineFilesChanged": [],
       "newFilesCreated": 0,
       "sourceReferencesAccounted": 40,
       "unclassifiedGuardReferences": 0,
+      "preparationReferencesChecked": 10,
       "localMarkdownLinksChecked": 11,
       "documentUTF8FencesWhitespace": "PASS",
       "sourceReferenceAndHashChecks": "PASS",
       "runtimeTests": "NOT IMPLEMENTED OR EXECUTED",
       "acquisition": "NOT EXECUTED"
+    },
+    "revalidation": {
+      "date": "2026-11-13",
+      "status": "offline-corrections-awaiting-independent-review",
+      "independentApproval": false,
+      "baseline": {
+        "protectedOriginals": 360,
+        "derivedFrom": "protectedBefore with only the declared overrides below; captured before edits in this review",
+        "overrides": [
+          {
+            "file": "Indicar que dependencias tiene el core d.sty",
+            "bytes": 3940,
+            "sha256": "15c72d69032cc0e212b1501cdd78e9da78561b404c65165fe1a6d02efe16b660"
+          }
+        ],
+        "authorizedBeforeFiles": [
+          {
+            "file": "docs/intext-p14b-qa1b-acquisition-design.md",
+            "bytes": 49566,
+            "sha256": "25255b4dd6ee48235b6e1cabfdcc2d148a0b2237eb668db8930edbc7e05bd741"
+          },
+          {
+            "file": "docs/intext-p14b-qa1b-data-matrix.md",
+            "bytes": 19809,
+            "sha256": "026670df0765694b3dbcf39000bd6d5b8d104286dd13f35667e47d112e16d042"
+          },
+          {
+            "file": "docs/intext-p14b-qa1b-test-plan.md",
+            "bytes": 28330,
+            "sha256": "36c139dbac52828bce5ece4f2bad1ce4706c80f95b1fd4099eec4661190e02e4"
+          },
+          {
+            "file": "docs/intext-p14b-qa1b-integrity.json",
+            "bytes": 89320,
+            "sha256": "4f4ab0061dd619b9424a9a291e5e8b2cd91aa8bf7f4efeb279605dfbf886acc5"
+          }
+        ],
+        "originalBaselineMatches": 359,
+        "originalBaselineDifferences": 1
+      },
+      "historicalDifference": {
+        "file": "Indicar que dependencias tiene el core d.sty",
+        "alreadyPresentBeforeEdits": true,
+        "restored": false,
+        "explanation": "Current bytes differ from both prior QA1-B and QA1-A baselines. Cause not established; no byte or line-ending normalization applied."
+      },
+      "changes": [
+        "C4 preparation descriptor created by buildAndPlayVideo is not native initial-winner evidence",
+        "Separate original guard executions, retransmissions and distribution-local series",
+        "Document unchanged per-rate QA0 completeness and empty-denominator rules; firstPassFrame remains unimplemented",
+        "Refresh hashes and static references while preserving historical manifests and current 360 originals"
+      ],
+      "plannedCasesAdded": [
+        "G16",
+        "A07",
+        "A08"
+      ],
+      "plannedCasesExtended": [
+        "G13"
+      ],
+      "implemented": false,
+      "executed": false,
+      "previousVerification": {
+        "verifiedAt": "2026-10-31T11:02:19.646Z",
+        "protectedVerification": {
+          "checked": 360,
+          "unchanged": 360,
+          "changed": [],
+          "missing": [],
+          "QA1AArtifactsUnchanged": 15
+        },
+        "reviewVerification": {
+          "protectedChecked": 360,
+          "protectedUnchanged": 360,
+          "protectedChanged": [],
+          "protectedMissing": [],
+          "authorizedDocumentsChanged": 4,
+          "otherBaselineFilesChanged": [],
+          "newFilesCreated": 0,
+          "sourceReferencesAccounted": 40,
+          "unclassifiedGuardReferences": 0,
+          "localMarkdownLinksChecked": 11,
+          "documentUTF8FencesWhitespace": "PASS",
+          "sourceReferenceAndHashChecks": "PASS",
+          "runtimeTests": "NOT IMPLEMENTED OR EXECUTED",
+          "acquisition": "NOT EXECUTED"
+        }
+      },
+      "verification": {
+        "verifiedAt": "2026-11-13T12:58:58.828Z",
+        "plannedCasesDocumented": 52,
+        "protectedUnchanged": 360,
+        "documentHashesRefreshed": 3,
+        "sourceReferenceAndHashChecks": "PASS",
+        "localMarkdownLinksChecked": 11
+      }
     }
   },
   "protectedBefore": [
@@ -1949,7 +2068,7 @@
       "sha256": "05d32aea606a49cb3b218d303dc4fc3d8a5fa5d3de64eaa13fb37b379114850c"
     }
   ],
-  "verifiedAt": "2026-10-31T11:02:19.646Z",
+  "verifiedAt": "2026-11-13T12:58:58.828Z",
   "environment": {
     "node": "v25.8.1",
     "platform": "win32"
@@ -1959,7 +2078,8 @@
     "unchanged": 360,
     "changed": [],
     "missing": [],
-    "QA1AArtifactsUnchanged": 15
+    "QA1AArtifactsUnchanged": 15,
+    "baselineReference": "review.revalidation.baseline (protectedBefore plus declared overrides)"
   },
   "historicalReferenceComparison": {
     "reference": "docs/intext-p14b-qa1a-protected-before.json",
@@ -1980,12 +2100,13 @@
       }
     ],
     "preservedWithoutRestoration": true,
-    "meaning": "The single historical difference was already present in the QA1-B starting baseline; this task changed none of the 360 pre-existing files"
+    "meaning": "Historical QA1-A comparison retained from the prior review; its current field denotes bytes at that evaluation, not the 2026-11-13 workspace. See review.revalidation.baseline for current baseline overrides. No restoration.",
+    "evaluatedAt": "2026-10-31T11:02:19.646Z"
   },
   "sourceAudit": {
     "guardCallsiteInventory": {
       "reference": "docs/intext-p14b-qa1b-acquisition-design.md section 3.1; docs/intext-p14b-qa1b-data-matrix.md section 2.1",
-      "method": "Read-only static classification of every identifier reference and branch in both current source files; no source execution. MCP unavailable under approval policy never; local fallback.",
+      "method": "Read-only static classification of all guard/wait identifier-reference lines and branches in both source distributions, with hashes matched to frozen source bytes; no source execution. Graph results insufficient for current symbols; local fallback.",
       "primarySources": [
         "W2",
         "W3",
@@ -1994,7 +2115,7 @@
       ],
       "displaySource": "W1: raw Display, never primary video Dc; population facts only via scope=opportunity/control unknown without changing initial winner",
       "commonEngine": "W0 delegated to real caller; not an extra sample or opportunity",
-      "deduplication": "eventId transport; sampleSequence evaluations; document/navigation/slot/cycle opportunity; one first primary positive maximum; stale never rebound; unexecuted guard is not false",
+      "deduplication": "Each real execution has its own sampleSequence; retransmission preserves eventId/sequence and is not ingested twice; never deduplicate by value/caller/token. Opportunity=document/navigation/slot/cycle within a distribution-local series/instance; at most one first primary positive. Stale never rebound; unexecuted guard is not false.",
       "distributions": [
         {
           "file": "_gam_kv_.js",
@@ -2295,9 +2416,51 @@
       },
       {
         "file": "tests/qa/intext-p14b-shadow-ledger.cjs",
+        "line": 250,
+        "symbol": "const DvComplete",
+        "meaning": "Dv completeness depends on D0 completeness"
+      },
+      {
+        "file": "tests/qa/intext-p14b-shadow-ledger.cjs",
+        "line": 251,
+        "symbol": "const DcComplete",
+        "meaning": "Dc completeness depends on Dv completeness"
+      },
+      {
+        "file": "tests/qa/intext-p14b-shadow-ledger.cjs",
+        "line": 252,
+        "symbol": "const frameComplete",
+        "meaning": "Frame completeness depends on Dv and outcomes"
+      },
+      {
+        "file": "tests/qa/intext-p14b-shadow-ledger.cjs",
+        "line": 253,
+        "symbol": "function rate",
+        "meaning": "Per-rate denominator must be positive"
+      },
+      {
+        "file": "tests/qa/intext-p14b-shadow-ledger.cjs",
         "line": 254,
         "symbol": "exactRatesAllowed",
         "meaning": "Per-rate completeness and nonempty denominator"
+      },
+      {
+        "file": "tests/qa/intext-p14b-shadow-ledger.cjs",
+        "line": 264,
+        "symbol": "exactRatesAllowed",
+        "meaning": "Aggregate completeness flag does not replace per-rate denominator conditions"
+      },
+      {
+        "file": "tests/qa/intext-p14b-shadow-ledger.cjs",
+        "line": 266,
+        "symbol": "videoOpportunityShare",
+        "meaning": "Population and control rate formulas"
+      },
+      {
+        "file": "tests/qa/intext-p14b-shadow-ledger.cjs",
+        "line": 267,
+        "symbol": "videoWithObservedFrame",
+        "meaning": "Frame rate formula"
       },
       {
         "file": "tests/qa/intext-p14b-shadow-ledger.cjs",
@@ -2307,7 +2470,7 @@
       }
     ],
     "method": "Read-only inspection/textual comparison; no source execution",
-    "MCP": "list_projects rejected by approval policy never; local fallback",
+    "MCP": "list_projects/search_graph/search_code consulted. Available intext-pro index has obsolete symbol locations and misses the current readiness guard; direct local static inspection used for insufficient graph results. No repository files indexed or generated.",
     "comparisons": [
       {
         "symbol": "getReadinessViewportState",
@@ -2407,23 +2570,85 @@
       "managerDefaultMutedExplicit": false,
       "gamRevealInitialAnimationCall": true,
       "managerRevealInitialAnimationCall": false
-    }
+    },
+    "preparationProvenanceReferences": [
+      {
+        "file": "_gam_kv_.js",
+        "line": 11980,
+        "kind": "local-preparation-descriptor-not-native-winner",
+        "text": "if (!this.waterfall?._videoPreparation) this.waterfall?.setupVideoPreparation?.({ winner: \"video\" }, renderToken);"
+      },
+      {
+        "file": "_gam_kv_.js",
+        "line": 12785,
+        "kind": "indirect-preparation-eligibility-consumer",
+        "text": "if ((!entry.inZone || !entry.eligible()) && !entry.boundToken) entry.release(\"outside-preparation-zone\");"
+      },
+      {
+        "file": "_gam_kv_.js",
+        "line": 12826,
+        "kind": "indirect-preparation-eligibility-consumer",
+        "text": "if (lead && entry.eligible() && this.getLoadingDistancePx() <= Number(lead[1])) {"
+      },
+      {
+        "file": "_gam_kv_.js",
+        "line": 18422,
+        "kind": "indirect-preparation-eligibility-consumer",
+        "text": "for (const entry of entries) if (entry.busy && !entry.boundToken && (!entry.valid() || !entry.eligible())) entry.release(\"ineligible-standby\");"
+      },
+      {
+        "file": "_gam_kv_.js",
+        "line": 18423,
+        "kind": "indirect-preparation-eligibility-consumer",
+        "text": "const waiting = entries.filter(e => !e.busy && e.inZone && e.valid() && e.eligible())"
+      },
+      {
+        "file": "IntextManager.js",
+        "line": 10181,
+        "kind": "local-preparation-descriptor-not-native-winner",
+        "text": "if (!this.waterfall?._videoPreparation) this.waterfall?.setupVideoPreparation?.({ winner: \"video\" }, renderToken);"
+      },
+      {
+        "file": "IntextManager.js",
+        "line": 10986,
+        "kind": "indirect-preparation-eligibility-consumer",
+        "text": "if ((!entry.inZone || !entry.eligible()) && !entry.boundToken) entry.release(\"outside-preparation-zone\");"
+      },
+      {
+        "file": "IntextManager.js",
+        "line": 11027,
+        "kind": "indirect-preparation-eligibility-consumer",
+        "text": "if (lead && entry.eligible() && this.getLoadingDistancePx() <= Number(lead[1])) {"
+      },
+      {
+        "file": "IntextManager.js",
+        "line": 16052,
+        "kind": "indirect-preparation-eligibility-consumer",
+        "text": "for (const entry of entries) if (entry.busy && !entry.boundToken && (!entry.valid() || !entry.eligible())) entry.release(\"ineligible-standby\");"
+      },
+      {
+        "file": "IntextManager.js",
+        "line": 16053,
+        "kind": "indirect-preparation-eligibility-consumer",
+        "text": "const waiting = entries.filter(e => !e.busy && e.inZone && e.valid() && e.eligible())"
+      }
+    ]
   },
   "documentFiles": [
     {
       "file": "docs/intext-p14b-qa1b-acquisition-design.md",
-      "bytes": 49566,
-      "sha256": "25255b4dd6ee48235b6e1cabfdcc2d148a0b2237eb668db8930edbc7e05bd741"
+      "bytes": 52676,
+      "sha256": "20b0e9bb62add240d28f157f7088b785dd524767bb06bd24ecd718123ae60c25"
     },
     {
       "file": "docs/intext-p14b-qa1b-data-matrix.md",
-      "bytes": 19809,
-      "sha256": "026670df0765694b3dbcf39000bd6d5b8d104286dd13f35667e47d112e16d042"
+      "bytes": 21279,
+      "sha256": "832f9e577d4e219824fa27905d91d37bdc038c5d0fe364e58eb921cfc48408cf"
     },
     {
       "file": "docs/intext-p14b-qa1b-test-plan.md",
-      "bytes": 28330,
-      "sha256": "36c139dbac52828bce5ece4f2bad1ce4706c80f95b1fd4099eec4661190e02e4"
+      "bytes": 30013,
+      "sha256": "44bde8cce0be9b796df2308671af40af61948b4d31572cfe75dffb0ce3066fd9"
     }
   ],
   "requirements": [
@@ -2480,8 +2705,8 @@
   ],
   "validation": {
     "documentUTF8FencesWhitespaceLinks": "PASS",
-    "sourceReferences": "PASS",
-    "currentBeforeAfterHashes": "PASS",
+    "sourceReferences": "PASS - 40 guard/wait reference lines, 10 preparation provenance references, and ledger/supplementary symbols checked against frozen source hashes",
+    "currentBeforeAfterHashes": "PASS - 360 current originals unchanged against review.revalidation.baseline; prior baseline .sty difference declared, not restored",
     "historicalBaseline345": "344 matches, 1 pre-existing difference; not an all-match PASS",
     "newFilesInventory": "PASS - no new files; only the four authorized existing QA1-B documents updated",
     "implementationTests": "NOT EXECUTED - design only",

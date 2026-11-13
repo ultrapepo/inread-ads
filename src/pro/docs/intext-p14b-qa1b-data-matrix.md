@@ -4,6 +4,8 @@
 
 Revisión documental R1/R2 del **31/10/2026** (`r1-review-B`); pendiente de revisión independiente. La tabla de cambios del diseño y el [manifiesto](intext-p14b-qa1b-integrity.json) identifican el alcance: solo estos cuatro documentos, 360 originales conservados, sin implementación.
 
+Cotejo documental **13/11/2026**: se precisan descriptor local de preparación, muestras frente a retransmisiones y condiciones por tasa QA0. El manifiesto conserva los baselines previos y declara el estado inicial actual del `.sty`, sin modificarlo ni restaurarlo.
+
 ## 1. Separación de requisitos
 
 | Grupo / autoridad | B0 | B1–B3 con C0=true | Outcomes | Unknown/gap / prueba necesaria |
@@ -60,7 +62,7 @@ Autoridad exhaustiva: tablas GAM y Manager del diseño 3.1, con propósito, etap
 | C1 guard final activate | 16701 / 14542 | Nivel A condicional; tras espera, antes de crear player | Primera positiva única; un false posterior no borra un true previo |
 | C2 no-fill | 12289 / 10490 | Raw no-fill, etapa factual o unknown | Sin control primario, sin Dc |
 | C3 recordReadiness + C5 argumento deferred | 12712,16697 / 10913,14538 | Dos recomputaciones diagnósticas diferentes; raw según caller | Ninguna es resultado del guard de control ni crea Dc |
-| C4 entry.eligible | 12747 / 10948 | Raw preparación/proximidad visible/below, no activación | Entry/lease no crean C0 primario ni oportunidad |
+| C4 entry.eligible | 12747 / 10948 | Raw preparación/proximidad visible/below, no activación; descriptor local `{ winner: "video" }` no acredita winner inicial | Entry/lease no crean C0 primario ni oportunidad |
 | C6/C7/C8 recuperación | 16756,16783,16842 / 14597,14624,14683 | Raw post-player; attempt/epoch/media/manager propios | Sin Dc retrospectivo; short-circuit no ejecutado ≠ false |
 | C9 revealPlayer | 17512 / 15169 | Raw reveal/reintento, post-player | No Dc; revealed/terminal/stale pueden omitir guard |
 | C10 plugin-init / C11 player.ready | 18161,18341 / 15801,15971 | Raw activación posterior a creación de Video.js | No Dc pre-player ni reclasificación de etapa |
@@ -68,6 +70,8 @@ Autoridad exhaustiva: tablas GAM y Manager del diseño 3.1, con propósito, etap
 Para las cuatro fuentes primarias: identidad completa con generación nativa, formato vídeo/etapa/ownership acreditados y resultado original live son condiciones de admisión **de la muestra**. Un owner=null nativo de W2 no sustituye ni invalida el ownership Node/waterfall/intento. Un source con nombre de vídeo no acredita winner inicial Video por sí solo. Dc queda pendiente hasta conocer ese winner y nunca nace de Display. D0 procede de fronteras factuales de inicio, no de estos checks. sampleSequence identifica ejecuciones; eventId deduplica retransmisiones; documento/nav/slot/ciclo identifica oportunidad. Repetir false/true, cambiar de wait, creative o token, o transferir standby no crea otra oportunidad ni otra primera positiva. Una invalidación posterior al resultado se registra sin reescribir el hecho anterior. Si token/terminal/cortocircuito impiden ejecutar el método, guardar no ejecución cuando la frontera original permita observarla; si no existe tal evidencia, declarar gap/unknown, sin inventar false.
 
 W1 permanece raw Display. No ingiere scope=display en oportunidad de winner inicial Video ni se disfraza como control vídeo; ambas opciones alterarían la contabilidad primaria. Solo hechos poblacionales acreditados pueden proyectarse por separado con scope=opportunity/control primario unknown, conservando el winner inicial nativo, sin otro D0 ni otro ledger. Véase diseño 3.1 y G07.
+
+Cada sitio estático puede ejecutarse muchas veces. Dos checks originales con el mismo booleano son dos muestras; reenviar una de ellas conserva eventId/sampleSequence y no causa otro ingest. Caller, token y valor no son claves de deduplicación de muestras ni de oportunidades. GAM y Manager usan series/instancias separadas, aunque coincidan sus IDs locales. El descriptor local de buildAndPlayVideo (11980 / 10181) tampoco sustituye la generación nativa ni el winner necesario para Dv/Dc; véanse G13/G16.
 
 ## 3. Integridad de identidad / ownership
 
@@ -104,6 +108,8 @@ sourceComplete es inmutable por instancia QA0. El arranque inicial false no se c
 **Avance desde II**: informe por distribución/ruta que acredite funcionalmente el selector 2.1 y A, invariancia comercial, caminos soportados/no soportados, gaps/censuras explícitos —incluida ruta directa sin generación nativa— y presupuesto total medido conforme al plan 4–5. Revisión independiente y autorización expresa de siguiente etapa; B puede continuar insuficiente con tasas exactas prohibidas. Ninguna medición de esa puerta se realiza ahora. Coste inconcluso/excedido, evidencia A insuficiente o gap oculto bloquean el avance.
 
 **Pretensión de tasas exactas**: requiere otro perfil completo aprobado independientemente antes de instanciarlo, cobertura desde antes del primer hecho hasta cierre y condiciones de export QA0 por cada tasa/ámbito. No promocionar la instancia inicial ni hacer replay desde rings parciales; no rellenar episodios sin generación nativa. Si una ruta del ámbito no puede acreditarse, la tasa global sigue bloqueada. La aprobación funcional del productor y el presupuesto medido no sustituyen ese perfil poblacional.
+
+La autorización se especifica por campo: videoOpportunityShare requiere DvComplete y D0.yes>0; controlObservedShare requiere DcComplete y Dv.yes>0; videoWithObservedFrame requiere frameComplete y Dv.yes>0. Se mantienen las dependencias de completitud QA0 del diseño 7.1. El flag agregado coverage.exactRatesAllowed requiere las cuatro completitudes y no elimina la condición de denominador por tasa. firstPassFrame permanece temporal-coverage-not-implemented incluso bajo un futuro perfil completo. El primer perfil deja todas las tasas con value=null y exactRatesAllowed=false. Casos propuestos A07/A08, sin ejecución.
 
 Memoria combinada propuesta: 256 KiB / 64 resúmenes; 16+16 KiB de agregados QA0/adaptador; 512+1248 KiB de detalle QA0/packets; total 2048 KiB. 1000 entradas por ring, suma ≤2000 entradas, contando copias de detalle sin duplicar oportunidades. Registry/strings/recibos cuentan en su partición; heap/transitorios aparte. Falta verificar constructor/coste en implementación autorizada. No hay un segundo presupuesto independiente de 2 MiB.
 
