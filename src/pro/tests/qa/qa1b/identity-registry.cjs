@@ -2,12 +2,16 @@
 // Stage I supports branded empty fixture handles exclusively, never live DOM/SDK objects.
 const P=require('./packet.cjs');
 const handles=new WeakSet();
-const issued=new WeakSet();
+// A snapshot is a local producer capability. Neither it nor packet accreditation
+// survives a JSON copy; exported scalar identities are data, never credentials.
+const issued=new WeakMap();
 const registries=new WeakSet();
 function fixtureHandle(){const handle=Object.freeze(Object.create(null));handles.add(handle);return handle;}
-function createIdentityRegistry({budgetBytes=12288}={}){
+function createIdentityRegistry({budgetBytes=12288,distribution=null}={}){
   if(!Number.isSafeInteger(budgetBytes)||budgetBytes<0||budgetBytes>12288)throw new RangeError('registry-budget');
-  const aliases=new WeakMap(),attempts=new WeakMap(),nodes=new WeakMap();
+  if(distribution!==null&&!Object.hasOwn(P.CORES,distribution))throw new TypeError('registry-distribution');
+  const aliases=new WeakMap(),attempts=new WeakMap(),nodes=new WeakMap(),packets=new WeakMap();
+  let issuerDistribution=distribution;
   let next=0,chargedBytes=0,exhausted=false;
   function charge(value){const n=P.bytes(value);if(chargedBytes+n>budgetBytes){exhausted=true;throw new RangeError('registry-overflow');}chargedBytes+=n;}
   function alias(handle){
@@ -25,12 +29,15 @@ function createIdentityRegistry({budgetBytes=12288}={}){
     if(!node||!attempt||!handles.has(node)||!handles.has(attempt))throw new TypeError('node-attempt-required');
     const valid=Object.values(identity).filter(v=>v===null).length===0&&ownership.waterfallLocalId!==null;
     identity.verified=valid;identity.state=valid?'live':'unknown';ownership.verified=valid;ownership.state=identity.state;
-    // Compact scalar tuples stay in weak values; no object references in either direction.
+    // Compact scalar tuples and shared scalar leases; no DOM/SDK references in values.
     const record=[identity.documentLocalId,identity.navigationLocalId,identity.slotLocalId,identity.anchorLocalId,
       identity.cycleId,identity.fetchGeneration,identity.renderToken,ownership.waterfallLocalId,ownership.attemptLocalId,
-      ownership.creativeLocalId,ownership.entryLocalId,valid,identity.state];charge(record);attempts.set(attempt,record);
-    const current=[ownership.attemptLocalId,identity.renderToken,identity.state];
-    charge(current);nodes.set(node,current);
+      ownership.creativeLocalId,ownership.entryLocalId,valid,identity.state];charge(record);
+    // Charge the longer revoked boolean representation before publishing a lease.
+    const current=[ownership.attemptLocalId,identity.renderToken,identity.state,{active:false}];
+    charge(current);attempts.set(attempt,record);
+    const previous=nodes.get(node);if(previous)previous[3].active=false;
+    current[3].active=true;nodes.set(node,current);
     return snapshot({node,attempt});
   }
   function snapshot({node,attempt}){
@@ -42,26 +49,46 @@ function createIdentityRegistry({budgetBytes=12288}={}){
     const stale=current[0]!==out.ownership.attemptLocalId||current[2]==='stale';
     out.identity.state=stale?'stale':current[2];
     out.ownership.state=out.identity.state;
-    issued.add(out);return P.freeze(out);
+    const expectedIdentity=out.identity,expectedOwnership=out.ownership,lease=current[3];
+    issued.set(out,packet=>{
+      // No re-issuing invented identities/owners, even through the fixture factory.
+      const matches=(actual,expected)=>Object.keys(expected).every(key=>actual[key]===expected[key]);
+      if(!matches(packet.identity,expectedIdentity)||!matches(packet.ownership,expectedOwnership)
+        ||packet.provenance.origin!=='synthetic-fixture')return packet;
+      if(issuerDistribution===null)issuerDistribution=packet.provenance.distribution;
+      if(packet.provenance.distribution!==issuerDistribution)return packet;
+      // The immutable packet is a WEAK key. Its value references one shared,
+      // already-charged lease, not a new identity, digest, DOM handle or SDK object.
+      packets.set(packet,lease);return packet;
+    });
+    return P.freeze(out);
   }
   function handoff({node,attempt,creative,renderToken}){
     const r=attempts.get(attempt),n=nodes.get(node);
     if(!r||!n||n[0]!==r[8]||n[2]!=='live'||native(renderToken,0)===null||renderToken<n[1])throw new Error('stale-handoff');
     const out=[...r];out[6]=renderToken;out[9]=alias(creative);
     // Charge replacement conservatively too. No hidden reclamation or weak-key enumeration.
-    charge(out);attempts.set(attempt,out);nodes.set(node,[n[0],renderToken,n[2]]);return snapshot({node,attempt});
+    const current=[n[0],renderToken,n[2],{active:false}];
+    charge(out);charge(current);n[3].active=false;
+    attempts.set(attempt,out);current[3].active=true;nodes.set(node,current);return snapshot({node,attempt});
   }
   function retire({node,attempt,state='stale'}){
     if(!['stale','terminal'].includes(state))throw new TypeError('retirement-state');
     const r=attempts.get(attempt),n=nodes.get(node);
     if(!r||!n||n[0]!==r[8])throw new Error('stale-retirement');
-    nodes.set(node,[n[0],n[1],state]);return snapshot({node,attempt});
+    const current=[n[0],n[1],state,{active:false}];charge(current);n[3].active=false;
+    current[3].active=true;nodes.set(node,current);return snapshot({node,attempt});
   }
-  const stats=()=>({logicalChargedBytes:chargedBytes,budgetBytes,aliasesIssued:next,exhausted,physicalHeapMeasured:false});
-  const registry=Object.freeze({bind,snapshot,handoff,retire,stats});registries.add(registry);return registry;
+  function accredit(packet){
+    const lease=packets.get(packet);
+    return !lease?'unaccredited':exhausted?'authority-exhausted':lease.active?'current':'retired-owner';
+  }
+  const stats=()=>({logicalChargedBytes:chargedBytes,budgetBytes,aliasesIssued:next,exhausted,
+    issuerDistribution,packetAuthority:'local-fixture-object-v1',physicalHeapMeasured:false});
+  const registry=Object.freeze({bind,snapshot,handoff,retire,accredit,stats});registries.add(registry);return registry;
 }
 function fixturePacket(snapshot,overrides={}){
-  if(!issued.has(snapshot))throw new TypeError('registry-snapshot-required');
+  const certify=issued.get(snapshot);if(!certify)throw new TypeError('registry-snapshot-required');
   const seq=overrides.sampleSequence??1,distribution=overrides.distribution??'_gam_kv_.js';
   const p={schemaVersion:'qa1b-packet-v1',contractRevision:'r1-review-B',eventId:`e${seq}`,sampleSequence:seq,
     kind:'guard',caller:'W3',stage:'before-player',format:'video',...P.clone(snapshot),
@@ -71,8 +98,15 @@ function fixturePacket(snapshot,overrides={}){
     guard:{executed:true,eligible:true,reason:'visible',playerCreated:false},
     evidence:{anchorRect:null,viewport:null,documentVisibility:'unknown'},
     facts:{initialWinner:'unknown',winnerSource:'unknown',terminal:null,relation:'unknown'}};
-  for(const [key,value]of Object.entries(overrides))if(key!=='distribution')p[key]=value;
-  const result=P.validate(p);if(!result.valid)throw new TypeError(result.errors.join(';'));
-  return result.packet;
+  // Trusted synthetic producer composition, not an external import API. Invalid
+  // and inconsistent negative fixtures remain unaccredited for rejection tests.
+  function merge(base,changes,depth=0){
+    const out=P.clone(base);
+    for(const [key,value]of Object.entries(changes))if(depth!==0||key!=='distribution')out[key]=value&&typeof value==='object'
+      &&!Array.isArray(value)&&out[key]&&typeof out[key]==='object'?merge(out[key],value,depth+1):value;
+    return out;
+  }
+  const draft=merge(p,overrides),result=P.validate(draft);
+  return result.valid?certify(result.packet):draft;
 }
 module.exports={fixtureHandle,createIdentityRegistry,fixturePacket,isRegistry:value=>registries.has(value)};

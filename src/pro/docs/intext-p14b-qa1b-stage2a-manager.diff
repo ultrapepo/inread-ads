@@ -1,0 +1,233 @@
+warning: in the working copy of 'IntextManager.js', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'tests/qa/generated/qa1b-stage2a/manager.qa.js', LF will be replaced by CRLF the next time Git touches it
+diff --git a/IntextManager.js b/tests/qa/generated/qa1b-stage2a/manager.qa.js
+index e2dae8c..8da6681 100644
+--- a/IntextManager.js
++++ b/tests/qa/generated/qa1b-stage2a/manager.qa.js
+@@ -1,3 +1,11 @@
++// QA1-B II-A: INERT. No runtime endpoint or installation path.
++const __qa1b2a_intextmanager_js_ba832dc0eb3c = (function facade(endpoint) {
++  function tap(...args) { try { if (endpoint) endpoint(...args); } catch (_) { /* observation cannot affect the caller */ } }
++  function value(kind, value, ...args) { tap(kind, ...args, value); return value; }
++  function result(value, node, anchor) { tap('result', node, anchor, value); return value; }
++  function final(value, node, creative) { tap('control', node, 'C1', creative, value); return value; }
++  return Object.freeze({tap, value, result, final});
++})(null);
+ const GEXP_INTEXT_VERSION = "2026.10.07-p1-ima-preload-first-frame";
+ if (typeof window !== "undefined") window.__gexpIntextVersion = GEXP_INTEXT_VERSION;
+ const INtext_STYLE_ID = "gexp-intext-styles";
+@@ -4606,6 +4614,7 @@ class IntextPlacementEngine {
+     const searchRoot = rootElement || document;
+     const bodySelector = domConfig.articleBodySelector || '.ue-c-article__body';
+     this.articleBody = searchRoot.querySelector(bodySelector);
++    __qa1b2a_intextmanager_js_ba832dc0eb3c.tap('root', this, document, this.articleBody);
+ 
+     groupIntext('%c[IntextPlacementEngine] 🔍 DOM Discovery', 'color:#9C27B0;font-weight:bold');
+     if (this.articleBody) {
+@@ -4674,7 +4683,7 @@ class IntextPlacementEngine {
+     groupEndIntext();
+ 
+     logIntext(`%c[IntextPlacementEngine] ✅ ${placements.length} placement(s) resolved`, 'color:#4CAF50;font-weight:bold');
+-    return placements;
++    return __qa1b2a_intextmanager_js_ba832dc0eb3c.value('placements', placements, this);
+   }
+ 
+   evaluatePlacement(paragraphs, rule = [], startIndex = -1, slotCode = "gexp-intext") {
+@@ -5006,6 +5015,7 @@ class IntextNode {
+     this._intextPipLastExitPlayedPct = null;
+     this._intextPipPlaybackActive = false;
+     this._intextPipPlaybackSource = "unresolved";
++    __qa1b2a_intextmanager_js_ba832dc0eb3c.tap('node', this, manager, placement, document, navIndex);
+     if (window.gexpIntextDebug) {
+       intextDebugCollector.attachManager(this.manager);
+       intextDebugCollector.recordTimeline("created", { node: this, slotId: this.id });
+@@ -5843,6 +5853,7 @@ class IntextNode {
+     }
+     this._renderTokenSeq += 1;
+     this._activeRenderToken = this._renderTokenSeq;
++    __qa1b2a_intextmanager_js_ba832dc0eb3c.tap('token', this, this._activeRenderToken);
+     this._renderInProgress = true;
+     this._renderCompleted = false;
+     this._displayRequestInFlight = false;
+@@ -5906,6 +5917,7 @@ class IntextNode {
+     this._destroyedOrResetToken += 1;
+     this._renderTokenSeq += 1;
+     this._activeRenderToken = this._renderTokenSeq;
++    __qa1b2a_intextmanager_js_ba832dc0eb3c.tap('invalidate', this);
+     this._renderInProgress = false;
+     this._renderCompleted = false;
+     this._displayRequestInFlight = false;
+@@ -6527,14 +6539,14 @@ class IntextNode {
+ 
+   getIntextTelemetryElement() {
+     try {
+-      if (this.telemetryAnchor) return this.telemetryAnchor;
+-      if (this.placement?.paragraph) return this.placement.paragraph;
++      if (this.telemetryAnchor) return __qa1b2a_intextmanager_js_ba832dc0eb3c.value('anchor', this.telemetryAnchor, this);
++      if (this.placement?.paragraph) return __qa1b2a_intextmanager_js_ba832dc0eb3c.value('anchor', this.placement.paragraph, this);
+       const displayEl = this.container?.getElement?.() || null;
+       const videoEl = this.videoContainer?.getElement?.() || null;
+-      if (this.state === "video") return videoEl || displayEl;
+-      return displayEl || videoEl;
++      if (this.state === "video") return __qa1b2a_intextmanager_js_ba832dc0eb3c.value('anchor', videoEl || displayEl, this);
++      return __qa1b2a_intextmanager_js_ba832dc0eb3c.value('anchor', displayEl || videoEl, this);
+     } catch (e) {
+-      return null;
++      return __qa1b2a_intextmanager_js_ba832dc0eb3c.value('anchor', null, this);
+     }
+   }
+ 
+@@ -7464,6 +7476,7 @@ class IntextNode {
+   startIntextTelemetryCycle(trigger, extra = {}) {
+     this.teardownIntextViewportTelemetryObserver();
+     this._intextTelemetryCycleId += 1;
++    __qa1b2a_intextmanager_js_ba832dc0eb3c.tap('cycle', this, this._intextTelemetryCycleId);
+     if (typeof window !== "undefined" && window.gexpIntextDebug === true) {
+       this._intextDebugTimings = { cycleStartedAt: null, requestStartedAt: null, imaLoadedAt: null, startedAt: null, firstFrameAt: null, completedAt: null };
+       intextDebugCollector.recordMetric("cycle_started", {
+@@ -9705,9 +9718,9 @@ class IntextNode {
+ 
+   getReadinessViewportState() {
+     const anchor = this.getIntextTelemetryElement();
+-    if (!anchor || anchor.isConnected === false) return { eligible: false, reason: "anchor-missing", distancePx: null };
++    if (!anchor || anchor.isConnected === false) return __qa1b2a_intextmanager_js_ba832dc0eb3c.result({ eligible: false, reason: "anchor-missing", distancePx: null }, this, anchor);
+     const rect = anchor.getBoundingClientRect?.();
+-    if (!rect) return { eligible: false, reason: "geometry-unavailable", distancePx: null };
++    if (!rect) return __qa1b2a_intextmanager_js_ba832dc0eb3c.result({ eligible: false, reason: "geometry-unavailable", distancePx: null }, this, anchor);
+     const height = window.innerHeight || document.documentElement?.clientHeight || 0;
+     const width = window.innerWidth || document.documentElement?.clientWidth || 0;
+     const bottom = Number.isFinite(rect.bottom) ? rect.bottom : rect.top + rect.height;
+@@ -9725,8 +9738,8 @@ class IntextNode {
+     const visible = sized && rendered && overlapX > 0 && overlapY > 0;
+     const reason = hidden ? "document-hidden" : !sized ? "anchor-zero-or-invalid-size" : !rendered ? "anchor-not-rendered"
+       : bottom <= 0 ? "passed" : rect.top >= height ? "below" : overlapX === 0 ? "outside-horizontal" : "visible";
+-    return { eligible: !hidden && visible, reason, distancePx: Math.round(rect.top - height),
+-      intersectionRatio: sized && rendered ? (overlapX * overlapY) / (rect.width * rect.height) : 0 };
++    return __qa1b2a_intextmanager_js_ba832dc0eb3c.result({ eligible: !hidden && visible, reason, distancePx: Math.round(rect.top - height),
++      intersectionRatio: sized && rendered ? (overlapX * overlapY) / (rect.width * rect.height) : 0 }, this, anchor);
+   }
+ 
+   cancelViewportWaits(reason = "stale", owner = null) {
+@@ -9753,6 +9766,7 @@ class IntextNode {
+       const check = () => {
+         if (!this.isActiveRenderToken(renderToken, source)) return finish("stale");
+         const state = this.getReadinessViewportState();
++      __qa1b2a_intextmanager_js_ba832dc0eb3c.tap('wait', this, renderToken, source, owner, state);
+         if (state.reason === "anchor-missing") return finish("stale");
+         if (state.eligible) finish();
+       };
+@@ -10226,6 +10240,7 @@ class IntextNode {
+     creative.onVideoEnded = creativeOpts.onVideoEnded;
+     creative._preparationGuard = null;
+     this.activeCreative = creative;
++    __qa1b2a_intextmanager_js_ba832dc0eb3c.tap('creative', this, creative, renderToken);
+ 
+     try {
+       await creative.prepare();
+@@ -10940,6 +10955,7 @@ class IntextWaterfall {
+     const entry = { config, auction, createdAt: Date.now(), busy: false, inZone: false, generation: 0, boundToken: renderToken,
+       state: "STANDBY_UNBOUND" };
+     this._videoPreparation = entry;
++    __qa1b2a_intextmanager_js_ba832dc0eb3c.tap('preparation', this, this.node, auction, entry);
+     const pool = IntextVideoCreative._preparationEntries ||= new Map();
+     if (!renderToken) pool.set(this, entry);
+     entry.valid = () => this._videoPreparation === entry && this.getVideoPreparationConfig().enabled && this.config?.decision?.mode !== "display_only" && (entry.boundToken
+@@ -10948,7 +10964,7 @@ class IntextWaterfall {
+     entry.eligible = () => ["visible", "below"].includes(this.node.getReadinessViewportState().reason);
+     entry.distance = () => Math.max(0, this.getLoadingDistancePx() ?? Infinity);
+     entry.release = reason => {
+-      entry.generation++; clearTimeout(entry.leaseTimer); entry.leaseTimer = null;
++      entry.generation++; __qa1b2a_intextmanager_js_ba832dc0eb3c.tap('retire-entry', this, this.node, entry, entry.generation); clearTimeout(entry.leaseTimer); entry.leaseTimer = null;
+       entry.state = this._videoPreparation === entry ? "RELEASED" : "CANCELLED";
+       entry.creative?.destroy(); entry.creative = null; entry.promise = null; entry.busy = false;
+       // Re-arm only on a fresh proximity/visibility notification, not a retry loop.
+@@ -10960,11 +10976,13 @@ class IntextWaterfall {
+       entry.busy = true;
+       entry.state = entry.boundToken ? "RENDER_OWNED" : "STANDBY_UNBOUND";
+       const generation = ++entry.generation;
++      __qa1b2a_intextmanager_js_ba832dc0eb3c.tap('entry-start', this, this.node, entry, generation);
+       this.recordReadiness("video_prepare_triggered", { source: "preparation-margin", preparationRootMargin: config.preparationRootMargin,
+         preparationTriggerDistancePx: entry.distance(), winnerAgeMs: auction.timestamp != null ? Date.now() - auction.timestamp : null });
+       const creative = new IntextVideoCreative({ container: this.node.videoContainer, node: this.node, config: this.node.config,
+         preparationGuard: () => entry.valid() && entry.generation === generation });
+       entry.creative = creative;
++      __qa1b2a_intextmanager_js_ba832dc0eb3c.tap('prepared-creative', this, this.node, entry, creative, generation);
+       creative._preparationEntry = entry;
+       if (entry.boundToken) { creative._renderToken = entry.boundToken; creative._preparationGuard = null; }
+       entry.promise = creative.prepare().catch(error => {
+@@ -11009,6 +11027,7 @@ class IntextWaterfall {
+     const transferred = entry.state !== "RENDER_OWNED";
+     // Synchronous handoff: a queued standby timer also checks state and identity.
+     entry.boundToken = renderToken; entry.state = "RENDER_OWNED";
++    __qa1b2a_intextmanager_js_ba832dc0eb3c.tap('handoff', this, this.node, entry, renderToken);
+     if (entry.creative) { entry.creative._renderToken = renderToken; entry.creative._preparationGuard = null; }
+     clearTimeout(entry.leaseTimer); entry.leaseTimer = null;
+     entry.observer?.disconnect(); document.removeEventListener?.("visibilitychange", entry.visibility);
+@@ -11207,6 +11226,7 @@ class IntextWaterfall {
+   cleanup() {
+     this.cancelVideoPreparation?.("waterfall-cleanup");
+     this._fetchGeneration = (this._fetchGeneration || 0) + 1;
++    __qa1b2a_intextmanager_js_ba832dc0eb3c.tap('cleanup', this, this.node);
+     this.disconnectFetchObserver();
+     this.disconnectRenderObserver();
+     clearTimeout(this.timer);
+@@ -11247,6 +11267,7 @@ class IntextWaterfall {
+   async startFetch(trigger) {
+     if (this.fetchStarted) return;
+     const fetchGeneration = this._fetchGeneration = (this._fetchGeneration || 0) + 1;
++    __qa1b2a_intextmanager_js_ba832dc0eb3c.tap('fetch-begin', this, this.node, fetchGeneration);
+     this.fetchStarted = true;
+     this.fetchComplete = false;
+     this.fetchTrigger = trigger;
+@@ -11280,6 +11301,7 @@ class IntextWaterfall {
+     const effectiveMode = this.config.decision?.mode || "auto";
+     this._effectiveMode = effectiveMode;
+     this.node.startIntextTelemetryCycle(trigger);
++    __qa1b2a_intextmanager_js_ba832dc0eb3c.tap('fetch', this, this.node, fetchGeneration);
+     if (this._lastFetchExpiredBeforeRestart) {
+       this.mergeLoadingPhaseTelemetry({
+         "gexp-intext-fetch-restarted-after-expiry": "true",
+@@ -11316,6 +11338,7 @@ class IntextWaterfall {
+         timestamp: Date.now(),
+         ...decision,
+       };
++      __qa1b2a_intextmanager_js_ba832dc0eb3c.tap('winner', this, this.node, fetchGeneration, this.pendingAuction);
+       this.recordReadiness?.(decision?.winner === "video" ? "video_winner_resolved" : "intext_winner_resolved", { winnerFormat: decision?.winner || "none", durationMs: Date.now() - this.fetchStartAt });
+       this.setupVideoPreparation?.(this.pendingAuction);
+       if (decision?.winner === "video") {
+@@ -11522,6 +11545,7 @@ class IntextWaterfall {
+     this.prebidStarted = true;
+     const renderToken = this.node.beginVisualRender("auction_started", trigger);
+     this.node.startIntextTelemetryCycle(trigger);
++    __qa1b2a_intextmanager_js_ba832dc0eb3c.tap('legacy-auction', this, this.node);
+     this.node.mergeIntextTelemetry({
+       "gexp-intext-render-token": String(renderToken),
+       "gexp-intext-render-attempt": String(this.node._renderTokenSeq || 0),
+@@ -14539,9 +14563,10 @@ class IntextVideoCreative {
+       const state = await node.waitForViewport(this._renderToken, "video-activation", this);
+       if (state === "stale" || !this.preparationValid()) throw new Error("stale_render_token");
+     }
+-    if (node?.getReadinessViewportState && !node.getReadinessViewportState().eligible) throw new Error("video_activation_ineligible");
++    if (node?.getReadinessViewportState && !__qa1b2a_intextmanager_js_ba832dc0eb3c.final(node.getReadinessViewportState(), node, this).eligible) throw new Error("video_activation_ineligible");
+     node?.waterfall?.recordReadiness?.("video_activation_eligible");
+     node?.waterfall?.releasePreparedVideo?.(this);
++    __qa1b2a_intextmanager_js_ba832dc0eb3c.tap('player-build', node, this);
+     this.createPlayerForActivation();
+     this.observeActivationEligibility();
+     node?.waterfall?.recordReadiness?.("video_activation_started");
+@@ -16021,6 +16046,7 @@ class IntextVideoCreative {
+ 
+   abort() {
+     this._aborted = true;
++    __qa1b2a_intextmanager_js_ba832dc0eb3c.tap('retire-creative', this.node, this);
+     this.node?.cancelViewportWaits?.("stale", this);
+     this._eligibilityCleanup?.();
+     this.cleanupAdMediaObservation();
+@@ -16033,6 +16059,7 @@ class IntextVideoCreative {
+   destroy() {
+     if (this._destroyed) return;
+     this._destroyed = true;
++    __qa1b2a_intextmanager_js_ba832dc0eb3c.tap('retire-creative', this.node, this);
+     if (this._preparationEntry?.state === "ACTIVATED") this._preparationEntry.state = "RELEASED";
+     this.node?.cancelViewportWaits?.("stale", this);
+     this._eligibilityCleanup?.();

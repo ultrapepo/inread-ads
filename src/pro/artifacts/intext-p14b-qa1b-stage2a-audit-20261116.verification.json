@@ -1,0 +1,152 @@
+{
+  "status": "PASS",
+  "archive": "C:\\Users\\pedro.ramos\\Documents\\workspace\\develop\\interstitial\\intext\\inread ads\\src\\pro\\artifacts\\intext-p14b-qa1b-stage2a-audit-20261116.zip",
+  "bytes": 452105,
+  "sha256": "6e0f205204d550b4dfd4c9d1cb6456f9cac8f95815827bfff59c39b24969f70f",
+  "manifestSha256": "6eeda91394cde838afe8f3d3176358e1bc9aa7e74492d21e1d7658abf8ea7901",
+  "expectedEntries": [
+    {
+      "file": "docs/intext-p14b-qa1b-stage2a-before.json",
+      "bytes": 67865,
+      "sha256": "1301b4bfdcbc77be24a8609d9903e1f56ab33ba815b39f18ee245633f6aaf7a9"
+    },
+    {
+      "file": "docs/intext-p14b-qa1b-stage2a-review.md",
+      "bytes": 16376,
+      "sha256": "498002aa51bea8da63a38a86938ec9554a7eea27917ae771f92eb3f7449414cd"
+    },
+    {
+      "file": "docs/intext-p14b-qa1b-stage2a-browser-protocol.md",
+      "bytes": 3435,
+      "sha256": "55652d55b8f590f0f4411f25f04944dc851479c899ca9cc0274db2ed5661e16c"
+    },
+    {
+      "file": "docs/intext-p14b-qa1b-stage2a-validation.txt",
+      "bytes": 27009,
+      "sha256": "a30aee31c598ac522f6326a987d0b59ba8602ff733ed805aed48db98a1a8ec28"
+    },
+    {
+      "file": "docs/intext-p14b-qa1b-stage2a-stage1-validation.txt",
+      "bytes": 15343,
+      "sha256": "76b45a6487574cdb60ee08784e9015af7e1caec85abdbfa46fa1a48130a6021d"
+    },
+    {
+      "file": "docs/intext-p14b-qa1b-stage2a-frozen-validation.txt",
+      "bytes": 28729,
+      "sha256": "0e2d461bb8794070c37e7b82d53e4256a061125b7c28410a1c1e87a5612920f1"
+    },
+    {
+      "file": "docs/intext-p14b-qa1b-stage2a-results.json",
+      "bytes": 2184,
+      "sha256": "a0ecd52062317bd384cbce8feec0cf23698f6f7d05ad69b17504c39e4c69fab0"
+    },
+    {
+      "file": "docs/intext-p14b-qa1b-stage2a-effects.json",
+      "bytes": 47156,
+      "sha256": "f358c28cffd167cbc6902f314b975f4afc673ca12df7934aeb01eaeea7342310"
+    },
+    {
+      "file": "docs/intext-p14b-qa1b-stage2a-evidence.json",
+      "bytes": 11269,
+      "sha256": "c00c82f91e88087b86bfb3d208d92c59ef4765d723cb8b55ee0eacaa66600f7b"
+    },
+    {
+      "file": "docs/intext-p14b-qa1b-stage2a-native-export.json",
+      "bytes": 30591,
+      "sha256": "fe78af3d917ee7747d996ade3b15897fc69b301837da2b903f464dd6642c3182"
+    },
+    {
+      "file": "docs/intext-p14b-qa1b-stage2a-copies.json",
+      "bytes": 260897,
+      "sha256": "736b44563fe4717ecd7e4351a2079dc451456be88fc64ebe3987236e3b4df615"
+    },
+    {
+      "file": "docs/intext-p14b-qa1b-stage2a-gam.diff",
+      "bytes": 16753,
+      "sha256": "6f0c0d2ccc6887f2e0d15572b3e19200d8bc87858bcb7983fe548ca1fdb4f35b"
+    },
+    {
+      "file": "docs/intext-p14b-qa1b-stage2a-manager.diff",
+      "bytes": 14654,
+      "sha256": "2e16e88216466b5947b22c92792d55497463af390ff6482a4e5df2d51d1a9068"
+    },
+    {
+      "file": "tests/intext-p14b-qa1b-stage2a.test.cjs",
+      "bytes": 24129,
+      "sha256": "5af95580b803b8b15f062beb1913286dd750a12bba988b802cba0fa4596ac64c"
+    },
+    {
+      "file": "tests/qa/qa1b2a/audit.cjs",
+      "bytes": 8603,
+      "sha256": "b52d2033b2bb19c176ea2e0ced181e297d728fbe875b02913ae26f70eb54e68b"
+    },
+    {
+      "file": "tests/qa/qa1b2a/facade.cjs",
+      "bytes": 700,
+      "sha256": "9a73e089c76bcd299fe723df64de0f1b453ae5a640349ba96533b4aed802ebec"
+    },
+    {
+      "file": "tests/qa/qa1b2a/generator.cjs",
+      "bytes": 8970,
+      "sha256": "70c4d1736a96d0e31ee6055055b1e666545b25a48c9adb5d92efafd724d67150"
+    },
+    {
+      "file": "tests/qa/qa1b2a/harness.cjs",
+      "bytes": 8441,
+      "sha256": "b69c08f81b30e403cebb9d91c99fe81504ebd3594d222e875371e85b3de27677"
+    },
+    {
+      "file": "tests/qa/qa1b2a/native.cjs",
+      "bytes": 20610,
+      "sha256": "7bab3ed1a656e095f85a600e4feb33f78909ea9a38eb6cd06c97ae51b3533f18"
+    },
+    {
+      "file": "tests/qa/qa1b2a/native-schema.cjs",
+      "bytes": 2950,
+      "sha256": "4b6e874e2ff1d22b2fa6aab29852e2790811b80127a6a7cbd606656df1859297"
+    },
+    {
+      "file": "tests/qa/generated/qa1b-stage2a/gam.qa.js",
+      "bytes": 867853,
+      "sha256": "82712fd8317a9de8878c0934e503362bca8a7944c6723209a0e408f0d7cecf78"
+    },
+    {
+      "file": "tests/qa/generated/qa1b-stage2a/manager.qa.js",
+      "bytes": 699958,
+      "sha256": "2fa180905972b432a14442bafeaf0d911a71724569b19f7580b03c6c9d2bb7df"
+    },
+    {
+      "file": "docs/intext-p14b-qa1b-stage2a-integrity.json",
+      "bytes": 71778,
+      "sha256": "6eeda91394cde838afe8f3d3176358e1bc9aa7e74492d21e1d7658abf8ea7901"
+    },
+    {
+      "file": "AUDIT-INDEX.json",
+      "bytes": 4379,
+      "sha256": "d7e3d228016c5a82ed9f7b0b7a274f1514174b4e580384f67b5fac98808da347"
+    },
+    {
+      "file": "AUDIT-COMMANDS.txt",
+      "bytes": 2344,
+      "sha256": "7c31b397375cf14ae91960abb9591a6eeb46f15fc6ee797884e70132607036b1"
+    }
+  ],
+  "protectedFilesVerifiedBeforeAndAfter": 386,
+  "stageFilesVerifiedBeforeAndAfter": 23,
+  "existingProjectFilesModified": 0,
+  "regeneratedCopies": 0,
+  "suitesReexecuted": false,
+  "retainedResults": {
+    "stage2a": "106 PASS / 0 FAIL",
+    "stage1": "57 PASS / 0 FAIL",
+    "frozen": "108 PASS / 2 historical FAIL"
+  },
+  "independentReader": "System.IO.Compression.ZipFile (.NET)",
+  "reopenedEntriesVerified": 25,
+  "safeUniqueRelativePaths": true,
+  "extractedAndVerified": 25,
+  "temporaryExtractionDirectory": "C:\\Users\\pedro.ramos\\Documents\\workspace\\develop\\interstitial\\intext\\inread ads\\src\\pro\\artifacts\\.qa1b2a-package-check-b5c187dc9f0848c485e2a22c3ce87263",
+  "temporaryExtractionRemoved": true,
+  "finalSourceHashesVerified": 409,
+  "finalArchiveHashVerified": true
+}

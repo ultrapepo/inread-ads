@@ -92,9 +92,11 @@ const bytes=x=>Buffer.byteLength(JSON.stringify(x),'utf8');
 const digest=x=>createHash('sha256').update(JSON.stringify(x)).digest('hex');
 function completeIdentity(i){return i.verified&&i.state==='live'&&i.renderToken===i.activeRenderToken
   &&['documentLocalId','navigationLocalId','slotLocalId','anchorLocalId','cycleId','fetchGeneration','renderToken','activeRenderToken'].every(k=>i[k]!==null);}
-function select(packet){
+// Policy selection needs a separate trusted registry decision. Packet flags and
+// successful schema validation alone never grant primary admission.
+function select(packet,registryAccredited=false){
   const p=packet,owner=p.ownership;
-  const verified=completeIdentity(p.identity)&&owner.verified&&owner.state==='live'&&owner.nodeLocalId===p.identity.slotLocalId
+  const verified=registryAccredited===true&&completeIdentity(p.identity)&&owner.verified&&owner.state==='live'&&owner.nodeLocalId===p.identity.slotLocalId
     &&owner.waterfallLocalId!==null&&owner.attemptLocalId!==null&&p.provenance.verified&&p.provenance.origin==='synthetic-fixture';
   const primary=p.kind==='guard'&&PRIMARY.includes(p.caller)&&p.stage==='before-player'&&p.format==='video'
     &&p.guard.playerCreated===false&&p.guard.executed&&p.provenance.boundary==='guard-result'

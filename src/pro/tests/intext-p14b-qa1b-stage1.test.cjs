@@ -66,8 +66,10 @@ for(const distribution of distributions){
     const s=F.session(distribution);s.start();
     for(const caller of ['W3','W4','C1'])s.send({caller});
     assert(!read(s).entries.some(e=>e.packet.caller==='W2'));
-    assert.equal(s.send({caller:'W2',ownership:{creativeLocalId:null}}).acceptanceA,'valid');
-    assert.equal(s.send({caller:'W3',ownership:{creativeLocalId:null}}).acceptanceA,'not-admitted');
+    const unprepared=F.session(distribution,{withoutCreative:true});unprepared.start();
+    assert.equal(unprepared.send({caller:'W2'}).acceptanceA,'valid');
+    assert.equal(unprepared.send({caller:'W3'}).acceptanceA,'not-admitted');
+    assert.deepEqual(totals(unprepared),[1,1,1]);
     assert.deepEqual(totals(s),[1,1,1]);
   });
   test(`[G11] ${distribution}: unexecuted, missing anchor, disconnected identifiable anchor and stale`,()=>{
@@ -76,7 +78,8 @@ for(const distribution of distributions){
     assert.equal(skipped.candidateB0,'unknown');
     assert.equal(s.send({guard:{eligible:false,reason:'anchor-missing'},identity:{anchorLocalId:null,verified:false}}).acceptanceA,'not-admitted');
     assert.equal(s.send({guard:{eligible:false,reason:'anchor-missing'}}).candidateB0,'fail');
-    const stale=s.packet({identity:{state:'stale',activeRenderToken:2},ownership:{state:'stale'}});
+    const staleSnapshot=s.registry.retire({...s.objects,state:'stale'});
+    const stale=R.fixturePacket(staleSnapshot,{distribution,sampleSequence:6});
     assert.equal(s.adapter.ingest(stale).acceptanceA,'not-admitted');
     assert.equal(read(s).entries.at(-1).packet.identity.renderToken,1);assert.deepEqual(totals(s),[1,1,0]);
     const invalid=s.packet({guard:{executed:false,eligible:false}});assert.equal(s.adapter.ingest(invalid).reason,'invalid-packet');
@@ -104,7 +107,7 @@ for(const distribution of distributions){
     const p=s.packet(),a=s.adapter.ingest(p),b=s.send({});
     assert.notEqual(a.sampleSequence,b.sampleSequence);assert.equal(a.opportunityId,b.opportunityId);
     assert.equal(s.adapter.ingest(p).duplicate,true);assert.equal(read(s).qa0.snapshots.length,4);
-    assert.equal(s.adapter.ingest(F.merge(p,{guard:{eligible:false}})).reason,'event-sequence-conflict');
+    assert.equal(s.adapter.ingest(s.packet({sampleSequence:p.sampleSequence,eventId:p.eventId,guard:{eligible:false}})).reason,'event-sequence-conflict');
     for(let i=0;i<5;i++)s.send({});
     assert.equal(s.adapter.ingest(p).reason,'retired-sequence');assert.deepEqual(totals(s),[1,1,1]);
     assert.equal(read(s).metadata.counts.duplicates,1);assert.equal(read(s).metadata.counts.retiredSequences,1);
@@ -131,11 +134,16 @@ test('[I02 D06] native handoff preserves opportunity, tokenReplaced and original
   const old=s.registry.snapshot({...s.objects,attempt:oldAttempt});assert.equal(old.identity.state,'stale');assert.equal(old.identity.fetchGeneration,1);
   assert.equal(old.identity.renderToken,1);assert.equal(old.identity.activeRenderToken,2);
 });
-test('[I03 I04 A02] missing native generation/anchor/root remains raw unknown with permanent gap',()=>{
+test('[I03 I04 A02] invented identity edits are rejected; native missing generation remains raw unknown with gap',()=>{
   for(const fields of [{fetchGeneration:null},{anchorLocalId:null},{navigationLocalId:null},{documentLocalId:null},{cycleId:null}]){
     const s=F.session();s.start();const p=s.packet({identity:{...fields,verified:false}}),r=s.adapter.ingest(p);
     assert.equal(r.acceptanceA,'not-admitted');assert(read(s).qa0.coverage.gaps.D0);
-    assert.equal(read(s).entries.at(-1).packet.identity[Object.keys(fields)[0]],null);assert.deepEqual(totals(s),[1,1,0]);
+    assert.equal(r.reason,'registry-unaccredited');assert.equal(read(s).entries.length,2);assert.deepEqual(totals(s),[1,1,0]);
+  }
+  for(const field of ['fetchGeneration','cycleId']){
+    const raw=F.session('_gam_kv_.js',{binding:{[field]:null}}),incomplete=raw.packet();
+    assert.equal(raw.registry.accredit(incomplete),'current');assert.equal(raw.adapter.ingest(incomplete).candidateB0,'unknown');
+    assert.equal(read(raw).entries[0].packet.identity[field],null);assert(read(raw).qa0.coverage.gaps.D0);
   }
   const registry=R.createIdentityRegistry(),o=Object.fromEntries(['document','navigation','node','waterfall','anchor','attempt'].map(k=>[k,R.fixtureHandle()]));
   const missing=registry.bind({...o,cycleId:1,renderToken:7});assert.equal(missing.identity.fetchGeneration,null);assert.equal(missing.identity.verified,false);
@@ -221,7 +229,8 @@ test('[A04] measured functional exit is distinct from population completeness an
 test('[A06] partial retained detail cannot be replayed as a new complete population',()=>{
   const s=F.session('_gam_kv_.js',{adapterOptions:{limits:{packetEntries:1}}});s.start();s.send({});
   const e=read(s),other=F.session();for(const entry of e.entries)other.adapter.ingest(entry.packet);
-  assert.equal(read(other).qa0.totals.D0.yes,0);assert.equal(read(other).qa0.totals.D0.unknown,1);
+  assert.equal(read(other).qa0.totals.D0.yes,0);assert.equal(read(other).qa0.totals.D0.unknown,0);
+  assert.equal(read(other).qa0.summaries.length,0);
   assert.equal(read(other).qa0.coverage.exactRatesAllowed,false);assert(read(other).qa0.coverage.gaps.D0);
 });
 test('[A07 A08] independent direct QA0 oracles: per-rate denominators, outcome coverage and firstPassFrame',()=>{
@@ -239,7 +248,7 @@ test('[A07 A08] independent direct QA0 oracles: per-rate denominators, outcome c
 test('[X01] export is manual, detached, bounded, repeatable, free of injected fields and does not reset',()=>{
   const s=F.session();s.start();const p=s.packet();s.adapter.ingest(p);
   const a=read(s),b=read(s);assert.deepEqual(a,b);a.entries[0].packet.identity.documentLocalId='mutated';assert.deepEqual(read(s),b);
-  p.guard.eligible=false;assert.equal(read(s).entries.at(-1).packet.guard.eligible,true);
+  assert.throws(()=>{p.guard.eligible=false;},TypeError);assert.equal(read(s).entries.at(-1).packet.guard.eligible,true);
   assert.equal(s.adapter.serializeManual({maxBytes:1}).status,'export-too-large');assert.equal(s.adapter.serializeManual({maxBytes:1}).json,null);
   const serialized=s.adapter.serializeManual();assert.equal(serialized.status,'ok');assert.equal(serialized.bytes,Buffer.byteLength(serialized.json));
   assert.deepEqual(JSON.parse(serialized.json),b);
@@ -249,7 +258,7 @@ test('[X01] export is manual, detached, bounded, repeatable, free of injected fi
 });
 test('[X02 T01] schema, provenance, accessor and event/sequence conflicts fail closed without reading getters',()=>{
   const s=F.session();let reads=0;
-  const p=s.packet();Object.defineProperty(p,'cookie',{get(){reads++;throw Error('getter');},enumerable:true});
+  const p=P.clone(s.packet());Object.defineProperty(p,'cookie',{get(){reads++;throw Error('getter');},enumerable:true});
   assert.equal(s.adapter.ingest(p).reason,'invalid-packet');assert.equal(reads,0);
   for(const changes of [{caller:'video_like_unknown'},{schemaVersion:'p14b-shadow-sample-v1'},{eventId:'e999'},
     {provenance:{coreSha256:'0'.repeat(64)}},{time:{monotonicMs:NaN}},{identity:{fetchGeneration:0}}]){
@@ -263,7 +272,7 @@ test('[I03 G11 X02] executable contract matches published schema and preserves u
   const s=F.session();const p=s.packet();assert.equal(P.validate(p).valid,true);
   const unknown=F.merge(p,{identity:{fetchGeneration:null,verified:false,state:'unknown'},ownership:{verified:false,state:'unknown'},time:{monotonicMs:null}});
   assert.equal(P.validate(unknown).valid,true);const receipt=s.adapter.ingest(unknown);assert.equal(receipt.candidateB0,'unknown');
-  assert.equal(read(s).entries[0].packet.identity.fetchGeneration,null);
+  assert.equal(receipt.reason,'registry-unaccredited');assert.equal(read(s).entries.length,0);
   for(const changes of [{identity:{cycleId:'1'}},{caller:'W0'},{identity:{renderToken:-1}},{guard:{eligible:'true'}},{guard:{executed:true,eligible:null}}])assert.equal(P.validate(F.merge(p,changes)).valid,false);
   const nested=F.merge(p,{});let reads=0;Object.defineProperty(nested.guard,'eligible',{get(){reads++;return true;},enumerable:true});
   assert.equal(P.validate(nested).valid,false);assert.equal(reads,0);
@@ -280,7 +289,7 @@ test('[D02 X03] missing sequence, source clock mismatch and monotonic regression
   assert.equal(s.send({time:{monotonicMs:0}}).reason,'unknown-or-regressed-clock');
   assert.equal(s.send({time:{sourceClock:'page-monotonic-ms'}}).reason,'series-or-clock-mismatch');
   assert.throws(()=>s.adapter.close(0),RangeError);assert.throws(()=>F.session('_gam_kv_.js',{adapterOptions:{sourceClock:'page-monotonic-ms'}}),/synthetic-clock/);
-  const raw=F.session();raw.start();raw.send({identity:{verified:false,fetchGeneration:null},time:{monotonicMs:500}});
+  const raw=F.session('_gam_kv_.js',{binding:{fetchGeneration:null}});raw.send({time:{monotonicMs:500}});
   assert.throws(()=>raw.adapter.close(499),RangeError);raw.adapter.close(500);assert.equal(read(raw).qa0.windowEndMs,500);
 });
 test('[X03] missing sink and data errors invoke no browser/network/timer/commercial function',()=>{
@@ -364,6 +373,107 @@ test('[D01 D03 G07 G08] mixed native trace agrees with independent opportunity-s
   }
   assert.deepEqual(totals(s),traceOracle(events));assert.deepEqual(totals(s),[12,8,4]);
 });
+
+// Independent audit finding I-01: aliases/flags are not source authentication.
+for(const distribution of distributions){
+  test('[I-01/a] '+distribution+': equal aliases and byte-identical foreign packets cannot borrow admission or duplicate receipts',()=>{
+    const a=F.session(distribution),b=F.session(distribution);a.start();b.start();
+    const foreign=a.packet(),own=b.packet();assert.deepEqual(foreign,own);
+    assert.equal(P.validate(foreign).valid,true);assert.equal(P.select(foreign).primary,false);
+    assert.equal(b.registry.accredit(foreign),'unaccredited');assert.equal(b.registry.accredit(own),'current');
+    const original=read(b),rejected=b.adapter.ingest(foreign);
+    assert.deepEqual([rejected.accepted,rejected.acceptanceA,rejected.candidateB0,rejected.opportunityId],[false,'not-admitted','unknown',null]);
+    assert.equal(rejected.reason,'registry-unaccredited');assert.deepEqual(totals(b),[1,1,0]);
+    assert.equal(read(b).metadata.lastSequence,original.metadata.lastSequence);assert.equal(read(b).metadata.lastTime,original.metadata.lastTime);
+    assert.equal(read(b).qa0.snapshots.length,original.qa0.snapshots.length);assert.equal(read(b).qa0.summaries[0].firstControlAt,null);
+    assert(read(b).qa0.coverage.gaps.D0);assert(read(b).qa0.coverage.gaps.Dv);assert(read(b).qa0.coverage.gaps.Dc);
+    assert.equal(b.adapter.ingest(own).candidateB0,'pass');const first=read(b).qa0.summaries[0].firstControlAt;
+    assert.equal(b.adapter.ingest(foreign).duplicate,false);assert.equal(b.adapter.ingest(own).duplicate,true);
+    assert.deepEqual(totals(b),[1,1,1]);assert.equal(read(b).qa0.summaries[0].firstControlAt,first);
+  });
+  test('[I-01/b] '+distribution+': foreign fetch/winner/guard/handoff/terminal cannot create any population',()=>{
+    for(const kind of ['fetch','winner','guard','handoff','terminal']){
+      const a=F.session(distribution),b=F.session(distribution);
+      const p=a.packet({kind,facts:{initialWinner:'video',winnerSource:'native-decision',terminal:kind==='terminal'?'complete':null}});
+      assert.equal(b.adapter.ingest(p).reason,'registry-unaccredited');assert.deepEqual(totals(b),[0,0,0]);
+      const e=read(b);assert.equal(e.qa0.summaries.length,0);assert.equal(e.qa0.snapshots.length,0);
+      assert.equal(e.metadata.lastSequence,0);assert.equal(e.metadata.lastTime,null);assert(e.qa0.coverage.gaps.D0);
+      b.start();assert.equal(b.send({}).acceptanceA,'valid');assert.deepEqual(totals(b),[1,1,1]);
+    }
+  });
+  test('[I-01/c] '+distribution+': invented JSON and fixture-owner edits stay unaccredited despite all verified flags',()=>{
+    const s=F.session(distribution),own=s.packet();
+    const forged=P.clone(own);Object.assign(forged.identity,{navigationLocalId:'inventedNav',slotLocalId:'inventedNode',anchorLocalId:'inventedAnchor',verified:true});
+    Object.assign(forged.ownership,{nodeLocalId:'inventedNode',waterfallLocalId:'inventedWaterfall',attemptLocalId:'inventedAttempt',creativeLocalId:'inventedCreative',verified:true});
+    forged.provenance.verified=true;
+    for(const p of [forged,P.clone(own),P.validate(own).packet,s.packet({identity:{anchorLocalId:'inventedAnchor',verified:true}}),
+      s.packet({ownership:{attemptLocalId:'inventedAttempt',verified:true}})]){
+      assert.equal(P.validate(p).valid,true);assert.equal(s.adapter.ingest(p).reason,'registry-unaccredited');
+      assert.deepEqual(totals(s),[0,0,0]);assert.equal(read(s).qa0.summaries.length,0);
+    }
+    assert.throws(()=>R.fixturePacket(P.clone(s.current())),/registry-snapshot/);
+    const missing=F.session(distribution,{binding:{fetchGeneration:null}});
+    const promoted=missing.packet({identity:{fetchGeneration:1,verified:true,state:'live'},ownership:{verified:true,state:'live'}});
+    assert.equal(P.validate(promoted).valid,true);assert.equal(missing.adapter.ingest(promoted).reason,'registry-unaccredited');
+    assert.deepEqual(totals(missing),[0,0,0]);
+  });
+  test('[I-01/d] '+distribution+': own immutable packet, retransmission and distinct execution preserve public correlation and export format',()=>{
+    const s=F.session(distribution);s.start();const first=s.packet(),r1=s.adapter.ingest(first),r2=s.adapter.ingest(first),second=s.packet(),r3=s.adapter.ingest(second);
+    assert.equal(r1.acceptanceA,'valid');assert.equal(r1.candidateB0,'pass');assert.equal(r2.duplicate,true);
+    assert.equal(r3.duplicate,false);assert.notEqual(first.sampleSequence,second.sampleSequence);assert.equal(r1.opportunityId,r3.opportunityId);
+    assert.equal(Object.isFrozen(first),true);assert.equal(Object.isFrozen(first.identity),true);assert.equal(Object.getOwnPropertySymbols(first).length,0);
+    assert.equal(read(s).qa0.snapshots.length,4);assert.deepEqual(totals(s),[1,1,1]);
+    const exported=JSON.parse(s.adapter.serializeManual().json),p=exported.entries.at(-1).packet;
+    assert.equal(P.validate(p).valid,true);assert.deepEqual(Object.keys(p),Object.keys(second));
+    assert.equal(s.adapter.ingest(p).reason,'registry-unaccredited');assert.equal(read(s).qa0.snapshots.length,4);
+    memoryCheck(read(s));
+  });
+  test('[I-01/e] '+distribution+': navigation, handoff, same-token creative replacement and owner retirement revoke pending packets',()=>{
+    for(const transition of ['navigation','handoff','creative-replacement','retire']){
+      const s=F.session(distribution);s.start();const pending=s.packet(),oldSnapshot=s.current();
+      if(transition==='navigation'){s.objects.navigation=R.fixtureHandle();s.nextCycle(2);}
+      else if(transition==='handoff')s.handoff(2);
+      else if(transition==='creative-replacement'){s.objects.creative=R.fixtureHandle();s.handoff(1);}
+      else s.registry.retire({...s.objects,state:'stale'});
+      assert.equal(s.registry.accredit(pending),'retired-owner');assert.equal(s.adapter.ingest(pending).reason,'registry-retired-owner');
+      assert.deepEqual(totals(s),[1,1,0]);assert.equal(read(s).qa0.summaries[0].firstControlAt,null);
+      const late=R.fixturePacket(oldSnapshot,{distribution,sampleSequence:4});assert.equal(s.registry.accredit(late),'retired-owner');
+      assert.equal(s.adapter.ingest(late).accepted,false);assert.equal(late.identity.fetchGeneration,1);
+      if(transition==='retire'){
+        const stale=s.registry.snapshot(s.objects),raw=R.fixturePacket(stale,{distribution,sampleSequence:4});
+        assert.equal(s.registry.accredit(raw),'current');assert.equal(s.adapter.ingest(raw).acceptanceA,'not-admitted');
+        assert.equal(read(s).entries.at(-1).packet.identity.state,'stale');assert.deepEqual(totals(s),[1,1,0]);
+      }else{
+        if(transition==='navigation')s.start();
+        assert.equal(s.send({caller:'W4'}).acceptanceA,'valid');assert.deepEqual(totals(s),transition==='navigation'?[2,2,1]:[1,1,1]);
+      }
+    }
+  });
+}
+test('[I-01/f] one registry distinguishes documents and producer distribution; a packet cannot authenticate its own JSON clone',()=>{
+  const s=F.session(),original=s.packet();s.objects.document=R.fixtureHandle();s.nextCycle(2);
+  assert.notEqual(s.current().identity.documentLocalId,original.identity.documentLocalId);assert.equal(s.registry.accredit(original),'retired-owner');
+  const current=s.packet();assert.equal(s.adapter.ingest(current).reason,'series-or-clock-mismatch');
+  const otherDistribution=R.fixturePacket(s.current(),{distribution:'IntextManager.js',sampleSequence:1});
+  const receiver=A.createOfflineAdapter({distribution:'IntextManager.js',documentLocalId:s.current().identity.documentLocalId,registry:s.registry});
+  assert.equal(receiver.ingest(otherDistribution).reason,'registry-unaccredited');
+  const own=A.createOfflineAdapter({distribution:s.distribution,documentLocalId:s.current().identity.documentLocalId,registry:s.registry});
+  assert.equal(own.ingest(current).acceptanceA,'valid');assert.equal(own.ingest(P.clone(current)).reason,'registry-unaccredited');
+});
+test('[I-01/g] an unaccredited packet cannot poison sequence or clock watermarks',()=>{
+  const s=F.session();s.start();const legitimate=s.packet(),fake=P.clone(legitimate);
+  fake.sampleSequence=999;fake.eventId='e999';fake.time.monotonicMs=999999;
+  assert.equal(s.adapter.ingest(fake).reason,'registry-unaccredited');assert.equal(read(s).metadata.lastSequence,2);
+  assert.equal(read(s).metadata.lastTime,2);assert.equal(s.adapter.ingest(legitimate).candidateB0,'pass');
+  assert.equal(read(s).qa0.summaries[0].firstControlAt,3);
+});
+test('[I-01/h] authority exhaustion fails closed while scalar leases and both rings remain within partition',()=>{
+  const s=F.session('_gam_kv_.js',{registryOptions:{budgetBytes:512}});s.start();const pending=s.packet();
+  assert.throws(()=>{for(let n=2;n<20;n++)s.nextCycle(n);},/registry-overflow/);
+  assert.equal(s.registry.accredit(pending),'authority-exhausted');assert.equal(s.adapter.ingest(pending).reason,'registry-authority-exhausted');
+  assert.deepEqual(totals(s),[1,1,0]);assert.equal(read(s).qa0.summaries[0].firstControlAt,null);memoryCheck(read(s));
+});
+
 test('every new delivery path is reversible by projection; originals, traversal and historical docs are forbidden',()=>{
   const before=JSON.parse(fs.readFileSync(path.join(root,'docs/intext-p14b-qa1b-stage1-before.json'),'utf8'));
   const files=['tests/qa/qa1b/adapter.cjs','tests/qa/qa1b/generator.cjs','docs/intext-p14b-qa1b-stage1-before.json',

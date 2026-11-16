@@ -1,0 +1,233 @@
+warning: in the working copy of '_gam_kv_.js', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'tests/qa/generated/qa1b-stage2a/gam.qa.js', LF will be replaced by CRLF the next time Git touches it
+diff --git a/_gam_kv_.js b/tests/qa/generated/qa1b-stage2a/gam.qa.js
+index e45f246..8882d45 100644
+--- a/_gam_kv_.js
++++ b/tests/qa/generated/qa1b-stage2a/gam.qa.js
+@@ -1,3 +1,11 @@
++// QA1-B II-A: INERT. No runtime endpoint or installation path.
++const __qa1b2a__gam_kv__js_1cde1ccdc962 = (function facade(endpoint) {
++  function tap(...args) { try { if (endpoint) endpoint(...args); } catch (_) { /* observation cannot affect the caller */ } }
++  function value(kind, value, ...args) { tap(kind, ...args, value); return value; }
++  function result(value, node, anchor) { tap('result', node, anchor, value); return value; }
++  function final(value, node, creative) { tap('control', node, 'C1', creative, value); return value; }
++  return Object.freeze({tap, value, result, final});
++})(null);
+ class WindowArray {
+   static _gam_mapaps = '#####k0zk#a0hs#9u1hcn08w#e718gx0qo#5h1q8ti4g#ydj403im8#pnjlsgidc#u0jcwqiv4#lajuowr28#qgs1s6rk0#hqsjkjrb4#m3saotrsw#ddssgq96o#6aa6809og#xkao0d9fk#1xaf4n9xc#t7awwydj4#mieio8e0w#dsf0glds0#i5erkve9s#9ff9crvnk#2bwn41w5c#tlx4wevwg#xyww0owe8#p8xdsv4lc#uf5kw5534#lp62oi4u8#q25tss5c0#hc6bkomps#a8npcyn7k#1io74bmyo#5vny8lngg#x5og06rk##2j7r4979c#tt88wm70g#y6800w7i8#pg8hssow0#icpvk2pds#9mqdcfp4w#dzq4gppmo#59qm8vxts#afytc5ybk#1pzb4iy2o#62z28sykg#xczk0pfy8#q9gxszgg0#hjhfkcg74#lwh6omgow#d6hogxkao#6hla87ksg#xrls0kkjk#24lj4ul1c#tem0wr2f4#mb3eo12ww#dl3wge2o0#hy3nko35s#9845cubcw#eeccg4buo#5ocu8hbls#a1clcrc3k#1bd34nthc#u7ugwxtz4#lhuyoatq8#puupsku80#h4v7klds##jmdc#9lvk#jtmv4mlmo#o6mm8wm4g#fgn40t3i8#8d4hs3400#zn4zkg3r4#404qoq48w#va58gwcg0#0gdfk6cxs#rqdxcjcow#w3dogtd6o#nde68pukg#g9vk0zv28#7jw1scutc#bwvswmvb4#36waoxyww#whzwg7zeo#ns0e8kz5s#s505cuznk#jf0n4rh1c#cbi0w1hj4#3liioeha8#7yi9sohs0#z8irkupz4#4eqyo4qgw#vorgghq80#01r7krqps#rbrpco83k#k8934y8lc#bi9kwb8cg#fv9c0l8u8#759tss5c##cit4w8sn4#3stmolse8#85tdsvsw0#zftvksa9s#scb9c2ark#jmbr4faio#nzbi8pb0g#f9c00vj7k#kfk745jpc#bpkowijgg#g2kg0sjy8#7ckxsp1c0#092bkz1ts#rj2tcc1kw#vw2kgm22o#n6328x5og#gh6o07668#7r75sk5xc#c46wwu6f4#3e7eoqnsw#waosg0oao#nkpa8do1s#rxp1cnojk#j7pj4twqo#odxq83x8g#fny80gwzk#k0xz4qxhc#baygwnev4#47fuoxfcw#vhgcgaf40#zug3kkfls#r4glcsow##jtog#9t6o#etu68msxs#j6txcwtfk#aguf4tatc#3dbsw3bb4#uncaogb28#z0c1sqbk0#qacjkwjr4#vgkqo6k8w#mql8gjk00#r3kzktkhs#idlhcq1vk#ba2v402dc#2k3cwd24g#6x340n2m8#y73lsy680#ri77k86ps#is7pcl6gw#n57ggv6yo#ef7y8rocg#7bpc01ou8#ylptseolc#zey9sry0w#6igw0zgg##360ow2i2o#a9jb4iqrk#v99mom9ds#2regwqv40#mxwcg44jk#6b5s0amf4#jf28#wetc#4mxogw54w#136dcznr4#86ozkkruo#hbapsoagw#0ok5co0sg#kv20w8lc0#4fmkgf37k#pfcw0scn4#wivi8wydc#h3zls0gzk#o7i80gpog#978jkk8ao#cbxtsbegw#wifpconwg#fvp4wv5s0#p0av4dam8#w3thcd0xs#sk268gjk0#znksg43cw#kum807lz4#47vnk7cao#oedj4ph4w#vwidcvz0g#gw8ow98g0#nzrb4hq8##qoiyol0cg#xs1kw191c#irrwg4rnk#q9wqo9dds#agem8mmtc#tto1st4ow#f0phcdp8g#m483kdfk0#ikgsggy68#pnzeo229s#ysl4w5kw0#i5ukg5b7k#2ccg0rpj4#cyqrky7eo#xyh34bgu8#51zpcg2kg#hqcqonncw#l2sxs4ao0#jeku89fr4#mr11c8cu8#sz5s#97uo#my48wonb4#3djpctse8#omccg3o5c#tl9fkg4cg#wqeiosi68#47nr44ydc#jf8jkwkcg#6p4aoa8e8#a1khsksg0#q9ou8hdds#d69s01a8##u0bggv6dc#3dzi8btog#jm3uojegw#myk1sk5c0#v91q8paf4#agmio4pvk#wx9tsdiio#02ewwm6f4#whkw#4lxc#h24g#cbnk#oruo#ww74#b668#ju2o#smps#8268#d79c#w934#3tvk#kh6o#pm9s#ya68#ck5c#n474#0s8w#se80#8oow#0n4##fl6o#nwu8#9p8g#a2o0#un7k#2cxs#or9c#b37k#y8sg#2ayo#qj28#65ts#udxc#yg3k#5l34#x1c##ebcw#m134#';
+   static pbFloorCfg = {
+@@ -6146,6 +6154,7 @@ class IntextPlacementEngine {
+     const searchRoot = rootElement || document;
+     const bodySelector = domConfig.articleBodySelector || '.ue-c-article__body';
+     this.articleBody = searchRoot.querySelector(bodySelector);
++    __qa1b2a__gam_kv__js_1cde1ccdc962.tap('root', this, document, this.articleBody);
+ 
+     groupIntext('%c[IntextPlacementEngine] 🔍 DOM Discovery', 'color:#9C27B0;font-weight:bold');
+     if (this.articleBody) {
+@@ -6214,7 +6223,7 @@ class IntextPlacementEngine {
+     groupEndIntext();
+ 
+     logIntext(`%c[IntextPlacementEngine] ✅ ${placements.length} placement(s) resolved`, 'color:#4CAF50;font-weight:bold');
+-    return placements;
++    return __qa1b2a__gam_kv__js_1cde1ccdc962.value('placements', placements, this);
+   }
+ 
+   evaluatePlacement(paragraphs, rule = [], startIndex = -1, slotCode = "gexp-intext") {
+@@ -6546,6 +6555,7 @@ class IntextNode {
+     this._intextPipLastExitPlayedPct = null;
+     this._intextPipPlaybackActive = false;
+     this._intextPipPlaybackSource = "unresolved";
++    __qa1b2a__gam_kv__js_1cde1ccdc962.tap('node', this, manager, placement, document, navIndex);
+     this._initialOpenAnimationPlayed = false;
+     if (window.gexpIntextDebug) {
+       intextDebugCollector.attachManager(this.manager);
+@@ -7499,6 +7509,7 @@ class IntextNode {
+     }
+     this._renderTokenSeq += 1;
+     this._activeRenderToken = this._renderTokenSeq;
++    __qa1b2a__gam_kv__js_1cde1ccdc962.tap('token', this, this._activeRenderToken);
+     this._renderInProgress = true;
+     this._renderCompleted = false;
+     this._displayRequestInFlight = false;
+@@ -7562,6 +7573,7 @@ class IntextNode {
+     this._destroyedOrResetToken += 1;
+     this._renderTokenSeq += 1;
+     this._activeRenderToken = this._renderTokenSeq;
++    __qa1b2a__gam_kv__js_1cde1ccdc962.tap('invalidate', this);
+     this._renderInProgress = false;
+     this._renderCompleted = false;
+     this._displayRequestInFlight = false;
+@@ -8183,14 +8195,14 @@ class IntextNode {
+ 
+   getIntextTelemetryElement() {
+     try {
+-      if (this.telemetryAnchor) return this.telemetryAnchor;
+-      if (this.placement?.paragraph) return this.placement.paragraph;
++      if (this.telemetryAnchor) return __qa1b2a__gam_kv__js_1cde1ccdc962.value('anchor', this.telemetryAnchor, this);
++      if (this.placement?.paragraph) return __qa1b2a__gam_kv__js_1cde1ccdc962.value('anchor', this.placement.paragraph, this);
+       const displayEl = this.container?.getElement?.() || null;
+       const videoEl = this.videoContainer?.getElement?.() || null;
+-      if (this.state === "video") return videoEl || displayEl;
+-      return displayEl || videoEl;
++      if (this.state === "video") return __qa1b2a__gam_kv__js_1cde1ccdc962.value('anchor', videoEl || displayEl, this);
++      return __qa1b2a__gam_kv__js_1cde1ccdc962.value('anchor', displayEl || videoEl, this);
+     } catch (e) {
+-      return null;
++      return __qa1b2a__gam_kv__js_1cde1ccdc962.value('anchor', null, this);
+     }
+   }
+ 
+@@ -9120,6 +9132,7 @@ class IntextNode {
+   startIntextTelemetryCycle(trigger, extra = {}) {
+     this.teardownIntextViewportTelemetryObserver();
+     this._intextTelemetryCycleId += 1;
++    __qa1b2a__gam_kv__js_1cde1ccdc962.tap('cycle', this, this._intextTelemetryCycleId);
+     if (typeof window !== "undefined" && window.gexpIntextDebug === true) {
+       this._intextDebugTimings = { cycleStartedAt: null, requestStartedAt: null, imaLoadedAt: null, startedAt: null, firstFrameAt: null, completedAt: null };
+       intextDebugCollector.recordMetric("cycle_started", {
+@@ -11487,9 +11500,9 @@ class IntextNode {
+ 
+   getReadinessViewportState() {
+     const anchor = this.getIntextTelemetryElement();
+-    if (!anchor || anchor.isConnected === false) return { eligible: false, reason: "anchor-missing", distancePx: null };
++    if (!anchor || anchor.isConnected === false) return __qa1b2a__gam_kv__js_1cde1ccdc962.result({ eligible: false, reason: "anchor-missing", distancePx: null }, this, anchor);
+     const rect = anchor.getBoundingClientRect?.();
+-    if (!rect) return { eligible: false, reason: "geometry-unavailable", distancePx: null };
++    if (!rect) return __qa1b2a__gam_kv__js_1cde1ccdc962.result({ eligible: false, reason: "geometry-unavailable", distancePx: null }, this, anchor);
+     const height = window.innerHeight || document.documentElement?.clientHeight || 0;
+     const width = window.innerWidth || document.documentElement?.clientWidth || 0;
+     const bottom = Number.isFinite(rect.bottom) ? rect.bottom : rect.top + rect.height;
+@@ -11507,8 +11520,8 @@ class IntextNode {
+     const visible = sized && rendered && overlapX > 0 && overlapY > 0;
+     const reason = hidden ? "document-hidden" : !sized ? "anchor-zero-or-invalid-size" : !rendered ? "anchor-not-rendered"
+       : bottom <= 0 ? "passed" : rect.top >= height ? "below" : overlapX === 0 ? "outside-horizontal" : "visible";
+-    return { eligible: !hidden && visible, reason, distancePx: Math.round(rect.top - height),
+-      intersectionRatio: sized && rendered ? (overlapX * overlapY) / (rect.width * rect.height) : 0 };
++    return __qa1b2a__gam_kv__js_1cde1ccdc962.result({ eligible: !hidden && visible, reason, distancePx: Math.round(rect.top - height),
++      intersectionRatio: sized && rendered ? (overlapX * overlapY) / (rect.width * rect.height) : 0 }, this, anchor);
+   }
+ 
+   cancelViewportWaits(reason = "stale", owner = null) {
+@@ -11535,6 +11548,7 @@ class IntextNode {
+       const check = () => {
+         if (!this.isActiveRenderToken(renderToken, source)) return finish("stale");
+         const state = this.getReadinessViewportState();
++      __qa1b2a__gam_kv__js_1cde1ccdc962.tap('wait', this, renderToken, source, owner, state);
+         if (state.reason === "anchor-missing") return finish("stale");
+         if (state.eligible) finish();
+       };
+@@ -12025,6 +12039,7 @@ class IntextNode {
+     creative.onVideoEnded = creativeOpts.onVideoEnded;
+     creative._preparationGuard = null;
+     this.activeCreative = creative;
++    __qa1b2a__gam_kv__js_1cde1ccdc962.tap('creative', this, creative, renderToken);
+ 
+     try {
+       await creative.prepare();
+@@ -12739,6 +12754,7 @@ class IntextWaterfall {
+     const entry = { config, auction, createdAt: Date.now(), busy: false, inZone: false, generation: 0, boundToken: renderToken,
+       state: "STANDBY_UNBOUND" };
+     this._videoPreparation = entry;
++    __qa1b2a__gam_kv__js_1cde1ccdc962.tap('preparation', this, this.node, auction, entry);
+     const pool = IntextVideoCreative._preparationEntries ||= new Map();
+     if (!renderToken) pool.set(this, entry);
+     entry.valid = () => this._videoPreparation === entry && this.getVideoPreparationConfig().enabled && this.config?.decision?.mode !== "display_only" && (entry.boundToken
+@@ -12747,7 +12763,7 @@ class IntextWaterfall {
+     entry.eligible = () => ["visible", "below"].includes(this.node.getReadinessViewportState().reason);
+     entry.distance = () => Math.max(0, this.getLoadingDistancePx() ?? Infinity);
+     entry.release = reason => {
+-      entry.generation++; clearTimeout(entry.leaseTimer); entry.leaseTimer = null;
++      entry.generation++; __qa1b2a__gam_kv__js_1cde1ccdc962.tap('retire-entry', this, this.node, entry, entry.generation); clearTimeout(entry.leaseTimer); entry.leaseTimer = null;
+       entry.state = this._videoPreparation === entry ? "RELEASED" : "CANCELLED";
+       entry.creative?.destroy(); entry.creative = null; entry.promise = null; entry.busy = false;
+       // Re-arm only on a fresh proximity/visibility notification, not a retry loop.
+@@ -12759,11 +12775,13 @@ class IntextWaterfall {
+       entry.busy = true;
+       entry.state = entry.boundToken ? "RENDER_OWNED" : "STANDBY_UNBOUND";
+       const generation = ++entry.generation;
++      __qa1b2a__gam_kv__js_1cde1ccdc962.tap('entry-start', this, this.node, entry, generation);
+       this.recordReadiness("video_prepare_triggered", { source: "preparation-margin", preparationRootMargin: config.preparationRootMargin,
+         preparationTriggerDistancePx: entry.distance(), winnerAgeMs: auction.timestamp != null ? Date.now() - auction.timestamp : null });
+       const creative = new IntextVideoCreative({ container: this.node.videoContainer, node: this.node, config: this.node.config,
+         preparationGuard: () => entry.valid() && entry.generation === generation });
+       entry.creative = creative;
++      __qa1b2a__gam_kv__js_1cde1ccdc962.tap('prepared-creative', this, this.node, entry, creative, generation);
+       creative._preparationEntry = entry;
+       if (entry.boundToken) { creative._renderToken = entry.boundToken; creative._preparationGuard = null; }
+       entry.promise = creative.prepare().catch(error => {
+@@ -12808,6 +12826,7 @@ class IntextWaterfall {
+     const transferred = entry.state !== "RENDER_OWNED";
+     // Synchronous handoff: a queued standby timer also checks state and identity.
+     entry.boundToken = renderToken; entry.state = "RENDER_OWNED";
++    __qa1b2a__gam_kv__js_1cde1ccdc962.tap('handoff', this, this.node, entry, renderToken);
+     if (entry.creative) { entry.creative._renderToken = renderToken; entry.creative._preparationGuard = null; }
+     clearTimeout(entry.leaseTimer); entry.leaseTimer = null;
+     entry.observer?.disconnect(); document.removeEventListener?.("visibilitychange", entry.visibility);
+@@ -13006,6 +13025,7 @@ class IntextWaterfall {
+   cleanup() {
+     this.cancelVideoPreparation?.("waterfall-cleanup");
+     this._fetchGeneration = (this._fetchGeneration || 0) + 1;
++    __qa1b2a__gam_kv__js_1cde1ccdc962.tap('cleanup', this, this.node);
+     this.disconnectFetchObserver();
+     this.disconnectRenderObserver();
+     clearTimeout(this.timer);
+@@ -13046,6 +13066,7 @@ class IntextWaterfall {
+   async startFetch(trigger) {
+     if (this.fetchStarted) return;
+     const fetchGeneration = this._fetchGeneration = (this._fetchGeneration || 0) + 1;
++    __qa1b2a__gam_kv__js_1cde1ccdc962.tap('fetch-begin', this, this.node, fetchGeneration);
+     this.fetchStarted = true;
+     this.fetchComplete = false;
+     this.fetchTrigger = trigger;
+@@ -13079,6 +13100,7 @@ class IntextWaterfall {
+     const effectiveMode = this.config.decision?.mode || "auto";
+     this._effectiveMode = effectiveMode;
+     this.node.startIntextTelemetryCycle(trigger);
++    __qa1b2a__gam_kv__js_1cde1ccdc962.tap('fetch', this, this.node, fetchGeneration);
+     if (this._lastFetchExpiredBeforeRestart) {
+       this.mergeLoadingPhaseTelemetry({
+         "gexp-intext-fetch-restarted-after-expiry": "true",
+@@ -13115,6 +13137,7 @@ class IntextWaterfall {
+         timestamp: Date.now(),
+         ...decision,
+       };
++      __qa1b2a__gam_kv__js_1cde1ccdc962.tap('winner', this, this.node, fetchGeneration, this.pendingAuction);
+       this.recordReadiness?.(decision?.winner === "video" ? "video_winner_resolved" : "intext_winner_resolved", { winnerFormat: decision?.winner || "none", durationMs: Date.now() - this.fetchStartAt });
+       this.setupVideoPreparation?.(this.pendingAuction);
+       if (decision?.winner === "video") {
+@@ -13321,6 +13344,7 @@ class IntextWaterfall {
+     this.prebidStarted = true;
+     const renderToken = this.node.beginVisualRender("auction_started", trigger);
+     this.node.startIntextTelemetryCycle(trigger);
++    __qa1b2a__gam_kv__js_1cde1ccdc962.tap('legacy-auction', this, this.node);
+     this.node.mergeIntextTelemetry({
+       "gexp-intext-render-token": String(renderToken),
+       "gexp-intext-render-attempt": String(this.node._renderTokenSeq || 0),
+@@ -16698,9 +16722,10 @@ class IntextVideoCreative {
+       const state = await node.waitForViewport(this._renderToken, "video-activation", this);
+       if (state === "stale" || !this.preparationValid()) throw new Error("stale_render_token");
+     }
+-    if (node?.getReadinessViewportState && !node.getReadinessViewportState().eligible) throw new Error("video_activation_ineligible");
++    if (node?.getReadinessViewportState && !__qa1b2a__gam_kv__js_1cde1ccdc962.final(node.getReadinessViewportState(), node, this).eligible) throw new Error("video_activation_ineligible");
+     node?.waterfall?.recordReadiness?.("video_activation_eligible");
+     node?.waterfall?.releasePreparedVideo?.(this);
++    __qa1b2a__gam_kv__js_1cde1ccdc962.tap('player-build', node, this);
+     this.createPlayerForActivation();
+     this.observeActivationEligibility();
+     node?.waterfall?.recordReadiness?.("video_activation_started");
+@@ -18391,6 +18416,7 @@ class IntextVideoCreative {
+ 
+   abort() {
+     this._aborted = true;
++    __qa1b2a__gam_kv__js_1cde1ccdc962.tap('retire-creative', this.node, this);
+     this.node?.cancelViewportWaits?.("stale", this);
+     this._eligibilityCleanup?.();
+     this.cleanupAdMediaObservation();
+@@ -18403,6 +18429,7 @@ class IntextVideoCreative {
+   destroy() {
+     if (this._destroyed) return;
+     this._destroyed = true;
++    __qa1b2a__gam_kv__js_1cde1ccdc962.tap('retire-creative', this.node, this);
+     if (this._preparationEntry?.state === "ACTIVATED") this._preparationEntry.state = "RELEASED";
+     this.node?.cancelViewportWaits?.("stale", this);
+     this._eligibilityCleanup?.();

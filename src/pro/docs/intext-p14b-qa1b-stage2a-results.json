@@ -1,0 +1,79 @@
+{
+  "schema": "qa1b-stage2a-results-v1",
+  "node": "v25.8.1",
+  "platform": "win32",
+  "stage2a": {
+    "label": "II-A",
+    "command": [
+      "node",
+      "--test",
+      "--test-isolation=none",
+      "--test-reporter=tap",
+      "--experimental-test-coverage",
+      "--test-coverage-include=tests/qa/qa1b2a/*.cjs",
+      "tests/intext-p14b-qa1b-stage2a.test.cjs"
+    ],
+    "cwd": "C:\\Users\\pedro.ramos\\Documents\\workspace\\develop\\interstitial\\intext\\inread ads\\src\\pro",
+    "node": "v25.8.1",
+    "exit": 0,
+    "tests": 106,
+    "pass": 106,
+    "fail": 0,
+    "log": "docs/intext-p14b-qa1b-stage2a-validation.txt"
+  },
+  "stage1": {
+    "label": "Stage I frozen",
+    "command": [
+      "node",
+      "--test",
+      "--test-isolation=none",
+      "--test-reporter=tap",
+      "tests/intext-p14b-qa1b-stage1.test.cjs"
+    ],
+    "cwd": "C:\\Users\\pedro.ramos\\Documents\\workspace\\develop\\interstitial\\intext\\inread ads\\src\\pro",
+    "node": "v25.8.1",
+    "exit": 0,
+    "tests": 57,
+    "pass": 57,
+    "fail": 0,
+    "log": "docs/intext-p14b-qa1b-stage2a-stage1-validation.txt"
+  },
+  "frozen": {
+    "label": "QA0 / QA1-A frozen",
+    "command": [
+      "node",
+      "--test",
+      "--test-isolation=none",
+      "--test-reporter=tap",
+      "tests/intext-p14b-shadow.audit.test.cjs",
+      "tests/intext-p14b-qa1a.audit.test.cjs"
+    ],
+    "cwd": "C:\\Users\\pedro.ramos\\Documents\\workspace\\develop\\interstitial\\intext\\inread ads\\src\\pro",
+    "node": "v25.8.1",
+    "exit": 1,
+    "tests": 110,
+    "pass": 108,
+    "fail": 2,
+    "log": "docs/intext-p14b-qa1b-stage2a-frozen-validation.txt"
+  },
+  "integrity": {
+    "protectedUnchanged": 386,
+    "originals": 360,
+    "contracts": 4,
+    "approvedStageI": 22,
+    "styBytes": 3940,
+    "stySha256": "15c72d69032cc0e212b1501cdd78e9da78561b404c65165fe1a6d02efe16b660"
+  },
+  "historicalFailures": {
+    "expectedBytes": 3903,
+    "actualBytes": 3940,
+    "testsAltered": false,
+    "testsFiltered": false,
+    "styRestored": false
+  },
+  "sourceComplete": false,
+  "exactRatesAllowed": false,
+  "browserExecuted": false,
+  "wholeCopiesExecuted": false,
+  "independentAuditPending": true
+}

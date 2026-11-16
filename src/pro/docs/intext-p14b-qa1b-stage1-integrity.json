@@ -1,7 +1,7 @@
 {
   "schema": "qa1b-stage1-integrity-v1",
   "capturedAt": "2026-11-13T14:24:54.047Z",
-  "status": "implemented-offline-awaiting-independent-audit",
+  "status": "I01-corrected-offline-awaiting-independent-audit",
   "authorization": {
     "approvedDesign": "r1-review-B including 2026-11-13 corrections",
     "stageI": true,
@@ -1852,13 +1852,13 @@
     },
     {
       "file": "docs/intext-p14b-qa1b-stage1-evidence.json",
-      "bytes": 15831,
-      "sha256": "6c94ccfde52c36fdc3d2bac168c8b8753fe374f2ca160abeb639c3ff57458a2b"
+      "bytes": 19662,
+      "sha256": "a7c9876e2c5ccdd446a703f3194817293f9e0e01fc5d5cd87bbcdce0bb5ad4fa"
     },
     {
       "file": "docs/intext-p14b-qa1b-stage1-frozen-validation.txt",
-      "bytes": 13393,
-      "sha256": "211e363fa0dc3f7ed7d7469e04815fc49385ef2f0edce9eb5db8c56c5776d318"
+      "bytes": 13402,
+      "sha256": "0ed4dfb50ef3ac5c081fdc4b1bf71f1ff00040e2f0794fc9acc6ffdd806f4463"
     },
     {
       "file": "docs/intext-p14b-qa1b-stage1-gam.diff",
@@ -1872,33 +1872,33 @@
     },
     {
       "file": "docs/intext-p14b-qa1b-stage1-results.json",
-      "bytes": 2342,
-      "sha256": "3cd2842235ed248a2e750d8e8191ae3dfdab155a23d87e5cc1e6f1bb921949b8"
+      "bytes": 3429,
+      "sha256": "c5e98630d8d87d6c0ee9b258ad357531ff073505cfa83e562873d2d8b3ab9c67"
     },
     {
       "file": "docs/intext-p14b-qa1b-stage1-review.md",
-      "bytes": 14008,
-      "sha256": "5b08b53d65748d312ad00f8948fe5ee6f2226cc230211c14ed866045b9971f43"
+      "bytes": 18640,
+      "sha256": "49c229adefaf43817c2649a48181e49c46d9b3e4aa3aa20441b225da582f75cc"
     },
     {
       "file": "docs/intext-p14b-qa1b-stage1-synthetic-export.json",
-      "bytes": 12780,
-      "sha256": "693336fa763ec9b68559824b12338aae07a25c515201e812bd7c454d4fbe85b0"
+      "bytes": 12859,
+      "sha256": "7a9f649cfdf5603f08e7d1df33b934d75255c91382c8b265c0467b44427bf39d"
     },
     {
       "file": "docs/intext-p14b-qa1b-stage1-validation.txt",
-      "bytes": 6085,
-      "sha256": "f5f6e5cd473b7b6cec600780bf512e3fa1260e61dc092b725fe3198ad9da90fa"
+      "bytes": 7782,
+      "sha256": "fc7489b585f357791754d04bda3c65c2d30063f520cbc68248d71dfbc5be9578"
     },
     {
       "file": "tests/intext-p14b-qa1b-stage1.test.cjs",
-      "bytes": 33458,
-      "sha256": "6e3507f4e30e0d1eb961008c06ca7e5fa78834bbaf94b24f6bbc9b79a98a7e33"
+      "bytes": 43167,
+      "sha256": "6fe1114f763d214799324ed16e078f22b3487887e3376c4b6af6bc6e5d8af428"
     },
     {
       "file": "tests/qa/qa1b/adapter.cjs",
-      "bytes": 11339,
-      "sha256": "82b7c1030ecc08fbc7a02b363215b882b8d19979461fa30f6a37df6b5658705a"
+      "bytes": 11863,
+      "sha256": "4f394e4f413cd3ad9b48e89db6be718d5f9bc01d454cc9867ff6fec49838cf87"
     },
     {
       "file": "tests/qa/qa1b/delivery-integrity.cjs",
@@ -1907,13 +1907,13 @@
     },
     {
       "file": "tests/qa/qa1b/evidence.cjs",
-      "bytes": 6422,
-      "sha256": "c778b6cae3ff165bb3f24c7e73f36ff9d0bff54a0ee3959d822883ffd21d8a43"
+      "bytes": 7814,
+      "sha256": "4635972e17c3c14c939103da0d5d67f5cef96d798c09624e51cb4b93d9840902"
     },
     {
       "file": "tests/qa/qa1b/fixtures.cjs",
-      "bytes": 2231,
-      "sha256": "2b9603f5de5f7b8e2e66e14bbbd231595208aff25507b41887600591df88a14a"
+      "bytes": 2501,
+      "sha256": "715fc2520329bf149937a9bcc60f08cb4f56246f9a006ba2e56d6c154af961ae"
     },
     {
       "file": "tests/qa/qa1b/gates.cjs",
@@ -1927,13 +1927,13 @@
     },
     {
       "file": "tests/qa/qa1b/identity-registry.cjs",
-      "bytes": 6029,
-      "sha256": "b9c324151479e4795acc8871359464331c24f6755c76afa0b998b1a6720d2349"
+      "bytes": 8279,
+      "sha256": "f8260325612c3d240c4c6be304c1ef590c4bed55dfb5b9bd39d638e98ab25ebd"
     },
     {
       "file": "tests/qa/qa1b/packet.cjs",
-      "bytes": 7789,
-      "sha256": "3e1c5c218faf55df9d04772838b2249528dea5223e7de8de5a2a454ec83c3a66"
+      "bytes": 7991,
+      "sha256": "4efed9b0c8145940cdb24594f57ec20bfd7bd0c2818ca8f67dd816ca0dad0b23"
     },
     {
       "file": "tests/qa/qa1b/packet.schema.json",
@@ -1958,8 +1958,8 @@
   },
   "validation": {
     "stage1": {
-      "tests": 44,
-      "pass": 44,
+      "tests": 57,
+      "pass": 57,
       "fail": 0,
       "cancelled": 0,
       "skipped": 0,
@@ -2021,7 +2021,7 @@
         "summaryBytes": 920,
         "qa0AggregateBytes": 1123,
         "qa0RingBytes": 523909,
-        "metadataBytes": 895,
+        "metadataBytes": 991,
         "packetRingBytes": 1277395,
         "detailEntries": 1636,
         "limits": {
@@ -2036,7 +2036,7 @@
           "totalBytes": 2097152
         }
       },
-      "stressExportBytes": 1769923,
+      "stressExportBytes": 1770002,
       "retainedQA0": 792,
       "retainedPackets": 844,
       "opportunity65Retained": 64
@@ -2059,7 +2059,9 @@
     "commit": false,
     "push": false,
     "deployment": false,
-    "browserMeasurements": false
+    "browserMeasurements": false,
+    "onlyNewFilesMeaning": "All delivery paths were new in stage I; I-01 edits only existing stage-I paths",
+    "externalProducerAuthenticationImplemented": false
   },
   "rollback": {
     "inventory": "newFiles plus self.file; removal plan only",
@@ -2072,5 +2074,183 @@
     "file": "docs/intext-p14b-qa1b-stage1-integrity.json",
     "sha256ExcludedToAvoidSelfReference": true
   },
-  "nextStep": "STOP for independent audit of stage I. No automatic stage II-IV, acquisition, B runtime/enforce, A3 or C."
+  "nextStep": "STOP for final independent audit of I-01. No automatic II-IV, real acquisition, B runtime/enforce, A3 or C.",
+  "verifiedAt": "2026-11-16T10:12:52.626Z",
+  "correction": {
+    "finding": "I-01",
+    "status": "implemented-and-locally-validated-awaiting-independent-audit",
+    "date": "2026-11-16",
+    "profile": "local-fixture-object-v1",
+    "baselineCapturedAt": "2026-11-16T09:51:45.302Z",
+    "beforeStage1Files": [
+      {
+        "file": "docs/intext-p14b-qa1b-stage1-before.json",
+        "bytes": 63911,
+        "sha256": "fef1f453874303b093361229e3f0b62672ed63e4876be6e82e75b3068fddf35e"
+      },
+      {
+        "file": "docs/intext-p14b-qa1b-stage1-case-matrix.json",
+        "bytes": 17112,
+        "sha256": "c70a69de426f8af5022f1518b367ea772470c10e6dbc272628f150f0d33c68e7"
+      },
+      {
+        "file": "docs/intext-p14b-qa1b-stage1-case-matrix.md",
+        "bytes": 4267,
+        "sha256": "d2477f9d9ab44a81600a874315428260ba820673a3ed096e167306cefde42dd0"
+      },
+      {
+        "file": "docs/intext-p14b-qa1b-stage1-evidence.json",
+        "bytes": 15831,
+        "sha256": "6c94ccfde52c36fdc3d2bac168c8b8753fe374f2ca160abeb639c3ff57458a2b"
+      },
+      {
+        "file": "docs/intext-p14b-qa1b-stage1-frozen-validation.txt",
+        "bytes": 13393,
+        "sha256": "211e363fa0dc3f7ed7d7469e04815fc49385ef2f0edce9eb5db8c56c5776d318"
+      },
+      {
+        "file": "docs/intext-p14b-qa1b-stage1-gam.diff",
+        "bytes": 153,
+        "sha256": "d807be7aea4405f859a3ade4df9a69c905c4238e3fd12494c892c48524a00a72"
+      },
+      {
+        "file": "docs/intext-p14b-qa1b-stage1-manager.diff",
+        "bytes": 211,
+        "sha256": "920b49461e38ac143bc4d39a9bef32e2f669cd7d8b6ab6a5ed15a505cbd37f7b"
+      },
+      {
+        "file": "docs/intext-p14b-qa1b-stage1-results.json",
+        "bytes": 2342,
+        "sha256": "3cd2842235ed248a2e750d8e8191ae3dfdab155a23d87e5cc1e6f1bb921949b8"
+      },
+      {
+        "file": "docs/intext-p14b-qa1b-stage1-review.md",
+        "bytes": 14008,
+        "sha256": "5b08b53d65748d312ad00f8948fe5ee6f2226cc230211c14ed866045b9971f43"
+      },
+      {
+        "file": "docs/intext-p14b-qa1b-stage1-synthetic-export.json",
+        "bytes": 12780,
+        "sha256": "693336fa763ec9b68559824b12338aae07a25c515201e812bd7c454d4fbe85b0"
+      },
+      {
+        "file": "docs/intext-p14b-qa1b-stage1-validation.txt",
+        "bytes": 6085,
+        "sha256": "f5f6e5cd473b7b6cec600780bf512e3fa1260e61dc092b725fe3198ad9da90fa"
+      },
+      {
+        "file": "tests/intext-p14b-qa1b-stage1.test.cjs",
+        "bytes": 33458,
+        "sha256": "6e3507f4e30e0d1eb961008c06ca7e5fa78834bbaf94b24f6bbc9b79a98a7e33"
+      },
+      {
+        "file": "tests/qa/qa1b/adapter.cjs",
+        "bytes": 11339,
+        "sha256": "82b7c1030ecc08fbc7a02b363215b882b8d19979461fa30f6a37df6b5658705a"
+      },
+      {
+        "file": "tests/qa/qa1b/delivery-integrity.cjs",
+        "bytes": 2379,
+        "sha256": "9f80f9c7c7fabbcc38e83f3613759a7b61d032d82c1167e138084d46d741affb"
+      },
+      {
+        "file": "tests/qa/qa1b/evidence.cjs",
+        "bytes": 6422,
+        "sha256": "c778b6cae3ff165bb3f24c7e73f36ff9d0bff54a0ee3959d822883ffd21d8a43"
+      },
+      {
+        "file": "tests/qa/qa1b/fixtures.cjs",
+        "bytes": 2231,
+        "sha256": "2b9603f5de5f7b8e2e66e14bbbd231595208aff25507b41887600591df88a14a"
+      },
+      {
+        "file": "tests/qa/qa1b/gates.cjs",
+        "bytes": 578,
+        "sha256": "fa862295173943e1531db5829ba38591105627e139de4dd4009e216896aa059c"
+      },
+      {
+        "file": "tests/qa/qa1b/generator.cjs",
+        "bytes": 6499,
+        "sha256": "32ea6de61ed71ca7c08fee783a44498a89d31f44314b5860ca447775012d5101"
+      },
+      {
+        "file": "tests/qa/qa1b/identity-registry.cjs",
+        "bytes": 6029,
+        "sha256": "b9c324151479e4795acc8871359464331c24f6755c76afa0b998b1a6720d2349"
+      },
+      {
+        "file": "tests/qa/qa1b/packet.cjs",
+        "bytes": 7789,
+        "sha256": "3e1c5c218faf55df9d04772838b2249528dea5223e7de8de5a2a454ec83c3a66"
+      },
+      {
+        "file": "tests/qa/qa1b/packet.schema.json",
+        "bytes": 11489,
+        "sha256": "75f8e8fc301736b2f4bf2df21e9e899aea6f99494c7b3a8470e917fe83a71b55"
+      },
+      {
+        "file": "docs/intext-p14b-qa1b-stage1-integrity.json",
+        "bytes": 71975,
+        "sha256": "8434f1abfd62905234ab6258d8097a6c04a19f558ad10deee3459b59000bfb3f"
+      }
+    ],
+    "changedFiles": [
+      "docs/intext-p14b-qa1b-stage1-evidence.json",
+      "docs/intext-p14b-qa1b-stage1-frozen-validation.txt",
+      "docs/intext-p14b-qa1b-stage1-integrity.json",
+      "docs/intext-p14b-qa1b-stage1-results.json",
+      "docs/intext-p14b-qa1b-stage1-review.md",
+      "docs/intext-p14b-qa1b-stage1-synthetic-export.json",
+      "docs/intext-p14b-qa1b-stage1-validation.txt",
+      "tests/intext-p14b-qa1b-stage1.test.cjs",
+      "tests/qa/qa1b/adapter.cjs",
+      "tests/qa/qa1b/evidence.cjs",
+      "tests/qa/qa1b/fixtures.cjs",
+      "tests/qa/qa1b/identity-registry.cjs",
+      "tests/qa/qa1b/packet.cjs"
+    ],
+    "onlyExistingStageIFilesChanged": true,
+    "newProjectFiles": 0,
+    "packetSchemaChanged": false,
+    "externalProducerAuthenticationImplemented": false,
+    "independentApproval": false,
+    "authority": {
+      "membership": "Private per-registry WeakMap keyed by immutable locally issued packet objects",
+      "snapshots": "Opaque local fixture producer capabilities; JSON aliases and verified flags do not confer ownership",
+      "revocation": "Shared scalar leases revoked on native fixture bind/navigation/handoff/owner retirement; budget exhaustion fails closed",
+      "before": "Deduplication, clock/sequence watermarks and QA0 ingestion",
+      "unaccredited": "Rejected/unknown with gap; no D0/Dv/Dc or first-positive update",
+      "retention": "Weak keys; no strong packet index, DOM/SDK references or persistent secrets; shared lease scalars conservatively charged",
+      "interop": "Packet schema unchanged. Exported/validated/cloned JSON is inspectable data, not an authenticated external producer. Stage II authority remains unimplemented"
+    },
+    "validation": {
+      "priorTests": 44,
+      "regressionTestsAdded": 13,
+      "totalTests": 57,
+      "pass": 57,
+      "fail": 0,
+      "frozenTests": 110,
+      "frozenPass": 108,
+      "frozenFail": 2,
+      "frozenTestsChanged": false,
+      "styRestored": false
+    },
+    "independentAuditBeforeCorrection": {
+      "source": "User independent audit report",
+      "node": "22.16.0",
+      "stage1": {
+        "tests": 44,
+        "pass": 44
+      },
+      "frozen": {
+        "tests": 110,
+        "pass": 108,
+        "fail": 2
+      },
+      "packageHashes": {
+        "checked": 393,
+        "matched": 393
+      }
+    }
+  }
 }

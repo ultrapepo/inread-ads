@@ -9,18 +9,20 @@ function merge(base,changes){
   return out;
 }
 function session(distribution='_gam_kv_.js',options={}){
-  const registry=R.createIdentityRegistry(options.registryOptions);
+  const registry=R.createIdentityRegistry({...options.registryOptions,distribution});
   const objects=Object.fromEntries(['document','navigation','node','waterfall','anchor','attempt','creative','entry'].map(k=>[k,R.fixtureHandle()]));
-  let snapshot=registry.bind({...objects,cycleId:1,fetchGeneration:1,renderToken:options.renderToken??1});
+  if(options.withoutCreative)objects.creative=null;
+  let snapshot=registry.bind({...objects,...options.binding,cycleId:options.binding&&Object.hasOwn(options.binding,'cycleId')?options.binding.cycleId:1,
+    fetchGeneration:options.binding&&Object.hasOwn(options.binding,'fetchGeneration')?options.binding.fetchGeneration:1,renderToken:options.renderToken??1});
   const adapter=createOfflineAdapter({distribution,documentLocalId:snapshot.identity.documentLocalId,registry,...options.adapterOptions});
   let sequence=0;
   function packet(changes={}){
     const n=++sequence;
-    let base=R.fixturePacket(snapshot,{distribution,sampleSequence:n});
-    if(changes.kind&&changes.kind!=='guard')base=merge(base,{kind:changes.kind,caller:'population',format:'opportunity',
+    let base={distribution,sampleSequence:n};
+    if(changes.kind&&changes.kind!=='guard')base={...base,kind:changes.kind,caller:'population',format:'opportunity',
       guard:{executed:false,eligible:null,reason:'guard-not-executed',playerCreated:null},
-      provenance:{boundary:{fetch:'native-fetch',winner:'native-decision',handoff:'handoff',terminal:'terminal',subattempt:'subattempt',gap:'unknown'}[changes.kind]}});
-    return merge(base,changes);
+      provenance:{boundary:{fetch:'native-fetch',winner:'native-decision',handoff:'handoff',terminal:'terminal',subattempt:'subattempt',gap:'unknown'}[changes.kind]}};
+    return R.fixturePacket(snapshot,merge(base,changes));
   }
   function send(changes){return adapter.ingest(packet(changes));}
   function start(winner='video'){

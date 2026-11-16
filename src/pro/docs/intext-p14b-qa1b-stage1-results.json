@@ -5,8 +5,8 @@
     "platform": "win32"
   },
   "stage1": {
-    "tests": 44,
-    "pass": 44,
+    "tests": 57,
+    "pass": 57,
     "fail": 0,
     "cancelled": 0,
     "skipped": 0,
@@ -77,5 +77,40 @@
   ],
   "browserMeasurements": false,
   "realAcquisition": false,
-  "independentAuditPending": true
+  "independentAuditPending": true,
+  "correction": {
+    "finding": "I-01",
+    "status": "implemented-offline-awaiting-independent-audit",
+    "profile": "local-fixture-object-v1",
+    "priorStage1Tests": 44,
+    "addedRegressionTests": 13,
+    "packetSchemaChanged": false,
+    "scope": "Only existing stage-I files",
+    "authority": "Private per-registry weak membership of immutable packets from owned snapshots; revocable scalar owner leases",
+    "checkedBefore": [
+      "deduplication",
+      "sequence and clock watermarks",
+      "QA0 ingestion"
+    ],
+    "foreignOrJSONPackets": "rejected/unknown with gaps; no population or first-positive update",
+    "externalProducerAuthenticationImplemented": false,
+    "reportedIndependentAuditBeforeCorrection": {
+      "source": "User independent audit report",
+      "node": "22.16.0",
+      "stage1": {
+        "tests": 44,
+        "pass": 44
+      },
+      "frozen": {
+        "tests": 110,
+        "pass": 108,
+        "fail": 2
+      },
+      "packageHashes": {
+        "checked": 393,
+        "matched": 393
+      }
+    },
+    "independentApproval": false
+  }
 }

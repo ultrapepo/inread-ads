@@ -1,55 +1,68 @@
-﻿✔ [G01 G02 P01 P02 A01] _gam_kv_.js: B0 factual true and false with unknown P (21.8454ms)
-✔ [G07] _gam_kv_.js: Display true never increments video Dc or overwrites initial winner (2.6896ms)
-✔ [G08 G10] _gam_kv_.js: four primary sources, one opportunity and immutable first positive (2.9715ms)
-✔ [G09] _gam_kv_.js: prepared path omits W2; W2 can have native null creative owner (2.4955ms)
-✔ [G11] _gam_kv_.js: unexecuted, missing anchor, disconnected identifiable anchor and stale (2.7929ms)
-✔ [G12 G13 G14 G15 D08] _gam_kv_.js: each nonprimary raw series excluded from Dc (3.7941ms)
-✔ [G13] _gam_kv_.js: preparation descriptor is not a native initial-winner decision (3.399ms)
-✔ [G16 D02] _gam_kv_.js: executions, retransmissions, conflicts and bounded replay horizon (3.4533ms)
-✔ [G01 G02 P01 P02 A01] IntextManager.js: B0 factual true and false with unknown P (9.307ms)
-✔ [G07] IntextManager.js: Display true never increments video Dc or overwrites initial winner (2.4535ms)
-✔ [G08 G10] IntextManager.js: four primary sources, one opportunity and immutable first positive (2.3181ms)
-✔ [G09] IntextManager.js: prepared path omits W2; W2 can have native null creative owner (2.6608ms)
-✔ [G11] IntextManager.js: unexecuted, missing anchor, disconnected identifiable anchor and stale (2.0915ms)
-✔ [G12 G13 G14 G15 D08] IntextManager.js: each nonprimary raw series excluded from Dc (3.2663ms)
-✔ [G13] IntextManager.js: preparation descriptor is not a native initial-winner decision (2.2943ms)
-✔ [G16 D02] IntextManager.js: executions, retransmissions, conflicts and bounded replay horizon (3.4472ms)
-✔ [I01 G16] duplicate DOM names/counters across documents, navigation and distributions never join (2.6571ms)
-✔ [I02 D06] native handoff preserves opportunity, tokenReplaced and original generation (1.5848ms)
-✔ [I03 I04 A02] missing native generation/anchor/root remains raw unknown with permanent gap (6.6399ms)
-✔ [I01 I02] registry rejects unobserved objects, forged snapshots and exhaustion; retains only scalars (0.9948ms)
-✔ [D01 D02] no guard/winner/frame does not disappear; first true is not physical first entry (4.5423ms)
-✔ [D03 D07] subattempt end is not terminal; fallback and refresh use native cycles (3.1ms)
-✔ [D04 D05] actual QA0 constructor accepts the shared partition and rejects increases (0.9569ms)
-✔ [D05] bounded counters use a BigInt oracle and never wrap or manufacture unique opportunities (0.2387ms)
-✔ [D04] 2001 original samples: entry/byte evictions conserve summaries and account full packet + receipt (498.8188ms)
-✔ [D05] opportunity 65 latches overflow; 64 summaries survive without counting overflow notifications as unique (124.0028ms)
-✔ [D09 A01 A03 A05] initial sourceComplete stays false through close/export, even with all retained samples valid (1.7964ms)
-✔ [A04] measured functional exit is distinct from population completeness and grants no permission (0.2217ms)
-✔ [A06] partial retained detail cannot be replayed as a new complete population (1.7092ms)
-✔ [A07 A08] independent direct QA0 oracles: per-rate denominators, outcome coverage and firstPassFrame (1.4666ms)
-✔ [X01] export is manual, detached, bounded, repeatable, free of injected fields and does not reset (3.3265ms)
-✔ [X02 T01] schema, provenance, accessor and event/sequence conflicts fail closed without reading getters (2.3692ms)
-✔ [I03 G11 X02] executable contract matches published schema and preserves unknown states without coercion (2.5803ms)
-✔ [G11 I04 A02] conditional primary requires matched owner, verified provenance and absent player (6.1829ms)
-✔ [D02 X03] missing sequence, source clock mismatch and monotonic regression latch gaps (4.3159ms)
-✔ [X03] missing sink and data errors invoke no browser/network/timer/commercial function (13.9088ms)
-✔ [G03 G04 G05 G06] generator enforces exact hashes/anchors and byte reversibility for both distributions (33.72ms)
-✔ [X02] generator output removal preflights hashes, refuses extra files and never restores an original (90.924ms)
-✔ [G03 X02] approved hashes/anchors are independently tied to the binding design manifest (30.7213ms)
-✔ [D04 X01] maximal numeric evidence and bounded version strings do not bypass packet or export budgets (11.1094ms)
-✔ [I02 D06] explicit terminal registry state closes only the same native owner and cannot revive it (1.8319ms)
-✔ [D01 D03 G07 G08] mixed native trace agrees with independent opportunity-set oracle (16.9079ms)
-✔ every new delivery path is reversible by projection; originals, traversal and historical docs are forbidden (2.3586ms)
-✔ stage I baseline: all 360 originals and all four binding contracts remain byte-identical (577.1226ms)
-ℹ tests 44
+﻿✔ [G01 G02 P01 P02 A01] _gam_kv_.js: B0 factual true and false with unknown P (117.3231ms)
+✔ [G07] _gam_kv_.js: Display true never increments video Dc or overwrites initial winner (7.198ms)
+✔ [G08 G10] _gam_kv_.js: four primary sources, one opportunity and immutable first positive (9.2195ms)
+✔ [G09] _gam_kv_.js: prepared path omits W2; W2 can have native null creative owner (10.6964ms)
+✔ [G11] _gam_kv_.js: unexecuted, missing anchor, disconnected identifiable anchor and stale (7.1651ms)
+✔ [G12 G13 G14 G15 D08] _gam_kv_.js: each nonprimary raw series excluded from Dc (9.5ms)
+✔ [G13] _gam_kv_.js: preparation descriptor is not a native initial-winner decision (5.894ms)
+✔ [G16 D02] _gam_kv_.js: executions, retransmissions, conflicts and bounded replay horizon (11.9826ms)
+✔ [G01 G02 P01 P02 A01] IntextManager.js: B0 factual true and false with unknown P (28.4016ms)
+✔ [G07] IntextManager.js: Display true never increments video Dc or overwrites initial winner (30.8827ms)
+✔ [G08 G10] IntextManager.js: four primary sources, one opportunity and immutable first positive (13.7188ms)
+✔ [G09] IntextManager.js: prepared path omits W2; W2 can have native null creative owner (9.0038ms)
+✔ [G11] IntextManager.js: unexecuted, missing anchor, disconnected identifiable anchor and stale (8.2476ms)
+✔ [G12 G13 G14 G15 D08] IntextManager.js: each nonprimary raw series excluded from Dc (39.6257ms)
+✔ [G13] IntextManager.js: preparation descriptor is not a native initial-winner decision (6.9654ms)
+✔ [G16 D02] IntextManager.js: executions, retransmissions, conflicts and bounded replay horizon (9.0817ms)
+✔ [I01 G16] duplicate DOM names/counters across documents, navigation and distributions never join (8.8128ms)
+✔ [I02 D06] native handoff preserves opportunity, tokenReplaced and original generation (8.9173ms)
+✔ [I03 I04 A02] invented identity edits are rejected; native missing generation remains raw unknown with gap (23.5195ms)
+✔ [I01 I02] registry rejects unobserved objects, forged snapshots and exhaustion; retains only scalars (2.9023ms)
+✔ [D01 D02] no guard/winner/frame does not disappear; first true is not physical first entry (12.5983ms)
+✔ [D03 D07] subattempt end is not terminal; fallback and refresh use native cycles (10.3099ms)
+✔ [D04 D05] actual QA0 constructor accepts the shared partition and rejects increases (6.1311ms)
+✔ [D05] bounded counters use a BigInt oracle and never wrap or manufacture unique opportunities (0.7619ms)
+✔ [D04] 2001 original samples: entry/byte evictions conserve summaries and account full packet + receipt (1833.2719ms)
+✔ [D05] opportunity 65 latches overflow; 64 summaries survive without counting overflow notifications as unique (267.3448ms)
+✔ [D09 A01 A03 A05] initial sourceComplete stays false through close/export, even with all retained samples valid (4.0066ms)
+✔ [A04] measured functional exit is distinct from population completeness and grants no permission (0.6312ms)
+✔ [A06] partial retained detail cannot be replayed as a new complete population (2.6086ms)
+✔ [A07 A08] independent direct QA0 oracles: per-rate denominators, outcome coverage and firstPassFrame (2.1398ms)
+✔ [X01] export is manual, detached, bounded, repeatable, free of injected fields and does not reset (7.9502ms)
+✔ [X02 T01] schema, provenance, accessor and event/sequence conflicts fail closed without reading getters (4.0813ms)
+✔ [I03 G11 X02] executable contract matches published schema and preserves unknown states without coercion (7.7219ms)
+✔ [G11 I04 A02] conditional primary requires matched owner, verified provenance and absent player (19.9948ms)
+✔ [D02 X03] missing sequence, source clock mismatch and monotonic regression latch gaps (6.0542ms)
+✔ [X03] missing sink and data errors invoke no browser/network/timer/commercial function (26.5985ms)
+✔ [G03 G04 G05 G06] generator enforces exact hashes/anchors and byte reversibility for both distributions (73.5132ms)
+✔ [X02] generator output removal preflights hashes, refuses extra files and never restores an original (226.9185ms)
+✔ [G03 X02] approved hashes/anchors are independently tied to the binding design manifest (97.5531ms)
+✔ [D04 X01] maximal numeric evidence and bounded version strings do not bypass packet or export budgets (69.8077ms)
+✔ [I02 D06] explicit terminal registry state closes only the same native owner and cannot revive it (5.0868ms)
+✔ [D01 D03 G07 G08] mixed native trace agrees with independent opportunity-set oracle (83.1332ms)
+✔ [I-01/a] _gam_kv_.js: equal aliases and byte-identical foreign packets cannot borrow admission or duplicate receipts (12.3358ms)
+✔ [I-01/b] _gam_kv_.js: foreign fetch/winner/guard/handoff/terminal cannot create any population (32.0427ms)
+✔ [I-01/c] _gam_kv_.js: invented JSON and fixture-owner edits stay unaccredited despite all verified flags (10.8481ms)
+✔ [I-01/d] _gam_kv_.js: own immutable packet, retransmission and distinct execution preserve public correlation and export format (7.0324ms)
+✔ [I-01/e] _gam_kv_.js: navigation, handoff, same-token creative replacement and owner retirement revoke pending packets (27.6981ms)
+✔ [I-01/a] IntextManager.js: equal aliases and byte-identical foreign packets cannot borrow admission or duplicate receipts (7.1219ms)
+✔ [I-01/b] IntextManager.js: foreign fetch/winner/guard/handoff/terminal cannot create any population (25.6371ms)
+✔ [I-01/c] IntextManager.js: invented JSON and fixture-owner edits stay unaccredited despite all verified flags (4.0292ms)
+✔ [I-01/d] IntextManager.js: own immutable packet, retransmission and distinct execution preserve public correlation and export format (5.7249ms)
+✔ [I-01/e] IntextManager.js: navigation, handoff, same-token creative replacement and owner retirement revoke pending packets (16.4976ms)
+✔ [I-01/f] one registry distinguishes documents and producer distribution; a packet cannot authenticate its own JSON clone (4.0931ms)
+✔ [I-01/g] an unaccredited packet cannot poison sequence or clock watermarks (4.2033ms)
+✔ [I-01/h] authority exhaustion fails closed while scalar leases and both rings remain within partition (4.8333ms)
+✔ every new delivery path is reversible by projection; originals, traversal and historical docs are forbidden (5.7919ms)
+✔ stage I baseline: all 360 originals and all four binding contracts remain byte-identical (845.5521ms)
+ℹ tests 57
 ℹ suites 0
-ℹ pass 44
+ℹ pass 57
 ℹ fail 0
 ℹ cancelled 0
 ℹ skipped 0
 ℹ todo 0
-ℹ duration_ms 1563.5158
+ℹ duration_ms 4317.3851
 ℹ start of coverage report
 ℹ --------------------------------------------------------------------------
 ℹ file                      | line % | branch % | funcs % | uncovered lines
@@ -62,9 +75,9 @@
 ℹ    fixtures.cjs           | 100.00 |   100.00 |  100.00 | 
 ℹ    gates.cjs              | 100.00 |   100.00 |  100.00 | 
 ℹ    generator.cjs          |  90.53 |    81.40 |  100.00 | 64-68 92-95
-ℹ    identity-registry.cjs  | 100.00 |    86.27 |  100.00 | 
-ℹ    packet.cjs             | 100.00 |    97.17 |  100.00 | 
+ℹ    identity-registry.cjs  | 100.00 |    90.00 |  100.00 | 
+ℹ    packet.cjs             | 100.00 |    97.14 |  100.00 | 
 ℹ --------------------------------------------------------------------------
-ℹ all files                 |  94.69 |    92.13 |   97.47 | 
+ℹ all files                 |  95.13 |    92.55 |   97.62 | 
 ℹ --------------------------------------------------------------------------
 ℹ end of coverage report

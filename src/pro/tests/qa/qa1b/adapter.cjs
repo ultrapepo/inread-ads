@@ -64,6 +64,14 @@ function createOfflineAdapter(options){
     if(p.provenance.distribution!==distribution||(p.identity.documentLocalId!==null&&p.identity.documentLocalId!==documentLocalId)||p.time.sourceClock!=='synthetic-monotonic-ms'){
       increment('rejected');gap();return {accepted:false,reason:'series-or-clock-mismatch'};
     }
+    // Check the original immutable object, not the validated JSON-shaped clone.
+    // This precedes dedup and every time/sequence/population update, so a foreign
+    // packet cannot borrow a receipt through matching aliases or event IDs.
+    const accreditation=registry.accredit(input);
+    if(accreditation!=='current'){
+      increment('rejected');gap();return {accepted:false,reason:`registry-${accreditation}`,
+        acceptanceA:'not-admitted',candidateB0:'unknown',opportunityId:null,duplicate:false};
+    }
     const fingerprint=P.digest(p),old=ring.find(e=>e.packet.sampleSequence===p.sampleSequence);
     if(p.sampleSequence<=lastSequence){
       if(old&&old.fingerprint===fingerprint){increment('duplicates');return {...P.clone(old.receipt),duplicate:true};}
@@ -72,7 +80,7 @@ function createOfflineAdapter(options){
     }
     if(p.sampleSequence!==lastSequence+1)gap();
     lastSequence=p.sampleSequence;
-    const selection=P.select(p);
+    const selection=P.select(p,true);
     const key=[p.identity.navigationLocalId,p.identity.slotLocalId,p.identity.cycleId];
     const prior=opportunityMetadata.find(row=>key.every((value,index)=>row[index]===value));
     let metadataAdded=false;

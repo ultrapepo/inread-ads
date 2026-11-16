@@ -1,0 +1,1043 @@
+{
+  "schema": "qa1b-native-manual-export-v1",
+  "stage": "II-A-offline",
+  "acquisition": false,
+  "sourceComplete": false,
+  "physicalBudgetMeasured": false,
+  "producerAuthority": "local-capability-not-external-authentication",
+  "qa0": {
+    "schema": "p14b-shadow-export-v1",
+    "contractRevision": "r2",
+    "qaOnly": true,
+    "enforce": false,
+    "evaluationStage": "snapshot-B0-B3",
+    "closed": false,
+    "sourceClock": "synthetic-monotonic-ms",
+    "windowStartObservedMs": 11,
+    "windowEndMs": 17,
+    "totals": {
+      "D0": {
+        "yes": 1,
+        "no": 0,
+        "unknown": 0,
+        "complete": false
+      },
+      "Dv": {
+        "yes": 1,
+        "no": 0,
+        "unknown": 0,
+        "complete": false
+      },
+      "Dc": {
+        "yes": 1,
+        "no": 0,
+        "unknown": 0,
+        "complete": false
+      }
+    },
+    "coverage": {
+      "sourceComplete": {
+        "D0": false,
+        "Dv": false,
+        "Dc": false,
+        "outcomes": false
+      },
+      "gaps": {
+        "D0": false,
+        "Dv": false,
+        "Dc": false,
+        "outcomes": false
+      },
+      "flags": {
+        "accountingOverflow": false,
+        "summaryOverflow": false,
+        "sourceGap": false,
+        "counterOverflow": false,
+        "untrackedOpportunityNotifications": 0,
+        "untrackedObservations": 0,
+        "rejectedInputs": 0,
+        "rawEvidenceEvicted": false,
+        "rawDropped": 0,
+        "oversizedSnapshots": 0,
+        "snapshotLimitDrops": 0,
+        "firstRawDroppedSequence": null,
+        "lastRawDroppedSequence": null,
+        "rawDroppedByStage": {
+          "before-player": 0,
+          "after-player": 0,
+          "post-request": 0,
+          "post-reveal": 0,
+          "unknown": 0
+        }
+      },
+      "accountingComplete": {
+        "D0": false,
+        "Dv": false,
+        "Dc": false
+      },
+      "exactRatesAllowed": false,
+      "meaning": "Record populations only; no continuous scroll, alternative request, revenue, fill or viewability is reconstructed."
+    },
+    "rates": {
+      "videoOpportunityShare": {
+        "numerator": 1,
+        "denominator": 1,
+        "value": null,
+        "exactRatesAllowed": false,
+        "status": "coverage-insufficient"
+      },
+      "controlObservedShare": {
+        "numerator": 1,
+        "denominator": 1,
+        "value": null,
+        "exactRatesAllowed": false,
+        "status": "coverage-insufficient"
+      },
+      "videoWithObservedFrame": {
+        "numerator": 0,
+        "denominator": 1,
+        "value": null,
+        "exactRatesAllowed": false,
+        "status": "coverage-insufficient"
+      },
+      "firstPassFrame": {
+        "value": null,
+        "exactRatesAllowed": false,
+        "status": "temporal-coverage-not-implemented"
+      }
+    },
+    "catalogue": [
+      {
+        "family": "B0",
+        "rectModelId": null,
+        "parameterSetId": "control-factual",
+        "formulaVersion": "p14b-geometry-v1"
+      }
+    ],
+    "summaries": [
+      {
+        "opportunityId": "o1",
+        "fetchObserved": true,
+        "winner": "video",
+        "winnerConflict": false,
+        "controlPositive": true,
+        "controlSeen": true,
+        "controlCoverageComplete": false,
+        "frameObserved": false,
+        "frameCoverageComplete": false,
+        "frameAttributionIncomplete": false,
+        "impressionObserved": false,
+        "firstControlAt": 14,
+        "firstControlToken": 1,
+        "firstFrameAt": null,
+        "firstFrameToken": null,
+        "firstSeenAt": 11,
+        "lastSeenAt": 17,
+        "terminal": null,
+        "tokenReplaced": true,
+        "currentRenderToken": 1,
+        "currentFetchGeneration": 1,
+        "censor": {
+          "left": true,
+          "right": false,
+          "sourceGap": false,
+          "rawEvidenceEvicted": false
+        },
+        "loss": {
+          "count": 0,
+          "firstSequence": null,
+          "lastSequence": null
+        },
+        "results": [
+          {
+            "pass": 4,
+            "fail": 0,
+            "unknown": 3,
+            "not-applicable": 0
+          }
+        ],
+        "membership": {
+          "D0": "yes",
+          "Dv": "yes",
+          "Dc": "yes"
+        }
+      }
+    ],
+    "snapshots": [
+      {
+        "sequence": 1,
+        "monotonicMs": 11,
+        "opportunityId": "o1",
+        "scope": "opportunity",
+        "stage": "before-player",
+        "distribution": "IntextManager.js",
+        "control": null,
+        "viewport": {
+          "width": null,
+          "height": null
+        },
+        "plannedRegions": [],
+        "results": [
+          {
+            "candidateId": "B0",
+            "rectModelId": null,
+            "parameterSetId": "control-factual",
+            "formulaVersion": "p14b-geometry-v1",
+            "evaluationStage": "snapshot-B0-B3",
+            "status": "unknown",
+            "reasons": [
+              "scope-unknown"
+            ],
+            "controlComparison": "unknown",
+            "stage": "before-player",
+            "geometryQuality": "not-required",
+            "movementQuality": "not-required",
+            "areaFraction": null,
+            "xFraction": null,
+            "yFraction": null,
+            "maxAreaFraction": null,
+            "qualification": null
+          }
+        ]
+      },
+      {
+        "sequence": 2,
+        "monotonicMs": 12,
+        "opportunityId": "o1",
+        "scope": "opportunity",
+        "stage": "before-player",
+        "distribution": "IntextManager.js",
+        "control": null,
+        "viewport": {
+          "width": null,
+          "height": null
+        },
+        "plannedRegions": [],
+        "results": [
+          {
+            "candidateId": "B0",
+            "rectModelId": null,
+            "parameterSetId": "control-factual",
+            "formulaVersion": "p14b-geometry-v1",
+            "evaluationStage": "snapshot-B0-B3",
+            "status": "unknown",
+            "reasons": [
+              "scope-unknown"
+            ],
+            "controlComparison": "unknown",
+            "stage": "before-player",
+            "geometryQuality": "not-required",
+            "movementQuality": "not-required",
+            "areaFraction": null,
+            "xFraction": null,
+            "yFraction": null,
+            "maxAreaFraction": null,
+            "qualification": null
+          }
+        ]
+      },
+      {
+        "sequence": 3,
+        "monotonicMs": 13,
+        "opportunityId": "o1",
+        "scope": "opportunity",
+        "stage": "before-player",
+        "distribution": "IntextManager.js",
+        "control": null,
+        "viewport": {
+          "width": null,
+          "height": null
+        },
+        "plannedRegions": [],
+        "results": [
+          {
+            "candidateId": "B0",
+            "rectModelId": null,
+            "parameterSetId": "control-factual",
+            "formulaVersion": "p14b-geometry-v1",
+            "evaluationStage": "snapshot-B0-B3",
+            "status": "unknown",
+            "reasons": [
+              "scope-unknown"
+            ],
+            "controlComparison": "unknown",
+            "stage": "before-player",
+            "geometryQuality": "not-required",
+            "movementQuality": "not-required",
+            "areaFraction": null,
+            "xFraction": null,
+            "yFraction": null,
+            "maxAreaFraction": null,
+            "qualification": null
+          }
+        ]
+      },
+      {
+        "sequence": 4,
+        "monotonicMs": 14,
+        "opportunityId": "o1",
+        "scope": "video",
+        "stage": "before-player",
+        "distribution": "IntextManager.js",
+        "control": true,
+        "viewport": {
+          "width": null,
+          "height": null
+        },
+        "plannedRegions": [],
+        "results": [
+          {
+            "candidateId": "B0",
+            "rectModelId": null,
+            "parameterSetId": "control-factual",
+            "formulaVersion": "p14b-geometry-v1",
+            "evaluationStage": "snapshot-B0-B3",
+            "status": "pass",
+            "reasons": [],
+            "controlComparison": "agrees",
+            "stage": "before-player",
+            "geometryQuality": "not-required",
+            "movementQuality": "not-required",
+            "areaFraction": null,
+            "xFraction": null,
+            "yFraction": null,
+            "maxAreaFraction": null,
+            "qualification": null
+          }
+        ]
+      },
+      {
+        "sequence": 5,
+        "monotonicMs": 15,
+        "opportunityId": "o1",
+        "scope": "video",
+        "stage": "before-player",
+        "distribution": "IntextManager.js",
+        "control": true,
+        "viewport": {
+          "width": null,
+          "height": null
+        },
+        "plannedRegions": [],
+        "results": [
+          {
+            "candidateId": "B0",
+            "rectModelId": null,
+            "parameterSetId": "control-factual",
+            "formulaVersion": "p14b-geometry-v1",
+            "evaluationStage": "snapshot-B0-B3",
+            "status": "pass",
+            "reasons": [],
+            "controlComparison": "agrees",
+            "stage": "before-player",
+            "geometryQuality": "not-required",
+            "movementQuality": "not-required",
+            "areaFraction": null,
+            "xFraction": null,
+            "yFraction": null,
+            "maxAreaFraction": null,
+            "qualification": null
+          }
+        ]
+      },
+      {
+        "sequence": 6,
+        "monotonicMs": 16,
+        "opportunityId": "o1",
+        "scope": "video",
+        "stage": "before-player",
+        "distribution": "IntextManager.js",
+        "control": true,
+        "viewport": {
+          "width": null,
+          "height": null
+        },
+        "plannedRegions": [],
+        "results": [
+          {
+            "candidateId": "B0",
+            "rectModelId": null,
+            "parameterSetId": "control-factual",
+            "formulaVersion": "p14b-geometry-v1",
+            "evaluationStage": "snapshot-B0-B3",
+            "status": "pass",
+            "reasons": [],
+            "controlComparison": "agrees",
+            "stage": "before-player",
+            "geometryQuality": "not-required",
+            "movementQuality": "not-required",
+            "areaFraction": null,
+            "xFraction": null,
+            "yFraction": null,
+            "maxAreaFraction": null,
+            "qualification": null
+          }
+        ]
+      },
+      {
+        "sequence": 7,
+        "monotonicMs": 17,
+        "opportunityId": "o1",
+        "scope": "video",
+        "stage": "before-player",
+        "distribution": "IntextManager.js",
+        "control": true,
+        "viewport": {
+          "width": null,
+          "height": null
+        },
+        "plannedRegions": [],
+        "results": [
+          {
+            "candidateId": "B0",
+            "rectModelId": null,
+            "parameterSetId": "control-factual",
+            "formulaVersion": "p14b-geometry-v1",
+            "evaluationStage": "snapshot-B0-B3",
+            "status": "pass",
+            "reasons": [],
+            "controlComparison": "agrees",
+            "stage": "before-player",
+            "geometryQuality": "not-required",
+            "movementQuality": "not-required",
+            "areaFraction": null,
+            "xFraction": null,
+            "yFraction": null,
+            "maxAreaFraction": null,
+            "qualification": null
+          }
+        ]
+      }
+    ],
+    "memory": {
+      "logicalSummaryBytes": 966,
+      "logicalAggregateBytes": 1112,
+      "logicalSnapshotBytes": 4815,
+      "limits": {
+        "opportunities": 64,
+        "snapshots": 1000,
+        "summaryBytes": 262144,
+        "aggregateBytes": 16384,
+        "snapshotBytes": 524288,
+        "totalBytes": 802816
+      }
+    }
+  },
+  "entries": [
+    {
+      "packet": {
+        "schemaVersion": "qa1b-native-packet-v1",
+        "contractRevision": "r1-review-B",
+        "eventId": "e1",
+        "sampleSequence": 1,
+        "kind": "fetch",
+        "caller": "population",
+        "format": "opportunity",
+        "stage": "before-player",
+        "series": "native-lifecycle",
+        "identity": {
+          "documentLocalId": "de1fbc8bcef1a52c857fd733f",
+          "navigationLocalId": "a1_n0",
+          "slotLocalId": "a2",
+          "anchorLocalId": "a5",
+          "cycleId": 1,
+          "fetchGeneration": 1,
+          "renderToken": 0,
+          "activeRenderToken": 0,
+          "verified": true,
+          "state": "live"
+        },
+        "ownership": {
+          "nodeLocalId": "a2",
+          "waterfallLocalId": "a3",
+          "attemptLocalId": "t4",
+          "creativeLocalId": null,
+          "entryLocalId": null,
+          "verified": true,
+          "state": "live"
+        },
+        "time": {
+          "sourceClock": "synthetic-monotonic-ms",
+          "monotonicMs": 11
+        },
+        "provenance": {
+          "distribution": "IntextManager.js",
+          "coreSha256": "ba832dc0eb3c0f6e1070a515fac09dd31467e2c7a5a64a18ff4e4f4c063fead8",
+          "copySha256": "2fa180905972b432a14442bafeaf0d911a71724569b19f7580b03c6c9d2bb7df",
+          "origin": "native-boundary",
+          "producerProfile": "II-A-offline",
+          "boundary": "native-fetch",
+          "verified": true
+        },
+        "guard": {
+          "executed": false,
+          "eligible": null,
+          "reason": null,
+          "playerCreated": false
+        },
+        "evidence": {
+          "rect": null,
+          "viewport": null,
+          "P": "unknown"
+        },
+        "facts": {
+          "initialWinner": "unknown",
+          "observedInitialWinner": "unknown",
+          "winnerSource": "unknown",
+          "terminal": null
+        }
+      },
+      "receipt": {
+        "schema": "qa1b-native-receipt-v1",
+        "packetId": "e1",
+        "sampleSequence": 1,
+        "distribution": "IntextManager.js",
+        "documentLocalId": "de1fbc8bcef1a52c857fd733f",
+        "series": "native-lifecycle",
+        "accepted": true,
+        "reason": "recorded",
+        "acceptanceA": "not-admitted",
+        "candidateB0": "unknown",
+        "opportunityId": "o1",
+        "duplicate": false
+      },
+      "fingerprint": "61024edd52c400ae4bf607b157e19652c838978ee19763cd6f002c423bfdb3c5"
+    },
+    {
+      "packet": {
+        "schemaVersion": "qa1b-native-packet-v1",
+        "contractRevision": "r1-review-B",
+        "eventId": "e2",
+        "sampleSequence": 2,
+        "kind": "winner",
+        "caller": "population",
+        "format": "opportunity",
+        "stage": "before-player",
+        "series": "native-lifecycle",
+        "identity": {
+          "documentLocalId": "de1fbc8bcef1a52c857fd733f",
+          "navigationLocalId": "a1_n0",
+          "slotLocalId": "a2",
+          "anchorLocalId": "a5",
+          "cycleId": 1,
+          "fetchGeneration": 1,
+          "renderToken": 0,
+          "activeRenderToken": 0,
+          "verified": true,
+          "state": "live"
+        },
+        "ownership": {
+          "nodeLocalId": "a2",
+          "waterfallLocalId": "a3",
+          "attemptLocalId": "t4",
+          "creativeLocalId": null,
+          "entryLocalId": null,
+          "verified": true,
+          "state": "live"
+        },
+        "time": {
+          "sourceClock": "synthetic-monotonic-ms",
+          "monotonicMs": 12
+        },
+        "provenance": {
+          "distribution": "IntextManager.js",
+          "coreSha256": "ba832dc0eb3c0f6e1070a515fac09dd31467e2c7a5a64a18ff4e4f4c063fead8",
+          "copySha256": "2fa180905972b432a14442bafeaf0d911a71724569b19f7580b03c6c9d2bb7df",
+          "origin": "native-boundary",
+          "producerProfile": "II-A-offline",
+          "boundary": "native-decision",
+          "verified": true
+        },
+        "guard": {
+          "executed": false,
+          "eligible": null,
+          "reason": null,
+          "playerCreated": false
+        },
+        "evidence": {
+          "rect": null,
+          "viewport": null,
+          "P": "unknown"
+        },
+        "facts": {
+          "initialWinner": "video",
+          "observedInitialWinner": "video",
+          "winnerSource": "native-decision",
+          "terminal": null
+        }
+      },
+      "receipt": {
+        "schema": "qa1b-native-receipt-v1",
+        "packetId": "e2",
+        "sampleSequence": 2,
+        "distribution": "IntextManager.js",
+        "documentLocalId": "de1fbc8bcef1a52c857fd733f",
+        "series": "native-lifecycle",
+        "accepted": true,
+        "reason": "recorded",
+        "acceptanceA": "not-admitted",
+        "candidateB0": "unknown",
+        "opportunityId": "o1",
+        "duplicate": false
+      },
+      "fingerprint": "ce20e58719818e5e726347c0b8246ceb5937b0cf5968324a033d14f4133a42d1"
+    },
+    {
+      "packet": {
+        "schemaVersion": "qa1b-native-packet-v1",
+        "contractRevision": "r1-review-B",
+        "eventId": "e3",
+        "sampleSequence": 3,
+        "kind": "handoff",
+        "caller": "population",
+        "format": "opportunity",
+        "stage": "before-player",
+        "series": "native-lifecycle",
+        "identity": {
+          "documentLocalId": "de1fbc8bcef1a52c857fd733f",
+          "navigationLocalId": "a1_n0",
+          "slotLocalId": "a2",
+          "anchorLocalId": "a5",
+          "cycleId": 1,
+          "fetchGeneration": 1,
+          "renderToken": 1,
+          "activeRenderToken": 1,
+          "verified": true,
+          "state": "live"
+        },
+        "ownership": {
+          "nodeLocalId": "a2",
+          "waterfallLocalId": "a3",
+          "attemptLocalId": "t4",
+          "creativeLocalId": null,
+          "entryLocalId": null,
+          "verified": true,
+          "state": "live"
+        },
+        "time": {
+          "sourceClock": "synthetic-monotonic-ms",
+          "monotonicMs": 13
+        },
+        "provenance": {
+          "distribution": "IntextManager.js",
+          "coreSha256": "ba832dc0eb3c0f6e1070a515fac09dd31467e2c7a5a64a18ff4e4f4c063fead8",
+          "copySha256": "2fa180905972b432a14442bafeaf0d911a71724569b19f7580b03c6c9d2bb7df",
+          "origin": "native-boundary",
+          "producerProfile": "II-A-offline",
+          "boundary": "handoff",
+          "verified": true
+        },
+        "guard": {
+          "executed": false,
+          "eligible": null,
+          "reason": null,
+          "playerCreated": false
+        },
+        "evidence": {
+          "rect": null,
+          "viewport": null,
+          "P": "unknown"
+        },
+        "facts": {
+          "initialWinner": "unknown",
+          "observedInitialWinner": "video",
+          "winnerSource": "unknown",
+          "terminal": null
+        }
+      },
+      "receipt": {
+        "schema": "qa1b-native-receipt-v1",
+        "packetId": "e3",
+        "sampleSequence": 3,
+        "distribution": "IntextManager.js",
+        "documentLocalId": "de1fbc8bcef1a52c857fd733f",
+        "series": "native-lifecycle",
+        "accepted": true,
+        "reason": "recorded",
+        "acceptanceA": "not-admitted",
+        "candidateB0": "unknown",
+        "opportunityId": "o1",
+        "duplicate": false
+      },
+      "fingerprint": "eed409b1348b63b395aaf2db60de030ed12380e4e57f37c6b4c7ec521b5c1454"
+    },
+    {
+      "packet": {
+        "schemaVersion": "qa1b-native-packet-v1",
+        "contractRevision": "r1-review-B",
+        "eventId": "e4",
+        "sampleSequence": 4,
+        "kind": "guard",
+        "caller": "W2",
+        "format": "video",
+        "stage": "before-player",
+        "series": "primary-video-preplayer",
+        "identity": {
+          "documentLocalId": "de1fbc8bcef1a52c857fd733f",
+          "navigationLocalId": "a1_n0",
+          "slotLocalId": "a2",
+          "anchorLocalId": "a5",
+          "cycleId": 1,
+          "fetchGeneration": 1,
+          "renderToken": 1,
+          "activeRenderToken": 1,
+          "verified": true,
+          "state": "live"
+        },
+        "ownership": {
+          "nodeLocalId": "a2",
+          "waterfallLocalId": "a3",
+          "attemptLocalId": "t4",
+          "creativeLocalId": null,
+          "entryLocalId": null,
+          "verified": true,
+          "state": "live"
+        },
+        "time": {
+          "sourceClock": "synthetic-monotonic-ms",
+          "monotonicMs": 14
+        },
+        "provenance": {
+          "distribution": "IntextManager.js",
+          "coreSha256": "ba832dc0eb3c0f6e1070a515fac09dd31467e2c7a5a64a18ff4e4f4c063fead8",
+          "copySha256": "2fa180905972b432a14442bafeaf0d911a71724569b19f7580b03c6c9d2bb7df",
+          "origin": "native-boundary",
+          "producerProfile": "II-A-offline",
+          "boundary": "guard-result",
+          "verified": true
+        },
+        "guard": {
+          "executed": true,
+          "eligible": true,
+          "reason": "visible",
+          "playerCreated": false
+        },
+        "evidence": {
+          "rect": null,
+          "viewport": null,
+          "P": "unknown"
+        },
+        "facts": {
+          "initialWinner": "unknown",
+          "observedInitialWinner": "video",
+          "winnerSource": "unknown",
+          "terminal": null
+        }
+      },
+      "receipt": {
+        "schema": "qa1b-native-receipt-v1",
+        "packetId": "e4",
+        "sampleSequence": 4,
+        "distribution": "IntextManager.js",
+        "documentLocalId": "de1fbc8bcef1a52c857fd733f",
+        "series": "primary-video-preplayer",
+        "accepted": true,
+        "reason": "recorded",
+        "acceptanceA": "valid",
+        "candidateB0": "pass",
+        "opportunityId": "o1",
+        "duplicate": false
+      },
+      "fingerprint": "6363646b3735f6951c1ffe8ca000449e8e0e94cd4502363606c07fc6be466dea"
+    },
+    {
+      "packet": {
+        "schemaVersion": "qa1b-native-packet-v1",
+        "contractRevision": "r1-review-B",
+        "eventId": "e5",
+        "sampleSequence": 5,
+        "kind": "guard",
+        "caller": "W3",
+        "format": "video",
+        "stage": "before-player",
+        "series": "primary-video-preplayer",
+        "identity": {
+          "documentLocalId": "de1fbc8bcef1a52c857fd733f",
+          "navigationLocalId": "a1_n0",
+          "slotLocalId": "a2",
+          "anchorLocalId": "a5",
+          "cycleId": 1,
+          "fetchGeneration": 1,
+          "renderToken": 1,
+          "activeRenderToken": 1,
+          "verified": true,
+          "state": "live"
+        },
+        "ownership": {
+          "nodeLocalId": "a2",
+          "waterfallLocalId": "a3",
+          "attemptLocalId": "t4",
+          "creativeLocalId": "a7",
+          "entryLocalId": null,
+          "verified": true,
+          "state": "live"
+        },
+        "time": {
+          "sourceClock": "synthetic-monotonic-ms",
+          "monotonicMs": 15
+        },
+        "provenance": {
+          "distribution": "IntextManager.js",
+          "coreSha256": "ba832dc0eb3c0f6e1070a515fac09dd31467e2c7a5a64a18ff4e4f4c063fead8",
+          "copySha256": "2fa180905972b432a14442bafeaf0d911a71724569b19f7580b03c6c9d2bb7df",
+          "origin": "native-boundary",
+          "producerProfile": "II-A-offline",
+          "boundary": "guard-result",
+          "verified": true
+        },
+        "guard": {
+          "executed": true,
+          "eligible": true,
+          "reason": "visible",
+          "playerCreated": false
+        },
+        "evidence": {
+          "rect": null,
+          "viewport": null,
+          "P": "unknown"
+        },
+        "facts": {
+          "initialWinner": "unknown",
+          "observedInitialWinner": "video",
+          "winnerSource": "unknown",
+          "terminal": null
+        }
+      },
+      "receipt": {
+        "schema": "qa1b-native-receipt-v1",
+        "packetId": "e5",
+        "sampleSequence": 5,
+        "distribution": "IntextManager.js",
+        "documentLocalId": "de1fbc8bcef1a52c857fd733f",
+        "series": "primary-video-preplayer",
+        "accepted": true,
+        "reason": "recorded",
+        "acceptanceA": "valid",
+        "candidateB0": "pass",
+        "opportunityId": "o1",
+        "duplicate": false
+      },
+      "fingerprint": "5de06f575c33f960cfb09f533493185a2079dc7cbeecb2edf227e94b691812eb"
+    },
+    {
+      "packet": {
+        "schemaVersion": "qa1b-native-packet-v1",
+        "contractRevision": "r1-review-B",
+        "eventId": "e6",
+        "sampleSequence": 6,
+        "kind": "guard",
+        "caller": "W4",
+        "format": "video",
+        "stage": "before-player",
+        "series": "primary-video-preplayer",
+        "identity": {
+          "documentLocalId": "de1fbc8bcef1a52c857fd733f",
+          "navigationLocalId": "a1_n0",
+          "slotLocalId": "a2",
+          "anchorLocalId": "a5",
+          "cycleId": 1,
+          "fetchGeneration": 1,
+          "renderToken": 1,
+          "activeRenderToken": 1,
+          "verified": true,
+          "state": "live"
+        },
+        "ownership": {
+          "nodeLocalId": "a2",
+          "waterfallLocalId": "a3",
+          "attemptLocalId": "t4",
+          "creativeLocalId": "a7",
+          "entryLocalId": null,
+          "verified": true,
+          "state": "live"
+        },
+        "time": {
+          "sourceClock": "synthetic-monotonic-ms",
+          "monotonicMs": 16
+        },
+        "provenance": {
+          "distribution": "IntextManager.js",
+          "coreSha256": "ba832dc0eb3c0f6e1070a515fac09dd31467e2c7a5a64a18ff4e4f4c063fead8",
+          "copySha256": "2fa180905972b432a14442bafeaf0d911a71724569b19f7580b03c6c9d2bb7df",
+          "origin": "native-boundary",
+          "producerProfile": "II-A-offline",
+          "boundary": "guard-result",
+          "verified": true
+        },
+        "guard": {
+          "executed": true,
+          "eligible": true,
+          "reason": "visible",
+          "playerCreated": false
+        },
+        "evidence": {
+          "rect": null,
+          "viewport": null,
+          "P": "unknown"
+        },
+        "facts": {
+          "initialWinner": "unknown",
+          "observedInitialWinner": "video",
+          "winnerSource": "unknown",
+          "terminal": null
+        }
+      },
+      "receipt": {
+        "schema": "qa1b-native-receipt-v1",
+        "packetId": "e6",
+        "sampleSequence": 6,
+        "distribution": "IntextManager.js",
+        "documentLocalId": "de1fbc8bcef1a52c857fd733f",
+        "series": "primary-video-preplayer",
+        "accepted": true,
+        "reason": "recorded",
+        "acceptanceA": "valid",
+        "candidateB0": "pass",
+        "opportunityId": "o1",
+        "duplicate": false
+      },
+      "fingerprint": "c4f689e1677b19ce1a5f216c8b32cdd02a5e03d09dd25a064f832a2c39779ffe"
+    },
+    {
+      "packet": {
+        "schemaVersion": "qa1b-native-packet-v1",
+        "contractRevision": "r1-review-B",
+        "eventId": "e7",
+        "sampleSequence": 7,
+        "kind": "guard",
+        "caller": "C1",
+        "format": "video",
+        "stage": "before-player",
+        "series": "primary-video-preplayer",
+        "identity": {
+          "documentLocalId": "de1fbc8bcef1a52c857fd733f",
+          "navigationLocalId": "a1_n0",
+          "slotLocalId": "a2",
+          "anchorLocalId": "a5",
+          "cycleId": 1,
+          "fetchGeneration": 1,
+          "renderToken": 1,
+          "activeRenderToken": 1,
+          "verified": true,
+          "state": "live"
+        },
+        "ownership": {
+          "nodeLocalId": "a2",
+          "waterfallLocalId": "a3",
+          "attemptLocalId": "t4",
+          "creativeLocalId": "a7",
+          "entryLocalId": null,
+          "verified": true,
+          "state": "live"
+        },
+        "time": {
+          "sourceClock": "synthetic-monotonic-ms",
+          "monotonicMs": 17
+        },
+        "provenance": {
+          "distribution": "IntextManager.js",
+          "coreSha256": "ba832dc0eb3c0f6e1070a515fac09dd31467e2c7a5a64a18ff4e4f4c063fead8",
+          "copySha256": "2fa180905972b432a14442bafeaf0d911a71724569b19f7580b03c6c9d2bb7df",
+          "origin": "native-boundary",
+          "producerProfile": "II-A-offline",
+          "boundary": "guard-result",
+          "verified": true
+        },
+        "guard": {
+          "executed": true,
+          "eligible": true,
+          "reason": "visible",
+          "playerCreated": false
+        },
+        "evidence": {
+          "rect": null,
+          "viewport": null,
+          "P": "unknown"
+        },
+        "facts": {
+          "initialWinner": "unknown",
+          "observedInitialWinner": "video",
+          "winnerSource": "unknown",
+          "terminal": null
+        }
+      },
+      "receipt": {
+        "schema": "qa1b-native-receipt-v1",
+        "packetId": "e7",
+        "sampleSequence": 7,
+        "distribution": "IntextManager.js",
+        "documentLocalId": "de1fbc8bcef1a52c857fd733f",
+        "series": "primary-video-preplayer",
+        "accepted": true,
+        "reason": "recorded",
+        "acceptanceA": "valid",
+        "candidateB0": "pass",
+        "opportunityId": "o1",
+        "duplicate": false
+      },
+      "fingerprint": "aace020ca8bccb20a13e42ba26704c5c65d6ac7addc638ac8b1957eeef26f70e"
+    }
+  ],
+  "metadata": {
+    "schema": "qa1b-native-metadata-v1",
+    "proof": {
+      "distribution": "IntextManager.js",
+      "coreSha256": "ba832dc0eb3c0f6e1070a515fac09dd31467e2c7a5a64a18ff4e4f4c063fead8",
+      "copySha256": "2fa180905972b432a14442bafeaf0d911a71724569b19f7580b03c6c9d2bb7df"
+    },
+    "documentLocalId": "de1fbc8bcef1a52c857fd733f",
+    "sourceComplete": false,
+    "closed": false,
+    "lastTime": 17,
+    "sequence": 7,
+    "counters": {
+      "received": 7,
+      "accepted": 7,
+      "rawOnly": 0,
+      "rejected": 0,
+      "duplicates": 0,
+      "dropped": 0,
+      "oversized": 0
+    },
+    "flags": {
+      "sourceGap": false,
+      "authorityExhausted": false,
+      "metadataOverflow": false,
+      "counterOverflow": false
+    },
+    "rows": [
+      [
+        "a1_n0",
+        "a2",
+        1,
+        true
+      ]
+    ],
+    "authority": {
+      "authority": "native-local-object-v1",
+      "logicalChargedBytes": 393,
+      "budgetBytes": 12288,
+      "exhausted": false,
+      "sourceComplete": false
+    }
+  },
+  "memory": {
+    "summaryBytes": 966,
+    "qa0AggregateBytes": 1112,
+    "qa0RingBytes": 4815,
+    "metadataBytes": 1122,
+    "packetRingBytes": 11396,
+    "detailEntries": 14,
+    "limits": {
+      "summaryBytes": 262144,
+      "qa0AggregateBytes": 16384,
+      "metadataBytes": 16384,
+      "qa0RingBytes": 524288,
+      "packetRingBytes": 1277952,
+      "opportunities": 64,
+      "qa0Entries": 1000,
+      "packetEntries": 1000,
+      "totalBytes": 2097152
+    }
+  }
+}

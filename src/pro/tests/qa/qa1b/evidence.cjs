@@ -8,7 +8,7 @@ function run(){
   for(const row of [...before.files,...before.contracts]){
     const bytes=fs.readFileSync(path.join(root,row.file));assert.equal(bytes.length,row.bytes,row.file);assert.equal(sha(bytes),row.sha256,row.file);
   }
-  const output={},copies=[];
+  const output={},copies=[],authorityChecks={};
   for(const distribution of ['_gam_kv_.js','IntextManager.js']){
     const s=F.session(distribution);s.start();
     const receipts=['W2','W3','W4','C1'].map(caller=>s.send({caller}));
@@ -16,6 +16,15 @@ function run(){
     const value=s.adapter.exportManual();
     assert.deepEqual([value.qa0.totals.D0.yes,value.qa0.totals.Dv.yes,value.qa0.totals.Dc.yes],[1,1,1]);
     output[distribution]={counts:value.qa0.totals,coverage:value.qa0.coverage,receipts,exportBytes:s.adapter.serializeManual().bytes};
+    const a=F.session(distribution),b=F.session(distribution);a.start();b.start();
+    const foreign=a.packet(),own=b.packet();assert.deepEqual(foreign,own);
+    const rejection=b.adapter.ingest(foreign),blocked=b.adapter.exportManual();
+    assert.equal(rejection.reason,'registry-unaccredited');assert.equal(blocked.qa0.totals.Dc.yes,0);
+    assert.equal(blocked.qa0.summaries[0].firstControlAt,null);assert.equal(blocked.metadata.lastSequence,2);
+    const legitimate=b.adapter.ingest(own),duplicate=b.adapter.ingest(own),jsonRejection=b.adapter.ingest(JSON.parse(JSON.stringify(own)));
+    assert.equal(legitimate.acceptanceA,'valid');assert.equal(duplicate.duplicate,true);assert.equal(jsonRejection.reason,'registry-unaccredited');
+    authorityChecks[distribution]={aliasesAndPayloadEqual:true,foreignRejection:rejection,foreignDidNotCreateFirstPositive:true,
+      ownReceipt:legitimate,ownRetransmission:duplicate,jsonCopyRejection:jsonRejection,sourceComplete:b.adapter.exportManual().qa0.coverage.sourceComplete};
     const generated=G.generateCopy(distribution,fs.readFileSync(path.join(root,distribution)));
     assert.equal(sha(G.reverseCopy(distribution,generated.artifact)),generated.manifest.baseSha256);
     const label=distribution==='_gam_kv_.js'?'gam':'manager';
@@ -31,6 +40,9 @@ function run(){
   fs.writeFileSync(path.join(root,'docs/intext-p14b-qa1b-stage1-synthetic-export.json'),exported.json+'\n');
   const evidence={schema:'qa1b-stage1-evidence-v1',origin:'synthetic-fixtures-only',acquisition:false,environment:{node:process.version,platform:process.platform},
     protectedOriginalsVerified:before.files.length,bindingContractsVerified:before.contracts.length,sessions:output,
+    auditCorrection:{finding:'I-01',profile:'local-fixture-object-v1',authorityChecks,
+      packetSchemaChanged:false,externalProducerAuthenticationImplemented:false,persistentSecrets:false,
+      authorityMembership:'Weak packet keys; shared scalar leases charged once per owner state; no strong packet index',physicalWeakMapHeapMeasured:false},
     stress:{originalGuards:2001,notificationsIncludingFetchAndWinner:2003,memory:memory.memory,
       retainedQA0:memory.qa0.snapshots.length,retainedPackets:memory.entries.length,packetLoss:memory.metadata.loss,
       packetCounters:memory.metadata.counts,qa0Loss:memory.qa0.coverage.flags,

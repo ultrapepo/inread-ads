@@ -1,0 +1,668 @@
+cwd: C:\Users\pedro.ramos\Documents\workspace\develop\interstitial\intext\inread ads\src\pro
+Node: v25.8.1
+command argv: ["C:\\Program Files\\nodejs\\node.exe","--test","--test-isolation=none","--test-reporter=tap","--experimental-test-coverage","--test-coverage-include=tests/qa/qa1b2a/*.cjs","tests/intext-p14b-qa1b-stage2a.test.cjs"]
+
+TAP version 13
+# Subtest: _gam_kv_.js: exact build, syntax-only full copy, inverse bytes, inert endpoint
+ok 1 - _gam_kv_.js: exact build, syntax-only full copy, inverse bytes, inert endpoint
+  ---
+  duration_ms: 159.8935
+  type: 'test'
+  ...
+# Subtest: _gam_kv_.js: base/copy/manifest divergence and forged build proof fail closed
+ok 2 - _gam_kv_.js: base/copy/manifest divergence and forged build proof fail closed
+  ---
+  duration_ms: 63.2352
+  type: 'test'
+  ...
+# Subtest: _gam_kv_.js: all commercial source bytes outside declared edit methods are identical
+ok 3 - _gam_kv_.js: all commercial source bytes outside declared edit methods are identical
+  ---
+  duration_ms: 56.7002
+  type: 'test'
+  ...
+# Subtest: _gam_kv_.js: native fetch/winner/token/guard through extracted methods and real QA0
+ok 4 - _gam_kv_.js: native fetch/winner/token/guard through extracted methods and real QA0
+  ---
+  duration_ms: 233.8957
+  type: 'test'
+  ...
+# Subtest: _gam_kv_.js: B0 true/false with P unknown; W2/W3/W4/C1 one opportunity and first positive
+ok 5 - _gam_kv_.js: B0 true/false with P unknown; W2/W3/W4/C1 one opportunity and first positive
+  ---
+  duration_ms: 72.0516
+  type: 'test'
+  ...
+# Subtest: _gam_kv_.js: W1 Display true remains Display and never adds Dc
+ok 6 - _gam_kv_.js: W1 Display true remains Display and never adds Dc
+  ---
+  duration_ms: 70.9767
+  type: 'test'
+  ...
+# Subtest: _gam_kv_.js: native preparation descriptor alone never invents an initial video winner
+ok 7 - _gam_kv_.js: native preparation descriptor alone never invents an initial video winner
+  ---
+  duration_ms: 60.9104
+  type: 'test'
+  ...
+# Subtest: _gam_kv_.js: exact original native decision display / null (none), no video winner inference
+ok 8 - _gam_kv_.js: exact original native decision display / null (none), no video winner inference
+  ---
+  duration_ms: 117.4368
+  type: 'test'
+  ...
+# Subtest: _gam_kv_.js: local original object authority, foreign registration and JSON verified fields denied before counts
+ok 9 - _gam_kv_.js: local original object authority, foreign registration and JSON verified fields denied before counts
+  ---
+  duration_ms: 112.9836
+  type: 'test'
+  ...
+# Subtest: _gam_kv_.js: Stage I fixture authority and native authority are disjoint
+ok 10 - _gam_kv_.js: Stage I fixture authority and native authority are disjoint
+  ---
+  duration_ms: 93.0277
+  type: 'test'
+  ...
+# Subtest: _gam_kv_.js: stale result/token, handoff and owner retirement cannot make positives
+ok 11 - _gam_kv_.js: stale result/token, handoff and owner retirement cannot make positives
+  ---
+  duration_ms: 87.7984
+  type: 'test'
+  ...
+# Subtest: _gam_kv_.js: cleanup, navigation and cycle genealogy revoke rather than reconstruct
+ok 12 - _gam_kv_.js: cleanup, navigation and cycle genealogy revoke rather than reconstruct
+  ---
+  duration_ms: 69.3335
+  type: 'test'
+  ...
+# Subtest: _gam_kv_.js: missing native generation, navigation or anchor is unknown with gap
+ok 13 - _gam_kv_.js: missing native generation, navigation or anchor is unknown with gap
+  ---
+  duration_ms: 214.3185
+  type: 'test'
+  ...
+# Subtest: _gam_kv_.js: direct legacy auction does not reuse an earlier native fetch generation
+ok 14 - _gam_kv_.js: direct legacy auction does not reuse an earlier native fetch generation
+  ---
+  duration_ms: 95.0449
+  type: 'test'
+  ...
+# Subtest: _gam_kv_.js: diagnostics, preparation, recovery/reveal and post-player are excluded
+ok 15 - _gam_kv_.js: diagnostics, preparation, recovery/reveal and post-player are excluded
+  ---
+  duration_ms: 55.9937
+  type: 'test'
+  ...
+# Subtest: _gam_kv_.js: wait visible, equal effects and original true/false/never-executed
+ok 16 - _gam_kv_.js: wait visible, equal effects and original true/false/never-executed
+  ---
+  duration_ms: 108.088
+  type: 'test'
+  ...
+# Subtest: _gam_kv_.js: wait below, equal effects and original true/false/never-executed
+ok 17 - _gam_kv_.js: wait below, equal effects and original true/false/never-executed
+  ---
+  duration_ms: 100.6847
+  type: 'test'
+  ...
+# Subtest: _gam_kv_.js: wait hidden, equal effects and original true/false/never-executed
+ok 18 - _gam_kv_.js: wait hidden, equal effects and original true/false/never-executed
+  ---
+  duration_ms: 101.2302
+  type: 'test'
+  ...
+# Subtest: _gam_kv_.js: wait missing, equal effects and original true/false/never-executed
+ok 19 - _gam_kv_.js: wait missing, equal effects and original true/false/never-executed
+  ---
+  duration_ms: 99.8153
+  type: 'test'
+  ...
+# Subtest: _gam_kv_.js: wait geometry, equal effects and original true/false/never-executed
+ok 20 - _gam_kv_.js: wait geometry, equal effects and original true/false/never-executed
+  ---
+  duration_ms: 165.7376
+  type: 'test'
+  ...
+# Subtest: _gam_kv_.js: wait unrendered, equal effects and original true/false/never-executed
+ok 21 - _gam_kv_.js: wait unrendered, equal effects and original true/false/never-executed
+  ---
+  duration_ms: 193.9266
+  type: 'test'
+  ...
+# Subtest: _gam_kv_.js: wait stale, equal effects and original true/false/never-executed
+ok 22 - _gam_kv_.js: wait stale, equal effects and original true/false/never-executed
+  ---
+  duration_ms: 126.9147
+  type: 'test'
+  ...
+# Subtest: _gam_kv_.js: wait intersection, equal effects and original true/false/never-executed
+ok 23 - _gam_kv_.js: wait intersection, equal effects and original true/false/never-executed
+  ---
+  duration_ms: 115.2687
+  type: 'test'
+  ...
+# Subtest: _gam_kv_.js: activate prepare-error, same awaits/throws/callback ordering
+ok 24 - _gam_kv_.js: activate prepare-error, same awaits/throws/callback ordering
+  ---
+  duration_ms: 112.8999
+  type: 'test'
+  ...
+# Subtest: _gam_kv_.js: activate invalid-before-wait, same awaits/throws/callback ordering
+ok 25 - _gam_kv_.js: activate invalid-before-wait, same awaits/throws/callback ordering
+  ---
+  duration_ms: 109.8748
+  type: 'test'
+  ...
+# Subtest: _gam_kv_.js: activate stale-wait, same awaits/throws/callback ordering
+ok 26 - _gam_kv_.js: activate stale-wait, same awaits/throws/callback ordering
+  ---
+  duration_ms: 178.5198
+  type: 'test'
+  ...
+# Subtest: _gam_kv_.js: activate invalid-after-wait, same awaits/throws/callback ordering
+ok 27 - _gam_kv_.js: activate invalid-after-wait, same awaits/throws/callback ordering
+  ---
+  duration_ms: 208.0795
+  type: 'test'
+  ...
+# Subtest: _gam_kv_.js: activate false-final, same awaits/throws/callback ordering
+ok 28 - _gam_kv_.js: activate false-final, same awaits/throws/callback ordering
+  ---
+  duration_ms: 200.4514
+  type: 'test'
+  ...
+# Subtest: _gam_kv_.js: activate missing-final, same awaits/throws/callback ordering
+ok 29 - _gam_kv_.js: activate missing-final, same awaits/throws/callback ordering
+  ---
+  duration_ms: 229.0521
+  type: 'test'
+  ...
+# Subtest: _gam_kv_.js: activate normal, same awaits/throws/callback ordering
+ok 30 - _gam_kv_.js: activate normal, same awaits/throws/callback ordering
+  ---
+  duration_ms: 281.4378
+  type: 'test'
+  ...
+# Subtest: _gam_kv_.js: activate throwing-sink, same awaits/throws/callback ordering
+ok 31 - _gam_kv_.js: activate throwing-sink, same awaits/throws/callback ordering
+  ---
+  duration_ms: 323.9743
+  type: 'test'
+  ...
+# Subtest: _gam_kv_.js: sourceComplete false forever, all exact rates blocked, firstPassFrame absent
+ok 32 - _gam_kv_.js: sourceComplete false forever, all exact rates blocked, firstPassFrame absent
+  ---
+  duration_ms: 127.0468
+  type: 'test'
+  ...
+# Subtest: _gam_kv_.js: buildAndPlayVideo new, W2/W3 and activation effects match original
+ok 33 - _gam_kv_.js: buildAndPlayVideo new, W2/W3 and activation effects match original
+  ---
+  duration_ms: 221.9822
+  type: 'test'
+  ...
+# Subtest: _gam_kv_.js: buildAndPlayVideo prepared, W2/W3 and activation effects match original
+ok 34 - _gam_kv_.js: buildAndPlayVideo prepared, W2/W3 and activation effects match original
+  ---
+  duration_ms: 249.9687
+  type: 'test'
+  ...
+# Subtest: _gam_kv_.js: buildAndPlayVideo inactive, W2/W3 and activation effects match original
+ok 35 - _gam_kv_.js: buildAndPlayVideo inactive, W2/W3 and activation effects match original
+  ---
+  duration_ms: 248.0743
+  type: 'test'
+  ...
+# Subtest: _gam_kv_.js: buildAndPlayVideo stale-W2, W2/W3 and activation effects match original
+ok 36 - _gam_kv_.js: buildAndPlayVideo stale-W2, W2/W3 and activation effects match original
+  ---
+  duration_ms: 262.476
+  type: 'test'
+  ...
+# Subtest: _gam_kv_.js: buildAndPlayVideo stale-W3, W2/W3 and activation effects match original
+ok 37 - _gam_kv_.js: buildAndPlayVideo stale-W3, W2/W3 and activation effects match original
+  ---
+  duration_ms: 265.3297
+  type: 'test'
+  ...
+# Subtest: _gam_kv_.js: buildAndPlayVideo prepare-error, W2/W3 and activation effects match original
+ok 38 - _gam_kv_.js: buildAndPlayVideo prepare-error, W2/W3 and activation effects match original
+  ---
+  duration_ms: 300.4359
+  type: 'test'
+  ...
+# Subtest: _gam_kv_.js: buildAndPlayVideo false-C1, W2/W3 and activation effects match original
+ok 39 - _gam_kv_.js: buildAndPlayVideo false-C1, W2/W3 and activation effects match original
+  ---
+  duration_ms: 268.7238
+  type: 'test'
+  ...
+# Subtest: _gam_kv_.js: buildAndPlayVideo stale-after-render, W2/W3 and activation effects match original
+ok 40 - _gam_kv_.js: buildAndPlayVideo stale-after-render, W2/W3 and activation effects match original
+  ---
+  duration_ms: 234.3198
+  type: 'test'
+  ...
+# Subtest: _gam_kv_.js: buildAndPlayVideo throwing-sink, W2/W3 and activation effects match original
+ok 41 - _gam_kv_.js: buildAndPlayVideo throwing-sink, W2/W3 and activation effects match original
+  ---
+  duration_ms: 232.2983
+  type: 'test'
+  ...
+# Subtest: _gam_kv_.js: actual preparation entry handoff and standby release preserve effects and populations
+ok 42 - _gam_kv_.js: actual preparation entry handoff and standby release preserve effects and populations
+  ---
+  duration_ms: 231.8295
+  type: 'test'
+  ...
+# Subtest: _gam_kv_.js: original guard exception remains exception; no fabricated false
+ok 43 - _gam_kv_.js: original guard exception remains exception; no fabricated false
+  ---
+  duration_ms: 236.4254
+  type: 'test'
+  ...
+# Subtest: _gam_kv_.js: prepared creative accredited only by actual entry, release revokes its packets
+ok 44 - _gam_kv_.js: prepared creative accredited only by actual entry, release revokes its packets
+  ---
+  duration_ms: 108.2039
+  type: 'test'
+  ...
+# Subtest: _gam_kv_.js: regressed or unknown clock produces a gap without a new first positive
+ok 45 - _gam_kv_.js: regressed or unknown clock produces a gap without a new first positive
+  ---
+  duration_ms: 371.2173
+  type: 'test'
+  ...
+# Subtest: _gam_kv_.js: metadata reserves the longest permitted finite clock representation
+ok 46 - _gam_kv_.js: metadata reserves the longest permitted finite clock representation
+  ---
+  duration_ms: 220.13
+  type: 'test'
+  ...
+# Subtest: _gam_kv_.js: reused article root with a new native navigation index has separate genealogy
+ok 47 - _gam_kv_.js: reused article root with a new native navigation index has separate genealogy
+  ---
+  duration_ms: 209.7065
+  type: 'test'
+  ...
+# Subtest: _gam_kv_.js: independent waterfalls with equal native counters cannot borrow the current owner
+ok 48 - _gam_kv_.js: independent waterfalls with equal native counters cannot borrow the current owner
+  ---
+  duration_ms: 226.9785
+  type: 'test'
+  ...
+# Subtest: _gam_kv_.js: original async generation check suppresses a cancelled fetch winner, effects unchanged
+ok 49 - _gam_kv_.js: original async generation check suppresses a cancelled fetch winner, effects unchanged
+  ---
+  duration_ms: 596.5496
+  type: 'test'
+  ...
+# Subtest: _gam_kv_.js: rings, shared 2 MiB partition, bounded manual export, evicted retransmission
+ok 50 - _gam_kv_.js: rings, shared 2 MiB partition, bounded manual export, evicted retransmission
+  ---
+  duration_ms: 1027.0733
+  type: 'test'
+  ...
+# Subtest: _gam_kv_.js: opportunity 65 is overflow, no eviction or second population engine
+ok 51 - _gam_kv_.js: opportunity 65 is overflow, no eviction or second population engine
+  ---
+  duration_ms: 773.2792
+  type: 'test'
+  ...
+# Subtest: _gam_kv_.js: reduced partitions, oversized evidence and authority exhaustion fail safely
+ok 52 - _gam_kv_.js: reduced partitions, oversized evidence and authority exhaustion fail safely
+  ---
+  duration_ms: 104.3753
+  type: 'test'
+  ...
+# Subtest: IntextManager.js: exact build, syntax-only full copy, inverse bytes, inert endpoint
+ok 53 - IntextManager.js: exact build, syntax-only full copy, inverse bytes, inert endpoint
+  ---
+  duration_ms: 171.0635
+  type: 'test'
+  ...
+# Subtest: IntextManager.js: base/copy/manifest divergence and forged build proof fail closed
+ok 54 - IntextManager.js: base/copy/manifest divergence and forged build proof fail closed
+  ---
+  duration_ms: 66.1464
+  type: 'test'
+  ...
+# Subtest: IntextManager.js: all commercial source bytes outside declared edit methods are identical
+ok 55 - IntextManager.js: all commercial source bytes outside declared edit methods are identical
+  ---
+  duration_ms: 50.0316
+  type: 'test'
+  ...
+# Subtest: IntextManager.js: native fetch/winner/token/guard through extracted methods and real QA0
+ok 56 - IntextManager.js: native fetch/winner/token/guard through extracted methods and real QA0
+  ---
+  duration_ms: 229.1391
+  type: 'test'
+  ...
+# Subtest: IntextManager.js: B0 true/false with P unknown; W2/W3/W4/C1 one opportunity and first positive
+ok 57 - IntextManager.js: B0 true/false with P unknown; W2/W3/W4/C1 one opportunity and first positive
+  ---
+  duration_ms: 83.0314
+  type: 'test'
+  ...
+# Subtest: IntextManager.js: W1 Display true remains Display and never adds Dc
+ok 58 - IntextManager.js: W1 Display true remains Display and never adds Dc
+  ---
+  duration_ms: 87.1139
+  type: 'test'
+  ...
+# Subtest: IntextManager.js: native preparation descriptor alone never invents an initial video winner
+ok 59 - IntextManager.js: native preparation descriptor alone never invents an initial video winner
+  ---
+  duration_ms: 82.0663
+  type: 'test'
+  ...
+# Subtest: IntextManager.js: exact original native decision display / null (none), no video winner inference
+ok 60 - IntextManager.js: exact original native decision display / null (none), no video winner inference
+  ---
+  duration_ms: 153.7838
+  type: 'test'
+  ...
+# Subtest: IntextManager.js: local original object authority, foreign registration and JSON verified fields denied before counts
+ok 61 - IntextManager.js: local original object authority, foreign registration and JSON verified fields denied before counts
+  ---
+  duration_ms: 148.6966
+  type: 'test'
+  ...
+# Subtest: IntextManager.js: Stage I fixture authority and native authority are disjoint
+ok 62 - IntextManager.js: Stage I fixture authority and native authority are disjoint
+  ---
+  duration_ms: 88.3528
+  type: 'test'
+  ...
+# Subtest: IntextManager.js: stale result/token, handoff and owner retirement cannot make positives
+ok 63 - IntextManager.js: stale result/token, handoff and owner retirement cannot make positives
+  ---
+  duration_ms: 74.424
+  type: 'test'
+  ...
+# Subtest: IntextManager.js: cleanup, navigation and cycle genealogy revoke rather than reconstruct
+ok 64 - IntextManager.js: cleanup, navigation and cycle genealogy revoke rather than reconstruct
+  ---
+  duration_ms: 86.8977
+  type: 'test'
+  ...
+# Subtest: IntextManager.js: missing native generation, navigation or anchor is unknown with gap
+ok 65 - IntextManager.js: missing native generation, navigation or anchor is unknown with gap
+  ---
+  duration_ms: 241.901
+  type: 'test'
+  ...
+# Subtest: IntextManager.js: direct legacy auction does not reuse an earlier native fetch generation
+ok 66 - IntextManager.js: direct legacy auction does not reuse an earlier native fetch generation
+  ---
+  duration_ms: 64.7322
+  type: 'test'
+  ...
+# Subtest: IntextManager.js: diagnostics, preparation, recovery/reveal and post-player are excluded
+ok 67 - IntextManager.js: diagnostics, preparation, recovery/reveal and post-player are excluded
+  ---
+  duration_ms: 78.7964
+  type: 'test'
+  ...
+# Subtest: IntextManager.js: wait visible, equal effects and original true/false/never-executed
+ok 68 - IntextManager.js: wait visible, equal effects and original true/false/never-executed
+  ---
+  duration_ms: 178.6744
+  type: 'test'
+  ...
+# Subtest: IntextManager.js: wait below, equal effects and original true/false/never-executed
+ok 69 - IntextManager.js: wait below, equal effects and original true/false/never-executed
+  ---
+  duration_ms: 191.4059
+  type: 'test'
+  ...
+# Subtest: IntextManager.js: wait hidden, equal effects and original true/false/never-executed
+ok 70 - IntextManager.js: wait hidden, equal effects and original true/false/never-executed
+  ---
+  duration_ms: 200.9286
+  type: 'test'
+  ...
+# Subtest: IntextManager.js: wait missing, equal effects and original true/false/never-executed
+ok 71 - IntextManager.js: wait missing, equal effects and original true/false/never-executed
+  ---
+  duration_ms: 234.7489
+  type: 'test'
+  ...
+# Subtest: IntextManager.js: wait geometry, equal effects and original true/false/never-executed
+ok 72 - IntextManager.js: wait geometry, equal effects and original true/false/never-executed
+  ---
+  duration_ms: 238.6168
+  type: 'test'
+  ...
+# Subtest: IntextManager.js: wait unrendered, equal effects and original true/false/never-executed
+ok 73 - IntextManager.js: wait unrendered, equal effects and original true/false/never-executed
+  ---
+  duration_ms: 195.6913
+  type: 'test'
+  ...
+# Subtest: IntextManager.js: wait stale, equal effects and original true/false/never-executed
+ok 74 - IntextManager.js: wait stale, equal effects and original true/false/never-executed
+  ---
+  duration_ms: 337.3058
+  type: 'test'
+  ...
+# Subtest: IntextManager.js: wait intersection, equal effects and original true/false/never-executed
+ok 75 - IntextManager.js: wait intersection, equal effects and original true/false/never-executed
+  ---
+  duration_ms: 213.4448
+  type: 'test'
+  ...
+# Subtest: IntextManager.js: activate prepare-error, same awaits/throws/callback ordering
+ok 76 - IntextManager.js: activate prepare-error, same awaits/throws/callback ordering
+  ---
+  duration_ms: 210.4067
+  type: 'test'
+  ...
+# Subtest: IntextManager.js: activate invalid-before-wait, same awaits/throws/callback ordering
+ok 77 - IntextManager.js: activate invalid-before-wait, same awaits/throws/callback ordering
+  ---
+  duration_ms: 199.0473
+  type: 'test'
+  ...
+# Subtest: IntextManager.js: activate stale-wait, same awaits/throws/callback ordering
+ok 78 - IntextManager.js: activate stale-wait, same awaits/throws/callback ordering
+  ---
+  duration_ms: 235.7957
+  type: 'test'
+  ...
+# Subtest: IntextManager.js: activate invalid-after-wait, same awaits/throws/callback ordering
+ok 79 - IntextManager.js: activate invalid-after-wait, same awaits/throws/callback ordering
+  ---
+  duration_ms: 193.302
+  type: 'test'
+  ...
+# Subtest: IntextManager.js: activate false-final, same awaits/throws/callback ordering
+ok 80 - IntextManager.js: activate false-final, same awaits/throws/callback ordering
+  ---
+  duration_ms: 192.034
+  type: 'test'
+  ...
+# Subtest: IntextManager.js: activate missing-final, same awaits/throws/callback ordering
+ok 81 - IntextManager.js: activate missing-final, same awaits/throws/callback ordering
+  ---
+  duration_ms: 182.9591
+  type: 'test'
+  ...
+# Subtest: IntextManager.js: activate normal, same awaits/throws/callback ordering
+ok 82 - IntextManager.js: activate normal, same awaits/throws/callback ordering
+  ---
+  duration_ms: 212.7502
+  type: 'test'
+  ...
+# Subtest: IntextManager.js: activate throwing-sink, same awaits/throws/callback ordering
+ok 83 - IntextManager.js: activate throwing-sink, same awaits/throws/callback ordering
+  ---
+  duration_ms: 177.9606
+  type: 'test'
+  ...
+# Subtest: IntextManager.js: sourceComplete false forever, all exact rates blocked, firstPassFrame absent
+ok 84 - IntextManager.js: sourceComplete false forever, all exact rates blocked, firstPassFrame absent
+  ---
+  duration_ms: 81.8211
+  type: 'test'
+  ...
+# Subtest: IntextManager.js: buildAndPlayVideo new, W2/W3 and activation effects match original
+ok 85 - IntextManager.js: buildAndPlayVideo new, W2/W3 and activation effects match original
+  ---
+  duration_ms: 214.8054
+  type: 'test'
+  ...
+# Subtest: IntextManager.js: buildAndPlayVideo prepared, W2/W3 and activation effects match original
+ok 86 - IntextManager.js: buildAndPlayVideo prepared, W2/W3 and activation effects match original
+  ---
+  duration_ms: 186.51
+  type: 'test'
+  ...
+# Subtest: IntextManager.js: buildAndPlayVideo inactive, W2/W3 and activation effects match original
+ok 87 - IntextManager.js: buildAndPlayVideo inactive, W2/W3 and activation effects match original
+  ---
+  duration_ms: 213.3591
+  type: 'test'
+  ...
+# Subtest: IntextManager.js: buildAndPlayVideo stale-W2, W2/W3 and activation effects match original
+ok 88 - IntextManager.js: buildAndPlayVideo stale-W2, W2/W3 and activation effects match original
+  ---
+  duration_ms: 265.2626
+  type: 'test'
+  ...
+# Subtest: IntextManager.js: buildAndPlayVideo stale-W3, W2/W3 and activation effects match original
+ok 89 - IntextManager.js: buildAndPlayVideo stale-W3, W2/W3 and activation effects match original
+  ---
+  duration_ms: 270.1901
+  type: 'test'
+  ...
+# Subtest: IntextManager.js: buildAndPlayVideo prepare-error, W2/W3 and activation effects match original
+ok 90 - IntextManager.js: buildAndPlayVideo prepare-error, W2/W3 and activation effects match original
+  ---
+  duration_ms: 217.0353
+  type: 'test'
+  ...
+# Subtest: IntextManager.js: buildAndPlayVideo false-C1, W2/W3 and activation effects match original
+ok 91 - IntextManager.js: buildAndPlayVideo false-C1, W2/W3 and activation effects match original
+  ---
+  duration_ms: 409.2177
+  type: 'test'
+  ...
+# Subtest: IntextManager.js: buildAndPlayVideo stale-after-render, W2/W3 and activation effects match original
+ok 92 - IntextManager.js: buildAndPlayVideo stale-after-render, W2/W3 and activation effects match original
+  ---
+  duration_ms: 276.5432
+  type: 'test'
+  ...
+# Subtest: IntextManager.js: buildAndPlayVideo throwing-sink, W2/W3 and activation effects match original
+ok 93 - IntextManager.js: buildAndPlayVideo throwing-sink, W2/W3 and activation effects match original
+  ---
+  duration_ms: 271.7423
+  type: 'test'
+  ...
+# Subtest: IntextManager.js: actual preparation entry handoff and standby release preserve effects and populations
+ok 94 - IntextManager.js: actual preparation entry handoff and standby release preserve effects and populations
+  ---
+  duration_ms: 207.9008
+  type: 'test'
+  ...
+# Subtest: IntextManager.js: original guard exception remains exception; no fabricated false
+ok 95 - IntextManager.js: original guard exception remains exception; no fabricated false
+  ---
+  duration_ms: 221.6782
+  type: 'test'
+  ...
+# Subtest: IntextManager.js: prepared creative accredited only by actual entry, release revokes its packets
+ok 96 - IntextManager.js: prepared creative accredited only by actual entry, release revokes its packets
+  ---
+  duration_ms: 105.896
+  type: 'test'
+  ...
+# Subtest: IntextManager.js: regressed or unknown clock produces a gap without a new first positive
+ok 97 - IntextManager.js: regressed or unknown clock produces a gap without a new first positive
+  ---
+  duration_ms: 245.5423
+  type: 'test'
+  ...
+# Subtest: IntextManager.js: metadata reserves the longest permitted finite clock representation
+ok 98 - IntextManager.js: metadata reserves the longest permitted finite clock representation
+  ---
+  duration_ms: 112.7629
+  type: 'test'
+  ...
+# Subtest: IntextManager.js: reused article root with a new native navigation index has separate genealogy
+ok 99 - IntextManager.js: reused article root with a new native navigation index has separate genealogy
+  ---
+  duration_ms: 170.2977
+  type: 'test'
+  ...
+# Subtest: IntextManager.js: independent waterfalls with equal native counters cannot borrow the current owner
+ok 100 - IntextManager.js: independent waterfalls with equal native counters cannot borrow the current owner
+  ---
+  duration_ms: 135.5132
+  type: 'test'
+  ...
+# Subtest: IntextManager.js: original async generation check suppresses a cancelled fetch winner, effects unchanged
+ok 101 - IntextManager.js: original async generation check suppresses a cancelled fetch winner, effects unchanged
+  ---
+  duration_ms: 265.2466
+  type: 'test'
+  ...
+# Subtest: IntextManager.js: rings, shared 2 MiB partition, bounded manual export, evicted retransmission
+ok 102 - IntextManager.js: rings, shared 2 MiB partition, bounded manual export, evicted retransmission
+  ---
+  duration_ms: 820.4678
+  type: 'test'
+  ...
+# Subtest: IntextManager.js: opportunity 65 is overflow, no eviction or second population engine
+ok 103 - IntextManager.js: opportunity 65 is overflow, no eviction or second population engine
+  ---
+  duration_ms: 772.7937
+  type: 'test'
+  ...
+# Subtest: IntextManager.js: reduced partitions, oversized evidence and authority exhaustion fail safely
+ok 104 - IntextManager.js: reduced partitions, oversized evidence and authority exhaustion fail safely
+  ---
+  duration_ms: 387.3953
+  type: 'test'
+  ...
+# Subtest: facade never changes return identity or propagates a sink exception
+ok 105 - facade never changes return identity or propagates a sink exception
+  ---
+  duration_ms: 3.6767
+  type: 'test'
+  ...
+# Subtest: originals, four contracts and approved Stage I bytes remain exactly at the before baseline
+ok 106 - originals, four contracts and approved Stage I bytes remain exactly at the before baseline
+  ---
+  duration_ms: 1670.3958
+  type: 'test'
+  ...
+1..106
+# tests 106
+# suites 0
+# pass 106
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 23544.7017
+# start of coverage report
+# ---------------------------------------------------------------------
+# file                 | line % | branch % | funcs % | uncovered lines
+# ---------------------------------------------------------------------
+# tests                |        |          |         | 
+#  qa                  |        |          |         | 
+#   qa1b2a             |        |          |         | 
+#    facade.cjs        | 100.00 |   100.00 |  100.00 | 
+#    generator.cjs     | 100.00 |    82.05 |  100.00 | 
+#    harness.cjs       | 100.00 |    99.10 |   96.05 | 
+#    native-schema.cjs | 100.00 |    86.49 |  100.00 | 
+#    native.cjs        |  99.58 |    87.54 |  100.00 | 227
+# ---------------------------------------------------------------------
+# all files            |  99.79 |    89.78 |   97.69 | 
+# ---------------------------------------------------------------------
+# end of coverage report
+
+process exit: 0

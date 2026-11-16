@@ -1,0 +1,403 @@
+{
+  "schema": "qa1b-stage2a-evidence-v1",
+  "sourceComplete": false,
+  "physicalBudgetMeasured": false,
+  "records": [
+    {
+      "distribution": "_gam_kv_.js",
+      "ring": {
+        "memory": {
+          "summaryBytes": 968,
+          "qa0AggregateBytes": 1120,
+          "qa0RingBytes": 523941,
+          "metadataBytes": 1081,
+          "packetRingBytes": 1277438,
+          "detailEntries": 1551,
+          "limits": {
+            "summaryBytes": 262144,
+            "qa0AggregateBytes": 16384,
+            "metadataBytes": 16384,
+            "qa0RingBytes": 524288,
+            "packetRingBytes": 1277952,
+            "opportunities": 64,
+            "qa0Entries": 1000,
+            "packetEntries": 1000,
+            "totalBytes": 2097152
+          }
+        },
+        "totals": {
+          "D0": {
+            "yes": 1,
+            "no": 0,
+            "unknown": 0,
+            "complete": false
+          },
+          "Dv": {
+            "yes": 1,
+            "no": 0,
+            "unknown": 0,
+            "complete": false
+          },
+          "Dc": {
+            "yes": 1,
+            "no": 0,
+            "unknown": 0,
+            "complete": false
+          }
+        },
+        "coverage": {
+          "sourceComplete": {
+            "D0": false,
+            "Dv": false,
+            "Dc": false,
+            "outcomes": false
+          },
+          "gaps": {
+            "D0": false,
+            "Dv": false,
+            "Dc": false,
+            "outcomes": false
+          },
+          "flags": {
+            "accountingOverflow": false,
+            "summaryOverflow": false,
+            "sourceGap": false,
+            "counterOverflow": false,
+            "untrackedOpportunityNotifications": 0,
+            "untrackedObservations": 0,
+            "rejectedInputs": 0,
+            "rawEvidenceEvicted": true,
+            "rawDropped": 339,
+            "oversizedSnapshots": 0,
+            "snapshotLimitDrops": 339,
+            "firstRawDroppedSequence": 1,
+            "lastRawDroppedSequence": 339,
+            "rawDroppedByStage": {
+              "before-player": 339,
+              "after-player": 0,
+              "post-request": 0,
+              "post-reveal": 0,
+              "unknown": 0
+            }
+          },
+          "accountingComplete": {
+            "D0": false,
+            "Dv": false,
+            "Dc": false
+          },
+          "exactRatesAllowed": false,
+          "meaning": "Record populations only; no continuous scroll, alternative request, revenue, fill or viewability is reconstructed."
+        },
+        "counters": {
+          "received": 1103,
+          "accepted": 1103,
+          "rawOnly": 0,
+          "rejected": 0,
+          "duplicates": 0,
+          "dropped": 316,
+          "oversized": 0
+        },
+        "export": {
+          "status": "export-too-large",
+          "bytes": 1751241,
+          "json": null
+        },
+        "defaultExport": {
+          "status": "ok",
+          "bytes": 1751241,
+          "jsonIncluded": true
+        }
+      },
+      "overflow65": {
+        "memory": {
+          "summaryBytes": 62366,
+          "qa0AggregateBytes": 1116,
+          "qa0RingBytes": 180444,
+          "metadataBytes": 11991,
+          "packetRingBytes": 529579,
+          "detailEntries": 584,
+          "limits": {
+            "summaryBytes": 262144,
+            "qa0AggregateBytes": 16384,
+            "metadataBytes": 16384,
+            "qa0RingBytes": 524288,
+            "packetRingBytes": 1277952,
+            "opportunities": 64,
+            "qa0Entries": 1000,
+            "packetEntries": 1000,
+            "totalBytes": 2097152
+          }
+        },
+        "totals": {
+          "D0": {
+            "yes": 64,
+            "no": 0,
+            "unknown": 0,
+            "complete": false
+          },
+          "Dv": {
+            "yes": 64,
+            "no": 0,
+            "unknown": 0,
+            "complete": false
+          },
+          "Dc": {
+            "yes": 64,
+            "no": 0,
+            "unknown": 0,
+            "complete": false
+          }
+        },
+        "coverage": {
+          "sourceComplete": {
+            "D0": false,
+            "Dv": false,
+            "Dc": false,
+            "outcomes": false
+          },
+          "gaps": {
+            "D0": true,
+            "Dv": true,
+            "Dc": true,
+            "outcomes": true
+          },
+          "flags": {
+            "accountingOverflow": true,
+            "summaryOverflow": false,
+            "sourceGap": true,
+            "counterOverflow": false,
+            "untrackedOpportunityNotifications": 4,
+            "untrackedObservations": 0,
+            "rejectedInputs": 0,
+            "rawEvidenceEvicted": false,
+            "rawDropped": 0,
+            "oversizedSnapshots": 0,
+            "snapshotLimitDrops": 0,
+            "firstRawDroppedSequence": null,
+            "lastRawDroppedSequence": null,
+            "rawDroppedByStage": {
+              "before-player": 0,
+              "after-player": 0,
+              "post-request": 0,
+              "post-reveal": 0,
+              "unknown": 0
+            }
+          },
+          "accountingComplete": {
+            "D0": false,
+            "Dv": false,
+            "Dc": false
+          },
+          "exactRatesAllowed": false,
+          "meaning": "Record populations only; no continuous scroll, alternative request, revenue, fill or viewability is reconstructed."
+        },
+        "retainedSummaries": 64,
+        "authority": {
+          "authority": "native-local-object-v1",
+          "logicalChargedBytes": 9818,
+          "budgetBytes": 12288,
+          "exhausted": false,
+          "sourceComplete": false
+        }
+      }
+    },
+    {
+      "distribution": "IntextManager.js",
+      "ring": {
+        "memory": {
+          "summaryBytes": 968,
+          "qa0AggregateBytes": 1120,
+          "qa0RingBytes": 523618,
+          "metadataBytes": 1086,
+          "packetRingBytes": 1277146,
+          "detailEntries": 1540,
+          "limits": {
+            "summaryBytes": 262144,
+            "qa0AggregateBytes": 16384,
+            "metadataBytes": 16384,
+            "qa0RingBytes": 524288,
+            "packetRingBytes": 1277952,
+            "opportunities": 64,
+            "qa0Entries": 1000,
+            "packetEntries": 1000,
+            "totalBytes": 2097152
+          }
+        },
+        "totals": {
+          "D0": {
+            "yes": 1,
+            "no": 0,
+            "unknown": 0,
+            "complete": false
+          },
+          "Dv": {
+            "yes": 1,
+            "no": 0,
+            "unknown": 0,
+            "complete": false
+          },
+          "Dc": {
+            "yes": 1,
+            "no": 0,
+            "unknown": 0,
+            "complete": false
+          }
+        },
+        "coverage": {
+          "sourceComplete": {
+            "D0": false,
+            "Dv": false,
+            "Dc": false,
+            "outcomes": false
+          },
+          "gaps": {
+            "D0": false,
+            "Dv": false,
+            "Dc": false,
+            "outcomes": false
+          },
+          "flags": {
+            "accountingOverflow": false,
+            "summaryOverflow": false,
+            "sourceGap": false,
+            "counterOverflow": false,
+            "untrackedOpportunityNotifications": 0,
+            "untrackedObservations": 0,
+            "rejectedInputs": 0,
+            "rawEvidenceEvicted": true,
+            "rawDropped": 345,
+            "oversizedSnapshots": 0,
+            "snapshotLimitDrops": 345,
+            "firstRawDroppedSequence": 1,
+            "lastRawDroppedSequence": 345,
+            "rawDroppedByStage": {
+              "before-player": 345,
+              "after-player": 0,
+              "post-request": 0,
+              "post-reveal": 0,
+              "unknown": 0
+            }
+          },
+          "accountingComplete": {
+            "D0": false,
+            "Dv": false,
+            "Dc": false
+          },
+          "exactRatesAllowed": false,
+          "meaning": "Record populations only; no continuous scroll, alternative request, revenue, fill or viewability is reconstructed."
+        },
+        "counters": {
+          "received": 1103,
+          "accepted": 1103,
+          "rawOnly": 0,
+          "rejected": 0,
+          "duplicates": 0,
+          "dropped": 321,
+          "oversized": 0
+        },
+        "export": {
+          "status": "export-too-large",
+          "bytes": 1751057,
+          "json": null
+        },
+        "defaultExport": {
+          "status": "ok",
+          "bytes": 1751057,
+          "jsonIncluded": true
+        }
+      },
+      "overflow65": {
+        "memory": {
+          "summaryBytes": 62366,
+          "qa0AggregateBytes": 1116,
+          "qa0RingBytes": 181744,
+          "metadataBytes": 11996,
+          "packetRingBytes": 532819,
+          "detailEntries": 584,
+          "limits": {
+            "summaryBytes": 262144,
+            "qa0AggregateBytes": 16384,
+            "metadataBytes": 16384,
+            "qa0RingBytes": 524288,
+            "packetRingBytes": 1277952,
+            "opportunities": 64,
+            "qa0Entries": 1000,
+            "packetEntries": 1000,
+            "totalBytes": 2097152
+          }
+        },
+        "totals": {
+          "D0": {
+            "yes": 64,
+            "no": 0,
+            "unknown": 0,
+            "complete": false
+          },
+          "Dv": {
+            "yes": 64,
+            "no": 0,
+            "unknown": 0,
+            "complete": false
+          },
+          "Dc": {
+            "yes": 64,
+            "no": 0,
+            "unknown": 0,
+            "complete": false
+          }
+        },
+        "coverage": {
+          "sourceComplete": {
+            "D0": false,
+            "Dv": false,
+            "Dc": false,
+            "outcomes": false
+          },
+          "gaps": {
+            "D0": true,
+            "Dv": true,
+            "Dc": true,
+            "outcomes": true
+          },
+          "flags": {
+            "accountingOverflow": true,
+            "summaryOverflow": false,
+            "sourceGap": true,
+            "counterOverflow": false,
+            "untrackedOpportunityNotifications": 4,
+            "untrackedObservations": 0,
+            "rejectedInputs": 0,
+            "rawEvidenceEvicted": false,
+            "rawDropped": 0,
+            "oversizedSnapshots": 0,
+            "snapshotLimitDrops": 0,
+            "firstRawDroppedSequence": null,
+            "lastRawDroppedSequence": null,
+            "rawDroppedByStage": {
+              "before-player": 0,
+              "after-player": 0,
+              "post-request": 0,
+              "post-reveal": 0,
+              "unknown": 0
+            }
+          },
+          "accountingComplete": {
+            "D0": false,
+            "Dv": false,
+            "Dc": false
+          },
+          "exactRatesAllowed": false,
+          "meaning": "Record populations only; no continuous scroll, alternative request, revenue, fill or viewability is reconstructed."
+        },
+        "retainedSummaries": 64,
+        "authority": {
+          "authority": "native-local-object-v1",
+          "logicalChargedBytes": 9818,
+          "budgetBytes": 12288,
+          "exhausted": false,
+          "sourceComplete": false
+        }
+      }
+    }
+  ]
+}

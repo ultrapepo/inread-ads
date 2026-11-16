@@ -1,0 +1,358 @@
+cwd: C:\Users\pedro.ramos\Documents\workspace\develop\interstitial\intext\inread ads\src\pro
+Node: v25.8.1
+command argv: ["C:\\Program Files\\nodejs\\node.exe","--test","--test-isolation=none","--test-reporter=tap","tests/intext-p14b-qa1b-stage1.test.cjs"]
+
+TAP version 13
+# Subtest: [G01 G02 P01 P02 A01] _gam_kv_.js: B0 factual true and false with unknown P
+ok 1 - [G01 G02 P01 P02 A01] _gam_kv_.js: B0 factual true and false with unknown P
+  ---
+  duration_ms: 37.254
+  type: 'test'
+  ...
+# Subtest: [G07] _gam_kv_.js: Display true never increments video Dc or overwrites initial winner
+ok 2 - [G07] _gam_kv_.js: Display true never increments video Dc or overwrites initial winner
+  ---
+  duration_ms: 6.4244
+  type: 'test'
+  ...
+# Subtest: [G08 G10] _gam_kv_.js: four primary sources, one opportunity and immutable first positive
+ok 3 - [G08 G10] _gam_kv_.js: four primary sources, one opportunity and immutable first positive
+  ---
+  duration_ms: 4.3674
+  type: 'test'
+  ...
+# Subtest: [G09] _gam_kv_.js: prepared path omits W2; W2 can have native null creative owner
+ok 4 - [G09] _gam_kv_.js: prepared path omits W2; W2 can have native null creative owner
+  ---
+  duration_ms: 4.5756
+  type: 'test'
+  ...
+# Subtest: [G11] _gam_kv_.js: unexecuted, missing anchor, disconnected identifiable anchor and stale
+ok 5 - [G11] _gam_kv_.js: unexecuted, missing anchor, disconnected identifiable anchor and stale
+  ---
+  duration_ms: 4.7893
+  type: 'test'
+  ...
+# Subtest: [G12 G13 G14 G15 D08] _gam_kv_.js: each nonprimary raw series excluded from Dc
+ok 6 - [G12 G13 G14 G15 D08] _gam_kv_.js: each nonprimary raw series excluded from Dc
+  ---
+  duration_ms: 6.3537
+  type: 'test'
+  ...
+# Subtest: [G13] _gam_kv_.js: preparation descriptor is not a native initial-winner decision
+ok 7 - [G13] _gam_kv_.js: preparation descriptor is not a native initial-winner decision
+  ---
+  duration_ms: 3.9025
+  type: 'test'
+  ...
+# Subtest: [G16 D02] _gam_kv_.js: executions, retransmissions, conflicts and bounded replay horizon
+ok 8 - [G16 D02] _gam_kv_.js: executions, retransmissions, conflicts and bounded replay horizon
+  ---
+  duration_ms: 7.7009
+  type: 'test'
+  ...
+# Subtest: [G01 G02 P01 P02 A01] IntextManager.js: B0 factual true and false with unknown P
+ok 9 - [G01 G02 P01 P02 A01] IntextManager.js: B0 factual true and false with unknown P
+  ---
+  duration_ms: 15.838
+  type: 'test'
+  ...
+# Subtest: [G07] IntextManager.js: Display true never increments video Dc or overwrites initial winner
+ok 10 - [G07] IntextManager.js: Display true never increments video Dc or overwrites initial winner
+  ---
+  duration_ms: 3.9167
+  type: 'test'
+  ...
+# Subtest: [G08 G10] IntextManager.js: four primary sources, one opportunity and immutable first positive
+ok 11 - [G08 G10] IntextManager.js: four primary sources, one opportunity and immutable first positive
+  ---
+  duration_ms: 3.1433
+  type: 'test'
+  ...
+# Subtest: [G09] IntextManager.js: prepared path omits W2; W2 can have native null creative owner
+ok 12 - [G09] IntextManager.js: prepared path omits W2; W2 can have native null creative owner
+  ---
+  duration_ms: 5.1889
+  type: 'test'
+  ...
+# Subtest: [G11] IntextManager.js: unexecuted, missing anchor, disconnected identifiable anchor and stale
+ok 13 - [G11] IntextManager.js: unexecuted, missing anchor, disconnected identifiable anchor and stale
+  ---
+  duration_ms: 3.0218
+  type: 'test'
+  ...
+# Subtest: [G12 G13 G14 G15 D08] IntextManager.js: each nonprimary raw series excluded from Dc
+ok 14 - [G12 G13 G14 G15 D08] IntextManager.js: each nonprimary raw series excluded from Dc
+  ---
+  duration_ms: 3.7228
+  type: 'test'
+  ...
+# Subtest: [G13] IntextManager.js: preparation descriptor is not a native initial-winner decision
+ok 15 - [G13] IntextManager.js: preparation descriptor is not a native initial-winner decision
+  ---
+  duration_ms: 2.0535
+  type: 'test'
+  ...
+# Subtest: [G16 D02] IntextManager.js: executions, retransmissions, conflicts and bounded replay horizon
+ok 16 - [G16 D02] IntextManager.js: executions, retransmissions, conflicts and bounded replay horizon
+  ---
+  duration_ms: 5.1237
+  type: 'test'
+  ...
+# Subtest: [I01 G16] duplicate DOM names/counters across documents, navigation and distributions never join
+ok 17 - [I01 G16] duplicate DOM names/counters across documents, navigation and distributions never join
+  ---
+  duration_ms: 5.6588
+  type: 'test'
+  ...
+# Subtest: [I02 D06] native handoff preserves opportunity, tokenReplaced and original generation
+ok 18 - [I02 D06] native handoff preserves opportunity, tokenReplaced and original generation
+  ---
+  duration_ms: 2.7821
+  type: 'test'
+  ...
+# Subtest: [I03 I04 A02] invented identity edits are rejected; native missing generation remains raw unknown with gap
+ok 19 - [I03 I04 A02] invented identity edits are rejected; native missing generation remains raw unknown with gap
+  ---
+  duration_ms: 12.5876
+  type: 'test'
+  ...
+# Subtest: [I01 I02] registry rejects unobserved objects, forged snapshots and exhaustion; retains only scalars
+ok 20 - [I01 I02] registry rejects unobserved objects, forged snapshots and exhaustion; retains only scalars
+  ---
+  duration_ms: 1.075
+  type: 'test'
+  ...
+# Subtest: [D01 D02] no guard/winner/frame does not disappear; first true is not physical first entry
+ok 21 - [D01 D02] no guard/winner/frame does not disappear; first true is not physical first entry
+  ---
+  duration_ms: 5.9587
+  type: 'test'
+  ...
+# Subtest: [D03 D07] subattempt end is not terminal; fallback and refresh use native cycles
+ok 22 - [D03 D07] subattempt end is not terminal; fallback and refresh use native cycles
+  ---
+  duration_ms: 5.2513
+  type: 'test'
+  ...
+# Subtest: [D04 D05] actual QA0 constructor accepts the shared partition and rejects increases
+ok 23 - [D04 D05] actual QA0 constructor accepts the shared partition and rejects increases
+  ---
+  duration_ms: 1.4382
+  type: 'test'
+  ...
+# Subtest: [D05] bounded counters use a BigInt oracle and never wrap or manufacture unique opportunities
+ok 24 - [D05] bounded counters use a BigInt oracle and never wrap or manufacture unique opportunities
+  ---
+  duration_ms: 0.2798
+  type: 'test'
+  ...
+# Subtest: [D04] 2001 original samples: entry/byte evictions conserve summaries and account full packet + receipt
+ok 25 - [D04] 2001 original samples: entry/byte evictions conserve summaries and account full packet + receipt
+  ---
+  duration_ms: 633.7703
+  type: 'test'
+  ...
+# Subtest: [D05] opportunity 65 latches overflow; 64 summaries survive without counting overflow notifications as unique
+ok 26 - [D05] opportunity 65 latches overflow; 64 summaries survive without counting overflow notifications as unique
+  ---
+  duration_ms: 174.694
+  type: 'test'
+  ...
+# Subtest: [D09 A01 A03 A05] initial sourceComplete stays false through close/export, even with all retained samples valid
+ok 27 - [D09 A01 A03 A05] initial sourceComplete stays false through close/export, even with all retained samples valid
+  ---
+  duration_ms: 2.9688
+  type: 'test'
+  ...
+# Subtest: [A04] measured functional exit is distinct from population completeness and grants no permission
+ok 28 - [A04] measured functional exit is distinct from population completeness and grants no permission
+  ---
+  duration_ms: 0.5423
+  type: 'test'
+  ...
+# Subtest: [A06] partial retained detail cannot be replayed as a new complete population
+ok 29 - [A06] partial retained detail cannot be replayed as a new complete population
+  ---
+  duration_ms: 2.4284
+  type: 'test'
+  ...
+# Subtest: [A07 A08] independent direct QA0 oracles: per-rate denominators, outcome coverage and firstPassFrame
+ok 30 - [A07 A08] independent direct QA0 oracles: per-rate denominators, outcome coverage and firstPassFrame
+  ---
+  duration_ms: 1.8177
+  type: 'test'
+  ...
+# Subtest: [X01] export is manual, detached, bounded, repeatable, free of injected fields and does not reset
+ok 31 - [X01] export is manual, detached, bounded, repeatable, free of injected fields and does not reset
+  ---
+  duration_ms: 4.3712
+  type: 'test'
+  ...
+# Subtest: [X02 T01] schema, provenance, accessor and event/sequence conflicts fail closed without reading getters
+ok 32 - [X02 T01] schema, provenance, accessor and event/sequence conflicts fail closed without reading getters
+  ---
+  duration_ms: 3.3788
+  type: 'test'
+  ...
+# Subtest: [I03 G11 X02] executable contract matches published schema and preserves unknown states without coercion
+ok 33 - [I03 G11 X02] executable contract matches published schema and preserves unknown states without coercion
+  ---
+  duration_ms: 5.0108
+  type: 'test'
+  ...
+# Subtest: [G11 I04 A02] conditional primary requires matched owner, verified provenance and absent player
+ok 34 - [G11 I04 A02] conditional primary requires matched owner, verified provenance and absent player
+  ---
+  duration_ms: 13.2938
+  type: 'test'
+  ...
+# Subtest: [D02 X03] missing sequence, source clock mismatch and monotonic regression latch gaps
+ok 35 - [D02 X03] missing sequence, source clock mismatch and monotonic regression latch gaps
+  ---
+  duration_ms: 6.1126
+  type: 'test'
+  ...
+# Subtest: [X03] missing sink and data errors invoke no browser/network/timer/commercial function
+ok 36 - [X03] missing sink and data errors invoke no browser/network/timer/commercial function
+  ---
+  duration_ms: 35.6542
+  type: 'test'
+  ...
+# Subtest: [G03 G04 G05 G06] generator enforces exact hashes/anchors and byte reversibility for both distributions
+ok 37 - [G03 G04 G05 G06] generator enforces exact hashes/anchors and byte reversibility for both distributions
+  ---
+  duration_ms: 53.4061
+  type: 'test'
+  ...
+# Subtest: [X02] generator output removal preflights hashes, refuses extra files and never restores an original
+ok 38 - [X02] generator output removal preflights hashes, refuses extra files and never restores an original
+  ---
+  duration_ms: 161.3195
+  type: 'test'
+  ...
+# Subtest: [G03 X02] approved hashes/anchors are independently tied to the binding design manifest
+ok 39 - [G03 X02] approved hashes/anchors are independently tied to the binding design manifest
+  ---
+  duration_ms: 81.3593
+  type: 'test'
+  ...
+# Subtest: [D04 X01] maximal numeric evidence and bounded version strings do not bypass packet or export budgets
+ok 40 - [D04 X01] maximal numeric evidence and bounded version strings do not bypass packet or export budgets
+  ---
+  duration_ms: 27.5864
+  type: 'test'
+  ...
+# Subtest: [I02 D06] explicit terminal registry state closes only the same native owner and cannot revive it
+ok 41 - [I02 D06] explicit terminal registry state closes only the same native owner and cannot revive it
+  ---
+  duration_ms: 4.6439
+  type: 'test'
+  ...
+# Subtest: [D01 D03 G07 G08] mixed native trace agrees with independent opportunity-set oracle
+ok 42 - [D01 D03 G07 G08] mixed native trace agrees with independent opportunity-set oracle
+  ---
+  duration_ms: 44.964
+  type: 'test'
+  ...
+# Subtest: [I-01/a] _gam_kv_.js: equal aliases and byte-identical foreign packets cannot borrow admission or duplicate receipts
+ok 43 - [I-01/a] _gam_kv_.js: equal aliases and byte-identical foreign packets cannot borrow admission or duplicate receipts
+  ---
+  duration_ms: 5.081
+  type: 'test'
+  ...
+# Subtest: [I-01/b] _gam_kv_.js: foreign fetch/winner/guard/handoff/terminal cannot create any population
+ok 44 - [I-01/b] _gam_kv_.js: foreign fetch/winner/guard/handoff/terminal cannot create any population
+  ---
+  duration_ms: 15.8584
+  type: 'test'
+  ...
+# Subtest: [I-01/c] _gam_kv_.js: invented JSON and fixture-owner edits stay unaccredited despite all verified flags
+ok 45 - [I-01/c] _gam_kv_.js: invented JSON and fixture-owner edits stay unaccredited despite all verified flags
+  ---
+  duration_ms: 4.1068
+  type: 'test'
+  ...
+# Subtest: [I-01/d] _gam_kv_.js: own immutable packet, retransmission and distinct execution preserve public correlation and export format
+ok 46 - [I-01/d] _gam_kv_.js: own immutable packet, retransmission and distinct execution preserve public correlation and export format
+  ---
+  duration_ms: 4.8002
+  type: 'test'
+  ...
+# Subtest: [I-01/e] _gam_kv_.js: navigation, handoff, same-token creative replacement and owner retirement revoke pending packets
+ok 47 - [I-01/e] _gam_kv_.js: navigation, handoff, same-token creative replacement and owner retirement revoke pending packets
+  ---
+  duration_ms: 10.3409
+  type: 'test'
+  ...
+# Subtest: [I-01/a] IntextManager.js: equal aliases and byte-identical foreign packets cannot borrow admission or duplicate receipts
+ok 48 - [I-01/a] IntextManager.js: equal aliases and byte-identical foreign packets cannot borrow admission or duplicate receipts
+  ---
+  duration_ms: 6.9044
+  type: 'test'
+  ...
+# Subtest: [I-01/b] IntextManager.js: foreign fetch/winner/guard/handoff/terminal cannot create any population
+ok 49 - [I-01/b] IntextManager.js: foreign fetch/winner/guard/handoff/terminal cannot create any population
+  ---
+  duration_ms: 10.0066
+  type: 'test'
+  ...
+# Subtest: [I-01/c] IntextManager.js: invented JSON and fixture-owner edits stay unaccredited despite all verified flags
+ok 50 - [I-01/c] IntextManager.js: invented JSON and fixture-owner edits stay unaccredited despite all verified flags
+  ---
+  duration_ms: 4.7338
+  type: 'test'
+  ...
+# Subtest: [I-01/d] IntextManager.js: own immutable packet, retransmission and distinct execution preserve public correlation and export format
+ok 51 - [I-01/d] IntextManager.js: own immutable packet, retransmission and distinct execution preserve public correlation and export format
+  ---
+  duration_ms: 2.9635
+  type: 'test'
+  ...
+# Subtest: [I-01/e] IntextManager.js: navigation, handoff, same-token creative replacement and owner retirement revoke pending packets
+ok 52 - [I-01/e] IntextManager.js: navigation, handoff, same-token creative replacement and owner retirement revoke pending packets
+  ---
+  duration_ms: 8.0218
+  type: 'test'
+  ...
+# Subtest: [I-01/f] one registry distinguishes documents and producer distribution; a packet cannot authenticate its own JSON clone
+ok 53 - [I-01/f] one registry distinguishes documents and producer distribution; a packet cannot authenticate its own JSON clone
+  ---
+  duration_ms: 1.3815
+  type: 'test'
+  ...
+# Subtest: [I-01/g] an unaccredited packet cannot poison sequence or clock watermarks
+ok 54 - [I-01/g] an unaccredited packet cannot poison sequence or clock watermarks
+  ---
+  duration_ms: 2.4711
+  type: 'test'
+  ...
+# Subtest: [I-01/h] authority exhaustion fails closed while scalar leases and both rings remain within partition
+ok 55 - [I-01/h] authority exhaustion fails closed while scalar leases and both rings remain within partition
+  ---
+  duration_ms: 2.7512
+  type: 'test'
+  ...
+# Subtest: every new delivery path is reversible by projection; originals, traversal and historical docs are forbidden
+ok 56 - every new delivery path is reversible by projection; originals, traversal and historical docs are forbidden
+  ---
+  duration_ms: 3.2784
+  type: 'test'
+  ...
+# Subtest: stage I baseline: all 360 originals and all four binding contracts remain byte-identical
+ok 57 - stage I baseline: all 360 originals and all four binding contracts remain byte-identical
+  ---
+  duration_ms: 841.6301
+  type: 'test'
+  ...
+1..57
+# tests 57
+# suites 0
+# pass 57
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 2458.9959
+
+process exit: 0

@@ -131,7 +131,7 @@
           "duplicate": false
         }
       ],
-      "exportBytes": 18465
+      "exportBytes": 18544
     },
     "IntextManager.js": {
       "counts": {
@@ -255,8 +255,127 @@
           "duplicate": false
         }
       ],
-      "exportBytes": 18575
+      "exportBytes": 18659
     }
+  },
+  "auditCorrection": {
+    "finding": "I-01",
+    "profile": "local-fixture-object-v1",
+    "authorityChecks": {
+      "_gam_kv_.js": {
+        "aliasesAndPayloadEqual": true,
+        "foreignRejection": {
+          "accepted": false,
+          "reason": "registry-unaccredited",
+          "acceptanceA": "not-admitted",
+          "candidateB0": "unknown",
+          "opportunityId": null,
+          "duplicate": false
+        },
+        "foreignDidNotCreateFirstPositive": true,
+        "ownReceipt": {
+          "schema": "qa1b-ingest-receipt-v1",
+          "packetId": "e3",
+          "sampleSequence": 3,
+          "distribution": "_gam_kv_.js",
+          "documentLocalId": "a1",
+          "series": "primary-video",
+          "accepted": true,
+          "reason": "recorded",
+          "acceptanceA": "valid",
+          "candidateB0": "pass",
+          "opportunityId": "o1",
+          "duplicate": false
+        },
+        "ownRetransmission": {
+          "schema": "qa1b-ingest-receipt-v1",
+          "packetId": "e3",
+          "sampleSequence": 3,
+          "distribution": "_gam_kv_.js",
+          "documentLocalId": "a1",
+          "series": "primary-video",
+          "accepted": true,
+          "reason": "recorded",
+          "acceptanceA": "valid",
+          "candidateB0": "pass",
+          "opportunityId": "o1",
+          "duplicate": true
+        },
+        "jsonCopyRejection": {
+          "accepted": false,
+          "reason": "registry-unaccredited",
+          "acceptanceA": "not-admitted",
+          "candidateB0": "unknown",
+          "opportunityId": null,
+          "duplicate": false
+        },
+        "sourceComplete": {
+          "D0": false,
+          "Dv": false,
+          "Dc": false,
+          "outcomes": false
+        }
+      },
+      "IntextManager.js": {
+        "aliasesAndPayloadEqual": true,
+        "foreignRejection": {
+          "accepted": false,
+          "reason": "registry-unaccredited",
+          "acceptanceA": "not-admitted",
+          "candidateB0": "unknown",
+          "opportunityId": null,
+          "duplicate": false
+        },
+        "foreignDidNotCreateFirstPositive": true,
+        "ownReceipt": {
+          "schema": "qa1b-ingest-receipt-v1",
+          "packetId": "e3",
+          "sampleSequence": 3,
+          "distribution": "IntextManager.js",
+          "documentLocalId": "a1",
+          "series": "primary-video",
+          "accepted": true,
+          "reason": "recorded",
+          "acceptanceA": "valid",
+          "candidateB0": "pass",
+          "opportunityId": "o1",
+          "duplicate": false
+        },
+        "ownRetransmission": {
+          "schema": "qa1b-ingest-receipt-v1",
+          "packetId": "e3",
+          "sampleSequence": 3,
+          "distribution": "IntextManager.js",
+          "documentLocalId": "a1",
+          "series": "primary-video",
+          "accepted": true,
+          "reason": "recorded",
+          "acceptanceA": "valid",
+          "candidateB0": "pass",
+          "opportunityId": "o1",
+          "duplicate": true
+        },
+        "jsonCopyRejection": {
+          "accepted": false,
+          "reason": "registry-unaccredited",
+          "acceptanceA": "not-admitted",
+          "candidateB0": "unknown",
+          "opportunityId": null,
+          "duplicate": false
+        },
+        "sourceComplete": {
+          "D0": false,
+          "Dv": false,
+          "Dc": false,
+          "outcomes": false
+        }
+      }
+    },
+    "packetSchemaChanged": false,
+    "externalProducerAuthenticationImplemented": false,
+    "persistentSecrets": false,
+    "authorityMembership": "Weak packet keys; shared scalar leases charged once per owner state; no strong packet index",
+    "physicalWeakMapHeapMeasured": false
   },
   "stress": {
     "originalGuards": 2001,
@@ -265,7 +384,7 @@
       "summaryBytes": 920,
       "qa0AggregateBytes": 1123,
       "qa0RingBytes": 523909,
-      "metadataBytes": 895,
+      "metadataBytes": 991,
       "packetRingBytes": 1277395,
       "detailEntries": 1636,
       "limits": {
@@ -319,7 +438,7 @@
       }
     },
     "exportStatus": "ok",
-    "exportBytes": 1769923,
+    "exportBytes": 1770002,
     "logicalPartitionVerified": true,
     "physicalHeapMeasured": false,
     "browserBudgetMeasured": false
@@ -369,10 +488,12 @@
       }
     },
     "registry": {
-      "logicalChargedBytes": 5511,
+      "logicalChargedBytes": 6616,
       "budgetBytes": 12288,
       "aliasesIssued": 72,
       "exhausted": false,
+      "issuerDistribution": "_gam_kv_.js",
+      "packetAuthority": "local-fixture-object-v1",
       "physicalHeapMeasured": false
     }
   },
