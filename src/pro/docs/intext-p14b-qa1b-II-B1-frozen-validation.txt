@@ -1,0 +1,710 @@
+TAP version 13
+# Subtest: QA1-A parser requires matching bytes/hash, supported observational schema and bounded JSON
+ok 1 - QA1-A parser requires matching bytes/hash, supported observational schema and bounded JSON
+  ---
+  duration_ms: 11.2719
+  type: 'test'
+  ...
+# Subtest: QA1-A cohorts follow runtime facts, never filenames or arm labels
+ok 2 - QA1-A cohorts follow runtime facts, never filenames or arm labels
+  ---
+  duration_ms: 4.6218
+  type: 'test'
+  ...
+# Subtest: QA1-A fixed assignment conflict, missing or duplicate fixed events do not produce an arm
+ok 3 - QA1-A fixed assignment conflict, missing or duplicate fixed events do not produce an arm
+  ---
+  duration_ms: 3.2159
+  type: 'test'
+  ...
+# Subtest: QA1-A metadata pairing needs two distinct exact diagnostic identities/timestamps
+ok 4 - QA1-A metadata pairing needs two distinct exact diagnostic identities/timestamps
+  ---
+  duration_ms: 1.1576
+  type: 'test'
+  ...
+# Subtest: QA1-A unverified linkage never lends runtime or arm to a different source
+ok 5 - QA1-A unverified linkage never lends runtime or arm to a different source
+  ---
+  duration_ms: 1.3395
+  type: 'test'
+  ...
+# Subtest: QA1-A captured 0.225% anchor and offscreen measured player remain post-player partial observations
+ok 6 - QA1-A captured 0.225% anchor and offscreen measured player remain post-player partial observations
+  ---
+  duration_ms: 0.6351
+  type: 'test'
+  ...
+# Subtest: QA1-A direct C0 false survives; no geometry, outcome or reason can manufacture C0
+ok 7 - QA1-A direct C0 false survives; no geometry, outcome or reason can manufacture C0
+  ---
+  duration_ms: 0.9545
+  type: 'test'
+  ...
+# Subtest: QA1-A B0 uses frozen factual control contract but missing identity is never patched
+ok 8 - QA1-A B0 uses frozen factual control contract but missing identity is never patched
+  ---
+  duration_ms: 0.7868
+  type: 'test'
+  ...
+# Subtest: QA1-A debugger retains nav, epoch and viewport height without joining clocks or inventing P/C0
+ok 9 - QA1-A debugger retains nav, epoch and viewport height without joining clocks or inventing P/C0
+  ---
+  duration_ms: 0.3925
+  type: 'test'
+  ...
+# Subtest: QA1-A no later viewport or fabricated Q1-Q5 can qualify a measured snapshot retroactively
+ok 10 - QA1-A no later viewport or fabricated Q1-Q5 can qualify a measured snapshot retroactively
+  ---
+  duration_ms: 1.0006
+  type: 'test'
+  ...
+# Subtest: QA1-A native impressions remain native observations, never frame proof or visibility
+ok 11 - QA1-A native impressions remain native observations, never frame proof or visibility
+  ---
+  duration_ms: 1.5162
+  type: 'test'
+  ...
+# Subtest: QA1-A STARTED, IMPRESSION, COMPLETE and core:first-frame never upgrade frame attribution
+ok 12 - QA1-A STARTED, IMPRESSION, COMPLETE and core:first-frame never upgrade frame attribution
+  ---
+  duration_ms: 3.2135
+  type: 'test'
+  ...
+# Subtest: QA1-A epoch-only and regressing clocks are explicit; sequence is neither reordered nor reconstructed
+ok 13 - QA1-A epoch-only and regressing clocks are explicit; sequence is neither reordered nor reconstructed
+  ---
+  duration_ms: 1.8949
+  type: 'test'
+  ...
+# Subtest: QA1-A snapshot duplicates and left censor do not become population counts or exact rates
+ok 14 - QA1-A snapshot duplicates and left censor do not become population counts or exact rates
+  ---
+  duration_ms: 0.6868
+  type: 'test'
+  ...
+# Subtest: QA1-A positive drops, unknown drop counts and absent integration preserve coverage gaps
+ok 15 - QA1-A positive drops, unknown drop counts and absent integration preserve coverage gaps
+  ---
+  duration_ms: 2.1102
+  type: 'test'
+  ...
+# Subtest: QA1-A partition identity preserves arm/cohort/version/source and never merges equal local tokens
+ok 16 - QA1-A partition identity preserves arm/cohort/version/source and never merges equal local tokens
+  ---
+  duration_ms: 1.0454
+  type: 'test'
+  ...
+# Subtest: QA1-A stale and terminal tokens remain explicit without inventing verified identity
+ok 17 - QA1-A stale and terminal tokens remain explicit without inventing verified identity
+  ---
+  duration_ms: 0.9585
+  type: 'test'
+  ...
+# Subtest: QA1-A source winner/fetch facts remain partial records with no synthesized population
+ok 18 - QA1-A source winner/fetch facts remain partial records with no synthesized population
+  ---
+  duration_ms: 0.6896
+  type: 'test'
+  ...
+# Subtest: QA1-A combined source record limit rejects excess observations rather than silently truncating
+ok 19 - QA1-A combined source record limit rejects excess observations rather than silently truncating
+  ---
+  duration_ms: 247.2584
+  type: 'test'
+  ...
+# Subtest: QA1-A distribution receipts are pinned per arm and preserve both distributions independently
+ok 20 - QA1-A distribution receipts are pinned per arm and preserve both distributions independently
+  ---
+  duration_ms: 70.289
+  type: 'test'
+  ...
+# Subtest: QA1-A unknown and sensitive fields cannot enter converted exports, IDs or event names
+ok 21 - QA1-A unknown and sensitive fields cannot enter converted exports, IDs or event names
+  ---
+  duration_ms: 2.6284
+  type: 'test'
+  ...
+# Subtest: QA1-A standalone integration is recognized without borrowing an arm or runtime
+ok 22 - QA1-A standalone integration is recognized without borrowing an arm or runtime
+  ---
+  duration_ms: 0.6869
+  type: 'test'
+  ...
+# Subtest: QA1-A local file runner enforces file limits/basenames and records missing inputs
+ok 23 - QA1-A local file runner enforces file limits/basenames and records missing inputs
+  ---
+  duration_ms: 7.2853
+  type: 'test'
+  ...
+# Subtest: QA1-A captured bundle proof hashes a body without executing it and requires document correlation
+ok 24 - QA1-A captured bundle proof hashes a body without executing it and requires document correlation
+  ---
+  duration_ms: 23.277
+  type: 'test'
+  ...
+# Subtest: QA1-A explicit runner writes only new QA1-A result names and leaves unrelated files intact
+ok 25 - QA1-A explicit runner writes only new QA1-A result names and leaves unrelated files intact
+  ---
+  duration_ms: 29.3086
+  type: 'test'
+  ...
+# Subtest: QA1-A converter runs with browser/network/timer/process globals inaccessible
+ok 26 - QA1-A converter runs with browser/network/timer/process globals inaccessible
+  ---
+  duration_ms: 20.4423
+  type: 'test'
+  ...
+# Subtest: P2.1 a forged verified flag and hash-shaped receipt never suffice without raw byte proof
+ok 27 - P2.1 a forged verified flag and hash-shaped receipt never suffice without raw byte proof
+  ---
+  duration_ms: 11.5321
+  type: 'test'
+  ...
+# Subtest: P2.1 local proof recomputes HAR and export bytes; it does not certify an external review
+ok 28 - P2.1 local proof recomputes HAR and export bytes; it does not certify an external review
+  ---
+  duration_ms: 17.8738
+  type: 'test'
+  ...
+# Subtest: P2.1 incompatible arm, distribution, core, body, HAR hash or index receipts are rejected
+ok 29 - P2.1 incompatible arm, distribution, core, body, HAR hash or index receipts are rejected
+  ---
+  duration_ms: 80.6105
+  type: 'test'
+  ...
+# Subtest: P2.1 proof cannot be forged by JSON serialization or replayed onto different source bytes
+ok 30 - P2.1 proof cannot be forged by JSON serialization or replayed onto different source bytes
+  ---
+  duration_ms: 15.318
+  type: 'test'
+  ...
+# Subtest: P2.1 changed bytes, wrong recording, incompatible document and ambiguous body do not validate
+ok 31 - P2.1 changed bytes, wrong recording, incompatible document and ambiguous body do not validate
+  ---
+  duration_ms: 59.8382
+  type: 'test'
+  ...
+# Subtest: P2.2 rectPresent, rectComplete and rectUsable are distinct and preserve invalid numeric data
+ok 32 - P2.2 rectPresent, rectComplete and rectUsable are distinct and preserve invalid numeric data
+  ---
+  duration_ms: 0.5819
+  type: 'test'
+  ...
+# Subtest: P2.2 NaN, infinity, missing values, nonpositive sizes and unrepresentable rectangles are unusable
+ok 33 - P2.2 NaN, infinity, missing values, nonpositive sizes and unrepresentable rectangles are unusable
+  ---
+  duration_ms: 0.5855
+  type: 'test'
+  ...
+# Subtest: P2.2 incomplete rectangles are not repaired from right/bottom or converted numeric strings
+ok 34 - P2.2 incomplete rectangles are not repaired from right/bottom or converted numeric strings
+  ---
+  duration_ms: 0.6437
+  type: 'test'
+  ...
+# Subtest: P2.2 unusable measured geometry remains in its source stage with original values and no promotion
+ok 35 - P2.2 unusable measured geometry remains in its source stage with original values and no promotion
+  ---
+  duration_ms: 1.0287
+  type: 'test'
+  ...
+# Subtest: P2.3 unknown event names and prototype keys cannot acquire demonstrated stages
+ok 36 - P2.3 unknown event names and prototype keys cannot acquire demonstrated stages
+  ---
+  duration_ms: 4.8831
+  type: 'test'
+  ...
+# Subtest: P2.3 explicit producer events retain their supported classifications without temporal inference
+ok 37 - P2.3 explicit producer events retain their supported classifications without temporal inference
+  ---
+  duration_ms: 3.3702
+  type: 'test'
+  ...
+# Subtest: P2.3 known neighboring samples cannot lend their stage to an unknown event
+ok 38 - P2.3 known neighboring samples cannot lend their stage to an unknown event
+  ---
+  duration_ms: 0.8564
+  type: 'test'
+  ...
+# Subtest: All 345 pre-existing files including approved QA0 retain their bytes in the complete workspace
+not ok 39 - All 345 pre-existing files including approved QA0 retain their bytes in the complete workspace
+  ---
+  duration_ms: 4.5262
+  type: 'test'
+  location: 'C:\\Users\\pedro.ramos\\Documents\\workspace\\develop\\interstitial\\intext\\inread ads\\src\\pro\\tests\\intext-p14b-qa1a.audit.test.cjs:348:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Indicar que dependencias tiene el core d.sty
+    
+    3940 !== 3903
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 3903
+  actual: 3940
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (C:\Users\pedro.ramos\Documents\workspace\develop\interstitial\intext\inread ads\src\pro\tests\intext-p14b-qa1a.audit.test.cjs:350:129)
+    Test.runInAsyncScope (node:async_hooks:226:14)
+    Test.run (node:internal/test_runner/test:1201:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:831:18)
+    Test.postRun (node:internal/test_runner/test:1330:19)
+    Test.run (node:internal/test_runner/test:1258:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:831:7)
+  ...
+# Subtest: R1 B0: a reliable C0=true passes without P, viewport, stage, provenance or layout fields
+ok 40 - R1 B0: a reliable C0=true passes without P, viewport, stage, provenance or layout fields
+  ---
+  duration_ms: 0.4306
+  type: 'test'
+  ...
+# Subtest: R1 B0 never reads P or motion accessors; no mutation and deterministic fresh results
+ok 41 - R1 B0 never reads P or motion accessors; no mutation and deterministic fresh results
+  ---
+  duration_ms: 0.4616
+  type: 'test'
+  ...
+# Subtest: R1 B0 false/unknown are factual and are not reconstructed from visible P
+ok 42 - R1 B0 false/unknown are factual and are not reconstructed from visible P
+  ---
+  duration_ms: 0.1808
+  type: 'test'
+  ...
+# Subtest: R1 missing geometry cannot defeat a known false C0 for B1-B3
+ok 43 - R1 missing geometry cannot defeat a known false C0 for B1-B3
+  ---
+  duration_ms: 0.2401
+  type: 'test'
+  ...
+# Subtest: Scope, verified identity, source and version precedence
+ok 44 - Scope, verified identity, source and version precedence
+  ---
+  duration_ms: 0.4984
+  type: 'test'
+  ...
+# Subtest: _gam_kv_.js/player-measured-current-flow: model-specific measured/estimated qualification and mathematical results
+ok 45 - _gam_kv_.js/player-measured-current-flow: model-specific measured/estimated qualification and mathematical results
+  ---
+  duration_ms: 1.0645
+  type: 'test'
+  ...
+# Subtest: _gam_kv_.js/player-intent-current-flow-v1: model-specific measured/estimated qualification and mathematical results
+ok 46 - _gam_kv_.js/player-intent-current-flow-v1: model-specific measured/estimated qualification and mathematical results
+  ---
+  duration_ms: 0.8522
+  type: 'test'
+  ...
+# Subtest: _gam_kv_.js/slot-open-envelope-v1: model-specific measured/estimated qualification and mathematical results
+ok 47 - _gam_kv_.js/slot-open-envelope-v1: model-specific measured/estimated qualification and mathematical results
+  ---
+  duration_ms: 0.7329
+  type: 'test'
+  ...
+# Subtest: IntextManager.js/player-measured-current-flow: model-specific measured/estimated qualification and mathematical results
+ok 48 - IntextManager.js/player-measured-current-flow: model-specific measured/estimated qualification and mathematical results
+  ---
+  duration_ms: 0.4053
+  type: 'test'
+  ...
+# Subtest: IntextManager.js/player-intent-current-flow-v1: model-specific measured/estimated qualification and mathematical results
+ok 49 - IntextManager.js/player-intent-current-flow-v1: model-specific measured/estimated qualification and mathematical results
+  ---
+  duration_ms: 0.4037
+  type: 'test'
+  ...
+# Subtest: IntextManager.js/slot-open-envelope-v1: model-specific measured/estimated qualification and mathematical results
+ok 50 - IntextManager.js/slot-open-envelope-v1: model-specific measured/estimated qualification and mathematical results
+  ---
+  duration_ms: 0.363
+  type: 'test'
+  ...
+# Subtest: Q1-Q5 fail independently from concrete witnesses, not five supplied pass flags
+ok 51 - Q1-Q5 fail independently from concrete witnesses, not five supplied pass flags
+  ---
+  duration_ms: 1.436
+  type: 'test'
+  ...
+# Subtest: Partial/unknown models do not become measured by successful geometry or later snapshots
+ok 52 - Partial/unknown models do not become measured by successful geometry or later snapshots
+  ---
+  duration_ms: 0.8831
+  type: 'test'
+  ...
+# Subtest: Literal 350px and a closed wrapper are not qualification or perceptibility proofs
+ok 53 - Literal 350px and a closed wrapper are not qualification or perceptibility proofs
+  ---
+  duration_ms: 0.6108
+  type: 'test'
+  ...
+# Subtest: Envelope height uses independent numeric open operands, including chrome/default/preset paths
+ok 54 - Envelope height uses independent numeric open operands, including chrome/default/preset paths
+  ---
+  duration_ms: 0.3147
+  type: 'test'
+  ...
+# Subtest: Q2/Q3 require concrete matching origin/size operands, not only sourcesResolved=true
+ok 55 - Q2/Q3 require concrete matching origin/size operands, not only sourcesResolved=true
+  ---
+  duration_ms: 0.4944
+  type: 'test'
+  ...
+# Subtest: The 46.382% sample compares thresholds at the sample, never interpolates a crossing
+ok 56 - The 46.382% sample compares thresholds at the sample, never interpolates a crossing
+  ---
+  duration_ms: 0.2821
+  type: 'test'
+  ...
+# Subtest: Horizontal clipping, vertical fraction and area are distinct mathematical quantities
+ok 57 - Horizontal clipping, vertical fraction and area are distinct mathematical quantities
+  ---
+  duration_ms: 0.3548
+  type: 'test'
+  ...
+# Subtest: Oversized surfaces report an unreachable threshold, never lower it
+ok 58 - Oversized surfaces report an unreachable threshold, never lower it
+  ---
+  duration_ms: 0.2033
+  type: 'test'
+  ...
+# Subtest: Versioned parameters are explicit calibration sets, not silent thresholds
+ok 59 - Versioned parameters are explicit calibration sets, not silent thresholds
+  ---
+  duration_ms: 0.3246
+  type: 'test'
+  ...
+# Subtest: Touching edges are not positive intersections; a fractional crossing is
+ok 60 - Touching edges are not positive intersections; a fractional crossing is
+  ---
+  duration_ms: 0.4274
+  type: 'test'
+  ...
+# Subtest: Analytical clipping agrees with an independent integer unit-cell enumeration
+ok 61 - Analytical clipping agrees with an independent integer unit-cell enumeration
+  ---
+  duration_ms: 2.9623
+  type: 'test'
+  ...
+# Subtest: Invalid, null, NaN, infinite and arithmetic-overflow dimensions remain unknown
+ok 62 - Invalid, null, NaN, infinite and arithmetic-overflow dimensions remain unknown
+  ---
+  duration_ms: 1.5846
+  type: 'test'
+  ...
+# Subtest: Ambiguous or foreign geometry is not silently chosen
+ok 63 - Ambiguous or foreign geometry is not silently chosen
+  ---
+  duration_ms: 0.3708
+  type: 'test'
+  ...
+# Subtest: B4/B5 stay deferred even with ideal independent pairs, false control or missing P
+ok 64 - B4/B5 stay deferred even with ideal independent pairs, false control or missing P
+  ---
+  duration_ms: 0.2698
+  type: 'test'
+  ...
+# Subtest: Accessor values and custom-prototype inputs are not executed as observation
+ok 65 - Accessor values and custom-prototype inputs are not executed as observation
+  ---
+  duration_ms: 0.2523
+  type: 'test'
+  ...
+# Subtest: Ledger totals come from fetch, initial winner and C0, never P or retained snapshots
+ok 66 - Ledger totals come from fetch, initial winner and C0, never P or retained snapshots
+  ---
+  duration_ms: 3.0025
+  type: 'test'
+  ...
+# Subtest: Ring FIFO eviction preserves populations, outcomes, timestamps and loss summaries
+ok 67 - Ring FIFO eviction preserves populations, outcomes, timestamps and loss summaries
+  ---
+  duration_ms: 2.4197
+  type: 'test'
+  ...
+# Subtest: The contractual 2000-snapshot limit evicts only raw data on event 2001
+ok 68 - The contractual 2000-snapshot limit evicts only raw data on event 2001
+  ---
+  duration_ms: 102.0925
+  type: 'test'
+  ...
+# Subtest: Byte-budget FIFO eviction is independent from the snapshot-count bound
+ok 69 - Byte-budget FIFO eviction is independent from the snapshot-count bound
+  ---
+  duration_ms: 1.2961
+  type: 'test'
+  ...
+# Subtest: Incremental ring byte accounting agrees with independent full JSON serialization after eviction
+ok 70 - Incremental ring byte accounting agrees with independent full JSON serialization after eviction
+  ---
+  duration_ms: 2.7562
+  type: 'test'
+  ...
+# Subtest: Opportunity 65 freezes admission, not the commercial lifecycle, and blocks all exact capture rates
+ok 71 - Opportunity 65 freezes admission, not the commercial lifecycle, and blocks all exact capture rates
+  ---
+  duration_ms: 40.8413
+  type: 'test'
+  ...
+# Subtest: Deduplication, pending winner and later control facts are independent of candidates
+ok 72 - Deduplication, pending winner and later control facts are independent of candidates
+  ---
+  duration_ms: 2.3362
+  type: 'test'
+  ...
+# Subtest: Conflicting winners become unknown; a successful candidate cannot select a winner
+ok 73 - Conflicting winners become unknown; a successful candidate cannot select a winner
+  ---
+  duration_ms: 2.2072
+  type: 'test'
+  ...
+# Subtest: A format scope contradicting the declared initial winner fails accounting closed
+ok 74 - A format scope contradicting the declared initial winner fails accounting closed
+  ---
+  duration_ms: 0.8603
+  type: 'test'
+  ...
+# Subtest: Unknown control, missing winner and right-censored outcomes cannot produce exact rates
+ok 75 - Unknown control, missing winner and right-censored outcomes cannot produce exact rates
+  ---
+  duration_ms: 1.3827
+  type: 'test'
+  ...
+# Subtest: No-frame terminal and incomplete temporal coverage remain distinct
+ok 76 - No-frame terminal and incomplete temporal coverage remain distinct
+  ---
+  duration_ms: 0.9399
+  type: 'test'
+  ...
+# Subtest: Gap D0 blocks only supported rates needing the affected population/coverage
+ok 77 - Gap D0 blocks only supported rates needing the affected population/coverage
+  ---
+  duration_ms: 0.5702
+  type: 'test'
+  ...
+# Subtest: Gap Dv blocks only supported rates needing the affected population/coverage
+ok 78 - Gap Dv blocks only supported rates needing the affected population/coverage
+  ---
+  duration_ms: 0.3812
+  type: 'test'
+  ...
+# Subtest: Gap Dc blocks only supported rates needing the affected population/coverage
+ok 79 - Gap Dc blocks only supported rates needing the affected population/coverage
+  ---
+  duration_ms: 0.3655
+  type: 'test'
+  ...
+# Subtest: Gap outcomes blocks only supported rates needing the affected population/coverage
+ok 80 - Gap outcomes blocks only supported rates needing the affected population/coverage
+  ---
+  duration_ms: 0.3546
+  type: 'test'
+  ...
+# Subtest: Gap all blocks only supported rates needing the affected population/coverage
+ok 81 - Gap all blocks only supported rates needing the affected population/coverage
+  ---
+  duration_ms: 0.3578
+  type: 'test'
+  ...
+# Subtest: Coverage is not assumed by default, even for a fully successful synthetic stream
+ok 82 - Coverage is not assumed by default, even for a fully successful synthetic stream
+  ---
+  duration_ms: 0.4545
+  type: 'test'
+  ...
+# Subtest: An observation without fetch taints D0; a later fetch does not silently restore integrity
+ok 83 - An observation without fetch taints D0; a later fetch does not silently restore integrity
+  ---
+  duration_ms: 1.7903
+  type: 'test'
+  ...
+# Subtest: Geometric left censor survives raw eviction without becoming a factual source gap
+ok 84 - Geometric left censor survives raw eviction without becoming a factual source gap
+  ---
+  duration_ms: 1.3505
+  type: 'test'
+  ...
+# Subtest: Two slots/navs/cycles are separate; foreign documents do not contaminate this ledger
+ok 85 - Two slots/navs/cycles are separate; foreign documents do not contaminate this ledger
+  ---
+  duration_ms: 2.0587
+  type: 'test'
+  ...
+# Subtest: New generations retire old tokens and terminal cycles never restart
+ok 86 - New generations retire old tokens and terminal cycles never restart
+  ---
+  duration_ms: 1.2484
+  type: 'test'
+  ...
+# Subtest: A terminal factual closure can finish a known summary without activating or inventing C0/frame
+ok 87 - A terminal factual closure can finish a known summary without activating or inventing C0/frame
+  ---
+  duration_ms: 0.692
+  type: 'test'
+  ...
+# Subtest: Base media, STARTED and IMPRESSION do not invent an ad frame or first-pass success
+ok 88 - Base media, STARTED and IMPRESSION do not invent an ad frame or first-pass success
+  ---
+  duration_ms: 1.0739
+  type: 'test'
+  ...
+# Subtest: Negative/NaN clocks, regressions and malformed identities fail data accounting closed
+ok 89 - Negative/NaN clocks, regressions and malformed identities fail data accounting closed
+  ---
+  duration_ms: 2.8573
+  type: 'test'
+  ...
+# Subtest: Clock domains are explicit and cannot merge HAR epochs with page-monotonic data
+ok 90 - Clock domains are explicit and cannot merge HAR epochs with page-monotonic data
+  ---
+  duration_ms: 1.4655
+  type: 'test'
+  ...
+# Subtest: Summary memory overflow retains prior counters and prevents exact global rates
+ok 91 - Summary memory overflow retains prior counters and prevents exact global rates
+  ---
+  duration_ms: 0.5323
+  type: 'test'
+  ...
+# Subtest: Byte eviction and over-size snapshot rejection do not become population gaps
+ok 92 - Byte eviction and over-size snapshot rejection do not become population gaps
+  ---
+  duration_ms: 0.4994
+  type: 'test'
+  ...
+# Subtest: Limits cannot be raised above r2, partitions must fit, and catalogue size is bounded
+ok 93 - Limits cannot be raised above r2, partitions must fit, and catalogue size is bounded
+  ---
+  duration_ms: 0.7269
+  type: 'test'
+  ...
+# Subtest: Every committed ledger component remains within its logical serialization partition
+ok 94 - Every committed ledger component remains within its logical serialization partition
+  ---
+  duration_ms: 71.3672
+  type: 'test'
+  ...
+# Subtest: Manual export is detached, deterministic, sanitized and size checked without reset or I/O
+ok 95 - Manual export is detached, deterministic, sanitized and size checked without reset or I/O
+  ---
+  duration_ms: 3.2122
+  type: 'test'
+  ...
+# Subtest: Mutable ingestion receipts and exports cannot change retained data or leak strings
+ok 96 - Mutable ingestion receipts and exports cannot change retained data or leak strings
+  ---
+  duration_ms: 0.6498
+  type: 'test'
+  ...
+# Subtest: A gap in control coverage does not erase an independently covered frame numerator
+ok 97 - A gap in control coverage does not erase an independently covered frame numerator
+  ---
+  duration_ms: 0.49
+  type: 'test'
+  ...
+# Subtest: Empty population is null, not a zero-percent or NaN success
+ok 98 - Empty population is null, not a zero-percent or NaN success
+  ---
+  duration_ms: 0.2763
+  type: 'test'
+  ...
+# Subtest: Both distributions and both pre-player intent/envelope models support the same isolated data pipeline
+ok 99 - Both distributions and both pre-player intent/envelope models support the same isolated data pipeline
+  ---
+  duration_ms: 4.8375
+  type: 'test'
+  ...
+# Subtest: Isolated modules run with browser/SDK/network/timer globals unavailable and only pure data imports
+ok 100 - Isolated modules run with browser/SDK/network/timer globals unavailable and only pure data imports
+  ---
+  duration_ms: 19.4179
+  type: 'test'
+  ...
+# Subtest: Audit R1: geometric left censor retains complete factual denominators and observed-frame rate
+ok 101 - Audit R1: geometric left censor retains complete factual denominators and observed-frame rate
+  ---
+  duration_ms: 1.9289
+  type: 'test'
+  ...
+# Subtest: Audit R1: left censor never repairs missing factual sources, membership or numerators
+ok 102 - Audit R1: left censor never repairs missing factual sources, membership or numerators
+  ---
+  duration_ms: 3.276
+  type: 'test'
+  ...
+# Subtest: Audit R2: each admitted source needs matched active ad binding and real frame evidence
+ok 103 - Audit R2: each admitted source needs matched active ad binding and real frame evidence
+  ---
+  duration_ms: 1.6544
+  type: 'test'
+  ...
+# Subtest: Audit R2: incompatible or unproven frame cannot produce a frame or an exact zero
+ok 104 - Audit R2: incompatible or unproven frame cannot produce a frame or an exact zero
+  ---
+  duration_ms: 15.9857
+  type: 'test'
+  ...
+# Subtest: Audit R2: STARTED, IMPRESSION, canplay, dummy and event labels alone remain insufficient
+ok 105 - Audit R2: STARTED, IMPRESSION, canplay, dummy and event labels alone remain insufficient
+  ---
+  duration_ms: 5.7091
+  type: 'test'
+  ...
+# Subtest: Audit R2: rejected stale frame cannot poison a later verified active frame or leak its IDs
+ok 106 - Audit R2: rejected stale frame cannot poison a later verified active frame or leak its IDs
+  ---
+  duration_ms: 1.3604
+  type: 'test'
+  ...
+# Subtest: Audit R3: override 345 plus chrome -1 invalidates Q3 instead of admitting height 344
+ok 107 - Audit R3: override 345 plus chrome -1 invalidates Q3 instead of admitting height 344
+  ---
+  duration_ms: 0.5443
+  type: 'test'
+  ...
+# Subtest: Audit R3: negative, nonfinite or inconsistent box/chrome contributions cannot qualify estimates
+ok 108 - Audit R3: negative, nonfinite or inconsistent box/chrome contributions cannot qualify estimates
+  ---
+  duration_ms: 7.9395
+  type: 'test'
+  ...
+# Subtest: Audit R3: nonzero resolved padding/borders preserve qualified current content origin and width
+ok 109 - Audit R3: nonzero resolved padding/borders preserve qualified current content origin and width
+  ---
+  duration_ms: 0.8433
+  type: 'test'
+  ...
+# Subtest: All 333 pre-existing protected files retain their bytes; no core/probe/bundle generation occurred
+not ok 110 - All 333 pre-existing protected files retain their bytes; no core/probe/bundle generation occurred
+  ---
+  duration_ms: 287.0654
+  type: 'test'
+  location: 'C:\\Users\\pedro.ramos\\Documents\\workspace\\develop\\interstitial\\intext\\inread ads\\src\\pro\\tests\\intext-p14b-shadow.audit.test.cjs:532:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Indicar que dependencias tiene el core d.sty
+    
+    3940 !== 3903
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 3903
+  actual: 3940
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (C:\Users\pedro.ramos\Documents\workspace\develop\interstitial\intext\inread ads\src\pro\tests\intext-p14b-shadow.audit.test.cjs:535:89)
+    Test.runInAsyncScope (node:async_hooks:226:14)
+    Test.run (node:internal/test_runner/test:1201:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:831:18)
+    Test.postRun (node:internal/test_runner/test:1330:19)
+    Test.run (node:internal/test_runner/test:1258:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:831:7)
+  ...
+1..110
+# tests 110
+# suites 0
+# pass 108
+# fail 2
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 1390.8907

@@ -1,0 +1,838 @@
+TAP version 13
+# Subtest: [B01 B49] protected 418 baseline, HEAD input and strict 29-path allowlist
+ok 1 - [B01 B49] protected 418 baseline, HEAD input and strict 29-path allowlist
+  ---
+  duration_ms: 1904.7716
+  type: 'test'
+  ...
+# Subtest: [B04] UTF8 shim vs independent Buffer, all surrogate classes and JSON
+ok 2 - [B04] UTF8 shim vs independent Buffer, all surrogate classes and JSON
+  ---
+  duration_ms: 4.6711
+  type: 'test'
+  ...
+# Subtest: [B04] closed CJS composition equals real QA0 constructor and rejects other requires
+ok 3 - [B04] closed CJS composition equals real QA0 constructor and rejects other requires
+  ---
+  duration_ms: 58.4178
+  type: 'test'
+  ...
+# Subtest: [B06 B07 B08 B09 B10] offline SRI vectors are byte-sensitive and not browser attestation
+ok 4 - [B06 B07 B08 B09 B10] offline SRI vectors are byte-sensitive and not browser attestation
+  ---
+  duration_ms: 4.222
+  type: 'test'
+  ...
+# Subtest: [B02 B03 B43 B49] _gam_kv_.js: deterministic copy, exact inverse, syntax and unchanged commercial complement
+ok 5 - [B02 B03 B43 B49] _gam_kv_.js: deterministic copy, exact inverse, syntax and unchanged commercial complement
+  ---
+  duration_ms: 423.5287
+  type: 'test'
+  ...
+# Subtest: [B05] _gam_kv_.js: constructors preserve name/length, commercial keys, prototypes and final QA defaults
+ok 6 - [B05] _gam_kv_.js: constructors preserve name/length, commercial keys, prototypes and final QA defaults
+  ---
+  duration_ms: 454.1785
+  type: 'test'
+  ...
+# Subtest: [B05 B21 B35] _gam_kv_.js: genuine packets satisfy versioned schema including unknown P and no extra fields
+ok 7 - [B05 B21 B35] _gam_kv_.js: genuine packets satisfy versioned schema including unknown P and no extra fields
+  ---
+  duration_ms: 151.7922
+  type: 'test'
+  ...
+# Subtest: [B10] _gam_kv_.js: F01 exhaustive 36-row authority table and independent conjunction oracle
+ok 8 - [B10] _gam_kv_.js: F01 exhaustive 36-row authority table and independent conjunction oracle
+  ---
+  duration_ms: 147.7119
+  type: 'test'
+  ...
+# Subtest: [B06 B08 B10] _gam_kv_.js: private source pending never admits A or ledger and cannot resume
+ok 9 - [B06 B08 B10] _gam_kv_.js: private source pending never admits A or ledger and cannot resume
+  ---
+  duration_ms: 165.0036
+  type: 'test'
+  ...
+# Subtest: [B06 B08 B10] _gam_kv_.js: private source failed never admits A or ledger and cannot resume
+ok 10 - [B06 B08 B10] _gam_kv_.js: private source failed never admits A or ledger and cannot resume
+  ---
+  duration_ms: 149.3195
+  type: 'test'
+  ...
+# Subtest: [B10 B11 B13] _gam_kv_.js: reject foreign before watermark/ledger/first positive
+ok 11 - [B10 B11 B13] _gam_kv_.js: reject foreign before watermark/ledger/first positive
+  ---
+  duration_ms: 319.2864
+  type: 'test'
+  ...
+# Subtest: [B10 B11 B13] _gam_kv_.js: reject json before watermark/ledger/first positive
+ok 12 - [B10 B11 B13] _gam_kv_.js: reject json before watermark/ledger/first positive
+  ---
+  duration_ms: 276.1821
+  type: 'test'
+  ...
+# Subtest: [B10 B11 B13] _gam_kv_.js: reject verified before watermark/ledger/first positive
+ok 13 - [B10 B11 B13] _gam_kv_.js: reject verified before watermark/ledger/first positive
+  ---
+  duration_ms: 339.8818
+  type: 'test'
+  ...
+# Subtest: [B10 B11 B13] _gam_kv_.js: reject proxy before watermark/ledger/first positive
+ok 14 - [B10 B11 B13] _gam_kv_.js: reject proxy before watermark/ledger/first positive
+  ---
+  duration_ms: 546.3622
+  type: 'test'
+  ...
+# Subtest: [B10 B11 B13] _gam_kv_.js: reject stage1 before watermark/ledger/first positive
+ok 15 - [B10 B11 B13] _gam_kv_.js: reject stage1 before watermark/ledger/first positive
+  ---
+  duration_ms: 253.0188
+  type: 'test'
+  ...
+# Subtest: [B10 B11] _gam_kv_.js: loss of private source rejects legitimate packet without ledger mutation
+ok 16 - [B10 B11] _gam_kv_.js: loss of private source rejects legitimate packet without ledger mutation
+  ---
+  duration_ms: 154.5889
+  type: 'test'
+  ...
+# Subtest: [B12] _gam_kv_.js: private fields absent from public keys/globals; admin only four methods
+ok 17 - [B12] _gam_kv_.js: private fields absent from public keys/globals; admin only four methods
+  ---
+  duration_ms: 111.4483
+  type: 'test'
+  ...
+# Subtest: [B12 B24] _gam_kv_.js: public source W2 with missing ticket cannot emit B0
+ok 18 - [B12 B24] _gam_kv_.js: public source W2 with missing ticket cannot emit B0
+  ---
+  duration_ms: 122.275
+  type: 'test'
+  ...
+# Subtest: [B12 B24] _gam_kv_.js: public source W2 with JSON ticket cannot emit B0
+ok 19 - [B12 B24] _gam_kv_.js: public source W2 with JSON ticket cannot emit B0
+  ---
+  duration_ms: 100.5324
+  type: 'test'
+  ...
+# Subtest: [B12 B24] _gam_kv_.js: public source W2 with foreign ticket cannot emit B0
+ok 20 - [B12 B24] _gam_kv_.js: public source W2 with foreign ticket cannot emit B0
+  ---
+  duration_ms: 185.5101
+  type: 'test'
+  ...
+# Subtest: [B13 B14] _gam_kv_.js: document separation and shared session for multiple managers
+ok 21 - [B13 B14] _gam_kv_.js: document separation and shared session for multiple managers
+  ---
+  duration_ms: 248.0245
+  type: 'test'
+  ...
+# Subtest: [B05] _gam_kv_.js: derived constructors keep super and commercial argument identity
+ok 22 - [B05] _gam_kv_.js: derived constructors keep super and commercial argument identity
+  ---
+  duration_ms: 454.1439
+  type: 'test'
+  ...
+# Subtest: [B41] _gam_kv_.js: foreign admin collision stops QA, preserves property, no manager restart
+ok 23 - [B41] _gam_kv_.js: foreign admin collision stops QA, preserves property, no manager restart
+  ---
+  duration_ms: 99.5197
+  type: 'test'
+  ...
+# Subtest: [B14 B15 B16 B17 B18] _gam_kv_.js: native scoped construction index 1 and root lineage
+ok 24 - [B14 B15 B16 B17 B18] _gam_kv_.js: native scoped construction index 1 and root lineage
+  ---
+  duration_ms: 107.2901
+  type: 'test'
+  ...
+# Subtest: [B14 B15 B16 B17 B18] _gam_kv_.js: native scoped construction index 2 and root lineage
+ok 25 - [B14 B15 B16 B17 B18] _gam_kv_.js: native scoped construction index 2 and root lineage
+  ---
+  duration_ms: 101.9225
+  type: 'test'
+  ...
+# Subtest: [B14 B15 B16 B17 B18] _gam_kv_.js: native scoped construction index undefined and root lineage
+ok 26 - [B14 B15 B16 B17 B18] _gam_kv_.js: native scoped construction index undefined and root lineage
+  ---
+  duration_ms: 116.1199
+  type: 'test'
+  ...
+# Subtest: [B14 B15 B16 B17 B18] _gam_kv_.js: native scoped construction index 0 and root lineage
+ok 27 - [B14 B15 B16 B17 B18] _gam_kv_.js: native scoped construction index 0 and root lineage
+  ---
+  duration_ms: 130.9139
+  type: 'test'
+  ...
+# Subtest: [B16 B17] _gam_kv_.js: repeated root/index becomes unknown, distinct root with same index separates
+ok 28 - [B16 B17] _gam_kv_.js: repeated root/index becomes unknown, distinct root with same index separates
+  ---
+  duration_ms: 97.7324
+  type: 'test'
+  ...
+# Subtest: [B19 B23 B32] _gam_kv_.js: cleanup/token changes revoke old packet; unchanged retransmission is duplicate
+ok 29 - [B19 B23 B32] _gam_kv_.js: cleanup/token changes revoke old packet; unchanged retransmission is duplicate
+  ---
+  duration_ms: 192.1211
+  type: 'test'
+  ...
+# Subtest: [B20 B41] _gam_kv_.js: offline stop contract for unsupported BFCache, no automatic resume
+ok 30 - [B20 B41] _gam_kv_.js: offline stop contract for unsupported BFCache, no automatic resume
+  ---
+  duration_ms: 102.6667
+  type: 'test'
+  ...
+# Subtest: [B21] _gam_kv_.js: equal trusted clock timestamps accepted without fabricated delta
+ok 31 - [B21] _gam_kv_.js: equal trusted clock timestamps accepted without fabricated delta
+  ---
+  duration_ms: 97.7626
+  type: 'test'
+  ...
+# Subtest: [B22] _gam_kv_.js: regress clock stops QA without invented time
+ok 32 - [B22] _gam_kv_.js: regress clock stops QA without invented time
+  ---
+  duration_ms: 101.755
+  type: 'test'
+  ...
+# Subtest: [B22] _gam_kv_.js: NaN clock stops QA without invented time
+ok 33 - [B22] _gam_kv_.js: NaN clock stops QA without invented time
+  ---
+  duration_ms: 111.9833
+  type: 'test'
+  ...
+# Subtest: [B22] _gam_kv_.js: throw clock stops QA without invented time
+ok 34 - [B22] _gam_kv_.js: throw clock stops QA without invented time
+  ---
+  duration_ms: 118.6528
+  type: 'test'
+  ...
+# Subtest: [B22 B39 B45] _gam_kv_.js: single invalid cost bracket NaN prevents later A admission
+ok 35 - [B22 B39 B45] _gam_kv_.js: single invalid cost bracket NaN prevents later A admission
+  ---
+  duration_ms: 110.3914
+  type: 'test'
+  ...
+# Subtest: [B22 B39 B45] _gam_kv_.js: single invalid cost bracket regression prevents later A admission
+ok 36 - [B22 B39 B45] _gam_kv_.js: single invalid cost bracket regression prevents later A admission
+  ---
+  duration_ms: 115.5858
+  type: 'test'
+  ...
+# Subtest: [B22 B39 B45] _gam_kv_.js: single invalid cost bracket exception prevents later A admission
+ok 37 - [B22 B39 B45] _gam_kv_.js: single invalid cost bracket exception prevents later A admission
+  ---
+  duration_ms: 115.7327
+  type: 'test'
+  ...
+# Subtest: [B39 B45] _gam_kv_.js: cost overflow STOP before admission, not only an exported warning
+ok 38 - [B39 B45] _gam_kv_.js: cost overflow STOP before admission, not only an exported warning
+  ---
+  duration_ms: 120.9661
+  type: 'test'
+  ...
+# Subtest: [B23 B24 B26 B34] _gam_kv_.js: two actual executions versus retransmission, one opportunity/first positive
+ok 39 - [B23 B24 B26 B34] _gam_kv_.js: two actual executions versus retransmission, one opportunity/first positive
+  ---
+  duration_ms: 113.8817
+  type: 'test'
+  ...
+# Subtest: [B24 B25 B26 B43 B44] _gam_kv_.js: original O/neutral N/enabled E true path, four controls and exactly original guard count
+ok 40 - [B24 B25 B26 B43 B44] _gam_kv_.js: original O/neutral N/enabled E true path, four controls and exactly original guard count
+  ---
+  duration_ms: 355.6472
+  type: 'test'
+  ...
+# Subtest: [B25 B32 B33 B43 B44] _gam_kv_.js: actual native preparation entry/start/claim, W2 omitted, W3/W4/C1 admitted
+ok 41 - [B25 B32 B33 B43 B44] _gam_kv_.js: actual native preparation entry/start/claim, W2 omitted, W3/W4/C1 admitted
+  ---
+  duration_ms: 429.4218
+  type: 'test'
+  ...
+# Subtest: [B24 B25 B26 B43 B44] _gam_kv_.js: new actual W3 false then true, identical O/N/E
+ok 42 - [B24 B25 B26 B43 B44] _gam_kv_.js: new actual W3 false then true, identical O/N/E
+  ---
+  duration_ms: 411.7308
+  type: 'test'
+  ...
+# Subtest: [B24 B25 B26 B43 B44] _gam_kv_.js: new actual W4 false then true, identical O/N/E
+ok 43 - [B24 B25 B26 B43 B44] _gam_kv_.js: new actual W4 false then true, identical O/N/E
+  ---
+  duration_ms: 387.6615
+  type: 'test'
+  ...
+# Subtest: [B24 B25 B26 B43 B44] _gam_kv_.js: prepared actual W3 false then true, identical O/N/E
+ok 44 - [B24 B25 B26 B43 B44] _gam_kv_.js: prepared actual W3 false then true, identical O/N/E
+  ---
+  duration_ms: 808.937
+  type: 'test'
+  ...
+# Subtest: [B24 B25 B26 B43 B44] _gam_kv_.js: prepared actual W4 false then true, identical O/N/E
+ok 45 - [B24 B25 B26 B43 B44] _gam_kv_.js: prepared actual W4 false then true, identical O/N/E
+  ---
+  duration_ms: 478.0623
+  type: 'test'
+  ...
+# Subtest: [B19 B23 B32 B33] _gam_kv_.js: actual preparation release revokes old entry and owner, no global terminal
+ok 46 - [B19 B23 B32 B33] _gam_kv_.js: actual preparation release revokes old entry and owner, no global terminal
+  ---
+  duration_ms: 152.5844
+  type: 'test'
+  ...
+# Subtest: [B30 B34] _gam_kv_.js: preparation descriptor cannot manufacture native winner
+ok 47 - [B30 B34] _gam_kv_.js: preparation descriptor cannot manufacture native winner
+  ---
+  duration_ms: 147.8423
+  type: 'test'
+  ...
+# Subtest: [B26] _gam_kv_.js: actual final C1 false after W4 true does not overwrite unique first positive
+ok 48 - [B26] _gam_kv_.js: actual final C1 false after W4 true does not overwrite unique first positive
+  ---
+  duration_ms: 127.3073
+  type: 'test'
+  ...
+# Subtest: [B24 B26 B29 B42 B43 B44] _gam_kv_.js: O/N/E below identical decisions/awaits/effects/errors
+ok 49 - [B24 B26 B29 B42 B43 B44] _gam_kv_.js: O/N/E below identical decisions/awaits/effects/errors
+  ---
+  duration_ms: 342.7381
+  type: 'test'
+  ...
+# Subtest: [B24 B26 B29 B42 B43 B44] _gam_kv_.js: O/N/E hidden identical decisions/awaits/effects/errors
+ok 50 - [B24 B26 B29 B42 B43 B44] _gam_kv_.js: O/N/E hidden identical decisions/awaits/effects/errors
+  ---
+  duration_ms: 986.0091
+  type: 'test'
+  ...
+# Subtest: [B24 B26 B29 B42 B43 B44] _gam_kv_.js: O/N/E unrendered identical decisions/awaits/effects/errors
+ok 51 - [B24 B26 B29 B42 B43 B44] _gam_kv_.js: O/N/E unrendered identical decisions/awaits/effects/errors
+  ---
+  duration_ms: 377.6157
+  type: 'test'
+  ...
+# Subtest: [B24 B26 B29 B42 B43 B44] _gam_kv_.js: O/N/E stale identical decisions/awaits/effects/errors
+ok 52 - [B24 B26 B29 B42 B43 B44] _gam_kv_.js: O/N/E stale identical decisions/awaits/effects/errors
+  ---
+  duration_ms: 404.0121
+  type: 'test'
+  ...
+# Subtest: [B24 B26 B29 B42 B43 B44] _gam_kv_.js: O/N/E intersection identical decisions/awaits/effects/errors
+ok 53 - [B24 B26 B29 B42 B43 B44] _gam_kv_.js: O/N/E intersection identical decisions/awaits/effects/errors
+  ---
+  duration_ms: 340.6658
+  type: 'test'
+  ...
+# Subtest: [B24 B26 B29 B42 B43 B44] _gam_kv_.js: O/N/E prepare-error identical decisions/awaits/effects/errors
+ok 54 - [B24 B26 B29 B42 B43 B44] _gam_kv_.js: O/N/E prepare-error identical decisions/awaits/effects/errors
+  ---
+  duration_ms: 551.7122
+  type: 'test'
+  ...
+# Subtest: [B24 B26 B29 B42 B43 B44] _gam_kv_.js: O/N/E false-final identical decisions/awaits/effects/errors
+ok 55 - [B24 B26 B29 B42 B43 B44] _gam_kv_.js: O/N/E false-final identical decisions/awaits/effects/errors
+  ---
+  duration_ms: 479.2933
+  type: 'test'
+  ...
+# Subtest: [B24 B26 B29 B42 B43 B44] _gam_kv_.js: O/N/E invalid-preparation identical decisions/awaits/effects/errors
+ok 56 - [B24 B26 B29 B42 B43 B44] _gam_kv_.js: O/N/E invalid-preparation identical decisions/awaits/effects/errors
+  ---
+  duration_ms: 397.053
+  type: 'test'
+  ...
+# Subtest: [B24 B26 B29 B42 B43 B44] _gam_kv_.js: O/N/E missing-guard identical decisions/awaits/effects/errors
+ok 57 - [B24 B26 B29 B42 B43 B44] _gam_kv_.js: O/N/E missing-guard identical decisions/awaits/effects/errors
+  ---
+  duration_ms: 323.5798
+  type: 'test'
+  ...
+# Subtest: [B27] _gam_kv_.js: W1 Display true after initial Video stays raw, zero Dc
+ok 58 - [B27] _gam_kv_.js: W1 Display true after initial Video stays raw, zero Dc
+  ---
+  duration_ms: 176.3584
+  type: 'test'
+  ...
+# Subtest: [B28 B29 B44] _gam_kv_.js: shared diagnostic staging and stale no execution do not create controls
+ok 59 - [B28 B29 B44] _gam_kv_.js: shared diagnostic staging and stale no execution do not create controls
+  ---
+  duration_ms: 148.4612
+  type: 'test'
+  ...
+# Subtest: [B30 B34] _gam_kv_.js: native winner display excludes video and does not change from preparation descriptor
+ok 60 - [B30 B34] _gam_kv_.js: native winner display excludes video and does not change from preparation descriptor
+  ---
+  duration_ms: 161.3224
+  type: 'test'
+  ...
+# Subtest: [B30 B34] _gam_kv_.js: native winner null excludes video and does not change from preparation descriptor
+ok 61 - [B30 B34] _gam_kv_.js: native winner null excludes video and does not change from preparation descriptor
+  ---
+  duration_ms: 98.4713
+  type: 'test'
+  ...
+# Subtest: [B30 B31] _gam_kv_.js: native Legacy boundary never manufactures fetchGeneration
+ok 62 - [B30 B31] _gam_kv_.js: native Legacy boundary never manufactures fetchGeneration
+  ---
+  duration_ms: 97.3793
+  type: 'test'
+  ...
+# Subtest: [B33] _gam_kv_.js: entering player construction excludes subsequent W2 without asserting player exists
+ok 63 - [B33] _gam_kv_.js: entering player construction excludes subsequent W2 without asserting player exists
+  ---
+  duration_ms: 99.1516
+  type: 'test'
+  ...
+# Subtest: [B35] _gam_kv_.js: all four false irreversible; exact rates and firstPassFrame blocked after close
+ok 64 - [B35] _gam_kv_.js: all four false irreversible; exact rates and firstPassFrame blocked after close
+  ---
+  duration_ms: 106.1409
+  type: 'test'
+  ...
+# Subtest: [B36 B39] _gam_kv_.js: partition preflight, real QA0 and limits cannot increase
+ok 65 - [B36 B39] _gam_kv_.js: partition preflight, real QA0 and limits cannot increase
+  ---
+  duration_ms: 223.7352
+  type: 'test'
+  ...
+# Subtest: [B37] _gam_kv_.js: actually reach opportunity 65; 64 summaries, QA0 overflow, STOP
+ok 66 - [B37] _gam_kv_.js: actually reach opportunity 65; 64 summaries, QA0 overflow, STOP
+  ---
+  duration_ms: 319.6367
+  type: 'test'
+  ...
+# Subtest: [B38 B40] _gam_kv_.js: 1101 real false checks, independent rings/bytes and retired retransmission
+ok 67 - [B38 B40] _gam_kv_.js: 1101 real false checks, independent rings/bytes and retired retransmission
+  ---
+  duration_ms: 638.4918
+  type: 'test'
+  ...
+# Subtest: [B39] _gam_kv_.js: authority exhaustion bounded, no object references retained in export
+ok 68 - [B39] _gam_kv_.js: authority exhaustion bounded, no object references retained in export
+  ---
+  duration_ms: 110.0148
+  type: 'test'
+  ...
+# Subtest: [B40 B41 B50] _gam_kv_.js: bounded manual export, mutation not authority, stop/dispose tombstone preserves commercial callbacks
+ok 69 - [B40 B41 B50] _gam_kv_.js: bounded manual export, mutation not authority, stop/dispose tombstone preserves commercial callbacks
+  ---
+  duration_ms: 104.9341
+  type: 'test'
+  ...
+# Subtest: [B42 B43 B44] _gam_kv_.js: strict result identity and original exception survive private staging
+ok 70 - [B42 B43 B44] _gam_kv_.js: strict result identity and original exception survive private staging
+  ---
+  duration_ms: 297.7316
+  type: 'test'
+  ...
+# Subtest: [B45 B46 B48 B52] _gam_kv_.js: F02 fixed bins, N=100, unique work actual N and no invented percentile
+ok 71 - [B45 B46 B48 B52] _gam_kv_.js: F02 fixed bins, N=100, unique work actual N and no invented percentile
+  ---
+  duration_ms: 91.784
+  type: 'test'
+  ...
+# Subtest: [B02 B03 B43 B49] IntextManager.js: deterministic copy, exact inverse, syntax and unchanged commercial complement
+ok 72 - [B02 B03 B43 B49] IntextManager.js: deterministic copy, exact inverse, syntax and unchanged commercial complement
+  ---
+  duration_ms: 241.4826
+  type: 'test'
+  ...
+# Subtest: [B05] IntextManager.js: constructors preserve name/length, commercial keys, prototypes and final QA defaults
+ok 73 - [B05] IntextManager.js: constructors preserve name/length, commercial keys, prototypes and final QA defaults
+  ---
+  duration_ms: 208.5045
+  type: 'test'
+  ...
+# Subtest: [B05 B21 B35] IntextManager.js: genuine packets satisfy versioned schema including unknown P and no extra fields
+ok 74 - [B05 B21 B35] IntextManager.js: genuine packets satisfy versioned schema including unknown P and no extra fields
+  ---
+  duration_ms: 138.0021
+  type: 'test'
+  ...
+# Subtest: [B10] IntextManager.js: F01 exhaustive 36-row authority table and independent conjunction oracle
+ok 75 - [B10] IntextManager.js: F01 exhaustive 36-row authority table and independent conjunction oracle
+  ---
+  duration_ms: 216.8706
+  type: 'test'
+  ...
+# Subtest: [B06 B08 B10] IntextManager.js: private source pending never admits A or ledger and cannot resume
+ok 76 - [B06 B08 B10] IntextManager.js: private source pending never admits A or ledger and cannot resume
+  ---
+  duration_ms: 158.347
+  type: 'test'
+  ...
+# Subtest: [B06 B08 B10] IntextManager.js: private source failed never admits A or ledger and cannot resume
+ok 77 - [B06 B08 B10] IntextManager.js: private source failed never admits A or ledger and cannot resume
+  ---
+  duration_ms: 121.1112
+  type: 'test'
+  ...
+# Subtest: [B10 B11 B13] IntextManager.js: reject foreign before watermark/ledger/first positive
+ok 78 - [B10 B11 B13] IntextManager.js: reject foreign before watermark/ledger/first positive
+  ---
+  duration_ms: 263.2894
+  type: 'test'
+  ...
+# Subtest: [B10 B11 B13] IntextManager.js: reject json before watermark/ledger/first positive
+ok 79 - [B10 B11 B13] IntextManager.js: reject json before watermark/ledger/first positive
+  ---
+  duration_ms: 248.6263
+  type: 'test'
+  ...
+# Subtest: [B10 B11 B13] IntextManager.js: reject verified before watermark/ledger/first positive
+ok 80 - [B10 B11 B13] IntextManager.js: reject verified before watermark/ledger/first positive
+  ---
+  duration_ms: 222.3354
+  type: 'test'
+  ...
+# Subtest: [B10 B11 B13] IntextManager.js: reject proxy before watermark/ledger/first positive
+ok 81 - [B10 B11 B13] IntextManager.js: reject proxy before watermark/ledger/first positive
+  ---
+  duration_ms: 198.1649
+  type: 'test'
+  ...
+# Subtest: [B10 B11 B13] IntextManager.js: reject stage1 before watermark/ledger/first positive
+ok 82 - [B10 B11 B13] IntextManager.js: reject stage1 before watermark/ledger/first positive
+  ---
+  duration_ms: 202.1655
+  type: 'test'
+  ...
+# Subtest: [B10 B11] IntextManager.js: loss of private source rejects legitimate packet without ledger mutation
+ok 83 - [B10 B11] IntextManager.js: loss of private source rejects legitimate packet without ledger mutation
+  ---
+  duration_ms: 111.5097
+  type: 'test'
+  ...
+# Subtest: [B12] IntextManager.js: private fields absent from public keys/globals; admin only four methods
+ok 84 - [B12] IntextManager.js: private fields absent from public keys/globals; admin only four methods
+  ---
+  duration_ms: 108.3836
+  type: 'test'
+  ...
+# Subtest: [B12 B24] IntextManager.js: public source W2 with missing ticket cannot emit B0
+ok 85 - [B12 B24] IntextManager.js: public source W2 with missing ticket cannot emit B0
+  ---
+  duration_ms: 109.6073
+  type: 'test'
+  ...
+# Subtest: [B12 B24] IntextManager.js: public source W2 with JSON ticket cannot emit B0
+ok 86 - [B12 B24] IntextManager.js: public source W2 with JSON ticket cannot emit B0
+  ---
+  duration_ms: 128.4803
+  type: 'test'
+  ...
+# Subtest: [B12 B24] IntextManager.js: public source W2 with foreign ticket cannot emit B0
+ok 87 - [B12 B24] IntextManager.js: public source W2 with foreign ticket cannot emit B0
+  ---
+  duration_ms: 268.7251
+  type: 'test'
+  ...
+# Subtest: [B13 B14] IntextManager.js: document separation and shared session for multiple managers
+ok 88 - [B13 B14] IntextManager.js: document separation and shared session for multiple managers
+  ---
+  duration_ms: 250.8611
+  type: 'test'
+  ...
+# Subtest: [B05] IntextManager.js: derived constructors keep super and commercial argument identity
+ok 89 - [B05] IntextManager.js: derived constructors keep super and commercial argument identity
+  ---
+  duration_ms: 328.347
+  type: 'test'
+  ...
+# Subtest: [B41] IntextManager.js: foreign admin collision stops QA, preserves property, no manager restart
+ok 90 - [B41] IntextManager.js: foreign admin collision stops QA, preserves property, no manager restart
+  ---
+  duration_ms: 174.2448
+  type: 'test'
+  ...
+# Subtest: [B14 B15 B16 B17 B18] IntextManager.js: native scoped construction index 1 and root lineage
+ok 91 - [B14 B15 B16 B17 B18] IntextManager.js: native scoped construction index 1 and root lineage
+  ---
+  duration_ms: 286.9751
+  type: 'test'
+  ...
+# Subtest: [B14 B15 B16 B17 B18] IntextManager.js: native scoped construction index 2 and root lineage
+ok 92 - [B14 B15 B16 B17 B18] IntextManager.js: native scoped construction index 2 and root lineage
+  ---
+  duration_ms: 302.6206
+  type: 'test'
+  ...
+# Subtest: [B14 B15 B16 B17 B18] IntextManager.js: native scoped construction index undefined and root lineage
+ok 93 - [B14 B15 B16 B17 B18] IntextManager.js: native scoped construction index undefined and root lineage
+  ---
+  duration_ms: 234.6323
+  type: 'test'
+  ...
+# Subtest: [B14 B15 B16 B17 B18] IntextManager.js: native scoped construction index 0 and root lineage
+ok 94 - [B14 B15 B16 B17 B18] IntextManager.js: native scoped construction index 0 and root lineage
+  ---
+  duration_ms: 128.0377
+  type: 'test'
+  ...
+# Subtest: [B16 B17] IntextManager.js: repeated root/index becomes unknown, distinct root with same index separates
+ok 95 - [B16 B17] IntextManager.js: repeated root/index becomes unknown, distinct root with same index separates
+  ---
+  duration_ms: 129.7868
+  type: 'test'
+  ...
+# Subtest: [B19 B23 B32] IntextManager.js: cleanup/token changes revoke old packet; unchanged retransmission is duplicate
+ok 96 - [B19 B23 B32] IntextManager.js: cleanup/token changes revoke old packet; unchanged retransmission is duplicate
+  ---
+  duration_ms: 268.8447
+  type: 'test'
+  ...
+# Subtest: [B20 B41] IntextManager.js: offline stop contract for unsupported BFCache, no automatic resume
+ok 97 - [B20 B41] IntextManager.js: offline stop contract for unsupported BFCache, no automatic resume
+  ---
+  duration_ms: 123.4905
+  type: 'test'
+  ...
+# Subtest: [B21] IntextManager.js: equal trusted clock timestamps accepted without fabricated delta
+ok 98 - [B21] IntextManager.js: equal trusted clock timestamps accepted without fabricated delta
+  ---
+  duration_ms: 124.701
+  type: 'test'
+  ...
+# Subtest: [B22] IntextManager.js: regress clock stops QA without invented time
+ok 99 - [B22] IntextManager.js: regress clock stops QA without invented time
+  ---
+  duration_ms: 112.3742
+  type: 'test'
+  ...
+# Subtest: [B22] IntextManager.js: NaN clock stops QA without invented time
+ok 100 - [B22] IntextManager.js: NaN clock stops QA without invented time
+  ---
+  duration_ms: 111.9892
+  type: 'test'
+  ...
+# Subtest: [B22] IntextManager.js: throw clock stops QA without invented time
+ok 101 - [B22] IntextManager.js: throw clock stops QA without invented time
+  ---
+  duration_ms: 104.7746
+  type: 'test'
+  ...
+# Subtest: [B22 B39 B45] IntextManager.js: single invalid cost bracket NaN prevents later A admission
+ok 102 - [B22 B39 B45] IntextManager.js: single invalid cost bracket NaN prevents later A admission
+  ---
+  duration_ms: 97.3659
+  type: 'test'
+  ...
+# Subtest: [B22 B39 B45] IntextManager.js: single invalid cost bracket regression prevents later A admission
+ok 103 - [B22 B39 B45] IntextManager.js: single invalid cost bracket regression prevents later A admission
+  ---
+  duration_ms: 103.4677
+  type: 'test'
+  ...
+# Subtest: [B22 B39 B45] IntextManager.js: single invalid cost bracket exception prevents later A admission
+ok 104 - [B22 B39 B45] IntextManager.js: single invalid cost bracket exception prevents later A admission
+  ---
+  duration_ms: 177.8373
+  type: 'test'
+  ...
+# Subtest: [B39 B45] IntextManager.js: cost overflow STOP before admission, not only an exported warning
+ok 105 - [B39 B45] IntextManager.js: cost overflow STOP before admission, not only an exported warning
+  ---
+  duration_ms: 252.3176
+  type: 'test'
+  ...
+# Subtest: [B23 B24 B26 B34] IntextManager.js: two actual executions versus retransmission, one opportunity/first positive
+ok 106 - [B23 B24 B26 B34] IntextManager.js: two actual executions versus retransmission, one opportunity/first positive
+  ---
+  duration_ms: 177.3746
+  type: 'test'
+  ...
+# Subtest: [B24 B25 B26 B43 B44] IntextManager.js: original O/neutral N/enabled E true path, four controls and exactly original guard count
+ok 107 - [B24 B25 B26 B43 B44] IntextManager.js: original O/neutral N/enabled E true path, four controls and exactly original guard count
+  ---
+  duration_ms: 281.101
+  type: 'test'
+  ...
+# Subtest: [B25 B32 B33 B43 B44] IntextManager.js: actual native preparation entry/start/claim, W2 omitted, W3/W4/C1 admitted
+ok 108 - [B25 B32 B33 B43 B44] IntextManager.js: actual native preparation entry/start/claim, W2 omitted, W3/W4/C1 admitted
+  ---
+  duration_ms: 536.0924
+  type: 'test'
+  ...
+# Subtest: [B24 B25 B26 B43 B44] IntextManager.js: new actual W3 false then true, identical O/N/E
+ok 109 - [B24 B25 B26 B43 B44] IntextManager.js: new actual W3 false then true, identical O/N/E
+  ---
+  duration_ms: 356.7037
+  type: 'test'
+  ...
+# Subtest: [B24 B25 B26 B43 B44] IntextManager.js: new actual W4 false then true, identical O/N/E
+ok 110 - [B24 B25 B26 B43 B44] IntextManager.js: new actual W4 false then true, identical O/N/E
+  ---
+  duration_ms: 285.5133
+  type: 'test'
+  ...
+# Subtest: [B24 B25 B26 B43 B44] IntextManager.js: prepared actual W3 false then true, identical O/N/E
+ok 111 - [B24 B25 B26 B43 B44] IntextManager.js: prepared actual W3 false then true, identical O/N/E
+  ---
+  duration_ms: 281.2481
+  type: 'test'
+  ...
+# Subtest: [B24 B25 B26 B43 B44] IntextManager.js: prepared actual W4 false then true, identical O/N/E
+ok 112 - [B24 B25 B26 B43 B44] IntextManager.js: prepared actual W4 false then true, identical O/N/E
+  ---
+  duration_ms: 294.6254
+  type: 'test'
+  ...
+# Subtest: [B19 B23 B32 B33] IntextManager.js: actual preparation release revokes old entry and owner, no global terminal
+ok 113 - [B19 B23 B32 B33] IntextManager.js: actual preparation release revokes old entry and owner, no global terminal
+  ---
+  duration_ms: 99.871
+  type: 'test'
+  ...
+# Subtest: [B30 B34] IntextManager.js: preparation descriptor cannot manufacture native winner
+ok 114 - [B30 B34] IntextManager.js: preparation descriptor cannot manufacture native winner
+  ---
+  duration_ms: 98.3991
+  type: 'test'
+  ...
+# Subtest: [B26] IntextManager.js: actual final C1 false after W4 true does not overwrite unique first positive
+ok 115 - [B26] IntextManager.js: actual final C1 false after W4 true does not overwrite unique first positive
+  ---
+  duration_ms: 101.0899
+  type: 'test'
+  ...
+# Subtest: [B24 B26 B29 B42 B43 B44] IntextManager.js: O/N/E below identical decisions/awaits/effects/errors
+ok 116 - [B24 B26 B29 B42 B43 B44] IntextManager.js: O/N/E below identical decisions/awaits/effects/errors
+  ---
+  duration_ms: 274.9292
+  type: 'test'
+  ...
+# Subtest: [B24 B26 B29 B42 B43 B44] IntextManager.js: O/N/E hidden identical decisions/awaits/effects/errors
+ok 117 - [B24 B26 B29 B42 B43 B44] IntextManager.js: O/N/E hidden identical decisions/awaits/effects/errors
+  ---
+  duration_ms: 235.1171
+  type: 'test'
+  ...
+# Subtest: [B24 B26 B29 B42 B43 B44] IntextManager.js: O/N/E unrendered identical decisions/awaits/effects/errors
+ok 118 - [B24 B26 B29 B42 B43 B44] IntextManager.js: O/N/E unrendered identical decisions/awaits/effects/errors
+  ---
+  duration_ms: 232.6947
+  type: 'test'
+  ...
+# Subtest: [B24 B26 B29 B42 B43 B44] IntextManager.js: O/N/E stale identical decisions/awaits/effects/errors
+ok 119 - [B24 B26 B29 B42 B43 B44] IntextManager.js: O/N/E stale identical decisions/awaits/effects/errors
+  ---
+  duration_ms: 459.601
+  type: 'test'
+  ...
+# Subtest: [B24 B26 B29 B42 B43 B44] IntextManager.js: O/N/E intersection identical decisions/awaits/effects/errors
+ok 120 - [B24 B26 B29 B42 B43 B44] IntextManager.js: O/N/E intersection identical decisions/awaits/effects/errors
+  ---
+  duration_ms: 268.2299
+  type: 'test'
+  ...
+# Subtest: [B24 B26 B29 B42 B43 B44] IntextManager.js: O/N/E prepare-error identical decisions/awaits/effects/errors
+ok 121 - [B24 B26 B29 B42 B43 B44] IntextManager.js: O/N/E prepare-error identical decisions/awaits/effects/errors
+  ---
+  duration_ms: 280.5471
+  type: 'test'
+  ...
+# Subtest: [B24 B26 B29 B42 B43 B44] IntextManager.js: O/N/E false-final identical decisions/awaits/effects/errors
+ok 122 - [B24 B26 B29 B42 B43 B44] IntextManager.js: O/N/E false-final identical decisions/awaits/effects/errors
+  ---
+  duration_ms: 275.949
+  type: 'test'
+  ...
+# Subtest: [B24 B26 B29 B42 B43 B44] IntextManager.js: O/N/E invalid-preparation identical decisions/awaits/effects/errors
+ok 123 - [B24 B26 B29 B42 B43 B44] IntextManager.js: O/N/E invalid-preparation identical decisions/awaits/effects/errors
+  ---
+  duration_ms: 252.5705
+  type: 'test'
+  ...
+# Subtest: [B24 B26 B29 B42 B43 B44] IntextManager.js: O/N/E missing-guard identical decisions/awaits/effects/errors
+ok 124 - [B24 B26 B29 B42 B43 B44] IntextManager.js: O/N/E missing-guard identical decisions/awaits/effects/errors
+  ---
+  duration_ms: 265.3246
+  type: 'test'
+  ...
+# Subtest: [B27] IntextManager.js: W1 Display true after initial Video stays raw, zero Dc
+ok 125 - [B27] IntextManager.js: W1 Display true after initial Video stays raw, zero Dc
+  ---
+  duration_ms: 95.9967
+  type: 'test'
+  ...
+# Subtest: [B28 B29 B44] IntextManager.js: shared diagnostic staging and stale no execution do not create controls
+ok 126 - [B28 B29 B44] IntextManager.js: shared diagnostic staging and stale no execution do not create controls
+  ---
+  duration_ms: 90.6447
+  type: 'test'
+  ...
+# Subtest: [B30 B34] IntextManager.js: native winner display excludes video and does not change from preparation descriptor
+ok 127 - [B30 B34] IntextManager.js: native winner display excludes video and does not change from preparation descriptor
+  ---
+  duration_ms: 109.0931
+  type: 'test'
+  ...
+# Subtest: [B30 B34] IntextManager.js: native winner null excludes video and does not change from preparation descriptor
+ok 128 - [B30 B34] IntextManager.js: native winner null excludes video and does not change from preparation descriptor
+  ---
+  duration_ms: 112.9905
+  type: 'test'
+  ...
+# Subtest: [B30 B31] IntextManager.js: native Legacy boundary never manufactures fetchGeneration
+ok 129 - [B30 B31] IntextManager.js: native Legacy boundary never manufactures fetchGeneration
+  ---
+  duration_ms: 122.0537
+  type: 'test'
+  ...
+# Subtest: [B33] IntextManager.js: entering player construction excludes subsequent W2 without asserting player exists
+ok 130 - [B33] IntextManager.js: entering player construction excludes subsequent W2 without asserting player exists
+  ---
+  duration_ms: 104.1496
+  type: 'test'
+  ...
+# Subtest: [B35] IntextManager.js: all four false irreversible; exact rates and firstPassFrame blocked after close
+ok 131 - [B35] IntextManager.js: all four false irreversible; exact rates and firstPassFrame blocked after close
+  ---
+  duration_ms: 103.6508
+  type: 'test'
+  ...
+# Subtest: [B36 B39] IntextManager.js: partition preflight, real QA0 and limits cannot increase
+ok 132 - [B36 B39] IntextManager.js: partition preflight, real QA0 and limits cannot increase
+  ---
+  duration_ms: 187.4891
+  type: 'test'
+  ...
+# Subtest: [B37] IntextManager.js: actually reach opportunity 65; 64 summaries, QA0 overflow, STOP
+ok 133 - [B37] IntextManager.js: actually reach opportunity 65; 64 summaries, QA0 overflow, STOP
+  ---
+  duration_ms: 254.2935
+  type: 'test'
+  ...
+# Subtest: [B38 B40] IntextManager.js: 1101 real false checks, independent rings/bytes and retired retransmission
+ok 134 - [B38 B40] IntextManager.js: 1101 real false checks, independent rings/bytes and retired retransmission
+  ---
+  duration_ms: 804.52
+  type: 'test'
+  ...
+# Subtest: [B39] IntextManager.js: authority exhaustion bounded, no object references retained in export
+ok 135 - [B39] IntextManager.js: authority exhaustion bounded, no object references retained in export
+  ---
+  duration_ms: 308.9581
+  type: 'test'
+  ...
+# Subtest: [B40 B41 B50] IntextManager.js: bounded manual export, mutation not authority, stop/dispose tombstone preserves commercial callbacks
+ok 136 - [B40 B41 B50] IntextManager.js: bounded manual export, mutation not authority, stop/dispose tombstone preserves commercial callbacks
+  ---
+  duration_ms: 180.2064
+  type: 'test'
+  ...
+# Subtest: [B42 B43 B44] IntextManager.js: strict result identity and original exception survive private staging
+ok 137 - [B42 B43 B44] IntextManager.js: strict result identity and original exception survive private staging
+  ---
+  duration_ms: 431.5994
+  type: 'test'
+  ...
+# Subtest: [B45 B46 B48 B52] IntextManager.js: F02 fixed bins, N=100, unique work actual N and no invented percentile
+ok 138 - [B45 B46 B48 B52] IntextManager.js: F02 fixed bins, N=100, unique work actual N and no invented percentile
+  ---
+  duration_ms: 128.2741
+  type: 'test'
+  ...
+1..138
+# tests 138
+# suites 0
+# pass 138
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 33228.6939

@@ -1,0 +1,762 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:qa1b:native-browser-packet:II-B1:v1",
+  "title": "QA1-B browser packet; scalar output is never an authority credential",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "eventId",
+    "sampleSequence",
+    "kind",
+    "caller",
+    "identity",
+    "ownership",
+    "time",
+    "provenance",
+    "guard",
+    "facts",
+    "series",
+    "stage",
+    "format",
+    "contractRevision",
+    "evidence"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": "qa1b-native-browser-packet-v1"
+    },
+    "eventId": {
+      "type": "string",
+      "pattern": "^e[1-9][0-9]*$"
+    },
+    "sampleSequence": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 9007199254740991
+    },
+    "kind": {
+      "enum": [
+        "fetch",
+        "winner",
+        "guard",
+        "handoff",
+        "gap",
+        "subattempt"
+      ]
+    },
+    "caller": {
+      "enum": [
+        "population",
+        "W1",
+        "W2",
+        "W3",
+        "W4",
+        "C1",
+        "unknown"
+      ]
+    },
+    "identity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "documentLocalId",
+        "navigationLocalId",
+        "slotLocalId",
+        "anchorLocalId",
+        "cycleId",
+        "fetchGeneration",
+        "renderToken",
+        "activeRenderToken",
+        "verified",
+        "state"
+      ],
+      "properties": {
+        "documentLocalId": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 48
+        },
+        "navigationLocalId": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 48
+        },
+        "slotLocalId": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 48
+        },
+        "anchorLocalId": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 48
+        },
+        "cycleId": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "fetchGeneration": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "renderToken": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "activeRenderToken": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "verified": {
+          "type": "boolean"
+        },
+        "state": {
+          "enum": [
+            "unknown",
+            "live"
+          ]
+        }
+      }
+    },
+    "ownership": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "nodeLocalId",
+        "waterfallLocalId",
+        "attemptLocalId",
+        "creativeLocalId",
+        "entryLocalId",
+        "verified",
+        "state"
+      ],
+      "properties": {
+        "nodeLocalId": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 48
+        },
+        "waterfallLocalId": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 48
+        },
+        "attemptLocalId": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 48
+        },
+        "creativeLocalId": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 48
+        },
+        "entryLocalId": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 48
+        },
+        "verified": {
+          "type": "boolean"
+        },
+        "state": {
+          "enum": [
+            "unknown",
+            "live"
+          ]
+        }
+      }
+    },
+    "time": {
+      "type": "object",
+      "required": [
+        "sourceClock",
+        "monotonicMs"
+      ],
+      "properties": {
+        "sourceClock": {
+          "const": "page-monotonic-ms"
+        },
+        "monotonicMs": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        }
+      }
+    },
+    "provenance": {
+      "type": "object",
+      "required": [
+        "distribution",
+        "coreSha256",
+        "profile",
+        "localAccreditation",
+        "sourceAttestation",
+        "evidenceKind"
+      ],
+      "properties": {
+        "distribution": {
+          "enum": [
+            "_gam_kv_.js",
+            "IntextManager.js"
+          ]
+        },
+        "coreSha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "profile": {
+          "const": "II-B1"
+        },
+        "localAccreditation": {
+          "enum": [
+            "owned-current-object",
+            "unknown"
+          ]
+        },
+        "sourceAttestation": {
+          "enum": [
+            "accredited",
+            "pending",
+            "failed"
+          ]
+        },
+        "evidenceKind": {
+          "enum": [
+            "NODE-PRIVATE-FIXTURE",
+            "UNBOUND-BROWSER"
+          ]
+        }
+      }
+    },
+    "guard": {
+      "type": "object",
+      "required": [
+        "executed",
+        "eligible",
+        "reason",
+        "playerCreated"
+      ],
+      "properties": {
+        "executed": {
+          "type": "boolean"
+        },
+        "eligible": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "reason": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "playerCreated": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        }
+      }
+    },
+    "facts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "initialWinner",
+        "observedInitialWinner",
+        "winnerSource",
+        "terminal"
+      ],
+      "properties": {
+        "initialWinner": {
+          "enum": [
+            "video",
+            "display",
+            "none",
+            "unknown"
+          ]
+        },
+        "observedInitialWinner": {
+          "enum": [
+            "video",
+            "display",
+            "none",
+            "unknown"
+          ]
+        },
+        "winnerSource": {
+          "enum": [
+            "native-decision",
+            "unknown"
+          ]
+        },
+        "terminal": {
+          "type": "null"
+        }
+      }
+    },
+    "series": {
+      "enum": [
+        "primary-video-preplayer",
+        "display",
+        "non-primary-video",
+        "native-lifecycle"
+      ]
+    },
+    "stage": {
+      "enum": [
+        "before-player",
+        "unknown"
+      ]
+    },
+    "format": {
+      "enum": [
+        "video",
+        "display",
+        "opportunity"
+      ]
+    },
+    "contractRevision": {
+      "const": "r1-review-B"
+    },
+    "evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "rect",
+        "viewport",
+        "P"
+      ],
+      "properties": {
+        "rect": {
+          "type": "null"
+        },
+        "viewport": {
+          "type": "null"
+        },
+        "P": {
+          "const": "unknown"
+        }
+      }
+    }
+  },
+  "x-F01": {
+    "authority": "Private object membership AND lease AND session AND external-source root, never JSON/aliases/hash/currentScript/verified. Browser root is unbound in II-B1 delivery.",
+    "priority": [
+      "membership",
+      "lease",
+      "session",
+      "source",
+      "factual-validation"
+    ],
+    "rows": [
+      {
+        "localMembership": "valid",
+        "sourceAttestation": "accredited",
+        "lease": "valid",
+        "session": "ACTIVE",
+        "admit": true,
+        "acceptanceA": "eligible-for-factual-validation",
+        "ledgerWrites": "only-after-factual-validation",
+        "watermarkAdvance": "only-after-factual-validation"
+      },
+      {
+        "localMembership": "valid",
+        "sourceAttestation": "accredited",
+        "lease": "valid",
+        "session": "INACTIVE",
+        "admit": false,
+        "acceptanceA": "not-admitted",
+        "ledgerWrites": 0,
+        "watermarkAdvance": false
+      },
+      {
+        "localMembership": "valid",
+        "sourceAttestation": "accredited",
+        "lease": "valid",
+        "session": "STOPPED",
+        "admit": false,
+        "acceptanceA": "not-admitted",
+        "ledgerWrites": 0,
+        "watermarkAdvance": false
+      },
+      {
+        "localMembership": "valid",
+        "sourceAttestation": "accredited",
+        "lease": "revoked",
+        "session": "ACTIVE",
+        "admit": false,
+        "acceptanceA": "not-admitted",
+        "ledgerWrites": 0,
+        "watermarkAdvance": false
+      },
+      {
+        "localMembership": "valid",
+        "sourceAttestation": "accredited",
+        "lease": "revoked",
+        "session": "INACTIVE",
+        "admit": false,
+        "acceptanceA": "not-admitted",
+        "ledgerWrites": 0,
+        "watermarkAdvance": false
+      },
+      {
+        "localMembership": "valid",
+        "sourceAttestation": "accredited",
+        "lease": "revoked",
+        "session": "STOPPED",
+        "admit": false,
+        "acceptanceA": "not-admitted",
+        "ledgerWrites": 0,
+        "watermarkAdvance": false
+      },
+      {
+        "localMembership": "valid",
+        "sourceAttestation": "pending",
+        "lease": "valid",
+        "session": "ACTIVE",
+        "admit": false,
+        "acceptanceA": "not-admitted",
+        "ledgerWrites": 0,
+        "watermarkAdvance": false
+      },
+      {
+        "localMembership": "valid",
+        "sourceAttestation": "pending",
+        "lease": "valid",
+        "session": "INACTIVE",
+        "admit": false,
+        "acceptanceA": "not-admitted",
+        "ledgerWrites": 0,
+        "watermarkAdvance": false
+      },
+      {
+        "localMembership": "valid",
+        "sourceAttestation": "pending",
+        "lease": "valid",
+        "session": "STOPPED",
+        "admit": false,
+        "acceptanceA": "not-admitted",
+        "ledgerWrites": 0,
+        "watermarkAdvance": false
+      },
+      {
+        "localMembership": "valid",
+        "sourceAttestation": "pending",
+        "lease": "revoked",
+        "session": "ACTIVE",
+        "admit": false,
+        "acceptanceA": "not-admitted",
+        "ledgerWrites": 0,
+        "watermarkAdvance": false
+      },
+      {
+        "localMembership": "valid",
+        "sourceAttestation": "pending",
+        "lease": "revoked",
+        "session": "INACTIVE",
+        "admit": false,
+        "acceptanceA": "not-admitted",
+        "ledgerWrites": 0,
+        "watermarkAdvance": false
+      },
+      {
+        "localMembership": "valid",
+        "sourceAttestation": "pending",
+        "lease": "revoked",
+        "session": "STOPPED",
+        "admit": false,
+        "acceptanceA": "not-admitted",
+        "ledgerWrites": 0,
+        "watermarkAdvance": false
+      },
+      {
+        "localMembership": "valid",
+        "sourceAttestation": "failed",
+        "lease": "valid",
+        "session": "ACTIVE",
+        "admit": false,
+        "acceptanceA": "not-admitted",
+        "ledgerWrites": 0,
+        "watermarkAdvance": false
+      },
+      {
+        "localMembership": "valid",
+        "sourceAttestation": "failed",
+        "lease": "valid",
+        "session": "INACTIVE",
+        "admit": false,
+        "acceptanceA": "not-admitted",
+        "ledgerWrites": 0,
+        "watermarkAdvance": false
+      },
+      {
+        "localMembership": "valid",
+        "sourceAttestation": "failed",
+        "lease": "valid",
+        "session": "STOPPED",
+        "admit": false,
+        "acceptanceA": "not-admitted",
+        "ledgerWrites": 0,
+        "watermarkAdvance": false
+      },
+      {
+        "localMembership": "valid",
+        "sourceAttestation": "failed",
+        "lease": "revoked",
+        "session": "ACTIVE",
+        "admit": false,
+        "acceptanceA": "not-admitted",
+        "ledgerWrites": 0,
+        "watermarkAdvance": false
+      },
+      {
+        "localMembership": "valid",
+        "sourceAttestation": "failed",
+        "lease": "revoked",
+        "session": "INACTIVE",
+        "admit": false,
+        "acceptanceA": "not-admitted",
+        "ledgerWrites": 0,
+        "watermarkAdvance": false
+      },
+      {
+        "localMembership": "valid",
+        "sourceAttestation": "failed",
+        "lease": "revoked",
+        "session": "STOPPED",
+        "admit": false,
+        "acceptanceA": "not-admitted",
+        "ledgerWrites": 0,
+        "watermarkAdvance": false
+      },
+      {
+        "localMembership": "invalid",
+        "sourceAttestation": "accredited",
+        "lease": "valid",
+        "session": "ACTIVE",
+        "admit": false,
+        "acceptanceA": "not-admitted",
+        "ledgerWrites": 0,
+        "watermarkAdvance": false
+      },
+      {
+        "localMembership": "invalid",
+        "sourceAttestation": "accredited",
+        "lease": "valid",
+        "session": "INACTIVE",
+        "admit": false,
+        "acceptanceA": "not-admitted",
+        "ledgerWrites": 0,
+        "watermarkAdvance": false
+      },
+      {
+        "localMembership": "invalid",
+        "sourceAttestation": "accredited",
+        "lease": "valid",
+        "session": "STOPPED",
+        "admit": false,
+        "acceptanceA": "not-admitted",
+        "ledgerWrites": 0,
+        "watermarkAdvance": false
+      },
+      {
+        "localMembership": "invalid",
+        "sourceAttestation": "accredited",
+        "lease": "revoked",
+        "session": "ACTIVE",
+        "admit": false,
+        "acceptanceA": "not-admitted",
+        "ledgerWrites": 0,
+        "watermarkAdvance": false
+      },
+      {
+        "localMembership": "invalid",
+        "sourceAttestation": "accredited",
+        "lease": "revoked",
+        "session": "INACTIVE",
+        "admit": false,
+        "acceptanceA": "not-admitted",
+        "ledgerWrites": 0,
+        "watermarkAdvance": false
+      },
+      {
+        "localMembership": "invalid",
+        "sourceAttestation": "accredited",
+        "lease": "revoked",
+        "session": "STOPPED",
+        "admit": false,
+        "acceptanceA": "not-admitted",
+        "ledgerWrites": 0,
+        "watermarkAdvance": false
+      },
+      {
+        "localMembership": "invalid",
+        "sourceAttestation": "pending",
+        "lease": "valid",
+        "session": "ACTIVE",
+        "admit": false,
+        "acceptanceA": "not-admitted",
+        "ledgerWrites": 0,
+        "watermarkAdvance": false
+      },
+      {
+        "localMembership": "invalid",
+        "sourceAttestation": "pending",
+        "lease": "valid",
+        "session": "INACTIVE",
+        "admit": false,
+        "acceptanceA": "not-admitted",
+        "ledgerWrites": 0,
+        "watermarkAdvance": false
+      },
+      {
+        "localMembership": "invalid",
+        "sourceAttestation": "pending",
+        "lease": "valid",
+        "session": "STOPPED",
+        "admit": false,
+        "acceptanceA": "not-admitted",
+        "ledgerWrites": 0,
+        "watermarkAdvance": false
+      },
+      {
+        "localMembership": "invalid",
+        "sourceAttestation": "pending",
+        "lease": "revoked",
+        "session": "ACTIVE",
+        "admit": false,
+        "acceptanceA": "not-admitted",
+        "ledgerWrites": 0,
+        "watermarkAdvance": false
+      },
+      {
+        "localMembership": "invalid",
+        "sourceAttestation": "pending",
+        "lease": "revoked",
+        "session": "INACTIVE",
+        "admit": false,
+        "acceptanceA": "not-admitted",
+        "ledgerWrites": 0,
+        "watermarkAdvance": false
+      },
+      {
+        "localMembership": "invalid",
+        "sourceAttestation": "pending",
+        "lease": "revoked",
+        "session": "STOPPED",
+        "admit": false,
+        "acceptanceA": "not-admitted",
+        "ledgerWrites": 0,
+        "watermarkAdvance": false
+      },
+      {
+        "localMembership": "invalid",
+        "sourceAttestation": "failed",
+        "lease": "valid",
+        "session": "ACTIVE",
+        "admit": false,
+        "acceptanceA": "not-admitted",
+        "ledgerWrites": 0,
+        "watermarkAdvance": false
+      },
+      {
+        "localMembership": "invalid",
+        "sourceAttestation": "failed",
+        "lease": "valid",
+        "session": "INACTIVE",
+        "admit": false,
+        "acceptanceA": "not-admitted",
+        "ledgerWrites": 0,
+        "watermarkAdvance": false
+      },
+      {
+        "localMembership": "invalid",
+        "sourceAttestation": "failed",
+        "lease": "valid",
+        "session": "STOPPED",
+        "admit": false,
+        "acceptanceA": "not-admitted",
+        "ledgerWrites": 0,
+        "watermarkAdvance": false
+      },
+      {
+        "localMembership": "invalid",
+        "sourceAttestation": "failed",
+        "lease": "revoked",
+        "session": "ACTIVE",
+        "admit": false,
+        "acceptanceA": "not-admitted",
+        "ledgerWrites": 0,
+        "watermarkAdvance": false
+      },
+      {
+        "localMembership": "invalid",
+        "sourceAttestation": "failed",
+        "lease": "revoked",
+        "session": "INACTIVE",
+        "admit": false,
+        "acceptanceA": "not-admitted",
+        "ledgerWrites": 0,
+        "watermarkAdvance": false
+      },
+      {
+        "localMembership": "invalid",
+        "sourceAttestation": "failed",
+        "lease": "revoked",
+        "session": "STOPPED",
+        "admit": false,
+        "acceptanceA": "not-admitted",
+        "ledgerWrites": 0,
+        "watermarkAdvance": false
+      }
+    ]
+  },
+  "x-sourceComplete": {
+    "D0": false,
+    "Dv": false,
+    "Dc": false,
+    "outcomes": false
+  },
+  "x-browser": "NOT-RUN; private Node fixture evidence is not real browser attestation"
+}

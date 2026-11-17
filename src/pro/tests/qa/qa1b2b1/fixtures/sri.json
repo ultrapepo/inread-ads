@@ -1,0 +1,10 @@
+{
+  "schema": "qa1b-II-B1-sri-vectors-v1",
+  "positive": "abc",
+  "sha256Hex": "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad",
+  "sha256SRI": "sha256-ungWv48Bz+pBQUDeXa4iI7ADYaOWF3qctBD/YfIAFa0=",
+  "mutations": ["abd", "\ufeffabc", "abc\r\n", "abc\n"],
+  "authorityFromDeclaredDigest": false,
+  "browserSRI": "NOT-RUN",
+  "networkVariants": {"compression":"NOT-RUN","cache":"NOT-RUN","serviceWorker":"NOT-RUN","redirect":"NOT-RUN","CSP":"NOT-RUN","CORS":"NOT-RUN"}
+}

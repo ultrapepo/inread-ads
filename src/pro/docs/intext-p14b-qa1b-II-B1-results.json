@@ -1,0 +1,1264 @@
+{
+  "schema": "qa1b-II-B1-results-v1",
+  "verdict": "PASS OFFLINE",
+  "scope": "S0/S1 extracted methods and new private fixture authority only",
+  "environment": {
+    "cwd": "C:\\Users\\pedro.ramos\\Documents\\workspace\\develop\\interstitial\\intext\\inread ads\\src\\pro",
+    "node": "v25.8.1",
+    "platform": "win32",
+    "arch": "x64",
+    "dependencies": "Node built-ins + 418 frozen local inputs; no packages installed"
+  },
+  "commands": {
+    "generate": "node tests/qa/qa1b2b1/build.cjs --generate",
+    "validate": "node tests/qa/qa1b2b1/build.cjs --validate",
+    "seal": "node tests/qa/qa1b2b1/build.cjs --seal",
+    "verify": "node tests/qa/qa1b2b1/verify.cjs"
+  },
+  "suites": [
+    {
+      "label": "II-B1",
+      "cwd": "C:\\Users\\pedro.ramos\\Documents\\workspace\\develop\\interstitial\\intext\\inread ads\\src\\pro",
+      "node": "v25.8.1",
+      "executable": "C:\\Program Files\\nodejs\\node.exe",
+      "command": "node --test --test-isolation=none --test-reporter=tap tests/intext-p14b-qa1b-II-B1.test.cjs",
+      "started": "2026-11-17T19:22:06.656Z",
+      "exitCode": 0,
+      "tests": 138,
+      "pass": 138,
+      "fail": 0,
+      "cancelled": 0,
+      "skipped": 0,
+      "log": {
+        "file": "docs/intext-p14b-qa1b-II-B1-validation.txt",
+        "bytes": 35652,
+        "sha256": "1ef50dda3f99a7201a474c053ab401f0bf9327ddd3a173ce57239ee325543f13"
+      },
+      "failures": []
+    },
+    {
+      "label": "I",
+      "cwd": "C:\\Users\\pedro.ramos\\Documents\\workspace\\develop\\interstitial\\intext\\inread ads\\src\\pro",
+      "node": "v25.8.1",
+      "executable": "C:\\Program Files\\nodejs\\node.exe",
+      "command": "node --test --test-isolation=none --test-reporter=tap tests/intext-p14b-qa1b-stage1.test.cjs",
+      "started": "2026-11-17T19:22:40.058Z",
+      "exitCode": 0,
+      "tests": 57,
+      "pass": 57,
+      "fail": 0,
+      "cancelled": 0,
+      "skipped": 0,
+      "log": {
+        "file": "docs/intext-p14b-qa1b-II-B1-stage1-validation.txt",
+        "bytes": 15071,
+        "sha256": "079e0ee65530b3db3e77c3507904318f845c29eec7bbffea654d026f2fca123c"
+      },
+      "failures": []
+    },
+    {
+      "label": "II-A",
+      "cwd": "C:\\Users\\pedro.ramos\\Documents\\workspace\\develop\\interstitial\\intext\\inread ads\\src\\pro",
+      "node": "v25.8.1",
+      "executable": "C:\\Program Files\\nodejs\\node.exe",
+      "command": "node --test --test-isolation=none --test-reporter=tap tests/intext-p14b-qa1b-stage2a.test.cjs",
+      "started": "2026-11-17T19:22:43.754Z",
+      "exitCode": 0,
+      "tests": 106,
+      "pass": 106,
+      "fail": 0,
+      "cancelled": 0,
+      "skipped": 0,
+      "log": {
+        "file": "docs/intext-p14b-qa1b-II-B1-stage2a-validation.txt",
+        "bytes": 25725,
+        "sha256": "a292ddd1a093804a0cf4780634e7d01d7786e258c91c1cbd0f533081924171e9"
+      },
+      "failures": []
+    },
+    {
+      "label": "QA0-QA1A",
+      "cwd": "C:\\Users\\pedro.ramos\\Documents\\workspace\\develop\\interstitial\\intext\\inread ads\\src\\pro",
+      "node": "v25.8.1",
+      "executable": "C:\\Program Files\\nodejs\\node.exe",
+      "command": "node --test --test-isolation=none --test-reporter=tap tests/intext-p14b-shadow.audit.test.cjs tests/intext-p14b-qa1a.audit.test.cjs",
+      "started": "2026-11-17T19:22:59.666Z",
+      "exitCode": 1,
+      "tests": 110,
+      "pass": 108,
+      "fail": 2,
+      "cancelled": 0,
+      "skipped": 0,
+      "log": {
+        "file": "docs/intext-p14b-qa1b-II-B1-frozen-validation.txt",
+        "bytes": 28412,
+        "sha256": "fba504296f0db1354da6a6d193f54dc3f9cb5bb074b984f1a317856a6aa36982"
+      },
+      "failures": [
+        "not ok 39 - All 345 pre-existing files including approved QA0 retain their bytes in the complete workspace",
+        "not ok 110 - All 333 pre-existing protected files retain their bytes; no core/probe/bundle generation occurred"
+      ]
+    }
+  ],
+  "cases": [
+    {
+      "id": "B01",
+      "offline": "PASS-COMPONENTS",
+      "evidence": [
+        "ok 1 - [B01 B49] protected 418 baseline, HEAD input and strict 29-path allowlist"
+      ],
+      "browserC": "NOT-RUN",
+      "commercialP": "BLOCKED-no-authorization",
+      "meaning": "S0/S1 components only, not the entire multi-stage case"
+    },
+    {
+      "id": "B02",
+      "offline": "PASS-COMPONENTS",
+      "evidence": [
+        "ok 5 - [B02 B03 B43 B49] _gam_kv_.js: deterministic copy, exact inverse, syntax and unchanged commercial complement",
+        "ok 72 - [B02 B03 B43 B49] IntextManager.js: deterministic copy, exact inverse, syntax and unchanged commercial complement"
+      ],
+      "browserC": "NOT-RUN",
+      "commercialP": "BLOCKED-no-authorization",
+      "meaning": "S0/S1 components only, not the entire multi-stage case"
+    },
+    {
+      "id": "B03",
+      "offline": "PASS-COMPONENTS",
+      "evidence": [
+        "ok 5 - [B02 B03 B43 B49] _gam_kv_.js: deterministic copy, exact inverse, syntax and unchanged commercial complement",
+        "ok 72 - [B02 B03 B43 B49] IntextManager.js: deterministic copy, exact inverse, syntax and unchanged commercial complement"
+      ],
+      "browserC": "NOT-RUN",
+      "commercialP": "BLOCKED-no-authorization",
+      "meaning": "S0/S1 components only, not the entire multi-stage case"
+    },
+    {
+      "id": "B04",
+      "offline": "PASS-COMPONENTS",
+      "evidence": [
+        "ok 2 - [B04] UTF8 shim vs independent Buffer, all surrogate classes and JSON",
+        "ok 3 - [B04] closed CJS composition equals real QA0 constructor and rejects other requires"
+      ],
+      "browserC": "NOT-RUN",
+      "commercialP": "BLOCKED-no-authorization",
+      "meaning": "S0/S1 components only, not the entire multi-stage case"
+    },
+    {
+      "id": "B05",
+      "offline": "PASS-COMPONENTS",
+      "evidence": [
+        "ok 6 - [B05] _gam_kv_.js: constructors preserve name/length, commercial keys, prototypes and final QA defaults",
+        "ok 7 - [B05 B21 B35] _gam_kv_.js: genuine packets satisfy versioned schema including unknown P and no extra fields",
+        "ok 22 - [B05] _gam_kv_.js: derived constructors keep super and commercial argument identity",
+        "ok 73 - [B05] IntextManager.js: constructors preserve name/length, commercial keys, prototypes and final QA defaults",
+        "ok 74 - [B05 B21 B35] IntextManager.js: genuine packets satisfy versioned schema including unknown P and no extra fields",
+        "ok 89 - [B05] IntextManager.js: derived constructors keep super and commercial argument identity"
+      ],
+      "browserC": "NOT-RUN",
+      "commercialP": "BLOCKED-no-authorization",
+      "meaning": "S0/S1 components only, not the entire multi-stage case"
+    },
+    {
+      "id": "B06",
+      "offline": "PASS-COMPONENTS",
+      "evidence": [
+        "ok 4 - [B06 B07 B08 B09 B10] offline SRI vectors are byte-sensitive and not browser attestation",
+        "ok 9 - [B06 B08 B10] _gam_kv_.js: private source pending never admits A or ledger and cannot resume",
+        "ok 10 - [B06 B08 B10] _gam_kv_.js: private source failed never admits A or ledger and cannot resume",
+        "ok 76 - [B06 B08 B10] IntextManager.js: private source pending never admits A or ledger and cannot resume",
+        "ok 77 - [B06 B08 B10] IntextManager.js: private source failed never admits A or ledger and cannot resume"
+      ],
+      "browserC": "NOT-RUN",
+      "commercialP": "BLOCKED-no-authorization",
+      "meaning": "S0/S1 components only, not the entire multi-stage case"
+    },
+    {
+      "id": "B07",
+      "offline": "PASS-COMPONENTS",
+      "evidence": [
+        "ok 4 - [B06 B07 B08 B09 B10] offline SRI vectors are byte-sensitive and not browser attestation"
+      ],
+      "browserC": "NOT-RUN",
+      "commercialP": "BLOCKED-no-authorization",
+      "meaning": "S0/S1 components only, not the entire multi-stage case"
+    },
+    {
+      "id": "B08",
+      "offline": "PASS-COMPONENTS",
+      "evidence": [
+        "ok 4 - [B06 B07 B08 B09 B10] offline SRI vectors are byte-sensitive and not browser attestation",
+        "ok 9 - [B06 B08 B10] _gam_kv_.js: private source pending never admits A or ledger and cannot resume",
+        "ok 10 - [B06 B08 B10] _gam_kv_.js: private source failed never admits A or ledger and cannot resume",
+        "ok 76 - [B06 B08 B10] IntextManager.js: private source pending never admits A or ledger and cannot resume",
+        "ok 77 - [B06 B08 B10] IntextManager.js: private source failed never admits A or ledger and cannot resume"
+      ],
+      "browserC": "NOT-RUN",
+      "commercialP": "BLOCKED-no-authorization",
+      "meaning": "S0/S1 components only, not the entire multi-stage case"
+    },
+    {
+      "id": "B09",
+      "offline": "PASS-COMPONENTS",
+      "evidence": [
+        "ok 4 - [B06 B07 B08 B09 B10] offline SRI vectors are byte-sensitive and not browser attestation"
+      ],
+      "browserC": "NOT-RUN",
+      "commercialP": "BLOCKED-no-authorization",
+      "meaning": "S0/S1 components only, not the entire multi-stage case"
+    },
+    {
+      "id": "B10",
+      "offline": "PASS-COMPONENTS",
+      "evidence": [
+        "ok 4 - [B06 B07 B08 B09 B10] offline SRI vectors are byte-sensitive and not browser attestation",
+        "ok 8 - [B10] _gam_kv_.js: F01 exhaustive 36-row authority table and independent conjunction oracle",
+        "ok 9 - [B06 B08 B10] _gam_kv_.js: private source pending never admits A or ledger and cannot resume",
+        "ok 10 - [B06 B08 B10] _gam_kv_.js: private source failed never admits A or ledger and cannot resume",
+        "ok 11 - [B10 B11 B13] _gam_kv_.js: reject foreign before watermark/ledger/first positive",
+        "ok 12 - [B10 B11 B13] _gam_kv_.js: reject json before watermark/ledger/first positive",
+        "ok 13 - [B10 B11 B13] _gam_kv_.js: reject verified before watermark/ledger/first positive",
+        "ok 14 - [B10 B11 B13] _gam_kv_.js: reject proxy before watermark/ledger/first positive",
+        "ok 15 - [B10 B11 B13] _gam_kv_.js: reject stage1 before watermark/ledger/first positive",
+        "ok 16 - [B10 B11] _gam_kv_.js: loss of private source rejects legitimate packet without ledger mutation",
+        "ok 75 - [B10] IntextManager.js: F01 exhaustive 36-row authority table and independent conjunction oracle",
+        "ok 76 - [B06 B08 B10] IntextManager.js: private source pending never admits A or ledger and cannot resume",
+        "ok 77 - [B06 B08 B10] IntextManager.js: private source failed never admits A or ledger and cannot resume",
+        "ok 78 - [B10 B11 B13] IntextManager.js: reject foreign before watermark/ledger/first positive",
+        "ok 79 - [B10 B11 B13] IntextManager.js: reject json before watermark/ledger/first positive",
+        "ok 80 - [B10 B11 B13] IntextManager.js: reject verified before watermark/ledger/first positive",
+        "ok 81 - [B10 B11 B13] IntextManager.js: reject proxy before watermark/ledger/first positive",
+        "ok 82 - [B10 B11 B13] IntextManager.js: reject stage1 before watermark/ledger/first positive",
+        "ok 83 - [B10 B11] IntextManager.js: loss of private source rejects legitimate packet without ledger mutation"
+      ],
+      "browserC": "NOT-RUN",
+      "commercialP": "BLOCKED-no-authorization",
+      "meaning": "S0/S1 components only, not the entire multi-stage case"
+    },
+    {
+      "id": "B11",
+      "offline": "PASS-COMPONENTS",
+      "evidence": [
+        "ok 11 - [B10 B11 B13] _gam_kv_.js: reject foreign before watermark/ledger/first positive",
+        "ok 12 - [B10 B11 B13] _gam_kv_.js: reject json before watermark/ledger/first positive",
+        "ok 13 - [B10 B11 B13] _gam_kv_.js: reject verified before watermark/ledger/first positive",
+        "ok 14 - [B10 B11 B13] _gam_kv_.js: reject proxy before watermark/ledger/first positive",
+        "ok 15 - [B10 B11 B13] _gam_kv_.js: reject stage1 before watermark/ledger/first positive",
+        "ok 16 - [B10 B11] _gam_kv_.js: loss of private source rejects legitimate packet without ledger mutation",
+        "ok 78 - [B10 B11 B13] IntextManager.js: reject foreign before watermark/ledger/first positive",
+        "ok 79 - [B10 B11 B13] IntextManager.js: reject json before watermark/ledger/first positive",
+        "ok 80 - [B10 B11 B13] IntextManager.js: reject verified before watermark/ledger/first positive",
+        "ok 81 - [B10 B11 B13] IntextManager.js: reject proxy before watermark/ledger/first positive",
+        "ok 82 - [B10 B11 B13] IntextManager.js: reject stage1 before watermark/ledger/first positive",
+        "ok 83 - [B10 B11] IntextManager.js: loss of private source rejects legitimate packet without ledger mutation"
+      ],
+      "browserC": "NOT-RUN",
+      "commercialP": "BLOCKED-no-authorization",
+      "meaning": "S0/S1 components only, not the entire multi-stage case"
+    },
+    {
+      "id": "B12",
+      "offline": "PASS-COMPONENTS",
+      "evidence": [
+        "ok 17 - [B12] _gam_kv_.js: private fields absent from public keys/globals; admin only four methods",
+        "ok 18 - [B12 B24] _gam_kv_.js: public source W2 with missing ticket cannot emit B0",
+        "ok 19 - [B12 B24] _gam_kv_.js: public source W2 with JSON ticket cannot emit B0",
+        "ok 20 - [B12 B24] _gam_kv_.js: public source W2 with foreign ticket cannot emit B0",
+        "ok 84 - [B12] IntextManager.js: private fields absent from public keys/globals; admin only four methods",
+        "ok 85 - [B12 B24] IntextManager.js: public source W2 with missing ticket cannot emit B0",
+        "ok 86 - [B12 B24] IntextManager.js: public source W2 with JSON ticket cannot emit B0",
+        "ok 87 - [B12 B24] IntextManager.js: public source W2 with foreign ticket cannot emit B0"
+      ],
+      "browserC": "NOT-RUN",
+      "commercialP": "BLOCKED-no-authorization",
+      "meaning": "S0/S1 components only, not the entire multi-stage case"
+    },
+    {
+      "id": "B13",
+      "offline": "PASS-COMPONENTS",
+      "evidence": [
+        "ok 11 - [B10 B11 B13] _gam_kv_.js: reject foreign before watermark/ledger/first positive",
+        "ok 12 - [B10 B11 B13] _gam_kv_.js: reject json before watermark/ledger/first positive",
+        "ok 13 - [B10 B11 B13] _gam_kv_.js: reject verified before watermark/ledger/first positive",
+        "ok 14 - [B10 B11 B13] _gam_kv_.js: reject proxy before watermark/ledger/first positive",
+        "ok 15 - [B10 B11 B13] _gam_kv_.js: reject stage1 before watermark/ledger/first positive",
+        "ok 21 - [B13 B14] _gam_kv_.js: document separation and shared session for multiple managers",
+        "ok 78 - [B10 B11 B13] IntextManager.js: reject foreign before watermark/ledger/first positive",
+        "ok 79 - [B10 B11 B13] IntextManager.js: reject json before watermark/ledger/first positive",
+        "ok 80 - [B10 B11 B13] IntextManager.js: reject verified before watermark/ledger/first positive",
+        "ok 81 - [B10 B11 B13] IntextManager.js: reject proxy before watermark/ledger/first positive",
+        "ok 82 - [B10 B11 B13] IntextManager.js: reject stage1 before watermark/ledger/first positive",
+        "ok 88 - [B13 B14] IntextManager.js: document separation and shared session for multiple managers"
+      ],
+      "browserC": "NOT-RUN",
+      "commercialP": "BLOCKED-no-authorization",
+      "meaning": "S0/S1 components only, not the entire multi-stage case"
+    },
+    {
+      "id": "B14",
+      "offline": "PASS-COMPONENTS",
+      "evidence": [
+        "ok 21 - [B13 B14] _gam_kv_.js: document separation and shared session for multiple managers",
+        "ok 24 - [B14 B15 B16 B17 B18] _gam_kv_.js: native scoped construction index 1 and root lineage",
+        "ok 25 - [B14 B15 B16 B17 B18] _gam_kv_.js: native scoped construction index 2 and root lineage",
+        "ok 26 - [B14 B15 B16 B17 B18] _gam_kv_.js: native scoped construction index undefined and root lineage",
+        "ok 27 - [B14 B15 B16 B17 B18] _gam_kv_.js: native scoped construction index 0 and root lineage",
+        "ok 88 - [B13 B14] IntextManager.js: document separation and shared session for multiple managers",
+        "ok 91 - [B14 B15 B16 B17 B18] IntextManager.js: native scoped construction index 1 and root lineage",
+        "ok 92 - [B14 B15 B16 B17 B18] IntextManager.js: native scoped construction index 2 and root lineage",
+        "ok 93 - [B14 B15 B16 B17 B18] IntextManager.js: native scoped construction index undefined and root lineage",
+        "ok 94 - [B14 B15 B16 B17 B18] IntextManager.js: native scoped construction index 0 and root lineage"
+      ],
+      "browserC": "NOT-RUN",
+      "commercialP": "BLOCKED-no-authorization",
+      "meaning": "S0/S1 components only, not the entire multi-stage case"
+    },
+    {
+      "id": "B15",
+      "offline": "PASS-COMPONENTS",
+      "evidence": [
+        "ok 24 - [B14 B15 B16 B17 B18] _gam_kv_.js: native scoped construction index 1 and root lineage",
+        "ok 25 - [B14 B15 B16 B17 B18] _gam_kv_.js: native scoped construction index 2 and root lineage",
+        "ok 26 - [B14 B15 B16 B17 B18] _gam_kv_.js: native scoped construction index undefined and root lineage",
+        "ok 27 - [B14 B15 B16 B17 B18] _gam_kv_.js: native scoped construction index 0 and root lineage",
+        "ok 91 - [B14 B15 B16 B17 B18] IntextManager.js: native scoped construction index 1 and root lineage",
+        "ok 92 - [B14 B15 B16 B17 B18] IntextManager.js: native scoped construction index 2 and root lineage",
+        "ok 93 - [B14 B15 B16 B17 B18] IntextManager.js: native scoped construction index undefined and root lineage",
+        "ok 94 - [B14 B15 B16 B17 B18] IntextManager.js: native scoped construction index 0 and root lineage"
+      ],
+      "browserC": "NOT-RUN",
+      "commercialP": "BLOCKED-no-authorization",
+      "meaning": "S0/S1 components only, not the entire multi-stage case"
+    },
+    {
+      "id": "B16",
+      "offline": "PASS-COMPONENTS",
+      "evidence": [
+        "ok 24 - [B14 B15 B16 B17 B18] _gam_kv_.js: native scoped construction index 1 and root lineage",
+        "ok 25 - [B14 B15 B16 B17 B18] _gam_kv_.js: native scoped construction index 2 and root lineage",
+        "ok 26 - [B14 B15 B16 B17 B18] _gam_kv_.js: native scoped construction index undefined and root lineage",
+        "ok 27 - [B14 B15 B16 B17 B18] _gam_kv_.js: native scoped construction index 0 and root lineage",
+        "ok 28 - [B16 B17] _gam_kv_.js: repeated root/index becomes unknown, distinct root with same index separates",
+        "ok 91 - [B14 B15 B16 B17 B18] IntextManager.js: native scoped construction index 1 and root lineage",
+        "ok 92 - [B14 B15 B16 B17 B18] IntextManager.js: native scoped construction index 2 and root lineage",
+        "ok 93 - [B14 B15 B16 B17 B18] IntextManager.js: native scoped construction index undefined and root lineage",
+        "ok 94 - [B14 B15 B16 B17 B18] IntextManager.js: native scoped construction index 0 and root lineage",
+        "ok 95 - [B16 B17] IntextManager.js: repeated root/index becomes unknown, distinct root with same index separates"
+      ],
+      "browserC": "NOT-RUN",
+      "commercialP": "BLOCKED-no-authorization",
+      "meaning": "S0/S1 components only, not the entire multi-stage case"
+    },
+    {
+      "id": "B17",
+      "offline": "PASS-COMPONENTS",
+      "evidence": [
+        "ok 24 - [B14 B15 B16 B17 B18] _gam_kv_.js: native scoped construction index 1 and root lineage",
+        "ok 25 - [B14 B15 B16 B17 B18] _gam_kv_.js: native scoped construction index 2 and root lineage",
+        "ok 26 - [B14 B15 B16 B17 B18] _gam_kv_.js: native scoped construction index undefined and root lineage",
+        "ok 27 - [B14 B15 B16 B17 B18] _gam_kv_.js: native scoped construction index 0 and root lineage",
+        "ok 28 - [B16 B17] _gam_kv_.js: repeated root/index becomes unknown, distinct root with same index separates",
+        "ok 91 - [B14 B15 B16 B17 B18] IntextManager.js: native scoped construction index 1 and root lineage",
+        "ok 92 - [B14 B15 B16 B17 B18] IntextManager.js: native scoped construction index 2 and root lineage",
+        "ok 93 - [B14 B15 B16 B17 B18] IntextManager.js: native scoped construction index undefined and root lineage",
+        "ok 94 - [B14 B15 B16 B17 B18] IntextManager.js: native scoped construction index 0 and root lineage",
+        "ok 95 - [B16 B17] IntextManager.js: repeated root/index becomes unknown, distinct root with same index separates"
+      ],
+      "browserC": "NOT-RUN",
+      "commercialP": "BLOCKED-no-authorization",
+      "meaning": "S0/S1 components only, not the entire multi-stage case"
+    },
+    {
+      "id": "B18",
+      "offline": "PASS-COMPONENTS",
+      "evidence": [
+        "ok 24 - [B14 B15 B16 B17 B18] _gam_kv_.js: native scoped construction index 1 and root lineage",
+        "ok 25 - [B14 B15 B16 B17 B18] _gam_kv_.js: native scoped construction index 2 and root lineage",
+        "ok 26 - [B14 B15 B16 B17 B18] _gam_kv_.js: native scoped construction index undefined and root lineage",
+        "ok 27 - [B14 B15 B16 B17 B18] _gam_kv_.js: native scoped construction index 0 and root lineage",
+        "ok 91 - [B14 B15 B16 B17 B18] IntextManager.js: native scoped construction index 1 and root lineage",
+        "ok 92 - [B14 B15 B16 B17 B18] IntextManager.js: native scoped construction index 2 and root lineage",
+        "ok 93 - [B14 B15 B16 B17 B18] IntextManager.js: native scoped construction index undefined and root lineage",
+        "ok 94 - [B14 B15 B16 B17 B18] IntextManager.js: native scoped construction index 0 and root lineage"
+      ],
+      "browserC": "NOT-RUN",
+      "commercialP": "BLOCKED-no-authorization",
+      "meaning": "S0/S1 components only, not the entire multi-stage case"
+    },
+    {
+      "id": "B19",
+      "offline": "PASS-COMPONENTS",
+      "evidence": [
+        "ok 29 - [B19 B23 B32] _gam_kv_.js: cleanup/token changes revoke old packet; unchanged retransmission is duplicate",
+        "ok 46 - [B19 B23 B32 B33] _gam_kv_.js: actual preparation release revokes old entry and owner, no global terminal",
+        "ok 96 - [B19 B23 B32] IntextManager.js: cleanup/token changes revoke old packet; unchanged retransmission is duplicate",
+        "ok 113 - [B19 B23 B32 B33] IntextManager.js: actual preparation release revokes old entry and owner, no global terminal"
+      ],
+      "browserC": "NOT-RUN",
+      "commercialP": "BLOCKED-no-authorization",
+      "meaning": "S0/S1 components only, not the entire multi-stage case"
+    },
+    {
+      "id": "B20",
+      "offline": "PASS-COMPONENTS",
+      "evidence": [
+        "ok 30 - [B20 B41] _gam_kv_.js: offline stop contract for unsupported BFCache, no automatic resume",
+        "ok 97 - [B20 B41] IntextManager.js: offline stop contract for unsupported BFCache, no automatic resume"
+      ],
+      "browserC": "NOT-RUN",
+      "commercialP": "BLOCKED-no-authorization",
+      "meaning": "S0/S1 components only, not the entire multi-stage case"
+    },
+    {
+      "id": "B21",
+      "offline": "PASS-COMPONENTS",
+      "evidence": [
+        "ok 7 - [B05 B21 B35] _gam_kv_.js: genuine packets satisfy versioned schema including unknown P and no extra fields",
+        "ok 31 - [B21] _gam_kv_.js: equal trusted clock timestamps accepted without fabricated delta",
+        "ok 74 - [B05 B21 B35] IntextManager.js: genuine packets satisfy versioned schema including unknown P and no extra fields",
+        "ok 98 - [B21] IntextManager.js: equal trusted clock timestamps accepted without fabricated delta"
+      ],
+      "browserC": "NOT-RUN",
+      "commercialP": "BLOCKED-no-authorization",
+      "meaning": "S0/S1 components only, not the entire multi-stage case"
+    },
+    {
+      "id": "B22",
+      "offline": "PASS-COMPONENTS",
+      "evidence": [
+        "ok 32 - [B22] _gam_kv_.js: regress clock stops QA without invented time",
+        "ok 33 - [B22] _gam_kv_.js: NaN clock stops QA without invented time",
+        "ok 34 - [B22] _gam_kv_.js: throw clock stops QA without invented time",
+        "ok 35 - [B22 B39 B45] _gam_kv_.js: single invalid cost bracket NaN prevents later A admission",
+        "ok 36 - [B22 B39 B45] _gam_kv_.js: single invalid cost bracket regression prevents later A admission",
+        "ok 37 - [B22 B39 B45] _gam_kv_.js: single invalid cost bracket exception prevents later A admission",
+        "ok 99 - [B22] IntextManager.js: regress clock stops QA without invented time",
+        "ok 100 - [B22] IntextManager.js: NaN clock stops QA without invented time",
+        "ok 101 - [B22] IntextManager.js: throw clock stops QA without invented time",
+        "ok 102 - [B22 B39 B45] IntextManager.js: single invalid cost bracket NaN prevents later A admission",
+        "ok 103 - [B22 B39 B45] IntextManager.js: single invalid cost bracket regression prevents later A admission",
+        "ok 104 - [B22 B39 B45] IntextManager.js: single invalid cost bracket exception prevents later A admission"
+      ],
+      "browserC": "NOT-RUN",
+      "commercialP": "BLOCKED-no-authorization",
+      "meaning": "S0/S1 components only, not the entire multi-stage case"
+    },
+    {
+      "id": "B23",
+      "offline": "PASS-COMPONENTS",
+      "evidence": [
+        "ok 29 - [B19 B23 B32] _gam_kv_.js: cleanup/token changes revoke old packet; unchanged retransmission is duplicate",
+        "ok 39 - [B23 B24 B26 B34] _gam_kv_.js: two actual executions versus retransmission, one opportunity/first positive",
+        "ok 46 - [B19 B23 B32 B33] _gam_kv_.js: actual preparation release revokes old entry and owner, no global terminal",
+        "ok 96 - [B19 B23 B32] IntextManager.js: cleanup/token changes revoke old packet; unchanged retransmission is duplicate",
+        "ok 106 - [B23 B24 B26 B34] IntextManager.js: two actual executions versus retransmission, one opportunity/first positive",
+        "ok 113 - [B19 B23 B32 B33] IntextManager.js: actual preparation release revokes old entry and owner, no global terminal"
+      ],
+      "browserC": "NOT-RUN",
+      "commercialP": "BLOCKED-no-authorization",
+      "meaning": "S0/S1 components only, not the entire multi-stage case"
+    },
+    {
+      "id": "B24",
+      "offline": "PASS-COMPONENTS",
+      "evidence": [
+        "ok 18 - [B12 B24] _gam_kv_.js: public source W2 with missing ticket cannot emit B0",
+        "ok 19 - [B12 B24] _gam_kv_.js: public source W2 with JSON ticket cannot emit B0",
+        "ok 20 - [B12 B24] _gam_kv_.js: public source W2 with foreign ticket cannot emit B0",
+        "ok 39 - [B23 B24 B26 B34] _gam_kv_.js: two actual executions versus retransmission, one opportunity/first positive",
+        "ok 40 - [B24 B25 B26 B43 B44] _gam_kv_.js: original O/neutral N/enabled E true path, four controls and exactly original guard count",
+        "ok 42 - [B24 B25 B26 B43 B44] _gam_kv_.js: new actual W3 false then true, identical O/N/E",
+        "ok 43 - [B24 B25 B26 B43 B44] _gam_kv_.js: new actual W4 false then true, identical O/N/E",
+        "ok 44 - [B24 B25 B26 B43 B44] _gam_kv_.js: prepared actual W3 false then true, identical O/N/E",
+        "ok 45 - [B24 B25 B26 B43 B44] _gam_kv_.js: prepared actual W4 false then true, identical O/N/E",
+        "ok 49 - [B24 B26 B29 B42 B43 B44] _gam_kv_.js: O/N/E below identical decisions/awaits/effects/errors",
+        "ok 50 - [B24 B26 B29 B42 B43 B44] _gam_kv_.js: O/N/E hidden identical decisions/awaits/effects/errors",
+        "ok 51 - [B24 B26 B29 B42 B43 B44] _gam_kv_.js: O/N/E unrendered identical decisions/awaits/effects/errors",
+        "ok 52 - [B24 B26 B29 B42 B43 B44] _gam_kv_.js: O/N/E stale identical decisions/awaits/effects/errors",
+        "ok 53 - [B24 B26 B29 B42 B43 B44] _gam_kv_.js: O/N/E intersection identical decisions/awaits/effects/errors",
+        "ok 54 - [B24 B26 B29 B42 B43 B44] _gam_kv_.js: O/N/E prepare-error identical decisions/awaits/effects/errors",
+        "ok 55 - [B24 B26 B29 B42 B43 B44] _gam_kv_.js: O/N/E false-final identical decisions/awaits/effects/errors",
+        "ok 56 - [B24 B26 B29 B42 B43 B44] _gam_kv_.js: O/N/E invalid-preparation identical decisions/awaits/effects/errors",
+        "ok 57 - [B24 B26 B29 B42 B43 B44] _gam_kv_.js: O/N/E missing-guard identical decisions/awaits/effects/errors",
+        "ok 85 - [B12 B24] IntextManager.js: public source W2 with missing ticket cannot emit B0",
+        "ok 86 - [B12 B24] IntextManager.js: public source W2 with JSON ticket cannot emit B0",
+        "ok 87 - [B12 B24] IntextManager.js: public source W2 with foreign ticket cannot emit B0",
+        "ok 106 - [B23 B24 B26 B34] IntextManager.js: two actual executions versus retransmission, one opportunity/first positive",
+        "ok 107 - [B24 B25 B26 B43 B44] IntextManager.js: original O/neutral N/enabled E true path, four controls and exactly original guard count",
+        "ok 109 - [B24 B25 B26 B43 B44] IntextManager.js: new actual W3 false then true, identical O/N/E",
+        "ok 110 - [B24 B25 B26 B43 B44] IntextManager.js: new actual W4 false then true, identical O/N/E",
+        "ok 111 - [B24 B25 B26 B43 B44] IntextManager.js: prepared actual W3 false then true, identical O/N/E",
+        "ok 112 - [B24 B25 B26 B43 B44] IntextManager.js: prepared actual W4 false then true, identical O/N/E",
+        "ok 116 - [B24 B26 B29 B42 B43 B44] IntextManager.js: O/N/E below identical decisions/awaits/effects/errors",
+        "ok 117 - [B24 B26 B29 B42 B43 B44] IntextManager.js: O/N/E hidden identical decisions/awaits/effects/errors",
+        "ok 118 - [B24 B26 B29 B42 B43 B44] IntextManager.js: O/N/E unrendered identical decisions/awaits/effects/errors",
+        "ok 119 - [B24 B26 B29 B42 B43 B44] IntextManager.js: O/N/E stale identical decisions/awaits/effects/errors",
+        "ok 120 - [B24 B26 B29 B42 B43 B44] IntextManager.js: O/N/E intersection identical decisions/awaits/effects/errors",
+        "ok 121 - [B24 B26 B29 B42 B43 B44] IntextManager.js: O/N/E prepare-error identical decisions/awaits/effects/errors",
+        "ok 122 - [B24 B26 B29 B42 B43 B44] IntextManager.js: O/N/E false-final identical decisions/awaits/effects/errors",
+        "ok 123 - [B24 B26 B29 B42 B43 B44] IntextManager.js: O/N/E invalid-preparation identical decisions/awaits/effects/errors",
+        "ok 124 - [B24 B26 B29 B42 B43 B44] IntextManager.js: O/N/E missing-guard identical decisions/awaits/effects/errors"
+      ],
+      "browserC": "NOT-RUN",
+      "commercialP": "BLOCKED-no-authorization",
+      "meaning": "S0/S1 components only, not the entire multi-stage case"
+    },
+    {
+      "id": "B25",
+      "offline": "PASS-COMPONENTS",
+      "evidence": [
+        "ok 40 - [B24 B25 B26 B43 B44] _gam_kv_.js: original O/neutral N/enabled E true path, four controls and exactly original guard count",
+        "ok 41 - [B25 B32 B33 B43 B44] _gam_kv_.js: actual native preparation entry/start/claim, W2 omitted, W3/W4/C1 admitted",
+        "ok 42 - [B24 B25 B26 B43 B44] _gam_kv_.js: new actual W3 false then true, identical O/N/E",
+        "ok 43 - [B24 B25 B26 B43 B44] _gam_kv_.js: new actual W4 false then true, identical O/N/E",
+        "ok 44 - [B24 B25 B26 B43 B44] _gam_kv_.js: prepared actual W3 false then true, identical O/N/E",
+        "ok 45 - [B24 B25 B26 B43 B44] _gam_kv_.js: prepared actual W4 false then true, identical O/N/E",
+        "ok 107 - [B24 B25 B26 B43 B44] IntextManager.js: original O/neutral N/enabled E true path, four controls and exactly original guard count",
+        "ok 108 - [B25 B32 B33 B43 B44] IntextManager.js: actual native preparation entry/start/claim, W2 omitted, W3/W4/C1 admitted",
+        "ok 109 - [B24 B25 B26 B43 B44] IntextManager.js: new actual W3 false then true, identical O/N/E",
+        "ok 110 - [B24 B25 B26 B43 B44] IntextManager.js: new actual W4 false then true, identical O/N/E",
+        "ok 111 - [B24 B25 B26 B43 B44] IntextManager.js: prepared actual W3 false then true, identical O/N/E",
+        "ok 112 - [B24 B25 B26 B43 B44] IntextManager.js: prepared actual W4 false then true, identical O/N/E"
+      ],
+      "browserC": "NOT-RUN",
+      "commercialP": "BLOCKED-no-authorization",
+      "meaning": "S0/S1 components only, not the entire multi-stage case"
+    },
+    {
+      "id": "B26",
+      "offline": "PASS-COMPONENTS",
+      "evidence": [
+        "ok 39 - [B23 B24 B26 B34] _gam_kv_.js: two actual executions versus retransmission, one opportunity/first positive",
+        "ok 40 - [B24 B25 B26 B43 B44] _gam_kv_.js: original O/neutral N/enabled E true path, four controls and exactly original guard count",
+        "ok 42 - [B24 B25 B26 B43 B44] _gam_kv_.js: new actual W3 false then true, identical O/N/E",
+        "ok 43 - [B24 B25 B26 B43 B44] _gam_kv_.js: new actual W4 false then true, identical O/N/E",
+        "ok 44 - [B24 B25 B26 B43 B44] _gam_kv_.js: prepared actual W3 false then true, identical O/N/E",
+        "ok 45 - [B24 B25 B26 B43 B44] _gam_kv_.js: prepared actual W4 false then true, identical O/N/E",
+        "ok 48 - [B26] _gam_kv_.js: actual final C1 false after W4 true does not overwrite unique first positive",
+        "ok 49 - [B24 B26 B29 B42 B43 B44] _gam_kv_.js: O/N/E below identical decisions/awaits/effects/errors",
+        "ok 50 - [B24 B26 B29 B42 B43 B44] _gam_kv_.js: O/N/E hidden identical decisions/awaits/effects/errors",
+        "ok 51 - [B24 B26 B29 B42 B43 B44] _gam_kv_.js: O/N/E unrendered identical decisions/awaits/effects/errors",
+        "ok 52 - [B24 B26 B29 B42 B43 B44] _gam_kv_.js: O/N/E stale identical decisions/awaits/effects/errors",
+        "ok 53 - [B24 B26 B29 B42 B43 B44] _gam_kv_.js: O/N/E intersection identical decisions/awaits/effects/errors",
+        "ok 54 - [B24 B26 B29 B42 B43 B44] _gam_kv_.js: O/N/E prepare-error identical decisions/awaits/effects/errors",
+        "ok 55 - [B24 B26 B29 B42 B43 B44] _gam_kv_.js: O/N/E false-final identical decisions/awaits/effects/errors",
+        "ok 56 - [B24 B26 B29 B42 B43 B44] _gam_kv_.js: O/N/E invalid-preparation identical decisions/awaits/effects/errors",
+        "ok 57 - [B24 B26 B29 B42 B43 B44] _gam_kv_.js: O/N/E missing-guard identical decisions/awaits/effects/errors",
+        "ok 106 - [B23 B24 B26 B34] IntextManager.js: two actual executions versus retransmission, one opportunity/first positive",
+        "ok 107 - [B24 B25 B26 B43 B44] IntextManager.js: original O/neutral N/enabled E true path, four controls and exactly original guard count",
+        "ok 109 - [B24 B25 B26 B43 B44] IntextManager.js: new actual W3 false then true, identical O/N/E",
+        "ok 110 - [B24 B25 B26 B43 B44] IntextManager.js: new actual W4 false then true, identical O/N/E",
+        "ok 111 - [B24 B25 B26 B43 B44] IntextManager.js: prepared actual W3 false then true, identical O/N/E",
+        "ok 112 - [B24 B25 B26 B43 B44] IntextManager.js: prepared actual W4 false then true, identical O/N/E",
+        "ok 115 - [B26] IntextManager.js: actual final C1 false after W4 true does not overwrite unique first positive",
+        "ok 116 - [B24 B26 B29 B42 B43 B44] IntextManager.js: O/N/E below identical decisions/awaits/effects/errors",
+        "ok 117 - [B24 B26 B29 B42 B43 B44] IntextManager.js: O/N/E hidden identical decisions/awaits/effects/errors",
+        "ok 118 - [B24 B26 B29 B42 B43 B44] IntextManager.js: O/N/E unrendered identical decisions/awaits/effects/errors",
+        "ok 119 - [B24 B26 B29 B42 B43 B44] IntextManager.js: O/N/E stale identical decisions/awaits/effects/errors",
+        "ok 120 - [B24 B26 B29 B42 B43 B44] IntextManager.js: O/N/E intersection identical decisions/awaits/effects/errors",
+        "ok 121 - [B24 B26 B29 B42 B43 B44] IntextManager.js: O/N/E prepare-error identical decisions/awaits/effects/errors",
+        "ok 122 - [B24 B26 B29 B42 B43 B44] IntextManager.js: O/N/E false-final identical decisions/awaits/effects/errors",
+        "ok 123 - [B24 B26 B29 B42 B43 B44] IntextManager.js: O/N/E invalid-preparation identical decisions/awaits/effects/errors",
+        "ok 124 - [B24 B26 B29 B42 B43 B44] IntextManager.js: O/N/E missing-guard identical decisions/awaits/effects/errors"
+      ],
+      "browserC": "NOT-RUN",
+      "commercialP": "BLOCKED-no-authorization",
+      "meaning": "S0/S1 components only, not the entire multi-stage case"
+    },
+    {
+      "id": "B27",
+      "offline": "PASS-COMPONENTS",
+      "evidence": [
+        "ok 58 - [B27] _gam_kv_.js: W1 Display true after initial Video stays raw, zero Dc",
+        "ok 125 - [B27] IntextManager.js: W1 Display true after initial Video stays raw, zero Dc"
+      ],
+      "browserC": "NOT-RUN",
+      "commercialP": "BLOCKED-no-authorization",
+      "meaning": "S0/S1 components only, not the entire multi-stage case"
+    },
+    {
+      "id": "B28",
+      "offline": "PASS-COMPONENTS",
+      "evidence": [
+        "ok 59 - [B28 B29 B44] _gam_kv_.js: shared diagnostic staging and stale no execution do not create controls",
+        "ok 126 - [B28 B29 B44] IntextManager.js: shared diagnostic staging and stale no execution do not create controls"
+      ],
+      "browserC": "NOT-RUN",
+      "commercialP": "BLOCKED-no-authorization",
+      "meaning": "S0/S1 components only, not the entire multi-stage case"
+    },
+    {
+      "id": "B29",
+      "offline": "PASS-COMPONENTS",
+      "evidence": [
+        "ok 49 - [B24 B26 B29 B42 B43 B44] _gam_kv_.js: O/N/E below identical decisions/awaits/effects/errors",
+        "ok 50 - [B24 B26 B29 B42 B43 B44] _gam_kv_.js: O/N/E hidden identical decisions/awaits/effects/errors",
+        "ok 51 - [B24 B26 B29 B42 B43 B44] _gam_kv_.js: O/N/E unrendered identical decisions/awaits/effects/errors",
+        "ok 52 - [B24 B26 B29 B42 B43 B44] _gam_kv_.js: O/N/E stale identical decisions/awaits/effects/errors",
+        "ok 53 - [B24 B26 B29 B42 B43 B44] _gam_kv_.js: O/N/E intersection identical decisions/awaits/effects/errors",
+        "ok 54 - [B24 B26 B29 B42 B43 B44] _gam_kv_.js: O/N/E prepare-error identical decisions/awaits/effects/errors",
+        "ok 55 - [B24 B26 B29 B42 B43 B44] _gam_kv_.js: O/N/E false-final identical decisions/awaits/effects/errors",
+        "ok 56 - [B24 B26 B29 B42 B43 B44] _gam_kv_.js: O/N/E invalid-preparation identical decisions/awaits/effects/errors",
+        "ok 57 - [B24 B26 B29 B42 B43 B44] _gam_kv_.js: O/N/E missing-guard identical decisions/awaits/effects/errors",
+        "ok 59 - [B28 B29 B44] _gam_kv_.js: shared diagnostic staging and stale no execution do not create controls",
+        "ok 116 - [B24 B26 B29 B42 B43 B44] IntextManager.js: O/N/E below identical decisions/awaits/effects/errors",
+        "ok 117 - [B24 B26 B29 B42 B43 B44] IntextManager.js: O/N/E hidden identical decisions/awaits/effects/errors",
+        "ok 118 - [B24 B26 B29 B42 B43 B44] IntextManager.js: O/N/E unrendered identical decisions/awaits/effects/errors",
+        "ok 119 - [B24 B26 B29 B42 B43 B44] IntextManager.js: O/N/E stale identical decisions/awaits/effects/errors",
+        "ok 120 - [B24 B26 B29 B42 B43 B44] IntextManager.js: O/N/E intersection identical decisions/awaits/effects/errors",
+        "ok 121 - [B24 B26 B29 B42 B43 B44] IntextManager.js: O/N/E prepare-error identical decisions/awaits/effects/errors",
+        "ok 122 - [B24 B26 B29 B42 B43 B44] IntextManager.js: O/N/E false-final identical decisions/awaits/effects/errors",
+        "ok 123 - [B24 B26 B29 B42 B43 B44] IntextManager.js: O/N/E invalid-preparation identical decisions/awaits/effects/errors",
+        "ok 124 - [B24 B26 B29 B42 B43 B44] IntextManager.js: O/N/E missing-guard identical decisions/awaits/effects/errors",
+        "ok 126 - [B28 B29 B44] IntextManager.js: shared diagnostic staging and stale no execution do not create controls"
+      ],
+      "browserC": "NOT-RUN",
+      "commercialP": "BLOCKED-no-authorization",
+      "meaning": "S0/S1 components only, not the entire multi-stage case"
+    },
+    {
+      "id": "B30",
+      "offline": "PASS-COMPONENTS",
+      "evidence": [
+        "ok 47 - [B30 B34] _gam_kv_.js: preparation descriptor cannot manufacture native winner",
+        "ok 60 - [B30 B34] _gam_kv_.js: native winner display excludes video and does not change from preparation descriptor",
+        "ok 61 - [B30 B34] _gam_kv_.js: native winner null excludes video and does not change from preparation descriptor",
+        "ok 62 - [B30 B31] _gam_kv_.js: native Legacy boundary never manufactures fetchGeneration",
+        "ok 114 - [B30 B34] IntextManager.js: preparation descriptor cannot manufacture native winner",
+        "ok 127 - [B30 B34] IntextManager.js: native winner display excludes video and does not change from preparation descriptor",
+        "ok 128 - [B30 B34] IntextManager.js: native winner null excludes video and does not change from preparation descriptor",
+        "ok 129 - [B30 B31] IntextManager.js: native Legacy boundary never manufactures fetchGeneration"
+      ],
+      "browserC": "NOT-RUN",
+      "commercialP": "BLOCKED-no-authorization",
+      "meaning": "S0/S1 components only, not the entire multi-stage case"
+    },
+    {
+      "id": "B31",
+      "offline": "PASS-COMPONENTS",
+      "evidence": [
+        "ok 62 - [B30 B31] _gam_kv_.js: native Legacy boundary never manufactures fetchGeneration",
+        "ok 129 - [B30 B31] IntextManager.js: native Legacy boundary never manufactures fetchGeneration"
+      ],
+      "browserC": "NOT-RUN",
+      "commercialP": "BLOCKED-no-authorization",
+      "meaning": "S0/S1 components only, not the entire multi-stage case"
+    },
+    {
+      "id": "B32",
+      "offline": "PASS-COMPONENTS",
+      "evidence": [
+        "ok 29 - [B19 B23 B32] _gam_kv_.js: cleanup/token changes revoke old packet; unchanged retransmission is duplicate",
+        "ok 41 - [B25 B32 B33 B43 B44] _gam_kv_.js: actual native preparation entry/start/claim, W2 omitted, W3/W4/C1 admitted",
+        "ok 46 - [B19 B23 B32 B33] _gam_kv_.js: actual preparation release revokes old entry and owner, no global terminal",
+        "ok 96 - [B19 B23 B32] IntextManager.js: cleanup/token changes revoke old packet; unchanged retransmission is duplicate",
+        "ok 108 - [B25 B32 B33 B43 B44] IntextManager.js: actual native preparation entry/start/claim, W2 omitted, W3/W4/C1 admitted",
+        "ok 113 - [B19 B23 B32 B33] IntextManager.js: actual preparation release revokes old entry and owner, no global terminal"
+      ],
+      "browserC": "NOT-RUN",
+      "commercialP": "BLOCKED-no-authorization",
+      "meaning": "S0/S1 components only, not the entire multi-stage case"
+    },
+    {
+      "id": "B33",
+      "offline": "PASS-COMPONENTS",
+      "evidence": [
+        "ok 41 - [B25 B32 B33 B43 B44] _gam_kv_.js: actual native preparation entry/start/claim, W2 omitted, W3/W4/C1 admitted",
+        "ok 46 - [B19 B23 B32 B33] _gam_kv_.js: actual preparation release revokes old entry and owner, no global terminal",
+        "ok 63 - [B33] _gam_kv_.js: entering player construction excludes subsequent W2 without asserting player exists",
+        "ok 108 - [B25 B32 B33 B43 B44] IntextManager.js: actual native preparation entry/start/claim, W2 omitted, W3/W4/C1 admitted",
+        "ok 113 - [B19 B23 B32 B33] IntextManager.js: actual preparation release revokes old entry and owner, no global terminal",
+        "ok 130 - [B33] IntextManager.js: entering player construction excludes subsequent W2 without asserting player exists"
+      ],
+      "browserC": "NOT-RUN",
+      "commercialP": "BLOCKED-no-authorization",
+      "meaning": "S0/S1 components only, not the entire multi-stage case"
+    },
+    {
+      "id": "B34",
+      "offline": "PASS-COMPONENTS",
+      "evidence": [
+        "ok 39 - [B23 B24 B26 B34] _gam_kv_.js: two actual executions versus retransmission, one opportunity/first positive",
+        "ok 47 - [B30 B34] _gam_kv_.js: preparation descriptor cannot manufacture native winner",
+        "ok 60 - [B30 B34] _gam_kv_.js: native winner display excludes video and does not change from preparation descriptor",
+        "ok 61 - [B30 B34] _gam_kv_.js: native winner null excludes video and does not change from preparation descriptor",
+        "ok 106 - [B23 B24 B26 B34] IntextManager.js: two actual executions versus retransmission, one opportunity/first positive",
+        "ok 114 - [B30 B34] IntextManager.js: preparation descriptor cannot manufacture native winner",
+        "ok 127 - [B30 B34] IntextManager.js: native winner display excludes video and does not change from preparation descriptor",
+        "ok 128 - [B30 B34] IntextManager.js: native winner null excludes video and does not change from preparation descriptor"
+      ],
+      "browserC": "NOT-RUN",
+      "commercialP": "BLOCKED-no-authorization",
+      "meaning": "S0/S1 components only, not the entire multi-stage case"
+    },
+    {
+      "id": "B35",
+      "offline": "PASS-COMPONENTS",
+      "evidence": [
+        "ok 7 - [B05 B21 B35] _gam_kv_.js: genuine packets satisfy versioned schema including unknown P and no extra fields",
+        "ok 64 - [B35] _gam_kv_.js: all four false irreversible; exact rates and firstPassFrame blocked after close",
+        "ok 74 - [B05 B21 B35] IntextManager.js: genuine packets satisfy versioned schema including unknown P and no extra fields",
+        "ok 131 - [B35] IntextManager.js: all four false irreversible; exact rates and firstPassFrame blocked after close"
+      ],
+      "browserC": "NOT-RUN",
+      "commercialP": "BLOCKED-no-authorization",
+      "meaning": "S0/S1 components only, not the entire multi-stage case"
+    },
+    {
+      "id": "B36",
+      "offline": "PASS-COMPONENTS",
+      "evidence": [
+        "ok 65 - [B36 B39] _gam_kv_.js: partition preflight, real QA0 and limits cannot increase",
+        "ok 132 - [B36 B39] IntextManager.js: partition preflight, real QA0 and limits cannot increase"
+      ],
+      "browserC": "NOT-RUN",
+      "commercialP": "BLOCKED-no-authorization",
+      "meaning": "S0/S1 components only, not the entire multi-stage case"
+    },
+    {
+      "id": "B37",
+      "offline": "PASS-COMPONENTS",
+      "evidence": [
+        "ok 66 - [B37] _gam_kv_.js: actually reach opportunity 65; 64 summaries, QA0 overflow, STOP",
+        "ok 133 - [B37] IntextManager.js: actually reach opportunity 65; 64 summaries, QA0 overflow, STOP"
+      ],
+      "browserC": "NOT-RUN",
+      "commercialP": "BLOCKED-no-authorization",
+      "meaning": "S0/S1 components only, not the entire multi-stage case"
+    },
+    {
+      "id": "B38",
+      "offline": "PASS-COMPONENTS",
+      "evidence": [
+        "ok 67 - [B38 B40] _gam_kv_.js: 1101 real false checks, independent rings/bytes and retired retransmission",
+        "ok 134 - [B38 B40] IntextManager.js: 1101 real false checks, independent rings/bytes and retired retransmission"
+      ],
+      "browserC": "NOT-RUN",
+      "commercialP": "BLOCKED-no-authorization",
+      "meaning": "S0/S1 components only, not the entire multi-stage case"
+    },
+    {
+      "id": "B39",
+      "offline": "PASS-COMPONENTS",
+      "evidence": [
+        "ok 35 - [B22 B39 B45] _gam_kv_.js: single invalid cost bracket NaN prevents later A admission",
+        "ok 36 - [B22 B39 B45] _gam_kv_.js: single invalid cost bracket regression prevents later A admission",
+        "ok 37 - [B22 B39 B45] _gam_kv_.js: single invalid cost bracket exception prevents later A admission",
+        "ok 38 - [B39 B45] _gam_kv_.js: cost overflow STOP before admission, not only an exported warning",
+        "ok 65 - [B36 B39] _gam_kv_.js: partition preflight, real QA0 and limits cannot increase",
+        "ok 68 - [B39] _gam_kv_.js: authority exhaustion bounded, no object references retained in export",
+        "ok 102 - [B22 B39 B45] IntextManager.js: single invalid cost bracket NaN prevents later A admission",
+        "ok 103 - [B22 B39 B45] IntextManager.js: single invalid cost bracket regression prevents later A admission",
+        "ok 104 - [B22 B39 B45] IntextManager.js: single invalid cost bracket exception prevents later A admission",
+        "ok 105 - [B39 B45] IntextManager.js: cost overflow STOP before admission, not only an exported warning",
+        "ok 132 - [B36 B39] IntextManager.js: partition preflight, real QA0 and limits cannot increase",
+        "ok 135 - [B39] IntextManager.js: authority exhaustion bounded, no object references retained in export"
+      ],
+      "browserC": "NOT-RUN",
+      "commercialP": "BLOCKED-no-authorization",
+      "meaning": "S0/S1 components only, not the entire multi-stage case"
+    },
+    {
+      "id": "B40",
+      "offline": "PASS-COMPONENTS",
+      "evidence": [
+        "ok 67 - [B38 B40] _gam_kv_.js: 1101 real false checks, independent rings/bytes and retired retransmission",
+        "ok 69 - [B40 B41 B50] _gam_kv_.js: bounded manual export, mutation not authority, stop/dispose tombstone preserves commercial callbacks",
+        "ok 134 - [B38 B40] IntextManager.js: 1101 real false checks, independent rings/bytes and retired retransmission",
+        "ok 136 - [B40 B41 B50] IntextManager.js: bounded manual export, mutation not authority, stop/dispose tombstone preserves commercial callbacks"
+      ],
+      "browserC": "NOT-RUN",
+      "commercialP": "BLOCKED-no-authorization",
+      "meaning": "S0/S1 components only, not the entire multi-stage case"
+    },
+    {
+      "id": "B41",
+      "offline": "PASS-COMPONENTS",
+      "evidence": [
+        "ok 23 - [B41] _gam_kv_.js: foreign admin collision stops QA, preserves property, no manager restart",
+        "ok 30 - [B20 B41] _gam_kv_.js: offline stop contract for unsupported BFCache, no automatic resume",
+        "ok 69 - [B40 B41 B50] _gam_kv_.js: bounded manual export, mutation not authority, stop/dispose tombstone preserves commercial callbacks",
+        "ok 90 - [B41] IntextManager.js: foreign admin collision stops QA, preserves property, no manager restart",
+        "ok 97 - [B20 B41] IntextManager.js: offline stop contract for unsupported BFCache, no automatic resume",
+        "ok 136 - [B40 B41 B50] IntextManager.js: bounded manual export, mutation not authority, stop/dispose tombstone preserves commercial callbacks"
+      ],
+      "browserC": "NOT-RUN",
+      "commercialP": "BLOCKED-no-authorization",
+      "meaning": "S0/S1 components only, not the entire multi-stage case"
+    },
+    {
+      "id": "B42",
+      "offline": "PASS-COMPONENTS",
+      "evidence": [
+        "ok 49 - [B24 B26 B29 B42 B43 B44] _gam_kv_.js: O/N/E below identical decisions/awaits/effects/errors",
+        "ok 50 - [B24 B26 B29 B42 B43 B44] _gam_kv_.js: O/N/E hidden identical decisions/awaits/effects/errors",
+        "ok 51 - [B24 B26 B29 B42 B43 B44] _gam_kv_.js: O/N/E unrendered identical decisions/awaits/effects/errors",
+        "ok 52 - [B24 B26 B29 B42 B43 B44] _gam_kv_.js: O/N/E stale identical decisions/awaits/effects/errors",
+        "ok 53 - [B24 B26 B29 B42 B43 B44] _gam_kv_.js: O/N/E intersection identical decisions/awaits/effects/errors",
+        "ok 54 - [B24 B26 B29 B42 B43 B44] _gam_kv_.js: O/N/E prepare-error identical decisions/awaits/effects/errors",
+        "ok 55 - [B24 B26 B29 B42 B43 B44] _gam_kv_.js: O/N/E false-final identical decisions/awaits/effects/errors",
+        "ok 56 - [B24 B26 B29 B42 B43 B44] _gam_kv_.js: O/N/E invalid-preparation identical decisions/awaits/effects/errors",
+        "ok 57 - [B24 B26 B29 B42 B43 B44] _gam_kv_.js: O/N/E missing-guard identical decisions/awaits/effects/errors",
+        "ok 70 - [B42 B43 B44] _gam_kv_.js: strict result identity and original exception survive private staging",
+        "ok 116 - [B24 B26 B29 B42 B43 B44] IntextManager.js: O/N/E below identical decisions/awaits/effects/errors",
+        "ok 117 - [B24 B26 B29 B42 B43 B44] IntextManager.js: O/N/E hidden identical decisions/awaits/effects/errors",
+        "ok 118 - [B24 B26 B29 B42 B43 B44] IntextManager.js: O/N/E unrendered identical decisions/awaits/effects/errors",
+        "ok 119 - [B24 B26 B29 B42 B43 B44] IntextManager.js: O/N/E stale identical decisions/awaits/effects/errors",
+        "ok 120 - [B24 B26 B29 B42 B43 B44] IntextManager.js: O/N/E intersection identical decisions/awaits/effects/errors",
+        "ok 121 - [B24 B26 B29 B42 B43 B44] IntextManager.js: O/N/E prepare-error identical decisions/awaits/effects/errors",
+        "ok 122 - [B24 B26 B29 B42 B43 B44] IntextManager.js: O/N/E false-final identical decisions/awaits/effects/errors",
+        "ok 123 - [B24 B26 B29 B42 B43 B44] IntextManager.js: O/N/E invalid-preparation identical decisions/awaits/effects/errors",
+        "ok 124 - [B24 B26 B29 B42 B43 B44] IntextManager.js: O/N/E missing-guard identical decisions/awaits/effects/errors",
+        "ok 137 - [B42 B43 B44] IntextManager.js: strict result identity and original exception survive private staging"
+      ],
+      "browserC": "NOT-RUN",
+      "commercialP": "BLOCKED-no-authorization",
+      "meaning": "S0/S1 components only, not the entire multi-stage case"
+    },
+    {
+      "id": "B43",
+      "offline": "PASS-COMPONENTS",
+      "evidence": [
+        "ok 5 - [B02 B03 B43 B49] _gam_kv_.js: deterministic copy, exact inverse, syntax and unchanged commercial complement",
+        "ok 40 - [B24 B25 B26 B43 B44] _gam_kv_.js: original O/neutral N/enabled E true path, four controls and exactly original guard count",
+        "ok 41 - [B25 B32 B33 B43 B44] _gam_kv_.js: actual native preparation entry/start/claim, W2 omitted, W3/W4/C1 admitted",
+        "ok 42 - [B24 B25 B26 B43 B44] _gam_kv_.js: new actual W3 false then true, identical O/N/E",
+        "ok 43 - [B24 B25 B26 B43 B44] _gam_kv_.js: new actual W4 false then true, identical O/N/E",
+        "ok 44 - [B24 B25 B26 B43 B44] _gam_kv_.js: prepared actual W3 false then true, identical O/N/E",
+        "ok 45 - [B24 B25 B26 B43 B44] _gam_kv_.js: prepared actual W4 false then true, identical O/N/E",
+        "ok 49 - [B24 B26 B29 B42 B43 B44] _gam_kv_.js: O/N/E below identical decisions/awaits/effects/errors",
+        "ok 50 - [B24 B26 B29 B42 B43 B44] _gam_kv_.js: O/N/E hidden identical decisions/awaits/effects/errors",
+        "ok 51 - [B24 B26 B29 B42 B43 B44] _gam_kv_.js: O/N/E unrendered identical decisions/awaits/effects/errors",
+        "ok 52 - [B24 B26 B29 B42 B43 B44] _gam_kv_.js: O/N/E stale identical decisions/awaits/effects/errors",
+        "ok 53 - [B24 B26 B29 B42 B43 B44] _gam_kv_.js: O/N/E intersection identical decisions/awaits/effects/errors",
+        "ok 54 - [B24 B26 B29 B42 B43 B44] _gam_kv_.js: O/N/E prepare-error identical decisions/awaits/effects/errors",
+        "ok 55 - [B24 B26 B29 B42 B43 B44] _gam_kv_.js: O/N/E false-final identical decisions/awaits/effects/errors",
+        "ok 56 - [B24 B26 B29 B42 B43 B44] _gam_kv_.js: O/N/E invalid-preparation identical decisions/awaits/effects/errors",
+        "ok 57 - [B24 B26 B29 B42 B43 B44] _gam_kv_.js: O/N/E missing-guard identical decisions/awaits/effects/errors",
+        "ok 70 - [B42 B43 B44] _gam_kv_.js: strict result identity and original exception survive private staging",
+        "ok 72 - [B02 B03 B43 B49] IntextManager.js: deterministic copy, exact inverse, syntax and unchanged commercial complement",
+        "ok 107 - [B24 B25 B26 B43 B44] IntextManager.js: original O/neutral N/enabled E true path, four controls and exactly original guard count",
+        "ok 108 - [B25 B32 B33 B43 B44] IntextManager.js: actual native preparation entry/start/claim, W2 omitted, W3/W4/C1 admitted",
+        "ok 109 - [B24 B25 B26 B43 B44] IntextManager.js: new actual W3 false then true, identical O/N/E",
+        "ok 110 - [B24 B25 B26 B43 B44] IntextManager.js: new actual W4 false then true, identical O/N/E",
+        "ok 111 - [B24 B25 B26 B43 B44] IntextManager.js: prepared actual W3 false then true, identical O/N/E",
+        "ok 112 - [B24 B25 B26 B43 B44] IntextManager.js: prepared actual W4 false then true, identical O/N/E",
+        "ok 116 - [B24 B26 B29 B42 B43 B44] IntextManager.js: O/N/E below identical decisions/awaits/effects/errors",
+        "ok 117 - [B24 B26 B29 B42 B43 B44] IntextManager.js: O/N/E hidden identical decisions/awaits/effects/errors",
+        "ok 118 - [B24 B26 B29 B42 B43 B44] IntextManager.js: O/N/E unrendered identical decisions/awaits/effects/errors",
+        "ok 119 - [B24 B26 B29 B42 B43 B44] IntextManager.js: O/N/E stale identical decisions/awaits/effects/errors",
+        "ok 120 - [B24 B26 B29 B42 B43 B44] IntextManager.js: O/N/E intersection identical decisions/awaits/effects/errors",
+        "ok 121 - [B24 B26 B29 B42 B43 B44] IntextManager.js: O/N/E prepare-error identical decisions/awaits/effects/errors",
+        "ok 122 - [B24 B26 B29 B42 B43 B44] IntextManager.js: O/N/E false-final identical decisions/awaits/effects/errors",
+        "ok 123 - [B24 B26 B29 B42 B43 B44] IntextManager.js: O/N/E invalid-preparation identical decisions/awaits/effects/errors",
+        "ok 124 - [B24 B26 B29 B42 B43 B44] IntextManager.js: O/N/E missing-guard identical decisions/awaits/effects/errors",
+        "ok 137 - [B42 B43 B44] IntextManager.js: strict result identity and original exception survive private staging"
+      ],
+      "browserC": "NOT-RUN",
+      "commercialP": "BLOCKED-no-authorization",
+      "meaning": "S0/S1 components only, not the entire multi-stage case"
+    },
+    {
+      "id": "B44",
+      "offline": "PASS-COMPONENTS",
+      "evidence": [
+        "ok 40 - [B24 B25 B26 B43 B44] _gam_kv_.js: original O/neutral N/enabled E true path, four controls and exactly original guard count",
+        "ok 41 - [B25 B32 B33 B43 B44] _gam_kv_.js: actual native preparation entry/start/claim, W2 omitted, W3/W4/C1 admitted",
+        "ok 42 - [B24 B25 B26 B43 B44] _gam_kv_.js: new actual W3 false then true, identical O/N/E",
+        "ok 43 - [B24 B25 B26 B43 B44] _gam_kv_.js: new actual W4 false then true, identical O/N/E",
+        "ok 44 - [B24 B25 B26 B43 B44] _gam_kv_.js: prepared actual W3 false then true, identical O/N/E",
+        "ok 45 - [B24 B25 B26 B43 B44] _gam_kv_.js: prepared actual W4 false then true, identical O/N/E",
+        "ok 49 - [B24 B26 B29 B42 B43 B44] _gam_kv_.js: O/N/E below identical decisions/awaits/effects/errors",
+        "ok 50 - [B24 B26 B29 B42 B43 B44] _gam_kv_.js: O/N/E hidden identical decisions/awaits/effects/errors",
+        "ok 51 - [B24 B26 B29 B42 B43 B44] _gam_kv_.js: O/N/E unrendered identical decisions/awaits/effects/errors",
+        "ok 52 - [B24 B26 B29 B42 B43 B44] _gam_kv_.js: O/N/E stale identical decisions/awaits/effects/errors",
+        "ok 53 - [B24 B26 B29 B42 B43 B44] _gam_kv_.js: O/N/E intersection identical decisions/awaits/effects/errors",
+        "ok 54 - [B24 B26 B29 B42 B43 B44] _gam_kv_.js: O/N/E prepare-error identical decisions/awaits/effects/errors",
+        "ok 55 - [B24 B26 B29 B42 B43 B44] _gam_kv_.js: O/N/E false-final identical decisions/awaits/effects/errors",
+        "ok 56 - [B24 B26 B29 B42 B43 B44] _gam_kv_.js: O/N/E invalid-preparation identical decisions/awaits/effects/errors",
+        "ok 57 - [B24 B26 B29 B42 B43 B44] _gam_kv_.js: O/N/E missing-guard identical decisions/awaits/effects/errors",
+        "ok 59 - [B28 B29 B44] _gam_kv_.js: shared diagnostic staging and stale no execution do not create controls",
+        "ok 70 - [B42 B43 B44] _gam_kv_.js: strict result identity and original exception survive private staging",
+        "ok 107 - [B24 B25 B26 B43 B44] IntextManager.js: original O/neutral N/enabled E true path, four controls and exactly original guard count",
+        "ok 108 - [B25 B32 B33 B43 B44] IntextManager.js: actual native preparation entry/start/claim, W2 omitted, W3/W4/C1 admitted",
+        "ok 109 - [B24 B25 B26 B43 B44] IntextManager.js: new actual W3 false then true, identical O/N/E",
+        "ok 110 - [B24 B25 B26 B43 B44] IntextManager.js: new actual W4 false then true, identical O/N/E",
+        "ok 111 - [B24 B25 B26 B43 B44] IntextManager.js: prepared actual W3 false then true, identical O/N/E",
+        "ok 112 - [B24 B25 B26 B43 B44] IntextManager.js: prepared actual W4 false then true, identical O/N/E",
+        "ok 116 - [B24 B26 B29 B42 B43 B44] IntextManager.js: O/N/E below identical decisions/awaits/effects/errors",
+        "ok 117 - [B24 B26 B29 B42 B43 B44] IntextManager.js: O/N/E hidden identical decisions/awaits/effects/errors",
+        "ok 118 - [B24 B26 B29 B42 B43 B44] IntextManager.js: O/N/E unrendered identical decisions/awaits/effects/errors",
+        "ok 119 - [B24 B26 B29 B42 B43 B44] IntextManager.js: O/N/E stale identical decisions/awaits/effects/errors",
+        "ok 120 - [B24 B26 B29 B42 B43 B44] IntextManager.js: O/N/E intersection identical decisions/awaits/effects/errors",
+        "ok 121 - [B24 B26 B29 B42 B43 B44] IntextManager.js: O/N/E prepare-error identical decisions/awaits/effects/errors",
+        "ok 122 - [B24 B26 B29 B42 B43 B44] IntextManager.js: O/N/E false-final identical decisions/awaits/effects/errors",
+        "ok 123 - [B24 B26 B29 B42 B43 B44] IntextManager.js: O/N/E invalid-preparation identical decisions/awaits/effects/errors",
+        "ok 124 - [B24 B26 B29 B42 B43 B44] IntextManager.js: O/N/E missing-guard identical decisions/awaits/effects/errors",
+        "ok 126 - [B28 B29 B44] IntextManager.js: shared diagnostic staging and stale no execution do not create controls",
+        "ok 137 - [B42 B43 B44] IntextManager.js: strict result identity and original exception survive private staging"
+      ],
+      "browserC": "NOT-RUN",
+      "commercialP": "BLOCKED-no-authorization",
+      "meaning": "S0/S1 components only, not the entire multi-stage case"
+    },
+    {
+      "id": "B45",
+      "offline": "PASS-COMPONENTS",
+      "evidence": [
+        "ok 35 - [B22 B39 B45] _gam_kv_.js: single invalid cost bracket NaN prevents later A admission",
+        "ok 36 - [B22 B39 B45] _gam_kv_.js: single invalid cost bracket regression prevents later A admission",
+        "ok 37 - [B22 B39 B45] _gam_kv_.js: single invalid cost bracket exception prevents later A admission",
+        "ok 38 - [B39 B45] _gam_kv_.js: cost overflow STOP before admission, not only an exported warning",
+        "ok 71 - [B45 B46 B48 B52] _gam_kv_.js: F02 fixed bins, N=100, unique work actual N and no invented percentile",
+        "ok 102 - [B22 B39 B45] IntextManager.js: single invalid cost bracket NaN prevents later A admission",
+        "ok 103 - [B22 B39 B45] IntextManager.js: single invalid cost bracket regression prevents later A admission",
+        "ok 104 - [B22 B39 B45] IntextManager.js: single invalid cost bracket exception prevents later A admission",
+        "ok 105 - [B39 B45] IntextManager.js: cost overflow STOP before admission, not only an exported warning",
+        "ok 138 - [B45 B46 B48 B52] IntextManager.js: F02 fixed bins, N=100, unique work actual N and no invented percentile"
+      ],
+      "browserC": "NOT-RUN",
+      "commercialP": "BLOCKED-no-authorization",
+      "meaning": "S0/S1 components only, not the entire multi-stage case"
+    },
+    {
+      "id": "B46",
+      "offline": "PASS-COMPONENTS",
+      "evidence": [
+        "ok 71 - [B45 B46 B48 B52] _gam_kv_.js: F02 fixed bins, N=100, unique work actual N and no invented percentile",
+        "ok 138 - [B45 B46 B48 B52] IntextManager.js: F02 fixed bins, N=100, unique work actual N and no invented percentile"
+      ],
+      "browserC": "NOT-RUN",
+      "commercialP": "BLOCKED-no-authorization",
+      "meaning": "S0/S1 components only, not the entire multi-stage case"
+    },
+    {
+      "id": "B47",
+      "offline": "NOT-RUN",
+      "evidence": [],
+      "browserC": "NOT-RUN",
+      "commercialP": "BLOCKED-no-authorization",
+      "meaning": "S0/S1 components only, not the entire multi-stage case"
+    },
+    {
+      "id": "B48",
+      "offline": "PASS-COMPONENTS",
+      "evidence": [
+        "ok 71 - [B45 B46 B48 B52] _gam_kv_.js: F02 fixed bins, N=100, unique work actual N and no invented percentile",
+        "ok 138 - [B45 B46 B48 B52] IntextManager.js: F02 fixed bins, N=100, unique work actual N and no invented percentile"
+      ],
+      "browserC": "NOT-RUN",
+      "commercialP": "BLOCKED-no-authorization",
+      "meaning": "S0/S1 components only, not the entire multi-stage case"
+    },
+    {
+      "id": "B49",
+      "offline": "PASS-COMPONENTS",
+      "evidence": [
+        "ok 1 - [B01 B49] protected 418 baseline, HEAD input and strict 29-path allowlist",
+        "ok 5 - [B02 B03 B43 B49] _gam_kv_.js: deterministic copy, exact inverse, syntax and unchanged commercial complement",
+        "ok 72 - [B02 B03 B43 B49] IntextManager.js: deterministic copy, exact inverse, syntax and unchanged commercial complement"
+      ],
+      "browserC": "NOT-RUN",
+      "commercialP": "BLOCKED-no-authorization",
+      "meaning": "S0/S1 components only, not the entire multi-stage case"
+    },
+    {
+      "id": "B50",
+      "offline": "PASS-COMPONENTS",
+      "evidence": [
+        "ok 69 - [B40 B41 B50] _gam_kv_.js: bounded manual export, mutation not authority, stop/dispose tombstone preserves commercial callbacks",
+        "ok 136 - [B40 B41 B50] IntextManager.js: bounded manual export, mutation not authority, stop/dispose tombstone preserves commercial callbacks"
+      ],
+      "browserC": "NOT-RUN",
+      "commercialP": "BLOCKED-no-authorization",
+      "meaning": "S0/S1 components only, not the entire multi-stage case"
+    },
+    {
+      "id": "B51",
+      "offline": "PASS-COMPONENTS",
+      "evidence": [
+        {
+          "label": "I",
+          "cwd": "C:\\Users\\pedro.ramos\\Documents\\workspace\\develop\\interstitial\\intext\\inread ads\\src\\pro",
+          "node": "v25.8.1",
+          "executable": "C:\\Program Files\\nodejs\\node.exe",
+          "command": "node --test --test-isolation=none --test-reporter=tap tests/intext-p14b-qa1b-stage1.test.cjs",
+          "started": "2026-11-17T19:22:40.058Z",
+          "exitCode": 0,
+          "tests": 57,
+          "pass": 57,
+          "fail": 0,
+          "cancelled": 0,
+          "skipped": 0,
+          "log": {
+            "file": "docs/intext-p14b-qa1b-II-B1-stage1-validation.txt",
+            "bytes": 15071,
+            "sha256": "079e0ee65530b3db3e77c3507904318f845c29eec7bbffea654d026f2fca123c"
+          },
+          "failures": []
+        },
+        {
+          "label": "II-A",
+          "cwd": "C:\\Users\\pedro.ramos\\Documents\\workspace\\develop\\interstitial\\intext\\inread ads\\src\\pro",
+          "node": "v25.8.1",
+          "executable": "C:\\Program Files\\nodejs\\node.exe",
+          "command": "node --test --test-isolation=none --test-reporter=tap tests/intext-p14b-qa1b-stage2a.test.cjs",
+          "started": "2026-11-17T19:22:43.754Z",
+          "exitCode": 0,
+          "tests": 106,
+          "pass": 106,
+          "fail": 0,
+          "cancelled": 0,
+          "skipped": 0,
+          "log": {
+            "file": "docs/intext-p14b-qa1b-II-B1-stage2a-validation.txt",
+            "bytes": 25725,
+            "sha256": "a292ddd1a093804a0cf4780634e7d01d7786e258c91c1cbd0f533081924171e9"
+          },
+          "failures": []
+        },
+        {
+          "label": "QA0-QA1A",
+          "cwd": "C:\\Users\\pedro.ramos\\Documents\\workspace\\develop\\interstitial\\intext\\inread ads\\src\\pro",
+          "node": "v25.8.1",
+          "executable": "C:\\Program Files\\nodejs\\node.exe",
+          "command": "node --test --test-isolation=none --test-reporter=tap tests/intext-p14b-shadow.audit.test.cjs tests/intext-p14b-qa1a.audit.test.cjs",
+          "started": "2026-11-17T19:22:59.666Z",
+          "exitCode": 1,
+          "tests": 110,
+          "pass": 108,
+          "fail": 2,
+          "cancelled": 0,
+          "skipped": 0,
+          "log": {
+            "file": "docs/intext-p14b-qa1b-II-B1-frozen-validation.txt",
+            "bytes": 28412,
+            "sha256": "fba504296f0db1354da6a6d193f54dc3f9cb5bb074b984f1a317856a6aa36982"
+          },
+          "failures": [
+            "not ok 39 - All 345 pre-existing files including approved QA0 retain their bytes in the complete workspace",
+            "not ok 110 - All 333 pre-existing protected files retain their bytes; no core/probe/bundle generation occurred"
+          ]
+        }
+      ],
+      "browserC": "NOT-RUN",
+      "commercialP": "BLOCKED-no-authorization",
+      "meaning": "S0/S1 components only, not the entire multi-stage case"
+    },
+    {
+      "id": "B52",
+      "offline": "PASS-COMPONENTS",
+      "evidence": [
+        "ok 71 - [B45 B46 B48 B52] _gam_kv_.js: F02 fixed bins, N=100, unique work actual N and no invented percentile",
+        "ok 138 - [B45 B46 B48 B52] IntextManager.js: F02 fixed bins, N=100, unique work actual N and no invented percentile"
+      ],
+      "browserC": "NOT-RUN",
+      "commercialP": "BLOCKED-no-authorization",
+      "meaning": "S0/S1 components only, not the entire multi-stage case"
+    }
+  ],
+  "historical": {
+    "file": "Indicar que dependencias tiene el core d.sty",
+    "expectedBytes": 3903,
+    "actualBytes": 3940,
+    "sha256": "15c72d69032cc0e212b1501cdd78e9da78561b404c65165fe1a6d02efe16b660",
+    "baseline": "II-B0 preflight 418 before any II-B1 write",
+    "testsUnmodified": true,
+    "assertions": [
+      {
+        "test": "All 345 pre-existing files including approved QA0 retain their bytes in the complete workspace",
+        "location": "tests/intext-p14b-qa1a.audit.test.cjs:350",
+        "expression": "assert.equal(bytes.length,f.bytes,f.file)",
+        "expected": 3903,
+        "actual": 3940
+      },
+      {
+        "test": "All 333 pre-existing protected files retain their bytes; no core/probe/bundle generation occurred",
+        "location": "tests/intext-p14b-shadow.audit.test.cjs:535",
+        "expression": "assert.equal(b.length,f.bytes,f.file)",
+        "expected": 3903,
+        "actual": 3940
+      }
+    ]
+  },
+  "sourceComplete": {
+    "D0": false,
+    "Dv": false,
+    "Dc": false,
+    "outcomes": false
+  },
+  "browser": "NOT-RUN",
+  "realSourceAttestation": "UNBOUND, INACTIVE",
+  "independentReview": {
+    "agent": "/root/iib1_independent_code_review",
+    "independentFromAuthor": true,
+    "mode": "read-only-new-code-review-and-Node-extracted-method-reproduction",
+    "verdict": "PASS OFFLINE",
+    "scope": "II-B1 S0/S1 only",
+    "reviewedIntegritySha256": "023c4c044eeab5573aa3bc6595e07ba3ace099d99d79f04c353dc27d2db473bb",
+    "unresolvedBlockerMajor": 0,
+    "closedFindings": [
+      {
+        "id": "R-CODE-01",
+        "severity": "MAJOR",
+        "problem": "Prepared constructor private port was attached to catch instead",
+        "correction": "Unique exact preparationGuard closing anchor; real prepared entry/start/claim O/N/E tests",
+        "tests": [
+          "B25",
+          "B32",
+          "B33",
+          "B43",
+          "B44"
+        ]
+      },
+      {
+        "id": "R-CODE-02",
+        "severity": "MAJOR",
+        "problem": "Genuine packet fields contractRevision/evidence forbidden by new schema",
+        "correction": "Versioned complete fields and real packet schema checks",
+        "tests": [
+          "B05",
+          "B21",
+          "B35"
+        ]
+      },
+      {
+        "id": "R-CODE-03",
+        "severity": "MAJOR",
+        "problem": "Invalid cost brackets and overflow continued admission",
+        "correction": "Validate every trusted clock read; STOP/revoke on NaN, exception, regression or count overflow",
+        "tests": [
+          "B22",
+          "B39",
+          "B45"
+        ]
+      }
+    ],
+    "additionalHardening": [
+      "Exact manifest file set and two-copy inventory",
+      "Valid Git HEAD ancestor despite empty .git stub",
+      "Counter overflow STOP",
+      "Derived constructor/super identity and foreign admin collision tests"
+    ],
+    "confirmation": {
+      "protected": 418,
+      "newPaths": 29,
+      "hashesWithoutSelf": 28,
+      "newTests": [
+        138,
+        138
+      ],
+      "stageI": [
+        57,
+        57
+      ],
+      "stageIIA": [
+        106,
+        106
+      ],
+      "frozen": [
+        108,
+        110
+      ],
+      "browser": "NOT-RUN",
+      "realMetrics": "NOT-MEASURED"
+    },
+    "finalMechanicalSeal": "Rechecked after recording this act in new documents; no code/source changes after reviewed seal."
+  },
+  "notAuthorized": [
+    "II-B2/C",
+    "II-B2/P",
+    "B shadow/enforce",
+    "III-IV",
+    "A3",
+    "C"
+  ],
+  "protectedCheck": {
+    "preserved": 418,
+    "unexpected": 0
+  },
+  "codeMemory": {
+    "tool": "codebase-memory-mcp.search_graph",
+    "arguments": {
+      "project": "C-Users-pedro.ramos-Documents-workspace-develop-interstitial-intext-inread-ads-src-pro",
+      "name_pattern": ".*(createP14BLedgerV1|createIntextPositionsScoped|getReadinessViewportState|waitForViewport).*",
+      "limit": 8
+    },
+    "total": 23,
+    "has_more": true,
+    "results": [
+      {
+        "qualified_name": "C-Users-pedro.ramos-Documents-workspace-develop-interstitial-intext-inread-ads-src-pro.IntextManager-modificado.IntextManager.createIntextPositionsScoped",
+        "file_path": "IntextManager-modificado.js",
+        "signature": "(rootElement, scopedConfig, pncSuffix, navIndex, scopedContext = null)"
+      },
+      {
+        "qualified_name": "C-Users-pedro.ramos-Documents-workspace-develop-interstitial-intext-inread-ads-src-pro._gam_kv_-10ago.IntextManager.createIntextPositionsScoped",
+        "file_path": "_gam_kv_-10ago.js",
+        "signature": "(rootElement, scopedConfig, pncSuffix, navIndex, scopedContext = null)"
+      },
+      {
+        "qualified_name": "C-Users-pedro.ramos-Documents-workspace-develop-interstitial-intext-inread-ads-src-pro._gam_kv_-28jul.IntextManager.createIntextPositionsScoped",
+        "file_path": "_gam_kv_-28jul.js",
+        "signature": "(rootElement, scopedConfig, pncSuffix, navIndex, scopedContext = null)"
+      },
+      {
+        "qualified_name": "C-Users-pedro.ramos-Documents-workspace-develop-interstitial-intext-inread-ads-src-pro._gam_kv_.IntextManager.createIntextPositionsScoped",
+        "file_path": "_gam_kv_.js",
+        "signature": "(rootElement, scopedConfig, pncSuffix, navIndex, scopedContext = null)"
+      },
+      {
+        "qualified_name": "C-Users-pedro.ramos-Documents-workspace-develop-interstitial-intext-inread-ads-src-pro._gam_kv_ -08 sep.IntextManager.createIntextPositionsScoped",
+        "file_path": "_gam_kv_ -08 sep.js",
+        "signature": "(rootElement, scopedConfig, pncSuffix, navIndex, scopedContext = null)"
+      },
+      {
+        "qualified_name": "C-Users-pedro.ramos-Documents-workspace-develop-interstitial-intext-inread-ads-src-pro.IntextManager.IntextManager.createIntextPositionsScoped",
+        "file_path": "IntextManager.js",
+        "signature": "(rootElement, scopedConfig, pncSuffix, navIndex, scopedContext = null)"
+      },
+      {
+        "qualified_name": "C-Users-pedro.ramos-Documents-workspace-develop-interstitial-intext-inread-ads-src-pro.tests.qa.intext-p14b-qa1a-converter.createP14BLedgerV1",
+        "file_path": "tests/qa/intext-p14b-qa1a-converter.cjs",
+        "signature": null
+      },
+      {
+        "qualified_name": "C-Users-pedro.ramos-Documents-workspace-develop-interstitial-intext-inread-ads-src-pro.tests.intext-p14b-shadow.audit.test.createP14BLedgerV1",
+        "file_path": "tests/intext-p14b-shadow.audit.test.cjs",
+        "signature": null
+      }
+    ],
+    "authority": "Discovery only; frozen raw bytes, not graph completeness, determine guards and anchors."
+  },
+  "preflight": {
+    "HEAD": "4badfd433807e8e2024908573cfb637d9398cfa1",
+    "gitBefore": "clean",
+    "gitAfter": "zero tracked changes; 29 allowlisted ADD-only files, no unexpected files",
+    "protected": 418,
+    "hashesBeforeAfter": "exact",
+    "guardReferences": 40,
+    "inheritedUniqueAnchors": 36,
+    "newTransformSegmentsPerDistribution": 29,
+    "contractsUnchanged": 4,
+    "originalsUnchanged": 360,
+    "styUnchanged": true,
+    "fullCopiesExecuted": false,
+    "browserExecuted": false
+  },
+  "measurement": {
+    "realChrome": {
+      "CPU": "NOT-MEASURED",
+      "layout": "NOT-MEASURED",
+      "GC": "NOT-MEASURED",
+      "heap": "NOT-MEASURED"
+    },
+    "Node": "v25.8.1; fixture clock/counters are not Chrome measurements",
+    "F01": "36-row table: local AND external authority; null browser root remains INACTIVE. Positive source authority exists only as private Node fixture.",
+    "F02": "sampleSync p95 upper bound <=2ms needs N>=100; unique setup/cleanup/export N, max and total with no p95; all computational work belongs to external union, no posthoc extension."
+  },
+  "reviewerPreparation": {
+    "C": "BLOCKED-pending-separate-authorization-and-ratified-controller/run-plan",
+    "P": "BLOCKED-pending-separate-commercial-scope-authorization",
+    "sourceRoot": "UNBOUND in delivered bytes"
+  }
+}

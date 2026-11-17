@@ -1,0 +1,66 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:qa1b:release:II-B1:v1",
+  "title": "QA1-B II-B1 release and offline decisions",
+  "type": "object",
+  "required": [
+    "schema",
+    "copies",
+    "inputs"
+  ],
+  "properties": {
+    "schema": {
+      "const": "qa1b-II-B1-copy-manifest-v1"
+    },
+    "copies": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 2
+    },
+    "inputs": {
+      "type": "array"
+    }
+  },
+  "x-F01": {
+    "sourceRoot": "Delivered copies have no external-source authority. currentScript/SRI/hash strings cannot arm collection. Node harness supplies a private lexical fixture attestor only.",
+    "decisionTable": "native-browser.schema.json#/x-F01/rows",
+    "withoutSource": "INACTIVE, no A, no QA0 ledger construction/ingest/watermark/first-positive"
+  },
+  "x-F02": {
+    "sampleSync": {
+      "categories": [
+        "W2",
+        "W3",
+        "W4",
+        "C1",
+        "unused"
+      ],
+      "p95UpperBoundMs": 2,
+      "minN": 100,
+      "insufficientN": "INCONCLUSIVE"
+    },
+    "unique": {
+      "categories": [
+        "setup",
+        "cleanup",
+        "export"
+      ],
+      "requireMinN": false,
+      "p95": null,
+      "required": [
+        "N",
+        "maxUs",
+        "totalUs",
+        "contributionToTotal"
+      ]
+    },
+    "allWorkIncluded": true,
+    "ratioPercentMax": 1,
+    "interactiveLongTaskMaxMs": 50,
+    "logicalBytesMax": 2097152,
+    "retainedHeapIncrementMiBProposed": 8,
+    "exportTransientIncrementMiBProposed": 16,
+    "realChromeMetrics": "NOT-MEASURED",
+    "extendTrialsAfterObservingN": false
+  }
+}

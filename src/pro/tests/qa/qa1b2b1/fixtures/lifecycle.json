@@ -1,0 +1,11 @@
+{
+  "schema": "qa1b-II-B1-fixture-v1",
+  "authority": "DATA ONLY: all authorities minted lexically by Node harness; never browser credentials",
+  "guards": [{"top": 20,"eligible": true},{"top": 900,"eligible": false}],
+  "winners": ["video", "display", null],
+  "clock": [0, 0, 10, 9007199254740991],
+  "invalidClock": ["regression", "exception", "NaN", "Infinity"],
+  "transitions": ["new-document", "new-root", "same-root-new-native-index", "missing-index", "repeat-index", "cleanup-old-callback", "stop", "dispose", "BFCache-unsupported"],
+  "overflow": {"attemptedOpportunities": 65,"retained": 64,"detailChecks": 1101},
+  "measurement": {"sampleSyncMinN": 100,"p95UpperBoundMs": 2,"unique": ["setup","cleanup","export"],"realChrome": "NOT-MEASURED"}
+}
