@@ -1,0 +1,19 @@
+{
+  "schema": "qa1b-II-B2C-installed-browser-versions-v1",
+  "source": "Read-only Windows executable VersionInfo through PowerShell Get-Item; no browser invocation for version lookup",
+  "Chrome": {
+    "executable": "C:/Program Files/Google/Chrome/Application/chrome.exe",
+    "ProductVersion": "156.0.8078.81",
+    "FileVersion": "156.0.8078.81",
+    "ProductName": "Google Chrome"
+  },
+  "Chromium": {
+    "executable": "C:/Users/pedro.ramos/AppData/Local/ms-playwright/chromium-1234/chrome-win64/chrome.exe",
+    "ProductVersion": "151.0.7922.34",
+    "FileVersion": "151.0.7922.34",
+    "ProductName": "Google Chrome for Testing"
+  },
+  "runningBrowserGetVersion": null,
+  "reason": "Neither executable reached a CDP endpoint. Installed PE versions do not substitute for Browser.getVersion or page evidence.",
+  "installedOrDownloaded": false
+}

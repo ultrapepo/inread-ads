@@ -1,0 +1,10 @@
+﻿{
+  "status": "PASS-PREFLIGHT-ONLY",
+  "out": "C:\\Users\\pedro.ramos\\AppData\\Local\\Temp\\gexp-recovery-preflight-23c84c17df284c93bf5c795240714d55",
+  "logsManifest": {
+    "file": "logs-manifest.json",
+    "bytes": 454,
+    "sha256": "8c2f6ae847c18788e795d406a80ecbcb7d9372f9f17640e85b4a48973071d701"
+  }
+}
+{"status":"PASS-ZIP-EXTRACTION-AND-BYTES","entries":37,"manifestSHA256":"84752d1d6d65387300f50ec2510155670bd820e498a30013fcced09607dc8a83","extractedTo":"C:\\Users\\pedro.ramos\\AppData\\Local\\Temp\\gexp-recovery-verify-e320fb244aa04defa7ea6e4d77293c7f","preflightLogs":"C:\\Users\\pedro.ramos\\AppData\\Local\\Temp\\gexp-recovery-preflight-23c84c17df284c93bf5c795240714d55","ChromeLaunched":false}

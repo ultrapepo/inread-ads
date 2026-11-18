@@ -1,0 +1,191 @@
+{
+  "schema": "qa1b-II-B2C-performance-v1",
+  "browserMeasurement": "NOT-MEASURED",
+  "series": [
+    {
+      "category": "parseCompile",
+      "N": 0,
+      "total": null,
+      "maximum": null,
+      "bins": [],
+      "p95UpperBoundMs": null,
+      "status": "NOT-MEASURED",
+      "acceptance": "BLOCKED",
+      "reason": "No CDP/page context; Node startup times and old fixture counters are not page measurements"
+    },
+    {
+      "category": "factorySetup",
+      "N": 0,
+      "total": null,
+      "maximum": null,
+      "bins": [],
+      "p95UpperBoundMs": null,
+      "status": "NOT-MEASURED",
+      "acceptance": "BLOCKED",
+      "reason": "No CDP/page context; Node startup times and old fixture counters are not page measurements"
+    },
+    {
+      "category": "adminCreation",
+      "N": 0,
+      "total": null,
+      "maximum": null,
+      "bins": [],
+      "p95UpperBoundMs": null,
+      "status": "NOT-MEASURED",
+      "acceptance": "BLOCKED",
+      "reason": "No CDP/page context; Node startup times and old fixture counters are not page measurements"
+    },
+    {
+      "category": "wrappers",
+      "N": 0,
+      "total": null,
+      "maximum": null,
+      "bins": [],
+      "p95UpperBoundMs": null,
+      "status": "NOT-MEASURED",
+      "acceptance": "BLOCKED",
+      "reason": "No CDP/page context; Node startup times and old fixture counters are not page measurements"
+    },
+    {
+      "category": "staging",
+      "N": 0,
+      "total": null,
+      "maximum": null,
+      "bins": [],
+      "p95UpperBoundMs": null,
+      "status": "NOT-MEASURED",
+      "acceptance": "BLOCKED",
+      "reason": "No CDP/page context; Node startup times and old fixture counters are not page measurements"
+    },
+    {
+      "category": "cleanup",
+      "N": 0,
+      "total": null,
+      "maximum": null,
+      "bins": [],
+      "p95UpperBoundMs": null,
+      "status": "NOT-MEASURED",
+      "acceptance": "BLOCKED",
+      "reason": "No CDP/page context; Node startup times and old fixture counters are not page measurements"
+    },
+    {
+      "category": "exportManual",
+      "N": 0,
+      "total": null,
+      "maximum": null,
+      "bins": [],
+      "p95UpperBoundMs": null,
+      "status": "NOT-MEASURED",
+      "acceptance": "BLOCKED",
+      "reason": "No CDP/page context; Node startup times and old fixture counters are not page measurements"
+    },
+    {
+      "category": "CPU",
+      "N": 0,
+      "total": null,
+      "maximum": null,
+      "bins": [],
+      "p95UpperBoundMs": null,
+      "status": "NOT-MEASURED",
+      "acceptance": "BLOCKED",
+      "reason": "No CDP/page context; Node startup times and old fixture counters are not page measurements"
+    },
+    {
+      "category": "longTasks",
+      "N": 0,
+      "total": null,
+      "maximum": null,
+      "bins": [],
+      "p95UpperBoundMs": null,
+      "status": "NOT-MEASURED",
+      "acceptance": "BLOCKED",
+      "reason": "No CDP/page context; Node startup times and old fixture counters are not page measurements"
+    },
+    {
+      "category": "layout",
+      "N": 0,
+      "total": null,
+      "maximum": null,
+      "bins": [],
+      "p95UpperBoundMs": null,
+      "status": "NOT-MEASURED",
+      "acceptance": "BLOCKED",
+      "reason": "No CDP/page context; Node startup times and old fixture counters are not page measurements"
+    },
+    {
+      "category": "styleRecalculation",
+      "N": 0,
+      "total": null,
+      "maximum": null,
+      "bins": [],
+      "p95UpperBoundMs": null,
+      "status": "NOT-MEASURED",
+      "acceptance": "BLOCKED",
+      "reason": "No CDP/page context; Node startup times and old fixture counters are not page measurements"
+    },
+    {
+      "category": "GC",
+      "N": 0,
+      "total": null,
+      "maximum": null,
+      "bins": [],
+      "p95UpperBoundMs": null,
+      "status": "NOT-MEASURED",
+      "acceptance": "BLOCKED",
+      "reason": "No CDP/page context; Node startup times and old fixture counters are not page measurements"
+    },
+    {
+      "category": "retainedHeap",
+      "N": 0,
+      "total": null,
+      "maximum": null,
+      "bins": [],
+      "p95UpperBoundMs": null,
+      "status": "NOT-MEASURED",
+      "acceptance": "BLOCKED",
+      "reason": "No CDP/page context; Node startup times and old fixture counters are not page measurements"
+    },
+    {
+      "category": "exportPeakHeap",
+      "N": 0,
+      "total": null,
+      "maximum": null,
+      "bins": [],
+      "p95UpperBoundMs": null,
+      "status": "NOT-MEASURED",
+      "acceptance": "BLOCKED",
+      "reason": "No CDP/page context; Node startup times and old fixture counters are not page measurements"
+    }
+  ],
+  "logicalBudgetBytes": 2097152,
+  "logicalBudgetChanged": false,
+  "thresholds": {
+    "sampleSyncP95MaxMs": 2,
+    "minN": 100,
+    "observerSyncRatioMax": 0.01,
+    "newInteractiveLongTaskMaxMs": 50,
+    "proposedRetainedHeapBytes": 8388608,
+    "proposedExportPeakBytes": 16777216,
+    "physicalRatification": "NOT-PERFORMED"
+  },
+  "uniqueSetupCleanupExport": "Actual N=0; no invented percentile or minimum N. With observations publish total/max/contribution.",
+  "window": {
+    "plannedMs": 120000,
+    "observedMs": null,
+    "numeratorMs": null,
+    "ratio": null
+  },
+  "completeProtocol": {
+    "run": false,
+    "triplesPerDistribution": 10,
+    "conditions": {
+      "O": "NOT-RUN; no approved equivalent browser original in this attempt",
+      "N": "NOT-RUN; browser startup denied",
+      "E": "BLOCKED; sealed sourceAttestor:null, no real authority"
+    },
+    "reason": "No valid O/N/E procedure and no active E; no windows, enlarged samples or proxy results"
+  },
+  "profiler": false,
+  "heapSnapshots": false,
+  "breakpoints": false
+}

@@ -1,0 +1,52 @@
+{
+  "schema": "qa1b-II-B2C-browser-launch-v1",
+  "transport": "CDP-loopback-port-file-stdio",
+  "started": "2026-11-17T20:11:38.953Z",
+  "ended": "2026-11-17T20:11:42.711Z",
+  "executable": "C:\\Users\\pedro.ramos\\AppData\\Local\\ms-playwright\\chromium-1234\\chrome-win64\\chrome.exe",
+  "executableRecord": {
+    "file": "C:\\Users\\pedro.ramos\\AppData\\Local\\ms-playwright\\chromium-1234\\chrome-win64\\chrome.exe",
+    "bytes": 4024832,
+    "sha256": "409805a16d6416087e6b2f778df1cf8f7bbb267d6b99f6b5bb0a618eace234f2"
+  },
+  "flags": [
+    "--headless=new",
+    "--remote-debugging-address=127.0.0.1",
+    "--remote-debugging-port=0",
+    "--user-data-dir=C:\\Users\\PEDRO~1.RAM\\AppData\\Local\\Temp\\gexp-qa1b-II-B2C-port-ih51TI",
+    "--no-first-run",
+    "--no-default-browser-check",
+    "--disable-background-networking",
+    "--disable-component-update",
+    "--disable-sync",
+    "--disable-extensions",
+    "--no-pings",
+    "--host-resolver-rules=MAP * ~NOTFOUND, EXCLUDE localhost",
+    "--proxy-server=http://127.0.0.1:9",
+    "--proxy-bypass-list=localhost;127.0.0.1"
+  ],
+  "profile": "C:\\Users\\PEDRO~1.RAM\\AppData\\Local\\Temp\\gexp-qa1b-II-B2C-port-ih51TI",
+  "profileFresh": true,
+  "pid": 22336,
+  "devTools": null,
+  "result": null,
+  "error": null,
+  "exitCode": 4294930433,
+  "signal": null,
+  "timedOut": false,
+  "sandboxDisabled": false,
+  "securityRelaxed": false,
+  "navigations": 0,
+  "advertising": false,
+  "stdout": {
+    "file": "docs/intext-p14b-qa1b-II-B2C-launch-chromium.stdout.txt",
+    "bytes": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "stderr": {
+    "file": "docs/intext-p14b-qa1b-II-B2C-launch-chromium.stderr.txt",
+    "bytes": 395,
+    "sha256": "4983febb8f236f9fb5f8c28a431cac63246a50e13c90009c6bfbb5c03cacd484"
+  },
+  "status": "BLOCKED"
+}

@@ -1,0 +1,292 @@
+TAP version 13
+# Subtest: reject unsafe path "../x"
+ok 1 - reject unsafe path "../x"
+  ---
+  duration_ms: 4.0621
+  type: 'test'
+  ...
+# Subtest: reject unsafe path "x/../y"
+ok 2 - reject unsafe path "x/../y"
+  ---
+  duration_ms: 1.0571
+  type: 'test'
+  ...
+# Subtest: reject unsafe path "/absolute"
+ok 3 - reject unsafe path "/absolute"
+  ---
+  duration_ms: 0.1907
+  type: 'test'
+  ...
+# Subtest: reject unsafe path "C:/file"
+ok 4 - reject unsafe path "C:/file"
+  ---
+  duration_ms: 0.2491
+  type: 'test'
+  ...
+# Subtest: reject unsafe path "x\\\\file"
+ok 5 - reject unsafe path "x\\\\file"
+  ---
+  duration_ms: 0.2261
+  type: 'test'
+  ...
+# Subtest: reject unsafe path "x//file"
+ok 6 - reject unsafe path "x//file"
+  ---
+  duration_ms: 0.3555
+  type: 'test'
+  ...
+# Subtest: reject unsafe path "result.json:payload.txt"
+ok 7 - reject unsafe path "result.json:payload.txt"
+  ---
+  duration_ms: 0.171
+  type: 'test'
+  ...
+# Subtest: reject unsafe path "CON.json"
+ok 8 - reject unsafe path "CON.json"
+  ---
+  duration_ms: 0.1828
+  type: 'test'
+  ...
+# Subtest: reject unsafe path "x/COM1.txt"
+ok 9 - reject unsafe path "x/COM1.txt"
+  ---
+  duration_ms: 0.2367
+  type: 'test'
+  ...
+# Subtest: reject unsafe path "x. /y"
+ok 10 - reject unsafe path "x. /y"
+  ---
+  duration_ms: 0.41
+  type: 'test'
+  ...
+# Subtest: reject unsafe path "x./y"
+ok 11 - reject unsafe path "x./y"
+  ---
+  duration_ms: 0.2144
+  type: 'test'
+  ...
+# Subtest: reject unsafe path "x /y"
+ok 12 - reject unsafe path "x /y"
+  ---
+  duration_ms: 0.1726
+  type: 'test'
+  ...
+# Subtest: reject unsafe path "null\\u0000file"
+ok 13 - reject unsafe path "null\\u0000file"
+  ---
+  duration_ms: 0.1257
+  type: 'test'
+  ...
+# Subtest: safe package path and UNC/ADS absolute outputs rejected
+ok 14 - safe package path and UNC/ADS absolute outputs rejected
+  ---
+  duration_ms: 1.4374
+  type: 'test'
+  ...
+# Subtest: manual modes have no browser launch by default
+ok 15 - manual modes have no browser launch by default
+  ---
+  duration_ms: 0.5374
+  type: 'test'
+  ...
+# Subtest: unknown and duplicate flags do not reach Chrome
+ok 16 - unknown and duplicate flags do not reach Chrome
+  ---
+  duration_ms: 0.274
+  type: 'test'
+  ...
+# Subtest: only standard sandbox, fresh profile and local CDP/proxy flags
+ok 17 - only standard sandbox, fresh profile and local CDP/proxy flags
+  ---
+  duration_ms: 11.2713
+  type: 'test'
+  ...
+# Subtest: outputs cannot overwrite existing directories or package
+ok 18 - outputs cannot overwrite existing directories or package
+  ---
+  duration_ms: 8.9678
+  type: 'test'
+  ...
+# Subtest: junction ancestor cannot redirect output inside package
+ok 19 - junction ancestor cannot redirect output inside package
+  ---
+  duration_ms: 6.4994
+  type: 'test'
+  ...
+# Subtest: exact sealed bytes /tests/qa/qa1b2b1/fixtures/isolated.html
+ok 20 - exact sealed bytes /tests/qa/qa1b2b1/fixtures/isolated.html
+  ---
+  duration_ms: 7.387
+  type: 'test'
+  ...
+# Subtest: exact sealed bytes /tests/qa/qa1b2b1/fixtures/canary.js
+ok 21 - exact sealed bytes /tests/qa/qa1b2b1/fixtures/canary.js
+  ---
+  duration_ms: 3.0253
+  type: 'test'
+  ...
+# Subtest: exact sealed bytes /tests/qa/generated/qa1b-stage2b1/isolated-fixture.qa.js
+ok 22 - exact sealed bytes /tests/qa/generated/qa1b-stage2b1/isolated-fixture.qa.js
+  ---
+  duration_ms: 3.925
+  type: 'test'
+  ...
+# Subtest: one response byte only, sealed files unchanged fixture-negative
+ok 23 - one response byte only, sealed files unchanged fixture-negative
+  ---
+  duration_ms: 89.8011
+  type: 'test'
+  ...
+# Subtest: one response byte only, sealed files unchanged canary-negative
+ok 24 - one response byte only, sealed files unchanged canary-negative
+  ---
+  duration_ms: 81.436
+  type: 'test'
+  ...
+# Subtest: HTTP refuses nonallowlisted resource /tests/qa/generated/qa1b-stage2b1/gam.qa.js
+ok 25 - HTTP refuses nonallowlisted resource /tests/qa/generated/qa1b-stage2b1/gam.qa.js
+  ---
+  duration_ms: 1.0291
+  type: 'test'
+  ...
+# Subtest: HTTP refuses nonallowlisted resource /tests/qa/generated/qa1b-stage2b1/manager.qa.js
+ok 26 - HTTP refuses nonallowlisted resource /tests/qa/generated/qa1b-stage2b1/manager.qa.js
+  ---
+  duration_ms: 0.113
+  type: 'test'
+  ...
+# Subtest: HTTP refuses nonallowlisted resource /favicon.ico
+ok 27 - HTTP refuses nonallowlisted resource /favicon.ico
+  ---
+  duration_ms: 0.0786
+  type: 'test'
+  ...
+# Subtest: HTTP refuses nonallowlisted resource /tests/qa/qa1b2b1/fixtures/isolated.html?x=1
+ok 28 - HTTP refuses nonallowlisted resource /tests/qa/qa1b2b1/fixtures/isolated.html?x=1
+  ---
+  duration_ms: 0.1241
+  type: 'test'
+  ...
+# Subtest: HTTP refuses nonallowlisted resource /../secret
+ok 29 - HTTP refuses nonallowlisted resource /../secret
+  ---
+  duration_ms: 0.0791
+  type: 'test'
+  ...
+# Subtest: HTTP refuses nonallowlisted resource https://outside.invalid/
+ok 30 - HTTP refuses nonallowlisted resource https://outside.invalid/
+  ---
+  duration_ms: 0.11
+  type: 'test'
+  ...
+# Subtest: G2 external acceptance oracle requires inactive/no-ledger/tombstone
+ok 31 - G2 external acceptance oracle requires inactive/no-ledger/tombstone
+  ---
+  duration_ms: 0.7655
+  type: 'test'
+  ...
+# Subtest: G2 oracle rejects ACTIVE
+ok 32 - G2 oracle rejects ACTIVE
+  ---
+  duration_ms: 0.3854
+  type: 'test'
+  ...
+# Subtest: G2 oracle rejects coverage
+ok 33 - G2 oracle rejects coverage
+  ---
+  duration_ms: 0.1807
+  type: 'test'
+  ...
+# Subtest: G2 oracle rejects ledger
+ok 34 - G2 oracle rejects ledger
+  ---
+  duration_ms: 0.1468
+  type: 'test'
+  ...
+# Subtest: G2 oracle rejects packet
+ok 35 - G2 oracle rejects packet
+  ---
+  duration_ms: 0.1431
+  type: 'test'
+  ...
+# Subtest: G2 oracle rejects restart
+ok 36 - G2 oracle rejects restart
+  ---
+  duration_ms: 0.1759
+  type: 'test'
+  ...
+# Subtest: G2 oracle rejects callback
+ok 37 - G2 oracle rejects callback
+  ---
+  duration_ms: 0.1494
+  type: 'test'
+  ...
+# Subtest: G2 oracle rejects error
+ok 38 - G2 oracle rejects error
+  ---
+  duration_ms: 0.1695
+  type: 'test'
+  ...
+# Subtest: CDP correlates real request ids and does not invent missing replies
+ok 39 - CDP correlates real request ids and does not invent missing replies
+  ---
+  duration_ms: 172.0236
+  type: 'test'
+  ...
+# Subtest: CDP cannot connect to external WS endpoint
+ok 40 - CDP cannot connect to external WS endpoint
+  ---
+  duration_ms: 2.9323
+  type: 'test'
+  ...
+# Subtest: import checker requires matching external hashes, exact inventory and no execution
+ok 41 - import checker requires matching external hashes, exact inventory and no execution
+  ---
+  duration_ms: 55.612
+  type: 'test'
+  ...
+# Subtest: import rejects malicious manifest path ../escape.json
+ok 42 - import rejects malicious manifest path ../escape.json
+  ---
+  duration_ms: 39.29
+  type: 'test'
+  ...
+# Subtest: import rejects malicious manifest path result.json:payload.txt
+ok 43 - import rejects malicious manifest path result.json:payload.txt
+  ---
+  duration_ms: 42.9596
+  type: 'test'
+  ...
+# Subtest: import rejects malicious manifest path run.cjs
+ok 44 - import rejects malicious manifest path run.cjs
+  ---
+  duration_ms: 46.5017
+  type: 'test'
+  ...
+# Subtest: import rejects duplicate files and quota overflow before copying
+ok 45 - import rejects duplicate files and quota overflow before copying
+  ---
+  duration_ms: 92.9401
+  type: 'test'
+  ...
+# Subtest: import rejects undersized declarations before loading file bodies
+ok 46 - import rejects undersized declarations before loading file bodies
+  ---
+  duration_ms: 61.8018
+  type: 'test'
+  ...
+# Subtest: import caps manifest bytes before parsing
+ok 47 - import caps manifest bytes before parsing
+  ---
+  duration_ms: 8.143
+  type: 'test'
+  ...
+1..47
+# tests 47
+# suites 0
+# pass 47
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 927.4501

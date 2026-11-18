@@ -1,0 +1,58 @@
+{
+  "schema": "qa1b-II-B2C-browser-launch-v1",
+  "started": "2026-11-17T20:08:53.359Z",
+  "ended": "2026-11-17T20:08:53.361Z",
+  "executable": "C:/Program Files/Google/Chrome/Application/chrome.exe",
+  "executableRecord": {
+    "file": "C:/Program Files/Google/Chrome/Application/chrome.exe",
+    "bytes": 4466840,
+    "sha256": "314aca34afa8a04ef596a75d8beb3ddc29c58772004cba7dc92daea65437e378"
+  },
+  "flags": [
+    "--headless=new",
+    "--remote-debugging-pipe",
+    "--user-data-dir=C:\\Users\\PEDRO~1.RAM\\AppData\\Local\\Temp\\gexp-qa1b-II-B2C-7exq85",
+    "--no-first-run",
+    "--no-default-browser-check",
+    "--disable-background-networking",
+    "--disable-component-update",
+    "--disable-sync",
+    "--disable-extensions",
+    "--no-pings",
+    "--host-resolver-rules=MAP * ~NOTFOUND, EXCLUDE localhost",
+    "--proxy-server=http://127.0.0.1:9",
+    "--proxy-bypass-list=localhost;127.0.0.1"
+  ],
+  "profile": "C:\\Users\\PEDRO~1.RAM\\AppData\\Local\\Temp\\gexp-qa1b-II-B2C-7exq85",
+  "profileFresh": true,
+  "os": {
+    "type": "Windows_NT",
+    "release": "10.0.26300",
+    "version": "Windows 11 Enterprise",
+    "arch": "x64"
+  },
+  "node": "v25.8.1",
+  "result": null,
+  "error": {
+    "code": "EPERM",
+    "message": "spawn EPERM"
+  },
+  "exitCode": null,
+  "signal": null,
+  "timedOut": false,
+  "sandboxDisabled": false,
+  "securityRelaxed": false,
+  "navigations": 0,
+  "advertising": false,
+  "stdout": {
+    "file": "docs/intext-p14b-qa1b-II-B2C-launch.stdout.txt",
+    "bytes": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "stderr": {
+    "file": "docs/intext-p14b-qa1b-II-B2C-launch.stderr.txt",
+    "bytes": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "status": "BLOCKED"
+}

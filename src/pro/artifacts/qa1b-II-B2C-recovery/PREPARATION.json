@@ -1,0 +1,18 @@
+{
+  "schema": "qa1b-portable-preparation-v1",
+  "status": "PREPARED-OFFLINE-NOT-BROWSER-VALIDATED",
+  "nodeUsedForOfflineChecks": "v25.8.1",
+  "offlineSuite": {"tests":47,"pass":47,"fail":0,"cancelled":0,"skipped":0,"exitCode":0,"log":"offline-validation.txt","command":"node --test --test-isolation=none --test-reporter=tap artifacts/qa1b-II-B2C-recovery/offline.test.cjs"},
+  "PowerShell": {"Run-Recovery.ps1":"parser PASS, no execution", "chrome-version.ps1":"parser PASS, no execution"},
+  "oldInputsChecked":468,
+  "oldSuitesRerun":false,
+  "ChromeLaunchedHere":false,
+  "serverStartedHere":false,
+  "G1G2BrowserExecution":"NOT-RUN",
+  "realPerformance":"NOT-MEASURED",
+  "sourceAttestor":null,
+  "E":"BLOCKED-UNBOUND",
+  "priorDiagnostics":"Preserved byte for byte under docs/",
+  "review":"See REVIEW.md; final ZIP and hashes are verified independently before delivery",
+  "trustLimit":"Same Windows account, tampered browser/debugger/realm or forged logs remain outside source authentication. Import is pending review, never automatic acceptance."
+}

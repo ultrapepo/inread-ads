@@ -1,0 +1,82 @@
+{
+  "schema": "qa1b-recovery-delivery-v1",
+  "status": "PREPARED-OFFLINE-ONLY",
+  "zip": {
+    "file": "artifacts/intext-p14b-qa1b-II-B2C-recovery.zip",
+    "bytes": 2611584,
+    "sha256": "376c253aec7332dc3f1747fd57805e92593f8532895cc1d3077cd191d130a5fd"
+  },
+  "packageManifest": {
+    "file": "artifacts\\qa1b-II-B2C-recovery\\package-manifest.json",
+    "bytes": 7944,
+    "sha256": "84752d1d6d65387300f50ec2510155670bd820e498a30013fcced09607dc8a83"
+  },
+  "files": 37,
+  "scripts": [
+    {
+      "file": "Run-Recovery.ps1",
+      "bytes": 1069,
+      "sha256": "9d1d0fa6438eaee6691b420a9eb9c23ac9a109d3d612a595cb7d984fe250affa",
+      "kind": "new-recovery-source-or-evidence"
+    },
+    {
+      "file": "cdp.cjs",
+      "bytes": 3631,
+      "sha256": "22118b2b07b5572db67695e0ed1b1970c6f0ac0ead23634919de530eb2cb5fcb",
+      "kind": "new-recovery-source-or-evidence"
+    },
+    {
+      "file": "chrome-version.ps1",
+      "bytes": 254,
+      "sha256": "f5cfc402f69925af68b09ec07dff31e43ebf72d4b3e4fcb3ef8fdc968b9c0dff",
+      "kind": "new-recovery-source-or-evidence"
+    },
+    {
+      "file": "g1g2.cjs",
+      "bytes": 13419,
+      "sha256": "3f6bd69e04e414995a93a5c0fb66b596e7636393812ea687d71a4c05dfdb681f",
+      "kind": "new-recovery-source-or-evidence"
+    },
+    {
+      "file": "import-logs.cjs",
+      "bytes": 3087,
+      "sha256": "9323a916aab5f05efe361b84b554fddb6da19e517e5d67bfffee6c6823888d62",
+      "kind": "new-recovery-source-or-evidence"
+    },
+    {
+      "file": "lib.cjs",
+      "bytes": 6567,
+      "sha256": "330d3862f94edf2d2d2b25aec496b7739c71b3622c809630a29c74655e6966d0",
+      "kind": "new-recovery-source-or-evidence"
+    },
+    {
+      "file": "offline.test.cjs",
+      "bytes": 7617,
+      "sha256": "b70d95a8414e5255f3c7aa917e47684abd9211721ca6183755a1f065f4f52fac",
+      "kind": "new-recovery-source-or-evidence"
+    },
+    {
+      "file": "runner.cjs",
+      "bytes": 9116,
+      "sha256": "3749453394cc966ff753502741b6bbb448649355d2f7edfc58755e6d2a976b2c",
+      "kind": "new-recovery-source-or-evidence"
+    }
+  ],
+  "preparationTools": [
+    {
+      "file": "tests/qa/qa1b2c-recovery/build.cjs",
+      "bytes": 5589,
+      "sha256": "09a8ae8820b514b6321c0a936569e56112c83e16f50b49ba9289edfa77a60c47"
+    },
+    {
+      "file": "tests/qa/qa1b2c-recovery/verify-zip.ps1",
+      "bytes": 2913,
+      "sha256": "b8d6f7a7a4cc17fdd11c32aefd5265c108088b9040b0d25ab38a0d1cf60947c4"
+    }
+  ],
+  "protectedBeforeAfter": 468,
+  "priorII_B2CVerdict": "BLOCKED unchanged",
+  "ChromeExecuted": false,
+  "tests": "See bundled offline-validation.txt and PREPARATION.json; no browser/old suites executed",
+  "independentReview": "See bundled REVIEW.md"
+}

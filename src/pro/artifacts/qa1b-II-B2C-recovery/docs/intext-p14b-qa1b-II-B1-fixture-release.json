@@ -1,0 +1,42 @@
+{
+  "schema": "qa1b-II-B1-fixture-release-v1",
+  "authority": "synthetic-only-not-source-accreditation",
+  "browserStatus": "NOT-RUN",
+  "externalSourceRoot": "UNBOUND",
+  "files": [
+    {
+      "file": "tests/qa/generated/qa1b-stage2b1/isolated-fixture.qa.js",
+      "bytes": 318048,
+      "sha256": "827cd5906441b2504a972ecafc30c15fd52c2640a5b8e53725d4e55bcca4a07f",
+      "sri": "sha256-gnzVkGRBslBKly7K/DDBX9UsJkCluOU3JdTlW8ykoH8="
+    },
+    {
+      "file": "tests/qa/qa1b2b1/fixtures/canary.js",
+      "bytes": 308,
+      "sha256": "631fd38ecd70e24b82db57f12f13961c83a4f049ffdbeb4ec3729f2357d2bfee",
+      "sri": "sha256-Yx/Tjs1w4kuC21fxLxOWHIOk8En/2+tOw3KfI1fSv+4="
+    },
+    {
+      "file": "tests/qa/qa1b2b1/fixtures/isolated.html",
+      "bytes": 662,
+      "sha256": "97da21d78549956c32b16b466337a295afbabc097ef871ed105b28d590fc18c5",
+      "sri": "sha256-l9oh14VJlWwysWtGYzeila+6vAl++HHtEFso1ZD8GMU="
+    }
+  ],
+  "publicEnvironment": {
+    "status": "BLOCKED-no-authorization",
+    "url": null
+  },
+  "inputs": [
+    {
+      "distribution": "_gam_kv_.js",
+      "releaseInputId": "77f587db377412591450a191add07aff2e698524f87f491d9928987a66f7bd39",
+      "copySha256": "b8a827fcae272bdacdfb24c7492e0de733ae67defd585e53020cfb87b6416bc1"
+    },
+    {
+      "distribution": "IntextManager.js",
+      "releaseInputId": "522c2cbe587304fdaedaa55faa9e86ceacb2b84f1109eda5ec5d15cc1388465c",
+      "copySha256": "4c668a65e01913afdcf23bdc72ad8c8104a51b731666611cd8346ebf51422e0c"
+    }
+  ]
+}
